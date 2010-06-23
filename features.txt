@@ -1,0 +1,11 @@
+- Implement subset of IERange: conversion to and from startContainer/offset and endContainer/offset and TextRange
+- Obtain all text nodes within a selection, splitting at the boundaries if necessary
+- Create range command object with undo method
+- Method to test if all the text nodes in a range have a particular characteristic, including built-ins such as
+  being contained within a span of a particular class
+- input and textarea selection boundary positions, get and set
+- Save/restore selection when DOM may change
+- Everything must work in iframes: window parameter
+- Methods to get selections ranges, get first selection range, create range, get selection (plus is backwards),
+  select range, empty range, insert node at range boundary, insert HTML at range boundary
+- Extended selection (and Range?) objects
