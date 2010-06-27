@@ -9,3 +9,5 @@
 - Methods to get selections ranges, get first selection range, create range, get selection (plus is backwards),
   select range, empty range, insert node at range boundary, insert HTML at range boundary
 - Extended selection (and Range?) objects
+
+
