@@ -273,82 +273,83 @@ var rangy = (function() {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    var wrappedTextRangePrototype = (function() {
+    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an optimized
+    // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/)
+    function getTextRangeBoundaryPosition(textRange, isStart) {
+        var workingRange = textRange.duplicate();
+        workingRange.collapse(isStart);
+        var containerElement = workingRange.parentElement();
+        var workingNode = getDocument(containerElement).createElement("span");
+        var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
+        var boundaryPosition, boundaryNode;
 
-        // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an optimized
-        // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/)
-        function getBoundaryPosition(textRange, isStart) {
-            var workingRange = textRange.duplicate();
-            workingRange.collapse(isStart);
-            var containerElement = workingRange.parentElement();
-            var workingNode = getDocument(containerElement).createElement("span");
-            var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
-            var boundaryPosition, boundaryNode;
-
-            // Move the working range through the container's children, starting at
-            // the end and working backwards, until the working range reaches or goes
-            // past the boundary we're interested in
-            do {
-                containerElement.insertBefore(workingNode, workingNode.previousSibling);
-                workingRange.moveToElementText(workingNode);
-            } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0
-                    && workingNode.previousSibling);
-
-            // We've now reached or gone past the boundary of the text range we're interested in
-            // so have identified the node we want
-            boundaryNode = workingNode.nextSibling;
-            if (comparison == -1 && boundaryNode) {
-                // This must be a data node (text, comment, cdata) since we've overshot. The working
-                // range is collapsed at the start of the node containing the text range's boundary,
-                // so we move the end of the working range to the boundary point and measure the
-                // length of its text to get the boundary's offset within the node
-                workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
-                boundaryPosition = new DomPosition(boundaryNode, workingRange.text.length);
-            } else {
-                // We've hit the boundary exactly, so this must be an element
-                boundaryPosition = new DomPosition(containerElement, getChildIndex(workingNode));
-            }
-
-            // Clean up
-            workingNode.parentNode.removeChild(workingNode);
-
-            return boundaryPosition;
-        }
-
-        // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
-        // This method is an optimized version of code found in Tim Cameron Ryan's IERange
-        // (http://code.google.com/p/ierange/)
-        function createBoundaryTextRange(boundaryPosition, isStart) {
-            var boundaryNode, boundaryParent;
-            var nodeIsDataNode = isDataNode(boundaryPosition.node);
-
-            if (nodeIsDataNode) {
-                boundaryNode = boundaryPosition.node;
-                boundaryParent = boundaryNode.parentNode;
-            } else {
-                boundaryNode = boundaryPosition.node.childNodes[boundaryPosition.offset];
-                boundaryParent = boundaryPosition.node;
-            }
-
-            // Position the range immediately before the node containing the boundary
-            var doc = getDocument(boundaryPosition.node);
-            var workingNode = doc.createElement("span");
-            boundaryParent.insertBefore(workingNode, boundaryNode);
-
-            var workingRange = doc.body.createTextRange();
+        // Move the working range through the container's children, starting at
+        // the end and working backwards, until the working range reaches or goes
+        // past the boundary we're interested in
+        do {
+            containerElement.insertBefore(workingNode, workingNode.previousSibling);
             workingRange.moveToElementText(workingNode);
+        } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0
+                && workingNode.previousSibling);
 
-            // Clean up
-            boundaryParent.removeChild(workingNode);
-
-            // Move the working range to the text offset, if required
-            if (nodeIsDataNode) {
-                workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryPosition.offset);
-            }
-
-            return workingRange;
+        // We've now reached or gone past the boundary of the text range we're interested in
+        // so have identified the node we want
+        boundaryNode = workingNode.nextSibling;
+        if (comparison == -1 && boundaryNode) {
+            // This must be a data node (text, comment, cdata) since we've overshot. The working
+            // range is collapsed at the start of the node containing the text range's boundary,
+            // so we move the end of the working range to the boundary point and measure the
+            // length of its text to get the boundary's offset within the node
+            workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
+            boundaryPosition = new DomPosition(boundaryNode, workingRange.text.length);
+        } else {
+            // We've hit the boundary exactly, so this must be an element
+            boundaryPosition = new DomPosition(containerElement, getChildIndex(workingNode));
         }
 
+        // Clean up
+        workingNode.parentNode.removeChild(workingNode);
+
+        return boundaryPosition;
+    }
+
+    // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
+    // This method is an optimized version of code found in Tim Cameron Ryan's IERange
+    // (http://code.google.com/p/ierange/)
+    function createBoundaryTextRange(boundaryPosition, isStart) {
+        var boundaryNode, boundaryParent;
+        var nodeIsDataNode = isDataNode(boundaryPosition.node);
+
+        if (nodeIsDataNode) {
+            boundaryNode = boundaryPosition.node;
+            boundaryParent = boundaryNode.parentNode;
+        } else {
+            boundaryNode = boundaryPosition.node.childNodes[boundaryPosition.offset];
+            boundaryParent = boundaryPosition.node;
+        }
+
+        // Position the range immediately before the node containing the boundary
+        var doc = getDocument(boundaryPosition.node);
+        var workingNode = doc.createElement("span");
+        boundaryParent.insertBefore(workingNode, boundaryNode);
+
+        var workingRange = doc.body.createTextRange();
+        workingRange.moveToElementText(workingNode);
+
+        // Clean up
+        boundaryParent.removeChild(workingNode);
+
+        // Move the working range to the text offset, if required
+        if (nodeIsDataNode) {
+            workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryPosition.offset);
+        }
+
+        return workingRange;
+    }
+
+
+    var wrappedTextRangePrototype = (function() {
+/*
         function createCollapser(isStart) {
             return function(range) {
                 return range.nativeRange.collapse(isStart);
@@ -356,6 +357,7 @@ var rangy = (function() {
         }
 
         var collapseToStart = createCollapser(true), collapseToEnd = createCollapser(false);
+*/
 
         function updateCollapsed(range) {
             return range.startContainer === range.endContainer && range.startOffset === range.endOffset;
@@ -387,8 +389,8 @@ var rangy = (function() {
                 this.nativeRange = textRange;
                 this.wrapsTextRange = true;
 
-                var startPos = getBoundaryPosition(textRange, true);
-                var endPos = getBoundaryPosition(textRange, false);
+                var startPos = getTextRangeBoundaryPosition(textRange, true);
+                var endPos = getTextRangeBoundaryPosition(textRange, false);
 
                 this.startContainer = startPos.node;
                 this.startOffset = startPos.offset;

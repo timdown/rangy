@@ -11,3 +11,27 @@
 - Extended selection (and Range?) objects
 
 
+Features
+--------
+
+- Surround all text nodes with span with class, remove class, test for class. Generalise to any action on text nodes
+  within a selection.
+  Question: http://stackoverflow.com/questions/2887101/apply-style-to-range-of-text-with-javascript-in-uiwebview/2888969#2888969
+  Requires:
+    - get text nodes in selection
+    - range intersects node
+    - range boundaries as node/offsets
+
+- Insert node/HTML (with ability to select or place caret before or after inserted node)
+  Question: http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514
+
+- Text area/text input selectionStart/End, get and set
+  Question: http://stackoverflow.com/questions/3053542/how-to-get-the-start-and-end-points-of-selection-in-text-area/3053640#3053640
+
+- Save/restore selection. See selections demo.
+
+- Get range start/end container element
+
+- Get element text
+
+- Test empty selections?
