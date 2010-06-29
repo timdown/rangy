@@ -1,10 +1,10 @@
-var rangy = (function() {
+(function() {
     var log = log4javascript.getLogger("rangy");
 
-    var NUMBER = "number", BOOLEAN = "boolean", OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
+    var NUMBER = "number", BOOLEAN = "boolean", OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined",
+            STRING = "string";
 
-    var getSelection, getSelectionInfo, insertRangeBoundaryMarker, setRangeBoundary, removeMarkerElement;
-    var createRange, selectRange, createSelectionInfo, testSelection, testRange, testNode;
+    var getSelection, createRange, selectRange, testSelection, testRange;
 
     var domRangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer", "START_TO_START", "START_TO_END", "END_TO_START", "END_TO_END"];
@@ -14,14 +14,22 @@ var rangy = (function() {
         "extractContents", "cloneContents", "insertNode", "surroundContents", "cloneRange", "toString", "detach"];
 
 
-    var selectionsHaveAnchorAndFocus;
+    var selectionsHaveAnchorAndFocus, emptySelection, selectSingleRange, getSelectionRangeAt, getAllSelectionRanges;
+    var getFirstSelectionRange, selectionIsBackwards, selectionIsCollapsed, getSelectionText;
+
+    var rangesAreTextRanges, getRangeStart, getRangeEnd, setRangeStart, setRangeEnd, collapseRangeTo, rangeIsCollapsed;
+    var getRangeText, createPopulatedRange;
 
     var win = window, doc = document;
+    var global = (function() { return this; })();
 
     var api = {
         initialized: false
     };
 
+    // Create the single global variable to contain everything
+    var globalVarName = (typeof global.rangyGlobalVarName == STRING) ? global.rangyGlobalVarName : "rangy";
+    global[globalVarName] = api;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -29,11 +37,15 @@ var rangy = (function() {
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
     function isHostMethod(object, property) {
         var t = typeof object[property];
-        return t === FUNCTION || (!!(t === OBJECT && object[property])) || t === "unknown";
+        return t === FUNCTION || (!!(t == OBJECT && object[property])) || t == "unknown";
     }
 
     function isHostObject(object, property) {
-        return !!(typeof(object[property]) === OBJECT && object[property]);
+        return !!(typeof(object[property]) == OBJECT && object[property]);
+    }
+
+    function isHostProperty(object, property) {
+        return typeof(object[property]) != UNDEFINED;
     }
 
     // Next pair of functions are a convenience to save verbose repeated calls to previous two functions
@@ -56,6 +68,15 @@ var rangy = (function() {
         return true;
     }
 
+    function areHostProperties(object, properties) {
+        for (var i = properties.length; i--; ) {
+            if (!isHostProperty(object, properties[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // DOM utilities
@@ -72,6 +93,15 @@ var rangy = (function() {
         }
     }
 
+    api.getDocument = getDocument;
+
+    function getWindow(node) {
+        var doc = getDocument(node);
+        return doc.defaultView || doc.parentWindow;
+    }
+
+    api.getWindow = getWindow;
+
     // Nodes being same returns true.
     function isAncestorOf(ancestor, descendant) {
         var n = descendant;
@@ -84,6 +114,8 @@ var rangy = (function() {
         }
         return false;
     }
+
+    api.isAncestorOf = isAncestorOf;
 
     var arrayContains = Array.prototype.indexOf ?
         function(arr, val) {
@@ -100,6 +132,8 @@ var rangy = (function() {
             return false;
         };
 
+    api.arrayContains = arrayContains;
+
     function getCommonAncestor(node1, node2) {
         var ancestors = [], n;
         for (n = node1; n; n = n.parentNode) {
@@ -115,6 +149,7 @@ var rangy = (function() {
         return null;
     }
 
+    api.getCommonAncestor = getCommonAncestor;
 
     function getChildIndex(node) {
         var i = 0;
@@ -127,7 +162,6 @@ var rangy = (function() {
     function isDataNode(node) {
         return node && node.nodeValue !== null && node.data !== null;
     }
-
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -142,134 +176,7 @@ var rangy = (function() {
         }
     };
 
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    function WrappedSelection(sel) {
-        this.nativeSelection = sel;
-    }
-
-    WrappedSelection.prototype = {
-    };
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    var wrappedDomRangePrototype = (function() {
-        function updateRangeProperties(range) {
-            var i = domRangeProperties.length, prop;
-            while (i--) {
-                prop = domRangeProperties[i];
-                range[prop] = range.nativeRange[prop];
-            }
-        }
-
-
-        var rangePrototype = {
-            init: function(range) {
-                this.nativeRange = this;
-                this.wrapsTextRange = false;
-                updateRangeProperties(this);
-            },
-
-            getStartPosition: function() {
-                return new DomPosition(this.startContainer, this.startOffset);
-            },
-
-            getEndPosition: function() {
-                return new DomPosition(this.endContainer, this.endOffset);
-            },
-
-            setStart: function(node, offset) {
-                this.nativeRange.setStart(node, offset);
-                updateRangeProperties(this);
-            },
-
-            setStartBefore: function(node) {
-                this.nativeRange.setStartBefore(node);
-                updateRangeProperties(this);
-            },
-
-            setStartAfter: function(node) {
-                this.nativeRange.setStartAfter(node);
-                updateRangeProperties(this);
-            },
-
-            setEnd: function(node, offset) {
-                this.nativeRange.setEnd(node, offset);
-                updateRangeProperties(this);
-            },
-
-            setEndBefore: function(node) {
-                this.nativeRange.setEndBefore(node);
-                updateRangeProperties(this);
-            },
-
-            setEndAfter: function(node) {
-                this.nativeRange.setEndAfter(node);
-                updateRangeProperties(this);
-            },
-
-            collapse: function(isStart) {
-                this.nativeRange.collapse(isStart);
-                updateRangeProperties(this);
-            },
-
-            selectNode: function(node) {
-                this.nativeRange.selectNode(node);
-                updateRangeProperties(this);
-            },
-
-            selectNodeContents: function(node) {
-                this.nativeRange.selectNodeContents(node);
-                updateRangeProperties(this);
-            },
-
-            compareBoundaryPoints: function(type, range) {
-                return this.nativeRange.compareBoundaryPoints(type, range);
-            },
-
-            deleteContents: function() {
-                this.nativeRange.deleteContents();
-                updateRangeProperties(this);
-            },
-
-            extractContents: function() {
-                this.nativeRange.extractContents();
-                updateRangeProperties(this);
-            },
-
-            cloneContents: function() {
-                this.nativeRange.cloneContents();
-            },
-
-            insertNode: function(node) {
-                this.nativeRange.insertNode(node);
-                updateRangeProperties(this);
-            },
-
-            surroundContents: function(node) {
-                this.nativeRange.surroundContents(node);
-                updateRangeProperties(this);
-            },
-
-            cloneRange: function() {
-                return new WrappedRange(this.nativeRange.cloneRange(), false);
-            },
-
-            toString: function() {
-                return this.nativeRange.toString();
-            },
-
-            detach: function() {
-                this.nativeRange.detach();
-                this.detached = true;
-                var i = domRangeProperties.length, prop;
-                while (i--) {
-                    prop = domRangeProperties[i];
-                    this[prop] = null;
-                }
-            }
-        };
-    })();
+    api.DomPosition = DomPosition;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -347,113 +254,209 @@ var rangy = (function() {
         return workingRange;
     }
 
-
-    var wrappedTextRangePrototype = (function() {
-/*
-        function createCollapser(isStart) {
-            return function(range) {
-                return range.nativeRange.collapse(isStart);
-            };
-        }
-
-        var collapseToStart = createCollapser(true), collapseToEnd = createCollapser(false);
-*/
-
-        function updateCollapsed(range) {
-            return range.startContainer === range.endContainer && range.startOffset === range.endOffset;
-        }
-
-        function updateCommonAncestorContainer(range) {
-            var start = range.startContainer, end = range.endContainer;
-            range.commonAncestorContainer = (start === end) ? start : getCommonAncestor(start, end);
-        }
-
-        function createBoundaryUpdater(isStart) {
-            var prefix = isStart ? "start" : "end";
-            return function(range, node, offset) {
-                var containerProperty = prefix + "Container";
-                var nodeChanged = (node === range[containerProperty]);
-                range[containerProperty] = node;
-                range[prefix + "Offset"] = offset;
-                if (nodeChanged) {
-                    updateCommonAncestorContainer(range);
-                }
-            }
-        }
-
-        var changeStart = createBoundaryUpdater(true), changeEnd = createBoundaryUpdater(false);
-
-        return {
-            init: function(textRange) {
-                log.time("IERange creation");
-                this.nativeRange = textRange;
-                this.wrapsTextRange = true;
-
-                var startPos = getTextRangeBoundaryPosition(textRange, true);
-                var endPos = getTextRangeBoundaryPosition(textRange, false);
-
-                this.startContainer = startPos.node;
-                this.startOffset = startPos.offset;
-                this.endContainer = endPos.node;
-                this.endOffset = endPos.offset;
-
-                updateCommonAncestorContainer(this);
-                updateCollapsed(this);
-                log.timeEnd("IERange creation");
-            },
-
-            getStartPosition: function() {
-                return new DomPosition(this.startContainer, this.startOffset);
-            },
-
-            getEndPosition: function() {
-                return new DomPosition(this.endContainer, this.endOffset);
-            },
-
-            toString: function() {
-                
-            }
-        }
-
-    })();
-
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    function WrappedRange(range, isTextRange) {
-        this.nativeRange = range;
-        this.isTextRange = isTextRange;
-    }
-
-    WrappedRange.prototype = {
-    };
-
     /*----------------------------------------------------------------------------------------------------------------*/
 
     function fail(reason) {
         alert("Rangy not supported in your browser. Reason: " + reason);
+        api = {
+            initialized: true,
+            supported: false
+        }
     }
 
-    function initSelections(testSelection, testRange) {
-        var selectionPrototype = WrappedSelection.prototype;
+    // Initialization
+    function init() {
+        // Test for the Range/TextRange and Selection features required
+        // Test for ability to retrieve selection
+        if (isHostMethod(win, "getSelection")) {
+            getSelection = function(winParam) { return (winParam || window).getSelection(); };
+        } else if (isHostObject(doc, "selection")) {
+            getSelection = function(winParam) { return ((winParam || window).document.selection); };
+        }
 
-        // Test selection of ranges
-        if (areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
-            selectionPrototype.empty = function() {
-                this.nativeSelection.removeAllRanges();
+        if (!getSelection) {
+            fail("No means of obtaining selection was found");
+            return false;
+        }
+
+        api.getSelection = getSelection;
+
+        // Test creation of ranges
+        if (isHostMethod(doc, "createRange")) {
+            createRange = function(docParam) { return (docParam || document).createRange(); };
+            rangesAreTextRanges = false;
+        } else if (isHostMethod(doc.body, "createTextRange")) {
+            createRange = function(docParam) { return (docParam || document).body.createTextRange(); };
+            rangesAreTextRanges = true;
+        } else {
+            fail("No means of creating a Range or TextRange was found");
+            return false;
+        }
+
+        api.createRange = createRange;
+        api.rangesAreTextRanges = rangesAreTextRanges;
+
+        testSelection = getSelection();
+        testRange = createRange();
+
+        // Test for DOM Range support
+        if (!rangesAreTextRanges && (!areHostMethods(testRange, domRangeMethods) || !areHostProperties(testRange, domRangeProperties))) {
+            fail("Incomplete implementation of DOM Range");
+            return false;
+        }
+
+        // Simple abstraction for getting and setting range boundaries
+        if (rangesAreTextRanges) {
+            getRangeStart = function(range) {
+                return getTextRangeBoundaryPosition(range, true);
             };
 
-            selectionPrototype.selectSingleRange = function(range) {
-                this.nativeSelection.removeAllRanges();
-                this.nativeSelection.addRange(range);
+            getRangeEnd = function(range) {
+                return getTextRangeBoundaryPosition(range, false);
+            };
+
+            setRangeStart = function(range, node, offset) {
+                var boundaryRange = createBoundaryTextRange(new DomPosition(node, offset), true);
+                // Check if the new start point is on or after the existing range end point
+                if (range.compareEndPoints("EndToStart", boundaryRange) <= 0) {
+                    // Move the end of the range forward to the new boundary and collapse the range forward
+                    range.setEndPoint("EndToStart", boundaryRange);
+                    range.collapse(false);
+                } else {
+                    range.setEndPoint("StartToStart", boundaryRange);
+                }
+            };
+
+            setRangeEnd = function(range, node, offset) {
+                var boundaryRange = createBoundaryTextRange(new DomPosition(node, offset), false);
+                // Check if the new end point is on or before the existing range end point
+                if (range.compareEndPoints("StartToEnd", boundaryRange) >= 0) {
+                    // Move the start of the range backwards to the new boundary and collapse the range backwards
+                    range.setEndPoint("StartToEnd", boundaryRange);
+                    range.collapse(true);
+                } else {
+                    range.setEndPoint("EndToEnd", boundaryRange);
+                }
+            };
+        } else {
+            getRangeStart = function(range) {
+                return new DomPosition(range.startContainer, range.startOffset);
+            };
+
+            getRangeEnd = function(range) {
+                return new DomPosition(range.endContainer, range.endOffset);
+            };
+
+            // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
+            // correct for it
+            (function() {
+                var node = doc.createTextNode(" ");
+                doc.body.appendChild(node);
+                var range = createRange(doc);
+                range.setStart(node, 0);
+                range.setEnd(node, 0);
+                try {
+                    range.setStart(node, 1);
+                    setRangeStart = function(range, node, offset) {
+                        range.setStart(node, offset);
+                    };
+
+                    setRangeEnd = function(range, node, offset) {
+                        range.setEnd(node, offset);
+                    };
+                } catch(ex) {
+                    log.info("Browser has bug (present in Firefox 2 and below) that prevents moving the start of a Range to a point after its current end. Correcting for it.");
+                    setRangeStart = function(range, node, offset) {
+                        try {
+                            range.setStart(node, offset);
+                        } catch (ex) {
+                            range.setEnd(node, offset);
+                            range.setStart(node, offset);
+                        }
+                    };
+
+                    setRangeEnd = function(range, node, offset) {
+                        try {
+                            range.setEnd(node, offset);
+                        } catch (ex) {
+                            range.setStart(node, offset);
+                            range.setEnd(node, offset);
+                        }
+                    };
+                }
+
+                // Clean up
+                doc.body.removeChild(node);
+            })();
+
+        }
+
+        api.getRangeStart = getRangeStart;
+        api.getRangeEnd = getRangeEnd;
+        api.setRangeStart = setRangeStart;
+        api.setRangeEnd = setRangeEnd;
+
+        api.createPopulatedRange = createPopulatedRange = function(startContainer, startOffset, endContainer, endOffset) {
+            var range = createRange(getDocument(startContainer));
+            setRangeStart(range, startContainer, startOffset);
+            setRangeEnd(range, endContainer, endOffset);
+            return range;
+        };
+
+        // Range collapsing
+        api.collapseRangeTo = collapseRangeTo = function(range, node, offset) {
+            setRangeStart(range, node, offset);
+            setRangeEnd(range, node, offset);
+        };
+
+        if (typeof testRange.collapsed == BOOLEAN) {
+            rangeIsCollapsed = function(range) {
+                return range.collapsed;
+            }
+        } else if (typeof testRange.text == STRING) {
+            rangeIsCollapsed = function(range) {
+                return !!range.text.length;
+            }
+        } else {
+            fail("No means of detecting whether a range is collapsed found");
+            return false;
+        }
+
+        api.rangeIsCollapsed = rangeIsCollapsed;
+
+        // Range text
+        if (typeof testRange.text == STRING) {
+            getRangeText = function(range) {
+                return range.text;
+            }
+        } else if (typeof testRange.toString == FUNCTION) {
+            getRangeText = function(range) {
+                return range.toString();
+            }
+        } else {
+            fail("No means of obtaining a range's text was found");
+            return false;
+        }
+
+        api.getRangeText = getRangeText;
+
+        // Selecting a range
+        if (areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
+            emptySelection = function(sel) {
+                sel.removeAllRanges();
+            };
+
+            selectSingleRange = function(sel, range) {
+                sel.removeAllRanges();
+                sel.addRange(range);
             };
         } else if (isHostMethod(testSelection, "empty") && isHostMethod(testRange, "select")) {
-            selectionPrototype.empty = function() {
-                this.nativeSelection.empty();
+            emptySelection = function(sel) {
+                sel.empty();
             };
 
-            selectionPrototype.selectSingleRange = function(range) {
-                this.nativeSelection.empty();
+            selectSingleRange = function(sel, range) {
+                sel.empty();
                 range.select();
             };
         } else {
@@ -461,18 +464,40 @@ var rangy = (function() {
             return false;
         }
 
+        api.emptySelection = emptySelection;
+        api.selectSingleRange = selectSingleRange;
+
+        api.createSelection = function(startContainer, startOffset, endContainer, endOffset) {
+            var sel = getSelection(getWindow(startContainer));
+            var range = createPopulatedRange(startContainer, startOffset, endContainer, endOffset);
+            selectSingleRange(sel, range);
+            return sel;
+        };
+
+        // Obtaining a range from a selection
         selectionsHaveAnchorAndFocus = areHostObjects(testSelection, [
             "anchorNode", "focusNode", "anchorOffset", "focusOffset"
         ]);
 
+        getAllSelectionRanges = function(sel) {
+            return [getSelectionRangeAt(sel, 0)];
+        };
+
         if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
-            selectionPrototype.getRangeAt = function(index) {
-                return (this.nativeSelection.rangeCount == 0) ? null : this.nativeSelection.getRangeAt(index);
+            getSelectionRangeAt = function(sel, index) {
+                return (sel.rangeCount == 0) ? null : sel.getRangeAt(index);
+            };
+
+            getAllSelectionRanges = function(sel) {
+                for (var i = 0, len = sel.rangeCount, ranges = []; i < len; ++i) {
+                    ranges.push(sel.getRangeAt(i));
+                }
+                return ranges;
             };
         } else if (isHostMethod(testSelection, "createRange")) {
-            selectionPrototype.getRangeAt = function(index) {
+            getSelectionRangeAt = function(sel, index) {
                 if (index == 0) {
-                    return this.nativeSelection.createRange();
+                    return sel.createRange();
                 } else {
                     throw new Error("Range index out of bounds (range count: 1)");
                 }
@@ -480,17 +505,18 @@ var rangy = (function() {
         } else if (selectionsHaveAnchorAndFocus && typeof testRange.collapsed == BOOLEAN
                 && typeof testSelection.isCollapsed == BOOLEAN) {
 
-            selectionPrototype.getRangeAt = function(index) {
+            getSelectionRangeAt = function(sel, index) {
                 if (index == 0) {
-                    var range = createRange(), sel = this.nativeSelection;
-                    range.setStart(sel.anchorNode, sel.anchorOffset);
-                    range.setEnd(sel.focusNode, sel.focusOffset);
+                    var doc = getDocument(sel.anchorNode);
+                    var range = createRange(doc);
+                    setRangeStart(range, sel.anchorNode, sel.anchorOffset);
+                    setRangeEnd(range, sel.focusNode, sel.focusOffset);
 
                     // Handle the case when the selection was selected backwards (from the end to the start in the
                     // document)
                     if (range.collapsed !== sel.isCollapsed) {
-                        range.setStart(sel.focusNode, sel.focusOffset);
-                        range.setEnd(sel.anchorNode, sel.anchorOffset);
+                        setRangeStart(range, sel.focusNode, sel.focusOffset);
+                        setRangeEnd(range, sel.anchorNode, sel.anchorOffset);
                     }
 
                     return range;
@@ -503,20 +529,22 @@ var rangy = (function() {
             return false;
         }
 
-        selectionPrototype.getFirstRange = function() {
-            return this.getRangeAt(0);
+        api.getSelectionRangeAt = getSelectionRangeAt;
+        api.getAllSelectionRanges = getAllSelectionRanges;
+
+        api.getFirstSelectionRange = getFirstSelectionRange = function(sel) {
+            return getSelectionRangeAt(sel, 0);
         };
 
+
+        // Detecting if a selection is backwards
         if (selectionsHaveAnchorAndFocus && isHostMethod(testRange, "compareBoundaryPoints") && typeof testRange.START_TO_START != UNDEFINED) {
-            selectionPrototype.isBackwards = function() {
-                var sel = this.nativeSelection;
+            selectionIsBackwards = function(sel) {
                 var anchorRange = createRange();
-                anchorRange.setStart(sel.anchorNode, sel.anchorOffset);
-                anchorRange.setEnd(sel.anchorNode, sel.anchorOffset);
+                collapseRangeTo(anchorRange, sel.anchorNode, sel.anchorOffset);
 
                 var focusRange = createRange();
-                focusRange.setStart(sel.focusNode, sel.focusOffset);
-                focusRange.setEnd(sel.focusNode, sel.focusOffset);
+                collapseRangeTo(focusRange, sel.focusNode, sel.focusOffset);
 
                 var backwards = (anchorRange.compareBoundaryPoints(anchorRange.START_TO_START, focusRange) == 1);
 
@@ -526,204 +554,63 @@ var rangy = (function() {
                 return backwards;
             };
         } else {
-            selectionPrototype.isBackwards = function() {
+            selectionIsBackwards = function() {
                 return false;
             };
         }
 
-        // Collapsedness
+        api.selectionIsBackwards = selectionIsBackwards;
+
+        // Selection collapsedness
         if (typeof testSelection.isCollapsed == BOOLEAN) {
-            selectionPrototype.isCollapsed = function() {
-                return this.nativeSelection.isCollapsed;
+            selectionIsCollapsed = function(sel) {
+                return sel.isCollapsed;
             };
         } else {
-            selectionPrototype.isCollapsed = function() {
-                return this.getRangeAt(0).isCollapsed();
+            selectionIsCollapsed = function(sel) {
+                return rangeIsCollapsed(getFirstSelectionRange(sel));
             };
         }
+
+        api.selectionIsCollapsed = selectionIsCollapsed;
 
         // Selection text
         if (isHostMethod(testSelection, "toString")) {
-            selectionPrototype.toString = function() {
-                return "" + this.nativeSelection;
+            getSelectionText = function(sel) {
+                return "" + sel;
             };
         } else {
-            selectionPrototype.toString = function() {
-                return "" + this.getFirstRange();
+            getSelectionText = function(sel) {
+                var ranges = getAllSelectionRanges(sel);
+                var rangeTexts = [];
+                for (var i = 0, len = ranges.length; i < len; ++i) {
+                    rangeTexts[i] = getRangeText(ranges[i]);
+                }
+                return rangeTexts.join("");
             };
         }
 
-        return true;
-    }
+        win = doc = null;
 
-    function initRanges(testSelection, testRange) {
-        //if (!areHostMethods(testRange, ))
-    }
-
-
-    // Initialization
-    function init() {
-        var selectionPrototype = WrappedSelection.prototype, rangePrototype = WrappedRange.prototype;
-
-        // Test for the Range/TextRange and Selection features required
-        // Test for ability to retrieve selection
-        if (isHostMethod(win, "getSelection")) {
-            getSelection = function() { return new WrappedSelection(win.getSelection()); };
-        } else if (isHostObject(doc, "selection")) {
-            getSelection = function() { return new WrappedSelection(doc.selection); };
-        }
-
-        if (!getSelection) {
-            fail("No means of obtaining selection was found");
-            return false;
-        }
-
-        api.getSelection = getSelection;
-
-        // Test creation of ranges
-        if (isHostMethod(doc, "createRange")) {
-            createRange = function() { return new WrappedRange(doc.createRange(), false); };
-        } else if (isHostMethod(doc.body, "createTextRange")) {
-            createRange = function() { return new WrappedRange(doc.body.createTextRange(), true); };
-        }
-
-        if (!createRange) {
-            fail("No means of creating a Range or TextRange was found");
-            return false;
-        }
-
-        api.createRange = createRange;
-
-        testSelection = getSelection();
-        testRange = createRange();
-
-        if (!initSelections(testSelection, testRange)) {
-            return false;
-        }
-
-        if (!initRanges(testSelection, testRange)) {
-            return false;
-        }
-
-
-
-        // Create methods on the wrapped selection prototype
-
-
-
-
-/*        if (selectRange) {
-            api.selectRange = selectRange;
-
-            // Create the save and restore API
-
-            // Test document for DOM methods
-            if ( areHostMethods(doc, ["getElementById", "createElement", "createTextNode"]) ) {
-                testNode = doc.createElement("span");
-
-                // Test DOM node for required methods
-                if ( areHostMethods(testNode, ["appendChild", "removeChild"]) ) {
-
-                    // Test Range/TextRange has required methods
-                    if ( areHostMethods(testRange, ["collapse", "insertNode", "setStartAfter", "setEndBefore", "cloneRange", "detach"])
-                            || areHostMethods(testRange, ["collapse", "pasteHTML", "setEndPoint", "moveToElementText", "duplicate"]) ) {
-
-                        insertRangeBoundaryMarker = function(selectionInfo, atStart) {
-                            var markerId = "selectionBoundary_" + new Date().getTime() + "_" + Math.random().toString().substr(2);
-                            var range, markerEl;
-
-                            if (selectionInfo.isDomRange) {
-                                // Clone the Range and collapse to the appropriate boundary point
-                                range = selectionInfo.range.cloneRange();
-                                range.collapse(atStart);
-
-                                // Create the marker element containing a single invisible character using DOM methods and insert it
-                                markerEl = doc.createElement("span");
-                                markerEl.id = markerId;
-                                markerEl.appendChild( doc.createTextNode(markerTextChar) );
-                                range.insertNode(markerEl);
-
-                                // Make sure the current range boundary is preserved
-                                selectionInfo.range[atStart ? "setStartAfter" : "setEndBefore"](markerEl);
-
-                                range.detach();
-                            } else {
-                                // Clone the TextRange and collapse to the appropriate boundary point
-                                range = selectionInfo.range.duplicate();
-                                range.collapse(atStart);
-
-                                // Create the marker element containing a single invisible character by creating literal HTML and insert it
-                                range.pasteHTML('<span id="' + markerId + '">' + markerTextCharEntity + '</span>');
-                                markerEl = doc.getElementById(markerId);
-
-                                // Make sure the current range boundary is preserved
-                                range.moveToElementText(markerEl);
-                                selectionInfo.range.setEndPoint(atStart ? "StartToEnd" : "EndToStart", range);
-                            }
-
-                            return markerId;
-                        };
-
-                        setRangeBoundary = function(range, markerId, isDomRange, atStart) {
-                            var markerEl = doc.getElementById(markerId);
-                            var tempRange;
-
-                            if (isDomRange) {
-                                range[atStart ? "setStartAfter" : "setEndBefore"](markerEl);
-                            } else {
-                                tempRange = range.duplicate();
-                                tempRange.moveToElementText(markerEl);
-                                range.setEndPoint(atStart ? "StartToEnd" : "EndToStart", tempRange);
-                            }
-
-                            // Remove the marker element
-                            markerEl.parentNode.removeChild(markerEl);
-                        };
-
-                        api.removeMarkerElement = function(markerId) {
-                            var markerEl = doc.getElementById(markerId);
-                            markerEl.parentNode.removeChild(markerEl);
-                        };
-
-                        api.saveSelection = function() {
-                            var selectionInfo = getSelectionInfo( getSelection() );
-                            var savedSelection = {
-                                startMarkerId: insertRangeBoundaryMarker(selectionInfo, true),
-                                endMarkerId: insertRangeBoundaryMarker(selectionInfo, false),
-                                isDomRange: selectionInfo.isDomRange
-                            };
-
-                            // Ensure current selection is unaffected
-                            selectRange( getSelection(), selectionInfo.range );
-
-                            return savedSelection;
-                        };
-
-                        api.restoreSelection = function(savedSelection) {
-                            var range = createRange();
-                            setRangeBoundary(range, savedSelection.startMarkerId, savedSelection.isDomRange, true);
-                            setRangeBoundary(range, savedSelection.endMarkerId, savedSelection.isDomRange, false);
-
-                            // Select the range
-                            selectRange( getSelection(), range );
-                        };
-
-                        api.removeMarkers = function(savedSelection) {
-                            removeMarkerElement(savedSelection.startMarkerId);
-                            removeMarkerElement(savedSelection.endMarkerId);
-                        };
-
-                        api.saveRestoreSupported = true;
-                    }
-                }
-            }
-        }*/
         api.initialized = true;
-        return true;
+
+        // Notify listeners
+        for (var i = 0, len = initListeners.length; i < len; ++i) {
+            try {
+                initListeners[i](api);
+            } catch (ex) {
+                log.error("Init listener threw an exception. Continuing.", ex);
+            }
+        }
     }
 
     // Allow external scripts to initialize this library in case it's loaded after the document has loaded
     api.init = init;
+
+    var initListeners = [];
+    api.addInitListener = function(listener) {
+        initListeners.push(listener);
+    };
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -754,10 +641,10 @@ var rangy = (function() {
     } else {
         oldOnload = win.onload;
         win.onload = function(evt) {
+            loadHandler(evt);
             if (oldOnload) {
                 oldOnload.call(win, evt);
             }
-            loadHandler();
         };
     }
 
