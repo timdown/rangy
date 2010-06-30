@@ -682,6 +682,9 @@
             return getSelectionRangeAt(sel, 0);
         };
 
+        api.getFirstSelectionRange = getFirstSelectionRange = function(sel) {
+            return getSelectionRangeAt(sel, 0);
+        };
 
         // Detecting if a selection is backwards
         if (selectionsHaveAnchorAndFocus && !rangesAreTextRanges) {
