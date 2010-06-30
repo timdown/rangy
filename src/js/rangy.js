@@ -13,12 +13,18 @@
         "setEndAfter", "collapse", "selectNode", "selectNodeContents", "compareBoundaryPoints", "deleteContents",
         "extractContents", "cloneContents", "insertNode", "surroundContents", "cloneRange", "toString", "detach"];
 
+    var textRangeProperties = ["boundingHeight", "boundingLeft", "boundingTop", "boundingWidth", "htmlText", "text"];
+
+    // Subset of TextRange's full set of methods that we're interested in
+    var textRangeMethods = ["collapse", "compareEndPoints", "duplicate", "getBookmark", "moveToBookmark",
+        "moveToElementText", "parentElement", "pasteHTML", "select", "setEndPoint"];
 
     var selectionsHaveAnchorAndFocus, emptySelection, selectSingleRange, getSelectionRangeAt, getAllSelectionRanges;
     var getFirstSelectionRange, selectionIsBackwards, selectionIsCollapsed, getSelectionText;
 
     var rangesAreTextRanges, getRangeStart, getRangeEnd, setRangeStart, setRangeEnd, collapseRangeTo, rangeIsCollapsed;
-    var getRangeText, createPopulatedRange;
+    var getRangeText, createPopulatedRange, moveRangeToNode, rangesIntersect, rangeIntersectsNode, cloneRange;
+    var detachRange, getRangeDocument;
 
     var win = window, doc = document;
     var global = (function() { return this; })();
@@ -40,13 +46,19 @@
         return t === FUNCTION || (!!(t == OBJECT && object[property])) || t == "unknown";
     }
 
+    api.isHostMethod = isHostMethod;
+
     function isHostObject(object, property) {
         return !!(typeof(object[property]) == OBJECT && object[property]);
     }
 
+    api.isHostObject = isHostObject;
+
     function isHostProperty(object, property) {
         return typeof(object[property]) != UNDEFINED;
     }
+
+    api.isHostProperty = isHostProperty;
 
     // Next pair of functions are a convenience to save verbose repeated calls to previous two functions
     function areHostMethods(object, properties) {
@@ -59,6 +71,8 @@
         return true;
     }
 
+    api.areHostMethods = areHostMethods;
+
     function areHostObjects(object, properties) {
         for (var i = properties.length; i--; ) {
             if (!isHostObject(object, properties[i])) {
@@ -68,6 +82,8 @@
         return true;
     }
 
+    api.areHostObjects = areHostObjects;
+
     function areHostProperties(object, properties) {
         for (var i = properties.length; i--; ) {
             if (!isHostProperty(object, properties[i])) {
@@ -76,6 +92,8 @@
         }
         return true;
     }
+
+    api.areHostProperties = areHostProperties;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -151,7 +169,7 @@
 
     api.getCommonAncestor = getCommonAncestor;
 
-    function getChildIndex(node) {
+    function getNodeChildIndex(node) {
         var i = 0;
         while( (node = node.previousSibling) ) {
             i++;
@@ -159,9 +177,13 @@
         return i;
     }
 
+    api.getNodeChildIndex = getNodeChildIndex;
+
     function isDataNode(node) {
-        return node && node.nodeValue !== null && node.data !== null;
+        return node && typeof node.data == STRING && typeof node.length == NUMBER;
     }
+
+    api.isDataNode = isDataNode;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -196,8 +218,8 @@
         do {
             containerElement.insertBefore(workingNode, workingNode.previousSibling);
             workingRange.moveToElementText(workingNode);
-        } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0
-                && workingNode.previousSibling);
+        } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
+                workingNode.previousSibling);
 
         // We've now reached or gone past the boundary of the text range we're interested in
         // so have identified the node we want
@@ -211,7 +233,7 @@
             boundaryPosition = new DomPosition(boundaryNode, workingRange.text.length);
         } else {
             // We've hit the boundary exactly, so this must be an element
-            boundaryPosition = new DomPosition(containerElement, getChildIndex(workingNode));
+            boundaryPosition = new DomPosition(containerElement, getNodeChildIndex(workingNode));
         }
 
         // Clean up
@@ -261,7 +283,7 @@
         api = {
             initialized: true,
             supported: false
-        }
+        };
     }
 
     // Initialization
@@ -299,11 +321,37 @@
         testSelection = getSelection();
         testRange = createRange();
 
-        // Test for DOM Range support
+        // Test for DOM Range support, and if not present check for TextRange suppor
         if (!rangesAreTextRanges && (!areHostMethods(testRange, domRangeMethods) || !areHostProperties(testRange, domRangeProperties))) {
             fail("Incomplete implementation of DOM Range");
             return false;
+        } else if (rangesAreTextRanges && (!areHostMethods(testRange, textRangeMethods) || !areHostProperties(testRange, textRangeProperties))) {
+            fail("Incomplete implementation of TextRange");
+            return false;
         }
+
+        // Detaching a range, where available
+        if (rangesAreTextRanges) {
+            detachRange = function() {};
+        } else {
+            detachRange = function(range) {
+                range.detach();
+            };
+        }
+
+        api.detachRange = detachRange;
+
+        if (rangesAreTextRanges) {
+            getRangeDocument = function(range) {
+                return getDocument(range.parentElement());
+            };
+        } else {
+            getRangeDocument = function(range) {
+                return getDocument(range.startContainer);
+            };
+        }
+
+        api.getRangeDocument = getRangeDocument;
 
         // Simple abstraction for getting and setting range boundaries
         if (rangesAreTextRanges) {
@@ -387,14 +435,48 @@
 
                 // Clean up
                 doc.body.removeChild(node);
+                detachRange(range);
             })();
-
         }
 
         api.getRangeStart = getRangeStart;
         api.getRangeEnd = getRangeEnd;
         api.setRangeStart = setRangeStart;
         api.setRangeEnd = setRangeEnd;
+
+        // Move range to node
+        if (rangesAreTextRanges) {
+            moveRangeToNode = function(range, node, insideNode) {
+                if (node.nodeType == 1) {
+                    range.moveToElementText(node);
+                } else if (isDataNode(node)) {
+                    setRangeStart(range, node, 0);
+                    setRangeEnd(range, node, node.length);
+                } else {
+                    setRangeStart(range, node, 0);
+                    setRangeEnd(range, node, node.childNodes.length);
+                }
+            };
+        } else {
+            moveRangeToNode = function(range, node, insideNode) {
+                if (insideNode) {
+                    range.selectNodeContents(node);
+                } else {
+                    // The try/catch comes from the implementation of intersectsNode on MDC
+                    // (https://developer.mozilla.org/en/DOM/range.intersectsNode). Not sure if and when it's necessary
+                    // but leaving it in, just in case. Possibly it's there to deal with DocumentFragments: according to
+                    // the spec, selectNode on a DocumentFragment should throw a RangeException whereas
+                    // selectNodeContents should not.
+                    try {
+                        range.selectNode(node);
+                    } catch (e) {
+                        range.selectNodeContents(node);
+                    }
+                }
+            };
+        }
+
+        api.moveRangeToNode = moveRangeToNode;
 
         api.createPopulatedRange = createPopulatedRange = function(startContainer, startOffset, endContainer, endOffset) {
             var range = createRange(getDocument(startContainer));
@@ -412,11 +494,11 @@
         if (typeof testRange.collapsed == BOOLEAN) {
             rangeIsCollapsed = function(range) {
                 return range.collapsed;
-            }
+            };
         } else if (typeof testRange.text == STRING) {
             rangeIsCollapsed = function(range) {
                 return !!range.text.length;
-            }
+            };
         } else {
             fail("No means of detecting whether a range is collapsed found");
             return false;
@@ -428,17 +510,81 @@
         if (typeof testRange.text == STRING) {
             getRangeText = function(range) {
                 return range.text;
-            }
+            };
         } else if (typeof testRange.toString == FUNCTION) {
             getRangeText = function(range) {
                 return range.toString();
-            }
+            };
         } else {
             fail("No means of obtaining a range's text was found");
             return false;
         }
 
         api.getRangeText = getRangeText;
+
+        // Clone range
+        if (rangesAreTextRanges) {
+            cloneRange = function(range) {
+                return range.duplicate();
+            };
+        } else {
+            cloneRange = function(range) {
+                return range.cloneRange();
+            };
+        }
+
+        api.cloneRange = cloneRange;
+
+        // Range intersecting range
+        if (rangesAreTextRanges) {
+            rangesIntersect = function(range1, range2) {
+                return range1.compareEndPoints("EndToStart", range2) == 1 &&
+                       range1.compareEndPoints("StartToEnd", range2) == -1;
+            };
+        } else {
+            // The following is a slightly complicated workaround for an old WebKit bug
+            // (https://bugs.webkit.org/show_bug.cgi?id=20738). See also http://www.thismuchiknow.co.uk/?p=64
+            rangesIntersect = function(range1, range2) {
+                var startRange1 = range1.cloneRange();
+                startRange1.collapse(true);
+
+                var endRange1 = range1.cloneRange();
+                endRange1.collapse(false);
+
+                var startRange2 = range2.cloneRange();
+                startRange2.collapse(true);
+
+                var endRange2 = range2.cloneRange();
+                endRange2.collapse(false);
+
+                var intersects = startRange1.compareBoundaryPoints(range1.START_TO_START, endRange2) == -1 &&
+                       endRange1.compareBoundaryPoints(range1.START_TO_START, startRange2) == 1;
+
+                detachRange(startRange1);
+                detachRange(endRange1);
+                detachRange(startRange2);
+                detachRange(endRange2);
+
+                return intersects;
+            };
+        }
+
+        // Range intersecting a node
+        if (isHostMethod(testRange, "intersectsNode")) {
+            rangeIntersectsNode = function(range, node) {
+                return range.intersectsNode(node);
+            };
+        } else {
+            rangeIntersectsNode = function(range, node) {
+                var nodeRange = createRange(getDocument(node));
+                moveRangeToNode(nodeRange, node);
+                var intersects = rangesIntersect(range, nodeRange);
+                detachRange(nodeRange);
+                return intersects;
+            };
+        }
+
+        api.rangeIntersectsNode = rangeIntersectsNode;
 
         // Selecting a range
         if (areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
@@ -483,7 +629,7 @@
             return [getSelectionRangeAt(sel, 0)];
         };
 
-        if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
+        if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == NUMBER) {
             getSelectionRangeAt = function(sel, index) {
                 return (sel.rangeCount == 0) ? null : sel.getRangeAt(index);
             };
@@ -502,8 +648,8 @@
                     throw new Error("Range index out of bounds (range count: 1)");
                 }
             };
-        } else if (selectionsHaveAnchorAndFocus && typeof testRange.collapsed == BOOLEAN
-                && typeof testSelection.isCollapsed == BOOLEAN) {
+        } else if (selectionsHaveAnchorAndFocus && typeof testRange.collapsed == BOOLEAN &&
+                typeof testSelection.isCollapsed == BOOLEAN) {
 
             getSelectionRangeAt = function(sel, index) {
                 if (index == 0) {
@@ -538,7 +684,7 @@
 
 
         // Detecting if a selection is backwards
-        if (selectionsHaveAnchorAndFocus && isHostMethod(testRange, "compareBoundaryPoints") && typeof testRange.START_TO_START != UNDEFINED) {
+        if (selectionsHaveAnchorAndFocus && !rangesAreTextRanges) {
             selectionIsBackwards = function(sel) {
                 var anchorRange = createRange();
                 collapseRangeTo(anchorRange, sel.anchorNode, sel.anchorOffset);
@@ -548,8 +694,8 @@
 
                 var backwards = (anchorRange.compareBoundaryPoints(anchorRange.START_TO_START, focusRange) == 1);
 
-                anchorRange.detach();
-                focusRange.detach();
+                detachRange(anchorRange);
+                detachRange(focusRange);
 
                 return backwards;
             };
@@ -591,6 +737,7 @@
         }
 
         win = doc = null;
+        detachRange(testRange);
 
         api.initialized = true;
 
