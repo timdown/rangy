@@ -1,5 +1,5 @@
 rangy.addInitListener(function(api) {
-    var getSelectionBoundary, getSelection;
+    var getSelectionBoundary, getSelection, setSelectionBoundary, setSelection;
 
     function fail(reason) {
         alert("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
@@ -16,6 +16,15 @@ rangy.addInitListener(function(api) {
                 start: el.selectionStart,
                 end: el.selectionEnd
             };
+        };
+
+        setSelectionBoundary = function(el, isStart, offset) {
+            el[isStart ? "selectionStart" : "selectionEnd"] = offset;
+        };
+
+        setSelectionBoundary = function(el, startOffset, endOffset) {
+            el.selectionStart = startOffset;
+            el.selectionEnd = endOffset;
         };
     } else if (api.rangesAreTextRanges && api.isHostMethod(testTextArea, "createTextRange")) {
         getSelectionBoundary = function(el, isStart) {
@@ -82,6 +91,15 @@ rangy.addInitListener(function(api) {
                 start: getSelectionBoundary(el, true),
                 end: getSelectionBoundary(el, false)
             };
+        };
+
+        setSelectionBoundary = function(el, isStart, offset) {
+            el[isStart ? "selectionStart" : "selectionEnd"] = offset;
+        };
+
+        setSelectionBoundary = function(el, startOffset, endOffset) {
+            el.selectionStart = startOffset;
+            el.selectionEnd = endOffset;
         };
     } else {
         fail("No means of finding text input caret position");

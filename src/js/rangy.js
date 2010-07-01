@@ -20,7 +20,8 @@
         "moveToElementText", "parentElement", "pasteHTML", "select", "setEndPoint"];
 
     var selectionsHaveAnchorAndFocus, emptySelection, selectSingleRange, getSelectionRangeAt, getAllSelectionRanges;
-    var getFirstSelectionRange, selectionIsBackwards, selectionIsCollapsed, getSelectionText;
+    var getFirstSelectionRange, selectionIsBackwards, selectionIsCollapsed, getSelectionText, selectRanges;
+    var addRangeToSelection;
 
     var rangesAreTextRanges, getRangeStart, getRangeEnd, setRangeStart, setRangeEnd, collapseRangeTo, rangeIsCollapsed;
     var getRangeText, createPopulatedRange, moveRangeToNode, rangesIntersect, rangeIntersectsNode, cloneRange;
@@ -479,7 +480,8 @@
         api.moveRangeToNode = moveRangeToNode;
 
         api.createPopulatedRange = createPopulatedRange = function(startContainer, startOffset, endContainer, endOffset) {
-            var range = createRange(getDocument(startContainer));
+            var doc = getDocument(startContainer);
+            var range = createRange(doc);
             setRangeStart(range, startContainer, startOffset);
             setRangeEnd(range, endContainer, endOffset);
             return range;
@@ -596,14 +598,29 @@
                 sel.removeAllRanges();
                 sel.addRange(range);
             };
+
+            addRangeToSelection = function(sel, range) {
+                sel.addRange(range);
+            };
+
+            selectRanges = function(sel, ranges) {
+                sel.removeAllRanges();
+                for (var i = 0, len = ranges.length; i < len; ++i) {
+                    sel.addRange(ranges[i]);
+                }
+            };
         } else if (isHostMethod(testSelection, "empty") && isHostMethod(testRange, "select")) {
             emptySelection = function(sel) {
                 sel.empty();
             };
 
-            selectSingleRange = function(sel, range) {
-                sel.empty();
+            addRangeToSelection = function(sel, range) {
                 range.select();
+            };
+
+            selectRanges = function(sel, ranges) {
+                sel.empty();
+                ranges[0].select();
             };
         } else {
             fail("No means of selecting a Range or TextRange was found");
@@ -611,7 +628,13 @@
         }
 
         api.emptySelection = emptySelection;
-        api.selectSingleRange = selectSingleRange;
+        api.addRangeToSelection = addRangeToSelection;
+        api.selectSingleRange = selectSingleRange = function(sel, range) {
+            emptySelection(sel);
+            addRangeToSelection(sel, range);
+        };
+
+        api.selectRanges = selectRanges;
 
         api.createSelection = function(startContainer, startOffset, endContainer, endOffset) {
             var sel = getSelection(getWindow(startContainer));
