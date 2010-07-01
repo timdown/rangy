@@ -1,0 +1,39 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript" src="../src/js/log4javascript.js"></script>
+    <script type="text/javascript">
+        log4javascript.getRootLogger().addAppender(new log4javascript.InPageAppender());
+    </script>
+
+    <script type="text/javascript" src="../src/js/rangy.js"></script>
+    <script type="text/javascript" src="../src/js/textinputs.js"></script>
+    <script type="text/javascript">
+        function deleteTextAreaSelectedText() {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.deleteSelectedText(ta);
+        }
+
+        function getSel() {
+            var ta = document.getElementById("ta");
+            var s = rangy.textInputs.getSelection(ta);
+            alert(s.start + ", " + s.end);
+        }
+    </script>
+</head>
+<body>
+    <textarea rows="8" cols="80" id="ta">One
+Two
+
+Three
+
+</textarea>
+    <br>
+    <input type="button" value="delete selected text" onclick="deleteTextAreaSelectedText()">
+    <input type="button" value="get selection rnage" onclick="getSel()">
+
+
+</body>
+</html>

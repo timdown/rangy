@@ -1,16 +1,16 @@
 rangy.addInitListener(function(api) {
-    var getSelectionBoundary, getSelection, setSelectionBoundary, setSelection;
+    var log = log4javascript.getLogger("rangy.textInputs");
+    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText;
 
     function fail(reason) {
         alert("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
     }
 
     var testTextArea = document.createElement("textarea");
-    if (api.areHostProperties(testTextArea, ["selectionStart", "selectionEnd"])) {
-        getSelectionBoundary = function(el, isStart) {
-            return el[isStart ? "selectionStart" : "selectionEnd"];
-        };
+    document.body.appendChild(testTextArea);
 
+
+    if (api.areHostProperties(testTextArea, ["selectionStart", "selectionEnd"])) {
         getSelection = function(el) {
             return {
                 start: el.selectionStart,
@@ -18,11 +18,7 @@ rangy.addInitListener(function(api) {
             };
         };
 
-        setSelectionBoundary = function(el, isStart, offset) {
-            el[isStart ? "selectionStart" : "selectionEnd"] = offset;
-        };
-
-        setSelectionBoundary = function(el, startOffset, endOffset) {
+        setSelection = function(el, startOffset, endOffset) {
             el.selectionStart = startOffset;
             el.selectionEnd = endOffset;
         };
@@ -93,20 +89,46 @@ rangy.addInitListener(function(api) {
             };
         };
 
-        setSelectionBoundary = function(el, isStart, offset) {
-            el[isStart ? "selectionStart" : "selectionEnd"] = offset;
+        setSelection = function(el, startOffset, endOffset) {
+            // TODO: Fix this
+            var range = el.createTextRange();
+            range.collapse(true);
+            range.moveEnd("character", endOffset);
+            range.moveStart("character", startOffset);
+            range.select();
         };
 
-        setSelectionBoundary = function(el, startOffset, endOffset) {
-            el.selectionStart = startOffset;
-            el.selectionEnd = endOffset;
+        deleteSelectedText = function(el) {
+            el.focus();
+            var win = api.getWindow(el);
+            var range = api.getFirstSelectionRange(api.getSelection(win));
+            var textAreaRange = el.createTextRange();
+            textAreaRange.moveToBookmark(range.getBookmark());
+            textAreaRange.text = "";
         };
     } else {
         fail("No means of finding text input caret position");
     }
 
+
+    deleteSelectedText = function(el) {
+        var sel = getSelection(el), val = el.value;
+        el.value = val.slice(0, sel.start) + val.slice(sel.end);
+        setSelection(el, sel.start, sel.start);
+        el.focus();
+    };
+
+
     api.textInputs = {
         getSelection: getSelection,
-        getSelectionBoundary: getSelectionBoundary
-    }
+        setSelection: setSelection,
+        deleteSelectedText: deleteSelectedText,
+
+        insertText: function(el, index) {
+
+        }
+    };
+
+    document.body.removeChild(testTextArea);
+
 });
