@@ -1,6 +1,6 @@
 rangy.addInitListener(function(api) {
     var log = log4javascript.getLogger("rangy.textInputs");
-    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText;
+    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, pasteText;
 
     function fail(reason) {
         alert("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
@@ -8,7 +8,6 @@ rangy.addInitListener(function(api) {
 
     var testTextArea = document.createElement("textarea");
     document.body.appendChild(testTextArea);
-
 
     if (api.areHostProperties(testTextArea, ["selectionStart", "selectionEnd"])) {
         getSelection = function(el) {
@@ -27,7 +26,7 @@ rangy.addInitListener(function(api) {
             el.focus();
             var win = api.getWindow(el), doc = api.getDocument(el);
             var range = api.getFirstSelectionRange(api.getSelection(win));
-            var originalValue, textAreaRange, precedingRange, textNode, nextNode, pos, bookmark;
+            var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd, textNode, nextNode;
 
             if (range) {
                 // Collapse the selected range if the selection is not a caret
@@ -36,45 +35,49 @@ rangy.addInitListener(function(api) {
                 }
 
                 originalValue = el.value;
-                textAreaRange = el.createTextRange();
+                textInputRange = el.createTextRange();
                 precedingRange = el.createTextRange();
                 pos = 0;
 
                 bookmark = range.getBookmark();
-                textAreaRange.moveToBookmark(bookmark);
+                textInputRange.moveToBookmark(bookmark);
 
-                if (/[\r\n]/.test(originalValue)) {
+                if (originalValue.indexOf("\r\n") > -1) {
                     // Trickier case where input value contains line breaks
 
-                    // Insert a text node immediately after the textarea in case the
-                    // caret is at the end (in which case setting the TextRange's
-                    // text will add content after the textarea)
-                    textNode = doc.createTextNode(" ");
+                    // Test whether the selection range is at the end of the text input by moving it on by one character
+                    // and checking if it's still within the text input. To ensure that there's somewhere else for the
+                    // range to go, we add a text node immediately after the textarea
                     nextNode = el.nextSibling;
+                    textNode = doc.createTextNode(" ");
                     if (nextNode) {
                         el.parentNode.insertBefore(textNode, nextNode);
                     } else {
                         el.parentNode.appendChild(textNode);
                     }
 
-                    textAreaRange.text = " ";
+                    range.move("character", 1);
+                    isAtEnd = (range.parentElement() != el);
+                    range.moveToBookmark(bookmark);
 
-                    if (el.value == originalValue) {
+                    // Clean up
+                    el.parentNode.removeChild(textNode);
+
+                    if (isAtEnd) {
                         pos = originalValue.length;
                     } else {
-                        precedingRange.setEndPoint("EndToStart", textAreaRange);
+                        // Insert a character in the text input range and use that as a marker
+                        textInputRange.text = " ";
+                        precedingRange.setEndPoint("EndToStart", textInputRange);
                         pos = precedingRange.text.length - 1;
 
                         // Delete the inserted character
-                        textAreaRange.moveStart("character", -1);
-                        textAreaRange.text = "";
+                        textInputRange.moveStart("character", -1);
+                        textInputRange.text = "";
                     }
-
-                    // Remove the inserted text node
-                    textNode.parentNode.removeChild(textNode);
                 } else {
                     // Easier case where input value contains no line breaks
-                    precedingRange.setEndPoint("EndToStart", textAreaRange);
+                    precedingRange.setEndPoint("EndToStart", textInputRange);
                     pos = precedingRange.text.length;
                 }
                 return pos;
@@ -89,46 +92,69 @@ rangy.addInitListener(function(api) {
             };
         };
 
-        setSelection = function(el, startOffset, endOffset) {
-            // TODO: Fix this
-            var range = el.createTextRange();
-            range.collapse(true);
-            range.moveEnd("character", endOffset);
-            range.moveStart("character", startOffset);
-            range.select();
+        // Moving across a line break only counts as moving one character in a TextRange, whereas a line break in the
+        // textarea value is two characters. This function corrects for that by converting a text offset into a range
+        // character offset by subtracting one character for every line break in the textarea prior to the offset
+        var offsetToRangeCharacterMove = function(el, offset) {
+            return offset - (el.value.slice(0, offset).split("\r\n").length - 1);
         };
 
-        deleteSelectedText = function(el) {
-            el.focus();
-            var win = api.getWindow(el);
-            var range = api.getFirstSelectionRange(api.getSelection(win));
-            var textAreaRange = el.createTextRange();
-            textAreaRange.moveToBookmark(range.getBookmark());
-            textAreaRange.text = "";
+        setSelection = function(el, startOffset, endOffset) {
+            var range = el.createTextRange();
+            range.collapse(true);
+            range.moveEnd("character", offsetToRangeCharacterMove(el, endOffset));
+            range.moveStart("character", offsetToRangeCharacterMove(el, startOffset));
+            range.select();
         };
     } else {
         fail("No means of finding text input caret position");
     }
 
+    // Clean up
+    document.body.removeChild(testTextArea);
 
     deleteSelectedText = function(el) {
-        var sel = getSelection(el), val = el.value;
-        el.value = val.slice(0, sel.start) + val.slice(sel.end);
-        setSelection(el, sel.start, sel.start);
-        el.focus();
+        var sel = getSelection(el), val;
+        if (sel.start != sel.end) {
+            val = el.value;
+            el.value = val.slice(0, sel.start) + val.slice(sel.end);
+            setSelection(el, sel.start, sel.start);
+        }
     };
 
+    deleteText = function(el, start, end, moveSelection) {
+        var val;
+        if (start != end) {
+            val = el.value;
+            el.value = val.slice(0, start) + val.slice(end);
+        }
+        if (moveSelection) {
+            setSelection(el, start, start);
+        }
+    };
+
+    insertText = function(el, text, index, moveSelection) {
+        var val = el.value, caretIndex;
+        el.value = val.slice(0, index) + text + val.slice(index);
+        if (moveSelection) {
+            caretIndex = index + text.length;
+            setSelection(el, caretIndex, caretIndex);
+        }
+    };
+
+    pasteText = function(el, text) {
+        var sel = getSelection(el), val = el.value;
+        el.value = val.slice(0, sel.start) + text + val.slice(sel.end);
+        var caretIndex = sel.start + text.length;
+        setSelection(el, caretIndex, caretIndex);
+    };
 
     api.textInputs = {
         getSelection: getSelection,
         setSelection: setSelection,
         deleteSelectedText: deleteSelectedText,
-
-        insertText: function(el, index) {
-
-        }
+        deleteText: deleteText,
+        insertText: insertText,
+        pasteText: pasteText
     };
-
-    document.body.removeChild(testTextArea);
-
 });

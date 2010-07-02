@@ -14,6 +14,19 @@
         function deleteTextAreaSelectedText() {
             var ta = document.getElementById("ta");
             rangy.textInputs.deleteSelectedText(ta);
+            ta.focus();
+        }
+
+        function insertText() {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.insertText(ta, "test", 17, true);
+            ta.focus();
+        }
+
+        function pasteText() {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.pasteText(ta, "test");
+            ta.focus();
         }
 
         function getSel() {
@@ -21,19 +34,27 @@
             var s = rangy.textInputs.getSelection(ta);
             alert(s.start + ", " + s.end);
         }
+
+        function setSel(start, end) {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.setSelection(ta, start, end);
+            ta.focus();
+        }
     </script>
 </head>
 <body>
+<input type="button" value="delete selected text" onclick="deleteTextAreaSelectedText()">
+<input type="button" value="get selection range" onclick="getSel()">
+<input type="button" value="insert test text" onclick="insertText()">
+<input type="button" value="paste test text" onclick="pasteText()">
+<input type="text" value="19,21" id="s">
+
+<input type="button" value="set selection" onclick="var bits = document.getElementById('s').value.split(','); setSel(bits[0], bits[1])">
+<br>
     <textarea rows="8" cols="80" id="ta">One
 Two
 
 Three
 
-</textarea>
-    <br>
-    <input type="button" value="delete selected text" onclick="deleteTextAreaSelectedText()">
-    <input type="button" value="get selection rnage" onclick="getSel()">
-
-
-</body>
+</textarea></body>
 </html>

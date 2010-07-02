@@ -467,7 +467,8 @@
                     // (https://developer.mozilla.org/en/DOM/range.intersectsNode). Not sure if and when it's necessary
                     // but leaving it in, just in case. Possibly it's there to deal with DocumentFragments: according to
                     // the spec, selectNode on a DocumentFragment should throw a RangeException whereas
-                    // selectNodeContents should not.
+                    // selectNodeContents should not. If so, a simple test of the node's nodeType property would be
+                    // better than a try/catch
                     try {
                         range.selectNode(node);
                     } catch (e) {
