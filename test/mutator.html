@@ -13,16 +13,8 @@
     <script type="text/javascript" src="../src/js/rangy.js"></script>
     <script type="text/javascript" src="../src/js/textmutation.js"></script>
     <script type="text/javascript">
-/*
-        window.onload = function() {
-            var s = document.getElementById("s");
-            var i = document.getElementById("i");
-            var s_text = s.firstChild, i_text = i.firstChild;
-            log.info(rangy.createSelection(s, 2, i, 4));
-            //rangy.createSelection(s, 2, i, 4);
-        };
-*/
-        var cssClassMutator;
+
+        var cssClassMutator1, cssClassMutator2;
 
         rangy.addInitListener(function(rangy) {
             var s = document.getElementById("s");
@@ -30,18 +22,20 @@
             var s_text = s.firstChild, i_text = i.firstChild;
             rangy.createSelection(s_text, 2, i_text, 4);
 
-            cssClassMutator = rangy.createCssClassMutator("test");
+            cssClassMutator1 = rangy.createCssClassMutator("test1", false);
+            cssClassMutator2 = rangy.createCssClassMutator("test2", false);
         });
 
 
     </script>
     <style type="text/css">
-        span.test {
-/*
-            background-color: green;
-*/
+        span.test1 {
             border: solid green 1px;
             color: blue;
+        }
+
+        span.test2 {
+            font-weight: bold;
         }
     </style>
 </head>
@@ -49,7 +43,8 @@
 <div id="div" style="border: solid green 1px; padding: 5px;">
     <strong id="s">29 min:</strong> After that let-off, <i id="i">Portugal</i> tear down the other end and sow panic in the Brazilian defence.
 </div>
-<input type="button" value="Toggle class" onclick="cssClassMutator.toggleSelection();">
+<input type="button" value="Toggle class 1" onclick="cssClassMutator1.toggleSelection();">
+<input type="button" value="Toggle class 2" onclick="cssClassMutator2.toggleSelection();">
 
 <p id="block-24"><strong>29 min:</strong> After that let-off, Portugal tear down the other end and sow panic in the Brazilian defence, Juan forced into a clusmy-looking tackle on Tiago, who tumbles theatrically. Portugal players howl for a penalty, the ref books Tiago for diving. </p><!-- Block 23 --><p id="block-23"><strong>28 min:</strong> Portugal switch off defensively, allowing Nilmar to collect a through-ball and shoot from eight yards. The keeper pushes it on to the psot and out! Great save. "Klose ..." blurts David Roberts. "... but no cigar."</p>
 

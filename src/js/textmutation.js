@@ -10,6 +10,19 @@ rangy.addInitListener(function(api) {
         return false;
     }
 
+    function hasMatchingClass(el, cssClassRegex) {
+        if (el.className) {
+            var classNames = el.className.split(" ");
+            var i = classNames.length;
+            while (i--) {
+                if (cssClassRegex.test(classNames[i])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     function addClass(el, cssClass) {
         if (!hasClass(el, cssClass)) {
             if (el.className) {
@@ -112,7 +125,8 @@ rangy.addInitListener(function(api) {
     function getTextNodesInRange(range, split) {
         var rangeStart = api.getRangeStart(range), rangeEnd = api.getRangeEnd(range);
         var startNode = rangeStart.node, endNode = rangeEnd.node, tempNode;
-        //log.info("getTextNodesInRange", startNode.nodeValue, rangeStart.offset, endNode.nodeValue, rangeEnd.offset);
+        var startOffset = rangeStart.offset, endOffset = rangeEnd.offset;
+        log.info("getTextNodesInRange", startNode.nodeValue, rangeStart.offset, endNode.nodeValue, rangeEnd.offset);
 
         // Split the start and end container text nodes, if necessary
         if (endNode.nodeType == 3) {
@@ -121,9 +135,12 @@ rangy.addInitListener(function(api) {
                 api.setRangeEnd(range, endNode, endNode.length);
             }
         } else if (endNode.hasChildNodes()) {
-            endNode = lastTextNodeInOrBefore(endNode.childNodes[rangeEnd.offset - 1]);
+            tempNode = endNode.childNodes[rangeEnd.offset - 1] || previousNode(endNode.childNodes[rangeEnd.offset], true);
+            endNode = lastTextNodeInOrBefore(tempNode);
+            endOffset = endNode.length;
         } else {
             endNode = lastTextNodeInOrBefore(endNode);
+            endOffset = endNode.length;
         }
 
         if (startNode.nodeType == 3) {
@@ -137,10 +154,15 @@ rangy.addInitListener(function(api) {
                 api.setRangeStart(range, startNode, 0);
             }
         } else if (startNode.hasChildNodes()) {
-            startNode = firstTextNodeInOrAfter(startNode.childNodes[rangeStart.offset]);
+            tempNode = startNode.childNodes[rangeStart.offset] || nextNode(startNode.childNodes[rangeStart.offset - 1], true);
+            startNode = firstTextNodeInOrAfter(tempNode);
+            startOffset = 0;
         } else {
             startNode = firstTextNodeInOrAfter(startNode);
+            startOffset = 0;
         }
+
+        log.info("start:" + startNode + ", end:" + endNode);
         //log.info("Now: ", startNode.nodeValue, rangeStart.offset, endNode.nodeValue, rangeEnd.offset);
 
         //log.info("getTextNodesInRange start and end nodes equal: " + (startNode === endNode));
@@ -148,11 +170,16 @@ rangy.addInitListener(function(api) {
         return (startNode === endNode) ? [startNode] : getTextNodesBetween(startNode, endNode);
     }
 
-    function createTextMutator(action, checkApplied, undoAction, state) {
+    function createTextMutator(action, preActionCallback, actionCallback, checkApplied, undoAction, undoCallback, state) {
         state = state || {};
 
         function applyToRange(range) {
             var textNodes = getTextNodesInRange(range, true), textNode;
+
+            if (preActionCallback) {
+                preActionCallback(textNodes, range, state);
+            }
+
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 textNode = textNodes[i];
                 if (!checkApplied(textNode, state)) {
@@ -163,6 +190,9 @@ rangy.addInitListener(function(api) {
             textNode = textNodes[textNodes.length - 1];
             api.setRangeEnd(range, textNode, textNode.length);
             log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
+            if (actionCallback) {
+                actionCallback(textNodes, range, state)
+            }
         }
 
         function applyToSelection(win) {
@@ -189,6 +219,9 @@ rangy.addInitListener(function(api) {
             textNode = textNodes[textNodes.length - 1];
             api.setRangeEnd(range, textNode, textNode.length);
             log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
+            if (undoCallback) {
+                undoCallback(textNodes, range, state)
+            }
         }
 
         function undoToSelection(win) {
@@ -256,7 +289,7 @@ rangy.addInitListener(function(api) {
     var nextCssId = 0;
 
 
-    function createCssClassMutator(cssClass) {
+    function createCssClassMutator(cssClass, normalize) {
         var state = {
             uniqueCssClass: "rangy_" + (++nextCssId)
         };
@@ -267,18 +300,158 @@ rangy.addInitListener(function(api) {
             return span;
         }
 
+        function textNodeHasClass(textNode) {
+            return elementHasClass(textNode.parentNode);
+        }
+
+        function elementHasClass(el) {
+            return el.tagName.toLowerCase() == "span" && hasClass(el, state.uniqueCssClass);
+        }
+
+        function nodeHasClass(node) {
+            return node && node.nodeType == 1 && elementHasClass(node);
+        }
+
+        function isRangySpan(el) {
+            return el.tagName.toLowerCase() == "span" && hasMatchingClass(el, /rangy_[\d]+/);
+        }
+
+        function Merge(firstTextNode) {
+            this.firstTextNode = firstTextNode;
+            this.textNodes = [firstTextNode];
+        }
+
+        Merge.prototype = {
+            doMerge: function() {
+                var textBits = [], node, parent, text;
+                for (var i = 0, len = this.textNodes.length; i < len; ++i) {
+                    node = this.textNodes[i], parent = node.parentNode;
+                    textBits[i] = node.data;
+                    if (i) {
+                        parent.removeChild(node);
+                        if (!parent.hasChildNodes()) {
+                            parent.parentNode.removeChild(parent);
+                        }
+                    }
+                }
+                this.firstTextNode.data = text = textBits.join("");
+                return text;
+            },
+
+            getLength: function() {
+                var i = this.textNodes.length, len = 0;
+                while (i--) {
+                    len += this.textNodes[i].length;
+                }
+                return len;
+            },
+
+            toString: function() {
+                var textBits = [];
+                for (var i = 0, len = this.textNodes.length; i < len; ++i) {
+                    textBits[i] = "'" + this.textNodes[i].data + "'";
+                }
+                return "[Merge(" + textBits.join(",") + ")]";
+            }
+        };
+
+        var postApplyCallback = normalize ?
+            function(textNodes, range, state) {
+                var firstNode = textNodes[0], lastNode = textNodes[textNodes.length - 1];
+
+                var merges = [], currentMerge;
+
+                var rangeStartNode = firstNode, rangeEndNode = lastNode;
+                var rangeStartOffset = 0, rangeEndOffset = lastNode.length;
+
+                var textNode, precedingNode;
+
+                for (var i = 0, len = textNodes.length; i < len; ++i) {
+                    textNode = textNodes[i];
+                    precedingNode = textNode.parentNode.previousSibling;
+                    if (nodeHasClass(precedingNode)) {
+                        if (!currentMerge) {
+                            currentMerge = new Merge(precedingNode.lastChild);
+                            merges.push(currentMerge);
+                        }
+                        currentMerge.textNodes.push(textNode);
+                        if (textNode === firstNode) {
+                            rangeStartNode = currentMerge.firstTextNode;
+                            rangeStartOffset = rangeStartNode.length;
+                        }
+                        if (textNode === lastNode) {
+                            rangeEndNode = currentMerge.firstTextNode;
+                            rangeEndOffset = currentMerge.getLength();
+                        }
+                    } else {
+                        currentMerge = null;
+                    }
+                }
+
+                // Test whether the first node after the range needs merging
+                var nextNode = lastNode.parentNode.nextSibling;
+
+                if (nodeHasClass(nextNode)) {
+                    if (!currentMerge) {
+                        currentMerge = new Merge(lastNode);
+                        merges.push(currentMerge);
+                    }
+                    currentMerge.textNodes.push(nextNode.firstChild);
+                }
+
+                // Do the merges
+                if (merges.length) {
+                    log.info("Merging. Merges:", merges);
+                    for (i = 0, len = merges.length; i < len; ++i) {
+                        merges[i].doMerge();
+                    }
+                    log.info(rangeStartNode.nodeValue, rangeStartOffset, rangeEndNode.nodeValue, rangeEndOffset);
+
+                    // Set the range boundaries
+                    api.setRangeStart(range, rangeStartNode, rangeStartOffset);
+                    api.setRangeEnd(range, rangeEndNode, rangeEndOffset);
+                }
+            } : null;
+
+
         return createTextMutator(
             function(textNode, state) {
                 log.warn("Apply CSS class. textNode: " + textNode.data);
-                var span = createSpan(api.getDocument(textNode));
-                textNode.parentNode.insertBefore(span, textNode);
-                span.appendChild(textNode);
+                var parent = textNode.parentNode;
+                if (isRangySpan(parent) && parent.childNodes.length == 1) {
+                    addClass(parent, cssClass);
+                    addClass(parent, state.uniqueCssClass);
+                } else {
+                    var span = createSpan(api.getDocument(textNode));
+                    textNode.parentNode.insertBefore(span, textNode);
+                    span.appendChild(textNode);
+                }
             },
 
-            function(textNode, state) {
-                var el = textNode.parentNode;
-                return el.tagName.toLowerCase() == "span" && hasClass(el, state.uniqueCssClass);
+            function(textNodes, range, state) {
+                var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
+                var startParent = startNode.parentNode, endParent = endNode.parentNode;
+                var doc = api.getDocument(startNode);
+                var span;
+
+                if (isRangySpan(startParent) && startNode === startParent.lastChild) {
+                    span = doc.createElement("span");
+                    span.className = startParent.className;
+                    span.appendChild(startNode);
+                    api.insertAfter(span, startParent);
+                }
+
+                if (isRangySpan(endParent) && endNode === endParent.firstChild) {
+                    span = doc.createElement("span");
+                    span.className = endParent.className;
+                    span.appendChild(endNode);
+                    startParent.parentNode.insertBefore(span, startParent);
+                }
             },
+
+            postApplyCallback,
+
+            textNodeHasClass,
 
             function(textNode, state) {
                 log.warn("Undo CSS class. textNode: " + textNode.data);
@@ -286,6 +459,7 @@ rangy.addInitListener(function(api) {
 
                 // Check whether the text node has siblings
                 var nextNode = textNode.nextSibling, previousNode = textNode.previousSibling;
+                var parent = el.parentNode;
                 if (nextNode && previousNode) {
                     // In this case we need to create a new span for the subsequent text node
                     var span = createSpan(api.getDocument(textNode));
@@ -293,14 +467,19 @@ rangy.addInitListener(function(api) {
                     api.insertAfter(span, el);
                     span.parentNode.insertBefore(textNode, span);
                 } else if (nextNode) {
-                    el.parentNode.insertBefore(textNode, el);
+                    parent.insertBefore(textNode, el);
                 } else if (previousNode) {
                     api.insertAfter(textNode, el);
+                } else if (isRangySpan(parent)) {
+                    removeClass(parent, cssClass);
+                    removeClass(parent, state.uniqueCssClass);
                 } else {
-                    el.parentNode.insertBefore(textNode, el);
-                    el.parentNode.removeChild(el);
+                    parent.insertBefore(textNode, el);
+                    parent.removeChild(el);
                 }
             },
+
+            null,
 
             state
         );

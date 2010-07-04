@@ -1,1 +1,0 @@
-- Check setting range boundary to the end of a text node containing just a single space in IE 
