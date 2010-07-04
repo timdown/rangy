@@ -136,6 +136,18 @@
 
     api.isAncestorOf = isAncestorOf;
 
+    function insertAfter(node, precedingNode) {
+        var nextNode = precedingNode.nextSibling, parent = precedingNode.parentNode;
+        if (nextNode) {
+            parent.insertBefore(node, nextNode);
+        } else {
+            parent.appendChild(node);
+        }
+        return node;
+    }
+
+    api.insertAfter = insertAfter;
+
     var arrayContains = Array.prototype.indexOf ?
         function(arr, val) {
             return arr.indexOf(val) > -1;

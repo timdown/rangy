@@ -145,9 +145,7 @@ rangy.addInitListener(function(api) {
 
         //log.info("getTextNodesInRange start and end nodes equal: " + (startNode === endNode));
 
-        var textNodes = (startNode === endNode) ? [startNode] : getTextNodesBetween(startNode, endNode);
-
-        return textNodes;
+        return (startNode === endNode) ? [startNode] : getTextNodesBetween(startNode, endNode);
     }
 
     function createTextMutator(action, checkApplied, undoAction, state) {
@@ -164,6 +162,7 @@ rangy.addInitListener(function(api) {
             api.setRangeStart(range, textNodes[0], 0);
             textNode = textNodes[textNodes.length - 1];
             api.setRangeEnd(range, textNode, textNode.length);
+            log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
         }
 
         function applyToSelection(win) {
@@ -189,6 +188,7 @@ rangy.addInitListener(function(api) {
             api.setRangeStart(range, textNodes[0], 0);
             textNode = textNodes[textNodes.length - 1];
             api.setRangeEnd(range, textNode, textNode.length);
+            log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
         }
 
         function undoToSelection(win) {
@@ -261,11 +261,16 @@ rangy.addInitListener(function(api) {
             uniqueCssClass: "rangy_" + (++nextCssId)
         };
 
+        function createSpan(doc) {
+            var span = doc.createElement("span");
+            span.className = cssClass + " " + state.uniqueCssClass;
+            return span;
+        }
+
         return createTextMutator(
             function(textNode, state) {
-                log.warn("textNode: " + textNode.data);
-                var span = api.getDocument(textNode).createElement("span");
-                span.className = cssClass + " " + state.uniqueCssClass;
+                log.warn("Apply CSS class. textNode: " + textNode.data);
+                var span = createSpan(api.getDocument(textNode));
                 textNode.parentNode.insertBefore(span, textNode);
                 span.appendChild(textNode);
             },
@@ -276,9 +281,25 @@ rangy.addInitListener(function(api) {
             },
 
             function(textNode, state) {
+                log.warn("Undo CSS class. textNode: " + textNode.data);
                 var el = textNode.parentNode;
-                el.parentNode.insertBefore(textNode, el);
-                el.parentNode.removeChild(el);
+
+                // Check whether the text node has siblings
+                var nextNode = textNode.nextSibling, previousNode = textNode.previousSibling;
+                if (nextNode && previousNode) {
+                    // In this case we need to create a new span for the subsequent text node
+                    var span = createSpan(api.getDocument(textNode));
+                    span.appendChild(nextNode);
+                    api.insertAfter(span, el);
+                    span.parentNode.insertBefore(textNode, span);
+                } else if (nextNode) {
+                    el.parentNode.insertBefore(textNode, el);
+                } else if (previousNode) {
+                    api.insertAfter(textNode, el);
+                } else {
+                    el.parentNode.insertBefore(textNode, el);
+                    el.parentNode.removeChild(el);
+                }
             },
 
             state
@@ -286,40 +307,4 @@ rangy.addInitListener(function(api) {
     }
 
     api.createCssClassMutator = createCssClassMutator;
-
-    function addClassToRanges(ranges, cssClass) {
-        var uniqueCssClass = "rangy_" + (++nextCssId);
-
-        function addClassToTextNode(textNode) {
-            var span = api.getDocument(textNode).createElement("span");
-            span.className = cssClass + " " + uniqueCssClass;
-            textNode.parentNode.insertBefore(span, textNode);
-            span.appendChild(textNode);
-        }
-
-
-        for (var i = 0, len = ranges.length; i < len; ++i) {
-            actOnTextNodesInRange(ranges[i], addClassToTextNode);
-        }
-
-        return uniqueCssClass;
-    }
-
-    function addClassToRange(range, cssClass) {
-        return addClassToRanges([range], cssClass);
-    }
-
-    api.addClassToRanges = addClassToRanges;
-    api.addClassToRange = addClassToRange;
-
-    api.addClassToSelection = function(cssClass, win) {
-        try {
-            var ranges = api.getAllSelectionRanges(api.getSelection(win));
-            return addClassToRanges(ranges, cssClass);
-        } catch(ex) {
-            log.fatal("addClassToSelection failed", ex);
-        }
-    };
-
-
 });
