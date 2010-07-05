@@ -21,7 +21,7 @@ rangy.addInitListener(function(api) {
             el.selectionStart = startOffset;
             el.selectionEnd = endOffset;
         };
-    } else if (api.rangesAreTextRanges && api.util.isHostMethod(testTextArea, "createTextRange")) {
+    } else if (api.features.rangesAreTextRanges && api.util.isHostMethod(testTextArea, "createTextRange")) {
         getSelectionBoundary = function(el, isStart) {
             el.focus();
             var win = api.dom.getWindow(el), doc = api.dom.getDocument(el);

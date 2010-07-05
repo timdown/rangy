@@ -32,7 +32,10 @@
 
     var api = {
         initialized: false,
-        features: {},
+        features: {
+            domRangeProperties: domRangeProperties,
+            domRangeMethods: domRangeMethods
+        },
         dom: {},
         util: {}
     };
@@ -332,7 +335,7 @@
         }
 
         api.createRange = createRange;
-        api.rangesAreTextRanges = rangesAreTextRanges;
+        api.features.rangesAreTextRanges = rangesAreTextRanges;
 
         testSelection = getSelection();
         testRange = createRange();
@@ -386,8 +389,10 @@
                     // Move the end of the range forward to the new boundary and collapse the range forward
                     range.setEndPoint("EndToStart", boundaryRange);
                     range.collapse(false);
+                    return true;
                 } else {
                     range.setEndPoint("StartToStart", boundaryRange);
+                    return false;
                 }
             };
 
@@ -398,8 +403,10 @@
                     // Move the start of the range backwards to the new boundary and collapse the range backwards
                     range.setEndPoint("StartToEnd", boundaryRange);
                     range.collapse(true);
+                    return true;
                 } else {
                     range.setEndPoint("EndToEnd", boundaryRange);
+                    return false;
                 }
             };
         } else {
@@ -422,29 +429,38 @@
                 try {
                     range.setStart(node, 1);
                     setRangeStart = function(range, node, offset) {
+                        var endNode = range.endContainer, endOffset = range.endOffset;
                         range.setStart(node, offset);
+                        return range.endContainer !== endNode || range.endOffset !== endOffset;
                     };
 
                     setRangeEnd = function(range, node, offset) {
+                        var startNode = range.startContainer, startOffset = range.endOffset;
                         range.setEnd(node, offset);
+                        return range.startContainer !== startNode || range.startOffset !== startOffset;
                     };
+
                 } catch(ex) {
                     log.info("Browser has bug (present in Firefox 2 and below) that prevents moving the start of a Range to a point after its current end. Correcting for it.");
                     setRangeStart = function(range, node, offset) {
                         try {
                             range.setStart(node, offset);
+                            return false;
                         } catch (ex) {
                             range.setEnd(node, offset);
                             range.setStart(node, offset);
+                            return true;
                         }
                     };
 
                     setRangeEnd = function(range, node, offset) {
                         try {
                             range.setEnd(node, offset);
+                            return false;
                         } catch (ex) {
                             range.setStart(node, offset);
                             range.setEnd(node, offset);
+                            return true;
                         }
                     };
                 }
@@ -587,6 +603,8 @@
             };
         }
 
+        api.rangesIntersect = rangesIntersect;
+
         // Range intersecting a node
         if (isHostMethod(testRange, "intersectsNode")) {
             rangeIntersectsNode = function(range, node) {
@@ -721,7 +739,7 @@
             };
 
             getRangeCount = function(sel) {
-                return 1;
+                return sel.anchorNode === null ? 0 : 1;
             };
         } else {
             fail("No means of obtaining a Range or TextRange from the user's selection was found");

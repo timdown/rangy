@@ -305,6 +305,7 @@ rangy.addInitListener(function(api) {
 
     function createCssClassMutator(cssClass, normalize) {
         var uniqueCssClass = "rangy_" + (++nextCssId);
+        normalize = (typeof normalize == "boolean") ? normalize : true;
 
         function createSpan(doc) {
             var span = doc.createElement("span");
@@ -337,7 +338,8 @@ rangy.addInitListener(function(api) {
             doMerge: function() {
                 var textBits = [], textNode, parent, text;
                 for (var i = 0, len = this.textNodes.length; i < len; ++i) {
-                    textNode = this.textNodes[i], parent = textNode.parentNode;
+                    textNode = this.textNodes[i];
+                    parent = textNode.parentNode;
                     textBits[i] = textNode.data;
                     if (i) {
                         parent.removeChild(textNode);
@@ -367,6 +369,26 @@ rangy.addInitListener(function(api) {
             }
         };
 
+        function splitCssSpan(textNode) {
+            var doc = api.dom.getDocument(textNode);
+            var parent = textNode.parentNode, previous = textNode.previousSibling, next = textNode.nextSibling;
+            var span, n;
+            if (next) {
+                span = doc.createElement("span");
+                span.className = parent.className;
+                for (n = next; n; n = textNode.nextSibling) {
+                    span.appendChild(n);
+                }
+                api.dom.insertAfter(span, parent);
+            }
+            if (previous) {
+                span = doc.createElement("span");
+                span.className = parent.className;
+                span.appendChild(textNode);
+                api.dom.insertAfter(span, parent);
+            }
+        }
+
         var preApplyCallback = normalize ?
             function(textNodes, range) {
                 log.group("preApplyCallback");
@@ -375,20 +397,14 @@ rangy.addInitListener(function(api) {
                 var doc = api.dom.getDocument(startNode);
                 var span;
 
-                if (isRangySpan(startParent) && startNode === startParent.lastChild && startParent.childNodes.length > 1) {
+                if (isRangySpan(startParent) && startParent.childNodes.length > 1) {
                     log.debug("Splitting start");
-                    span = doc.createElement("span");
-                    span.className = startParent.className;
-                    span.appendChild(startNode);
-                    api.dom.insertAfter(span, startParent);
+                    splitCssSpan(startNode);
                 }
 
-                if (isRangySpan(endParent) && endNode === endParent.firstChild && endParent.childNodes.length > 1) {
+                if (isRangySpan(endParent) && endParent.childNodes.length > 1) {
                     log.debug("Splitting end");
-                    span = doc.createElement("span");
-                    span.className = endParent.className;
-                    span.appendChild(endNode);
-                    endParent.parentNode.insertBefore(span, endParent);
+                    splitCssSpan(endNode);
                 }
                 log.groupEnd();
             } : null;
