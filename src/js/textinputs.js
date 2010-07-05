@@ -9,7 +9,7 @@ rangy.addInitListener(function(api) {
     var testTextArea = document.createElement("textarea");
     document.body.appendChild(testTextArea);
 
-    if (api.areHostProperties(testTextArea, ["selectionStart", "selectionEnd"])) {
+    if (api.util.areHostProperties(testTextArea, ["selectionStart", "selectionEnd"])) {
         getSelection = function(el) {
             return {
                 start: el.selectionStart,
@@ -21,10 +21,10 @@ rangy.addInitListener(function(api) {
             el.selectionStart = startOffset;
             el.selectionEnd = endOffset;
         };
-    } else if (api.rangesAreTextRanges && api.isHostMethod(testTextArea, "createTextRange")) {
+    } else if (api.rangesAreTextRanges && api.util.isHostMethod(testTextArea, "createTextRange")) {
         getSelectionBoundary = function(el, isStart) {
             el.focus();
-            var win = api.getWindow(el), doc = api.getDocument(el);
+            var win = api.dom.getWindow(el), doc = api.dom.getDocument(el);
             var range = api.getFirstSelectionRange(api.getSelection(win));
             var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd, textNode, nextNode;
 

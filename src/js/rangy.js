@@ -25,13 +25,16 @@
 
     var rangesAreTextRanges, getRangeStart, getRangeEnd, setRangeStart, setRangeEnd, collapseRangeTo, rangeIsCollapsed;
     var getRangeText, createPopulatedRange, moveRangeToNode, rangesIntersect, rangeIntersectsNode, cloneRange;
-    var detachRange, getRangeDocument;
+    var detachRange, getRangeDocument, getRangeCount;
 
     var win = window, doc = document;
     var global = (function() { return this; })();
 
     var api = {
-        initialized: false
+        initialized: false,
+        features: {},
+        dom: {},
+        util: {}
     };
 
     // Create the single global variable to contain everything
@@ -47,19 +50,19 @@
         return t === FUNCTION || (!!(t == OBJECT && object[property])) || t == "unknown";
     }
 
-    api.isHostMethod = isHostMethod;
+    api.util.isHostMethod = isHostMethod;
 
     function isHostObject(object, property) {
         return !!(typeof(object[property]) == OBJECT && object[property]);
     }
 
-    api.isHostObject = isHostObject;
+    api.util.isHostObject = isHostObject;
 
     function isHostProperty(object, property) {
         return typeof(object[property]) != UNDEFINED;
     }
 
-    api.isHostProperty = isHostProperty;
+    api.util.isHostProperty = isHostProperty;
 
     // Next pair of functions are a convenience to save verbose repeated calls to previous two functions
     function areHostMethods(object, properties) {
@@ -72,7 +75,7 @@
         return true;
     }
 
-    api.areHostMethods = areHostMethods;
+    api.util.areHostMethods = areHostMethods;
 
     function areHostObjects(object, properties) {
         for (var i = properties.length; i--; ) {
@@ -83,7 +86,7 @@
         return true;
     }
 
-    api.areHostObjects = areHostObjects;
+    api.util.areHostObjects = areHostObjects;
 
     function areHostProperties(object, properties) {
         for (var i = properties.length; i--; ) {
@@ -94,7 +97,7 @@
         return true;
     }
 
-    api.areHostProperties = areHostProperties;
+    api.util.areHostProperties = areHostProperties;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -112,14 +115,14 @@
         }
     }
 
-    api.getDocument = getDocument;
+    api.dom.getDocument = getDocument;
 
     function getWindow(node) {
         var doc = getDocument(node);
         return doc.defaultView || doc.parentWindow;
     }
 
-    api.getWindow = getWindow;
+    api.dom.getWindow = getWindow;
 
     // Nodes being same returns true.
     function isAncestorOf(ancestor, descendant) {
@@ -134,7 +137,7 @@
         return false;
     }
 
-    api.isAncestorOf = isAncestorOf;
+    api.dom.isAncestorOf = isAncestorOf;
 
     function insertAfter(node, precedingNode) {
         var nextNode = precedingNode.nextSibling, parent = precedingNode.parentNode;
@@ -146,7 +149,7 @@
         return node;
     }
 
-    api.insertAfter = insertAfter;
+    api.dom.insertAfter = insertAfter;
 
     var arrayContains = Array.prototype.indexOf ?
         function(arr, val) {
@@ -163,7 +166,7 @@
             return false;
         };
 
-    api.arrayContains = arrayContains;
+    api.util.arrayContains = arrayContains;
 
     function getCommonAncestor(node1, node2) {
         var ancestors = [], n;
@@ -180,7 +183,7 @@
         return null;
     }
 
-    api.getCommonAncestor = getCommonAncestor;
+    api.dom.getCommonAncestor = getCommonAncestor;
 
     function getNodeChildIndex(node) {
         var i = 0;
@@ -190,13 +193,13 @@
         return i;
     }
 
-    api.getNodeChildIndex = getNodeChildIndex;
+    api.dom.getNodeChildIndex = getNodeChildIndex;
 
     function isDataNode(node) {
         return node && typeof node.data == STRING && typeof node.length == NUMBER;
     }
 
-    api.isDataNode = isDataNode;
+    api.dom.isDataNode = isDataNode;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -211,7 +214,7 @@
         }
     };
 
-    api.DomPosition = DomPosition;
+    api.dom.DomPosition = DomPosition;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -661,6 +664,8 @@
             "anchorNode", "focusNode", "anchorOffset", "focusOffset"
         ]);
 
+        api.features.selectionsHaveAnchorAndFocus = selectionsHaveAnchorAndFocus;
+
         getAllSelectionRanges = function(sel) {
             return [getSelectionRangeAt(sel, 0)];
         };
@@ -676,6 +681,10 @@
                 }
                 return ranges;
             };
+
+            getRangeCount = function(sel) {
+                return sel.rangeCount;
+            };
         } else if (isHostMethod(testSelection, "createRange")) {
             getSelectionRangeAt = function(sel, index) {
                 if (index == 0) {
@@ -683,6 +692,10 @@
                 } else {
                     throw new Error("Range index out of bounds (range count: 1)");
                 }
+            };
+
+            getRangeCount = function(sel) {
+                return 1;
             };
         } else if (selectionsHaveAnchorAndFocus && typeof testRange.collapsed == BOOLEAN &&
                 typeof testSelection.isCollapsed == BOOLEAN) {
@@ -706,6 +719,10 @@
                     throw new Error("Range index out of bounds (range count: 1)");
                 }
             };
+
+            getRangeCount = function(sel) {
+                return 1;
+            };
         } else {
             fail("No means of obtaining a Range or TextRange from the user's selection was found");
             return false;
@@ -713,6 +730,7 @@
 
         api.getSelectionRangeAt = getSelectionRangeAt;
         api.getAllSelectionRanges = getAllSelectionRanges;
+        api.getRangeCount = getRangeCount;
 
         api.getFirstSelectionRange = getFirstSelectionRange = function(sel) {
             return getSelectionRangeAt(sel, 0);

@@ -5,7 +5,7 @@ rangy.addInitListener(function(api) {
     function hasClass(el, cssClass) {
         if (el.className) {
             var classNames = el.className.split(" ");
-            return api.arrayContains(classNames, cssClass);
+            return api.util.arrayContains(classNames, cssClass);
         }
         return false;
     }
@@ -100,7 +100,7 @@ rangy.addInitListener(function(api) {
     // Check for existence of working splitText method of a text node
     var testTextNode = document.createTextNode("test"), secondTextNode;
     document.body.appendChild(testTextNode);
-    if (api.isHostMethod(testTextNode, "splitText")) {
+    if (api.util.isHostMethod(testTextNode, "splitText")) {
         secondTextNode = testTextNode.splitText(2);
         if (testTextNode.data != "te" || !testTextNode.nextSibling || testTextNode.nextSibling.data != "st") {
             fail("incorrect implementation of text node splitText() method");
@@ -372,7 +372,7 @@ rangy.addInitListener(function(api) {
                 log.group("preApplyCallback");
                 var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
                 var startParent = startNode.parentNode, endParent = endNode.parentNode;
-                var doc = api.getDocument(startNode);
+                var doc = api.dom.getDocument(startNode);
                 var span;
 
                 if (isRangySpan(startParent) && startNode === startParent.lastChild && startParent.childNodes.length > 1) {
@@ -380,7 +380,7 @@ rangy.addInitListener(function(api) {
                     span = doc.createElement("span");
                     span.className = startParent.className;
                     span.appendChild(startNode);
-                    api.insertAfter(span, startParent);
+                    api.dom.insertAfter(span, startParent);
                 }
 
                 if (isRangySpan(endParent) && endNode === endParent.firstChild && endParent.childNodes.length > 1) {
@@ -484,7 +484,7 @@ rangy.addInitListener(function(api) {
                     addClass(parent, cssClass);
                     addClass(parent, uniqueCssClass);
                 } else {
-                    var span = createSpan(api.getDocument(textNode));
+                    var span = createSpan(api.dom.getDocument(textNode));
                     textNode.parentNode.insertBefore(span, textNode);
                     span.appendChild(textNode);
                 }
@@ -510,14 +510,14 @@ rangy.addInitListener(function(api) {
                 log.group("Undo, text node is " + textNode.data, el.className);
                 if (nextNode && previousNode) {
                     // In this case we need to create a new span for the subsequent text node
-                    var span = createSpan(api.getDocument(textNode));
+                    var span = createSpan(api.dom.getDocument(textNode));
                     span.appendChild(nextNode);
-                    api.insertAfter(span, el);
+                    api.dom.insertAfter(span, el);
                     span.parentNode.insertBefore(textNode, span);
                 } else if (nextNode) {
                     parent.insertBefore(textNode, el);
                 } else if (previousNode) {
-                    api.insertAfter(textNode, el);
+                    api.dom.insertAfter(textNode, el);
                 } else {
                     removeClass(el, cssClass);
                     removeClass(el, uniqueCssClass);
