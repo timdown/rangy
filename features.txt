@@ -35,3 +35,10 @@ Features
 - Get element text
 
 - Test empty selections?
+
+
+References:
+
+http://mozile.mozdev.org/0.8/doc/jsdoc/overview-summary-InternetExplorerRange.js.html
+http://mozile.mozdev.org/0.8/doc/jsdoc/overview-summary-InternetExplorerSelection.js.html
+http://code.google.com/p/ierange/source/browse/trunk/ierange.js
