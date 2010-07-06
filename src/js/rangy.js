@@ -26,6 +26,7 @@
     var rangesAreTextRanges, getRangeStart, getRangeEnd, setRangeStart, setRangeEnd, collapseRangeTo, rangeIsCollapsed;
     var getRangeText, createPopulatedRange, moveRangeToNode, rangesIntersect, rangeIntersectsNode, cloneRange;
     var detachRange, getRangeDocument, getRangeCount;
+    var canSetRangeStartAfterEnd = true;
 
     var win = window, doc = document;
     var global = (function() { return this; })();
@@ -439,9 +440,11 @@
                         range.setEnd(node, offset);
                         return range.startContainer !== startNode || range.startOffset !== startOffset;
                     };
-
                 } catch(ex) {
                     log.info("Browser has bug (present in Firefox 2 and below) that prevents moving the start of a Range to a point after its current end. Correcting for it.");
+
+                    canSetRangeStartAfterEnd = false;
+
                     setRangeStart = function(range, node, offset) {
                         try {
                             range.setStart(node, offset);
@@ -475,6 +478,7 @@
         api.getRangeEnd = getRangeEnd;
         api.setRangeStart = setRangeStart;
         api.setRangeEnd = setRangeEnd;
+        api.features.canSetRangeStartAfterEnd = canSetRangeStartAfterEnd;
 
         // Move range to node
         if (rangesAreTextRanges) {
