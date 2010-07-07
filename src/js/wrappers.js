@@ -2,6 +2,8 @@ rangy.addInitListener(function(api) {
     var domRangeDynamicProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer"];
 
+    var DomPosition = api.dom.DomPosition;
+
     function WrappedSelection(win) {
         this.nativeSelection = api.getSelection(win);
         this.init();
@@ -24,25 +26,33 @@ rangy.addInitListener(function(api) {
             wrapped.focusOffset = end.offset;
         };
 
+    function emptySelection() {
+        api.emptySelection(this.nativeSelection);
+    }
+
     var selProto = WrappedSelection.prototype = {
         init: function() {
             var sel = this.nativeSelection;
             updateAnchorAndFocus(this, sel);
             this.isCollapsed = api.selectionIsCollapsed(sel);
             this.rangeCount = api.getRangeCount(sel);
+        },
+
+        addRange: function(range) {
+            api.addRangeToSelection(this.nativeSelection, range.nativeRange || range);
+        },
+
+        removeAllRanges: emptySelection,
+        empty: emptySelection,
+
+        selectSingleRange: function(range) {
+            api.selectSingleRange(this.nativeSelection, range);
         }
     };
 
 
-    var testSelection = api.getSelection();
-
-    // Test range count after adding two ranges
-
-
-
-
-    function WrappedRange(range) {
-        this.init(range);
+    function WrappedRange(range, startPos, endPos) {
+        this.init(range, startPos, endPos);
     }
 
 
@@ -57,40 +67,73 @@ rangy.addInitListener(function(api) {
     // Allow calling code to provide start and end positions if known, to minimize expensive calls to getRangeStart
     // and getRangeEnd
     function updateTextRangeProperties(range, startPos, endPos) {
-        startPos = startPos || api.getRangeStart(range);
-        endPos = endPos || api.getRangeEnd(range);
+        startPos = startPos || api.getRangeStart(range.nativeRange);
+        endPos = endPos || api.getRangeEnd(range.nativeRange);
 
         range.startContainer = startPos.node;
         range.startOffset = startPos.offset;
         range.endContainer = endPos.node;
         range.endOffset = endPos.offset;
-        range.collapsed = api.rangeIsCollapsed(range);
+        range.collapsed = api.rangeIsCollapsed(range.nativeRange);
+
+        // Check for consistency between WrappedRange boundaries being equal and underlying TextRange collapsedness
+        var boundariesEqual = startPos.equals(endPos);
+        if (boundariesEqual != range.collapsed) {
+            throw new Error("Inconsistent Range data: wrapped TextRange collapsed is " + range.collapsed +
+                    " but boundaries equal is " + boundariesEqual);
+        }
+
         range.commonAncestorContainer = api.dom.getCommonAncestor(range.startContainer, range.endContainer);
     }
 
     var rangeProto;
 
     if (api.features.rangesAreTextRanges) {
-        WrappedRange.START_TO_START = 0;
-        WrappedRange.START_TO_END = 1;
-        WrappedRange.END_TO_END = 2;
-        WrappedRange.END_TO_START = 3;
+        var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
+
+        WrappedRange.START_TO_START = s2s;
+        WrappedRange.START_TO_END = s2e;
+        WrappedRange.END_TO_END = e2e;
+        WrappedRange.END_TO_START = e2s;
+
+        var textRangeComparisonTypes = {
+            0: "StartToStart",
+            1: "StartToEnd",
+            2: "EndToEnd",
+            3: "EndToStart"
+        };
+
+
+        // TODO: Feature test text, CDATA and comment nodes for cloneNode, splitText, length, deleteData
+
+        function splitDataNode(node, index) {
+            var newNode;
+            if (node.nodeType == 3) {
+                newNode = node.splitText(index);
+            } else {
+                newNode = node.cloneNode();
+                newNode.deleteData(0, index);
+                node.deleteData(0, node.length - index);
+                api.dom.insertAfter(newNode, node);
+            }
+            return newNode;
+        }
 
         rangeProto = WrappedRange.prototype = {
-            START_TO_START: WrappedRange.START_TO_START,
-            START_TO_END: WrappedRange.START_TO_END,
-            END_TO_END: WrappedRange.END_TO_END,
-            END_TO_START: WrappedRange.END_TO_START,
+            START_TO_START: s2s,
+            START_TO_END: s2e,
+            END_TO_END: e2e,
+            END_TO_START: e2s,
 
-            init: function(range) {
-                this.nativeRange = this;
+            init: function(range, startPos, endPos) {
+                this.nativeRange = range;
                 this.isTextRange = true;
                 this.isDomRange = false;
-                updateTextRangeProperties(this, null, null);
+                updateTextRangeProperties(this, startPos, endPos);
             },
 
             setStart: function(node, offset) {
-                var startPos = new api.dom.DomPosition(node, offset), endPos = null;
+                var startPos = new DomPosition(node, offset), endPos = null;
                 if (api.setRangeStart(this.nativeRange, node, offset)) {
                     endPos = startPos;
                 }
@@ -98,17 +141,150 @@ rangy.addInitListener(function(api) {
             },
 
             setEnd: function(node, offset) {
-                var startPos = null, endPos = new api.dom.DomPosition(node, offset);
+                var startPos = null, endPos = new DomPosition(node, offset);
                 if (api.setRangeEnd(this.nativeRange, node, offset)) {
                     startPos = endPos;
                 }
                 updateTextRangeProperties(this, startPos, endPos);
+            },
+
+            setStartBefore: function(node) {
+                this.setStart(node.parentNode, api.dom.getNodeIndex(node));
+            },
+
+            setStartAfter: function(node) {
+                this.setStart(node.parentNode, api.dom.getNodeIndex(node) + 1);
+            },
+
+            setEndBefore: function(node) {
+                this.setEnd(node.parentNode, api.dom.getNodeIndex(node));
+            },
+
+            setEndAfter: function(node) {
+                this.setEnd(node.parentNode, api.dom.getNodeIndex(node) + 1);
+            },
+
+            collapse: function(isStart) {
+                var prefix = isStart ? "start" : "end";
+                var pos = new DomPosition(this[prefix + "Container"], this[prefix + "Offset"]);
+                this.nativeRange.collapse(isStart);
+                updateTextRangeProperties(this, pos, pos);
+            },
+
+            selectNode: function(node) {
+                this.setEndAfter(node);
+                this.setStartBefore(node);
+            },
+
+            selectNodeContents: function(node) {
+                // Use TextRange's moveToElementText where possible
+                if (node.nodeType == 1) {
+                    this.nativeRange.moveToElementText(node);
+                    updateTextRangeProperties(this, new DomPosition(node, 0), new DomPosition(node, node.childNodes.length));
+                } else if (node.nodeType == 3) {
+                    this.setEnd(node, node.length);
+                    this.setStart(node, 0);
+                } else {
+                    this.setEndAfter(node, node.childNodes.length);
+                    this.setStartBefore(node, 0);
+                }
+            },
+
+            insertNode: function(node) {
+                var startNode = this.startContainer, startOffset = this.startOffset;
+                var newStartPos = new DomPosition(node, 0);
+                if (api.dom.isDataNode(startNode)) {
+                    if (startOffset == 0) {
+                        startNode.parentNode.insertBefore(node, startNode);
+                    } else if (startOffset == startNode.length) {
+                        startNode.parentNode.appendChild(node);
+                    } else {
+                        startNode.parentNode.insertBefore(node, splitDataNode(startNode, startOffset));
+                    }
+                } else if (startOffset >= startNode.childNodes.length) {
+                    startNode.appendChild(node);
+                } else {
+                    startNode.insertBefore(node, startNode.childNodes[startOffset]);
+                }
+
+                updateTextRangeProperties(this, newStartPos, newStartPos);
+            },
+
+            cloneRange: function() {
+                return new WrappedRange(this.nativeRange.duplicate(),
+                    new DomPosition(this.startContainer, this.startOffset),
+                    new DomPosition(this.endContainer, this.endOffset));
+            },
+
+            toString: function() {
+                return this.nativeRange.text;
+            },
+
+            detach: function() {
+                this.detached = true;
+                var i = domRangeDynamicProperties.length, prop;
+                while (i--) {
+                    prop = domRangeDynamicProperties[i];
+                    this[prop] = null;
+                }
             }
         };
+
+        (function() {
+            // Test for existence of sourceIndex property in elements
+            var elementsHaveSourceIndex = (typeof document.body.sourceIndex != "undefined");
+
+            function insertElement(node, offset) {
+                var span = api.dom.getDocument(node).createElement("span");
+                if (api.dom.isDataNode(node)) {
+                    node.parentNode.insertBefore(span, node);
+                } else if (offset >= node.childNodes.length) {
+                    node.appendChild(span);
+                } else {
+                    node.insertBefore(span, node.childNodes[offset]);
+                }
+                return span;
+            }
+
+            rangeProto.compareBoundaryPoints = function(type, range, useNativeComparison) {
+                var returnVal;
+
+                if (useNativeComparison || !elementsHaveSourceIndex) {
+                    // TODO: Test this carefully, since we don't have as precise control over boundaries in IE
+                    // A node-based comparison may be better.
+                    returnVal = this.nativeRange.compareEndPoint(textRangeComparisonTypes[type], range.nativeRange || range);
+                } else {
+                    range = range.nativeRange ? range : new WrappedRange(range);
+
+                    var node1, offset1, node2, offset2;
+                    var prefix1 = (type == s2e || type == s2s) ? "start" : "end";
+                    var prefix2 = (type == e2s || type == s2s) ? "start" : "end";
+                    node1 = this[prefix1 + "Container"];
+                    offset1 = this[prefix1 + "Offset"];
+                    node2 = range[prefix2 + "Container"];
+                    offset2 = range[prefix2 + "Offset"];
+
+                    if (node1 === node2) {
+                        returnVal = (offset1 === offset2) ? 0 : ((offset1 > offset2) ? 1 : -1);
+                    } else if (node1.parentNode === node2.parentNode) {
+                        returnVal = (api.dom.getNodeIndex(node1) > api.dom.getNodeIndex(node2)) ? 1 : -1;
+                    } else {
+                        // Add temporary elements immediately prior to each node and the compare their sourceIndexes
+                        var span1 = insertElement(node1, offset1);
+                        var span2 = insertElement(node2, offset2);
+                        returnVal = (span1.sourceIndex > span2.sourceIndex) ? 1 : -1;
+                        span1.parentNode.removeChild(span1);
+                        span2.parentNode.removeChild(span2);
+                    }
+                }
+                return returnVal;
+            }
+
+        })();
     } else {
         rangeProto = WrappedRange.prototype = {
             init: function(range) {
-                this.nativeRange = this;
+                this.nativeRange = range;
                 this.isTextRange = false;
                 this.isDomRange = true;
                 updateRangeProperties(this);
@@ -178,9 +354,9 @@ rangy.addInitListener(function(api) {
             detach: function() {
                 this.nativeRange.detach();
                 this.detached = true;
-                var i = domRangeProperties.length, prop;
+                var i = domRangeDynamicProperties.length, prop;
                 while (i--) {
-                    prop = domRangeProperties[i];
+                    prop = domRangeDynamicProperties[i];
                     this[prop] = null;
                 }
             }
@@ -239,7 +415,7 @@ rangy.addInitListener(function(api) {
 
             rangeProto.setEndAfter = function(node) {
                 try {
-                    this.nativeRange.setEndAfter()(node);
+                    this.nativeRange.setEndAfter(node);
                 } catch (ex) {
                     this.nativeRange.setStartAfter(node);
                     this.nativeRange.setEndAfter(node);
@@ -266,6 +442,16 @@ rangy.addInitListener(function(api) {
                this.endOffset === range.endOffset;
     };
 
+    rangeProto.select = function() {
+        api.selectSingleRange(api.getSelection(api.dom.getWindow(this.startContainer)), this.nativeRange);
+    };
 
 
+    api.getRangySelection = function(win) {
+        return new WrappedSelection(win);
+    };
+
+    api.createRangyRange = function(doc) {
+        return new WrappedRange(api.createRange(doc));
+    };
 });

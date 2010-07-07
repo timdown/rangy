@@ -189,7 +189,7 @@
 
     api.dom.getCommonAncestor = getCommonAncestor;
 
-    function getNodeChildIndex(node) {
+    function getNodeIndex(node) {
         var i = 0;
         while( (node = node.previousSibling) ) {
             i++;
@@ -197,7 +197,7 @@
         return i;
     }
 
-    api.dom.getNodeChildIndex = getNodeChildIndex;
+    api.dom.getNodeIndex = getNodeIndex;
 
     function isDataNode(node) {
         return node && typeof node.data == STRING && typeof node.length == NUMBER;
@@ -253,7 +253,7 @@
             boundaryPosition = new DomPosition(boundaryNode, workingRange.text.length);
         } else {
             // We've hit the boundary exactly, so this must be an element
-            boundaryPosition = new DomPosition(containerElement, getNodeChildIndex(workingNode));
+            boundaryPosition = new DomPosition(containerElement, getNodeIndex(workingNode));
         }
 
         // Clean up
@@ -268,19 +268,25 @@
     function createBoundaryTextRange(boundaryPosition, isStart) {
         var boundaryNode, boundaryParent;
         var nodeIsDataNode = isDataNode(boundaryPosition.node);
+        var childNodes;
 
         if (nodeIsDataNode) {
             boundaryNode = boundaryPosition.node;
             boundaryParent = boundaryNode.parentNode;
         } else {
-            boundaryNode = boundaryPosition.node.childNodes[boundaryPosition.offset];
+            childNodes = boundaryPosition.node.childNodes;
+            boundaryNode = (boundaryPosition.offset < childNodes.length) ? childNodes[boundaryPosition.offset] : null;
             boundaryParent = boundaryPosition.node;
         }
 
         // Position the range immediately before the node containing the boundary
         var doc = getDocument(boundaryPosition.node);
         var workingNode = doc.createElement("span");
-        boundaryParent.insertBefore(workingNode, boundaryNode);
+        if (boundaryNode) {
+            boundaryParent.insertBefore(workingNode, boundaryNode);
+        } else {
+            boundaryParent.appendChild(workingNode);
+        }
 
         var workingRange = doc.body.createTextRange();
         workingRange.moveToElementText(workingNode);
