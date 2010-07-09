@@ -43,3 +43,4 @@ http://mozile.mozdev.org/0.8/doc/jsdoc/overview-summary-InternetExplorerRange.js
 http://mozile.mozdev.org/0.8/doc/jsdoc/overview-summary-InternetExplorerSelection.js.html
 http://code.google.com/p/ierange/source/browse/trunk/ierange.js
 http://closure-library.googlecode.com/svn/docs/closure_goog_dom_abstractrange.js.source.html
+http://trac.webkit.org/browser/trunk/WebCore/dom/Range.cpp

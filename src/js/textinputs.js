@@ -26,7 +26,7 @@ rangy.addInitListener(function(api) {
             el.focus();
             var win = api.dom.getWindow(el), doc = api.dom.getDocument(el);
             var range = api.getFirstSelectionRange(api.getSelection(win));
-            var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd, textNode, nextNode;
+            var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd/*, textNode, nextNode*/;
 
             if (range) {
                 // Collapse the selected range if the selection is not a caret
@@ -48,20 +48,26 @@ rangy.addInitListener(function(api) {
                     // Test whether the selection range is at the end of the text input by moving it on by one character
                     // and checking if it's still within the text input. To ensure that there's somewhere else for the
                     // range to go, we add a text node immediately after the textarea
-                    nextNode = el.nextSibling;
+                    /*nextNode = el.nextSibling;
                     textNode = doc.createTextNode(" ");
                     if (nextNode) {
                         el.parentNode.insertBefore(textNode, nextNode);
                     } else {
                         el.parentNode.appendChild(textNode);
+                    }*/
+
+                    try {
+                        range.move("character", 1);
+                        isAtEnd = (range.parentElement() != el);
+                    } catch (ex) {
+                        log.warn("Error moving range", ex);
+                        isAtEnd = true;
                     }
 
-                    range.move("character", 1);
-                    isAtEnd = (range.parentElement() != el);
                     range.moveToBookmark(bookmark);
 
                     // Clean up
-                    el.parentNode.removeChild(textNode);
+                    //el.parentNode.removeChild(textNode);
 
                     if (isAtEnd) {
                         pos = originalValue.length;
