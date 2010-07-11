@@ -1,6 +1,7 @@
 rangy.addInitListener(function(api) {
     var log = log4javascript.getLogger("rangy.textInputs");
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, pasteText;
+    var addPasteListener;
 
     function fail(reason) {
         alert("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
@@ -24,9 +25,9 @@ rangy.addInitListener(function(api) {
     } else if (api.features.rangesAreTextRanges && api.util.isHostMethod(testTextArea, "createTextRange")) {
         getSelectionBoundary = function(el, isStart) {
             el.focus();
-            var win = api.dom.getWindow(el), doc = api.dom.getDocument(el);
+            var win = api.dom.getWindow(el);
             var range = api.getFirstSelectionRange(api.getSelection(win));
-            var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd/*, textNode, nextNode*/;
+            var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd;
 
             if (range) {
                 // Collapse the selected range if the selection is not a caret
@@ -46,16 +47,7 @@ rangy.addInitListener(function(api) {
                     // Trickier case where input value contains line breaks
 
                     // Test whether the selection range is at the end of the text input by moving it on by one character
-                    // and checking if it's still within the text input. To ensure that there's somewhere else for the
-                    // range to go, we add a text node immediately after the textarea
-                    /*nextNode = el.nextSibling;
-                    textNode = doc.createTextNode(" ");
-                    if (nextNode) {
-                        el.parentNode.insertBefore(textNode, nextNode);
-                    } else {
-                        el.parentNode.appendChild(textNode);
-                    }*/
-
+                    // and checking if it's still within the text input.
                     try {
                         range.move("character", 1);
                         isAtEnd = (range.parentElement() != el);
@@ -65,9 +57,6 @@ rangy.addInitListener(function(api) {
                     }
 
                     range.moveToBookmark(bookmark);
-
-                    // Clean up
-                    //el.parentNode.removeChild(textNode);
 
                     if (isAtEnd) {
                         pos = originalValue.length;
@@ -155,12 +144,40 @@ rangy.addInitListener(function(api) {
         setSelection(el, caretIndex, caretIndex);
     };
 
+    // TODO: Rewrite this in a leak-free way
+    function attachListener(el, eventType, listener) {
+        if (el.addEventListener) {
+            el.addEventListener(eventType, listener, false);
+        } else if (el.attachEvent) {
+            el.attachEvent("on" + eventType, listener);
+        }
+    }
+
+    addPasteListener = function(el, listener) {
+        attachListener(el, "paste", function() {
+            var sel = getSelection(el);
+            var initialValueLength = el.value.length;
+            window.setTimeout(function() {
+                var val = el.value;
+                var pastedTextLength = val.length - (initialValueLength - (sel.end - sel.start));
+                var end = sel.start + pastedTextLength;
+                listener({
+                    start: sel.start,
+                    end: end,
+                    length: pastedTextLength,
+                    text: val.slice(sel.start, end)
+                });
+            }, 1);
+        });
+    };
+
     api.textInputs = {
         getSelection: getSelection,
         setSelection: setSelection,
         deleteSelectedText: deleteSelectedText,
         deleteText: deleteText,
         insertText: insertText,
-        pasteText: pasteText
+        pasteText: pasteText,
+        addPasteListener: addPasteListener
     };
 });
