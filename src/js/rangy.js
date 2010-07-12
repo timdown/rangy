@@ -25,8 +25,10 @@
 
     var rangesAreTextRanges, getRangeStart, getRangeEnd, setRangeStart, setRangeEnd, collapseRangeTo, rangeIsCollapsed;
     var getRangeText, createPopulatedRange, moveRangeToNode, rangesIntersect, rangeIntersectsNode, cloneRange;
-    var detachRange, getRangeDocument, getRangeCount;
+    var detachRange, getRangeDocument, getRangeCount, insertNodeAtRangeBoundary;
     var canSetRangeStartAfterEnd = true;
+
+    var setRangeStartBefore, setRangeStartAfter, setRangeEndBefore, setRangeEndAfter;
 
     var win = window, doc = document;
     var global = (function() { return this; })();
@@ -51,7 +53,7 @@
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
     function isHostMethod(object, property) {
         var t = typeof object[property];
-        return t === FUNCTION || (!!(t == OBJECT && object[property])) || t == "unknown";
+        return t == FUNCTION || (!!(t == OBJECT && object[property])) || t == "unknown";
     }
 
     api.util.isHostMethod = isHostMethod;
@@ -204,6 +206,43 @@
     }
 
     api.dom.isDataNode = isDataNode;
+
+    // TODO: Feature test text, CDATA and comment nodes for cloneNode, splitText, length, deleteData
+
+    function splitDataNode(node, index) {
+        var newNode;
+        if (node.nodeType == 3) {
+            newNode = node.splitText(index);
+        } else {
+            newNode = node.cloneNode();
+            newNode.deleteData(0, index);
+            node.deleteData(0, node.length - index);
+            insertAfter(newNode, node);
+        }
+        return newNode;
+    }
+
+    api.dom.splitDataNode = splitDataNode;
+
+    function insertNode(node, domPos) {
+        var n = domPos.node, o = domPos.offset;
+        if (isDataNode(n)) {
+            if (o == 0) {
+                n.parentNode.insertBefore(node, n);
+            } else if (domPos.offset == n.length) {
+                n.parentNode.appendChild(node);
+            } else {
+                n.parentNode.insertBefore(node, splitDataNode(n, o));
+            }
+        } else if (o >= n.childNodes.length) {
+            n.appendChild(node);
+        } else {
+            n.insertBefore(node, n.childNodes[o]);
+        }
+        return node;
+    }
+
+    api.dom.insertNode = insertNode;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -486,6 +525,22 @@
         api.setRangeEnd = setRangeEnd;
         api.features.canSetRangeStartAfterEnd = canSetRangeStartAfterEnd;
 
+        api.setRangeStartBefore = setRangeStartBefore = function(range, node) {
+            setRangeStart(range, node.parentNode, getNodeIndex(node));
+        };
+
+        api.setRangeStartAfter = setRangeStartAfter = function(range, node) {
+            setRangeStart(range, node.parentNode, getNodeIndex(node) + 1);
+        };
+
+        api.setRangeEndBefore = setRangeEndBefore = function(range, node) {
+            setRangeEnd(range, node.parentNode, getNodeIndex(node));
+        };
+
+        api.setRangeEndAfter = setRangeEndAfter = function(range, node) {
+            setRangeEnd(range, node.parentNode, getNodeIndex(node) + 1);
+        };
+
         // Move range to node
         if (rangesAreTextRanges) {
             moveRangeToNode = function(range, node, insideNode) {
@@ -541,7 +596,7 @@
             };
         } else if (typeof testRange.text == STRING) {
             rangeIsCollapsed = function(range) {
-                return !!range.text.length;
+                return !range.text.length;
             };
         } else {
             fail("No means of detecting whether a range is collapsed found");
@@ -631,6 +686,24 @@
         }
 
         api.rangeIntersectsNode = rangeIntersectsNode;
+
+        // Inserting a node at the boundary of a range
+        if (rangesAreTextRanges) {
+            insertNodeAtRangeBoundary = function(range, node, atStart) {
+                var pos = atStart ? getRangeStart(range) : getRangeEnd(range);
+                insertNode(node, pos);
+            };
+        } else {
+            insertNodeAtRangeBoundary = function(range, node, atStart) {
+                if (!atStart) {
+                    range = range.cloneRange();
+                    range.collapse(false);
+                }
+                range.insertNode(node);
+            };
+        }
+
+        api.insertNodeAtRangeBoundary = insertNodeAtRangeBoundary;
 
         // Selecting a range
         if (areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {

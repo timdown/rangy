@@ -3,6 +3,10 @@
 <html>
 <head>
     <title></title>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<!--
+    <script type="text/javascript" src="atools.js"></script>
+-->
     <script type="text/javascript" src="../src/js/log4javascript.js"></script>
     <script type="text/javascript">
         log4javascript.getRootLogger().addAppender(new log4javascript.InPageAppender());
@@ -10,6 +14,7 @@
 
     <script type="text/javascript" src="../src/js/rangy.js"></script>
     <script type="text/javascript" src="../src/js/textinputs.js"></script>
+    <script type="text/javascript" src="../src/js/textinputs_jquery.js"></script>
     <script type="text/javascript">
         function deleteTextAreaSelectedText() {
             var ta = document.getElementById("ta");
@@ -32,7 +37,8 @@
         function getSel() {
             var ta = document.getElementById("ta");
             var s = rangy.textInputs.getSelection(ta);
-            alert(s.start + ", " + s.end);
+            var s2 = $(ta).getSelection();
+            alert(s.start + ", " + s.end + "; " + s2.start + ", " + s2.end);
         }
 
         function setSel(start, end) {
@@ -40,21 +46,6 @@
             rangy.textInputs.setSelection(ta, start, end);
             ta.focus();
         }
-
-        window.onload = function() {
-            var textarea = document.getElementById("ta");
-            textarea.onselect = function() {
-                log4javascript.getRootLogger().debug("Select");
-            };
-        }
-
-        rangy.addInitListener(function() {
-            var textarea = document.getElementById("ta");
-            rangy.textInputs.addPasteListener(textarea, function(pasteInfo) {
-                alert("Pasted text: " + pasteInfo.text);
-                rangy.textInputs.deleteText(textarea, pasteInfo.start, pasteInfo.end, true);
-            });
-        })
     </script>
 </head>
 <body>

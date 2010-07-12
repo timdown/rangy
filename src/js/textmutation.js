@@ -199,7 +199,7 @@ rangy.addInitListener(function(api) {
             api.setRangeEnd(range, textNode, textNode.length);
             log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
             if (options.postApplyCallback) {
-                options.postApplyCallback(textNodes, range)
+                options.postApplyCallback(textNodes, range);
             }
         }
 
@@ -234,7 +234,7 @@ rangy.addInitListener(function(api) {
             log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
 
             if (options.postUndoCallback) {
-                options.postUndoCallback(textNodes, range)
+                options.postUndoCallback(textNodes, range);
             }
         }
 
@@ -297,7 +297,7 @@ rangy.addInitListener(function(api) {
                     applyToSelection(win);
                 }
             }
-        }
+        };
     }
 
     var nextCssId = 0;

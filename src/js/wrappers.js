@@ -103,22 +103,6 @@ rangy.addInitListener(function(api) {
             3: "EndToStart"
         };
 
-
-        // TODO: Feature test text, CDATA and comment nodes for cloneNode, splitText, length, deleteData
-
-        function splitDataNode(node, index) {
-            var newNode;
-            if (node.nodeType == 3) {
-                newNode = node.splitText(index);
-            } else {
-                newNode = node.cloneNode();
-                newNode.deleteData(0, index);
-                node.deleteData(0, node.length - index);
-                api.dom.insertAfter(newNode, node);
-            }
-            return newNode;
-        }
-
         rangeProto = WrappedRange.prototype = {
             START_TO_START: s2s,
             START_TO_END: s2e,
@@ -191,22 +175,8 @@ rangy.addInitListener(function(api) {
             },
 
             insertNode: function(node) {
-                var startNode = this.startContainer, startOffset = this.startOffset;
+                api.dom.insertNode(node, new DomPosition(this.startContainer, this.startOffset));
                 var newStartPos = new DomPosition(node, 0);
-                if (api.dom.isDataNode(startNode)) {
-                    if (startOffset == 0) {
-                        startNode.parentNode.insertBefore(node, startNode);
-                    } else if (startOffset == startNode.length) {
-                        startNode.parentNode.appendChild(node);
-                    } else {
-                        startNode.parentNode.insertBefore(node, splitDataNode(startNode, startOffset));
-                    }
-                } else if (startOffset >= startNode.childNodes.length) {
-                    startNode.appendChild(node);
-                } else {
-                    startNode.insertBefore(node, startNode.childNodes[startOffset]);
-                }
-
                 updateTextRangeProperties(this, newStartPos, newStartPos);
             },
 
@@ -278,7 +248,7 @@ rangy.addInitListener(function(api) {
                     }
                 }
                 return returnVal;
-            }
+            };
 
         })();
     } else {

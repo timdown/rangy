@@ -1,10 +1,22 @@
 rangy.addInitListener(function(api) {
     var log = log4javascript.getLogger("rangy.textInputs");
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, pasteText;
-    var addPasteListener;
 
     function fail(reason) {
         alert("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
+    }
+
+    function adjustOffsets(el, start, end) {
+        if (start < 0) {
+            start += el.value.length;
+        }
+        if (typeof end == "undefined") {
+            end = start;
+        }
+        if (end < 0) {
+            end += el.value.length;
+        }
+        return { start: start, end: end };
     }
 
     var testTextArea = document.createElement("textarea");
@@ -19,8 +31,9 @@ rangy.addInitListener(function(api) {
         };
 
         setSelection = function(el, startOffset, endOffset) {
-            el.selectionStart = startOffset;
-            el.selectionEnd = endOffset;
+            var offsets = adjustOffsets(el, startOffset, endOffset);
+            el.selectionStart = offsets.start;
+            el.selectionEnd = offsets.end;
         };
     } else if (api.features.rangesAreTextRanges && api.util.isHostMethod(testTextArea, "createTextRange")) {
         getSelectionBoundary = function(el, isStart) {
@@ -95,10 +108,16 @@ rangy.addInitListener(function(api) {
         };
 
         setSelection = function(el, startOffset, endOffset) {
+            var offsets = adjustOffsets(el, startOffset, endOffset);
             var range = el.createTextRange();
+            var startCharMove = offsetToRangeCharacterMove(el, offsets.start);
             range.collapse(true);
-            range.moveEnd("character", offsetToRangeCharacterMove(el, endOffset));
-            range.moveStart("character", offsetToRangeCharacterMove(el, startOffset));
+            if (offsets.start == offsets.end) {
+                range.move("character", startCharMove);
+            } else {
+                range.moveEnd("character", offsetToRangeCharacterMove(el, offsets.end));
+                range.moveStart("character", startCharMove);
+            }
             range.select();
         };
     } else {
@@ -144,40 +163,12 @@ rangy.addInitListener(function(api) {
         setSelection(el, caretIndex, caretIndex);
     };
 
-    // TODO: Rewrite this in a leak-free way
-    function attachListener(el, eventType, listener) {
-        if (el.addEventListener) {
-            el.addEventListener(eventType, listener, false);
-        } else if (el.attachEvent) {
-            el.attachEvent("on" + eventType, listener);
-        }
-    }
-
-    addPasteListener = function(el, listener) {
-        attachListener(el, "paste", function() {
-            var sel = getSelection(el);
-            var initialValueLength = el.value.length;
-            window.setTimeout(function() {
-                var val = el.value;
-                var pastedTextLength = val.length - (initialValueLength - (sel.end - sel.start));
-                var end = sel.start + pastedTextLength;
-                listener({
-                    start: sel.start,
-                    end: end,
-                    length: pastedTextLength,
-                    text: val.slice(sel.start, end)
-                });
-            }, 1);
-        });
-    };
-
     api.textInputs = {
         getSelection: getSelection,
         setSelection: setSelection,
         deleteSelectedText: deleteSelectedText,
         deleteText: deleteText,
         insertText: insertText,
-        pasteText: pasteText,
-        addPasteListener: addPasteListener
+        pasteText: pasteText
     };
 });

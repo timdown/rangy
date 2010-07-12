@@ -1,106 +1,91 @@
-/*        if (selectRange) {
-            api.selectRange = selectRange;
+rangy.addInitListener(function(api) {
+    var markerTextChar = "\ufeff";
+    var markerTextCharEntity = "&#xfeff;";
 
-            // Create the save and restore API
+    var insertRangeBoundaryMarker;
 
-            // Test document for DOM methods
-            if ( areHostMethods(doc, ["getElementById", "createElement", "createTextNode"]) ) {
-                testNode = doc.createElement("span");
+    var saveSelection, setRangeBoundary, restoreSelection, removeMarkerElement, removeMarkers;
 
-                // Test DOM node for required methods
-                if ( areHostMethods(testNode, ["appendChild", "removeChild"]) ) {
+    insertRangeBoundaryMarker = function(range, atStart) {
+        var markerId = "selectionBoundary_" + new Date().getTime() + "_" + Math.random().toString().substr(2);
+        var markerEl;
+        var doc = api.getRangeDocument(range);
 
-                    // Test Range/TextRange has required methods
-                    if ( areHostMethods(testRange, ["collapse", "insertNode", "setStartAfter", "setEndBefore", "cloneRange", "detach"])
-                            || areHostMethods(testRange, ["collapse", "pasteHTML", "setEndPoint", "moveToElementText", "duplicate"]) ) {
+        // Clone the Range and collapse to the appropriate boundary point
+        range = api.cloneRange(range);
+        range.collapse(atStart);
 
-                        insertRangeBoundaryMarker = function(selectionInfo, atStart) {
-                            var markerId = "selectionBoundary_" + new Date().getTime() + "_" + Math.random().toString().substr(2);
-                            var range, markerEl;
+        // Create the marker element containing a single invisible character using DOM methods and insert it
+        markerEl = doc.createElement("span");
+        markerEl.id = markerId;
+        markerEl.appendChild(doc.createTextNode(markerTextChar));
+        api.insertNodeAtRangeBoundary(range, markerEl, atStart);
 
-                            if (selectionInfo.isDomRange) {
-                                // Clone the Range and collapse to the appropriate boundary point
-                                range = selectionInfo.range.cloneRange();
-                                range.collapse(atStart);
+        // Make sure the current range boundary is preserved
+        api[atStart ? "setRangeStartAfter" : "setRangeEndBefore"](range, markerEl);
 
-                                // Create the marker element containing a single invisible character using DOM methods and insert it
-                                markerEl = doc.createElement("span");
-                                markerEl.id = markerId;
-                                markerEl.appendChild( doc.createTextNode(markerTextChar) );
-                                range.insertNode(markerEl);
+        api.detachRange(range);
+        return markerId;
+    };
 
-                                // Make sure the current range boundary is preserved
-                                selectionInfo.range[atStart ? "setStartAfter" : "setEndBefore"](markerEl);
+    setRangeBoundary = function(doc, range, markerId, atStart) {
+        var markerEl = doc.getElementById(markerId);
+        api[atStart ? "setRangeStartAfter" : "setRangeEndBefore"](range, markerEl);
+        markerEl.parentNode.removeChild(markerEl);
+    };
 
-                                range.detach();
-                            } else {
-                                // Clone the TextRange and collapse to the appropriate boundary point
-                                range = selectionInfo.range.duplicate();
-                                range.collapse(atStart);
+    saveSelection = function(win) {
+        win = win || window;
+        var sel = api.getSelection(win);
+        var ranges = api.getAllSelectionRanges(sel);
+        var rangeInfos = [];
+        for (var i = 0, len = ranges.length; i < len; ++i) {
+            rangeInfos.push({
+                startMarkerId: insertRangeBoundaryMarker(ranges[i], true),
+                endMarkerId: insertRangeBoundaryMarker(ranges[i], false)
+            });
+        }
 
-                                // Create the marker element containing a single invisible character by creating literal HTML and insert it
-                                range.pasteHTML('<span id="' + markerId + '">' + markerTextCharEntity + '</span>');
-                                markerEl = doc.getElementById(markerId);
+        // Ensure current selection is unaffected
+        api.selectRanges(sel, ranges);
+        return {
+            win: win,
+            doc: win.document,
+            rangeInfos: rangeInfos
+        };
+    };
 
-                                // Make sure the current range boundary is preserved
-                                range.moveToElementText(markerEl);
-                                selectionInfo.range.setEndPoint(atStart ? "StartToEnd" : "EndToStart", range);
-                            }
+    restoreSelection = function(savedSelection) {
+        var rangeInfos = savedSelection.rangeInfos;
+        var sel = api.getSelection(savedSelection.win);
+        api.emptySelection(sel);
+        for (var i = 0, len = rangeInfos.length, rangeInfo, range; i < len; ++i) {
+            rangeInfo = rangeInfos[i];
+            range = api.createRange(savedSelection.doc);
+            setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
+            setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
+            api.addRangeToSelection(sel, range);
+        }
+    };
 
-                            return markerId;
-                        };
+    removeMarkerElement = function(doc, markerId) {
+        var markerEl = doc.getElementById(markerId);
+        markerEl.parentNode.removeChild(markerEl);
+    };
 
-                        setRangeBoundary = function(range, markerId, isDomRange, atStart) {
-                            var markerEl = doc.getElementById(markerId);
-                            var tempRange;
+    removeMarkers = function(savedSelection) {
+        var rangeInfos = savedSelection.rangeInfos;
+        for (var i = 0, len = rangeInfos.length, rangeInfo; i < len; ++i) {
+            rangeInfo = rangeInfos[i];
+            removeMarkerElement(rangeInfo.startMarkerId);
+            removeMarkerElement(rangeInfo.endMarkerId);
+        }
+    };
 
-                            if (isDomRange) {
-                                range[atStart ? "setStartAfter" : "setEndBefore"](markerEl);
-                            } else {
-                                tempRange = range.duplicate();
-                                tempRange.moveToElementText(markerEl);
-                                range.setEndPoint(atStart ? "StartToEnd" : "EndToStart", tempRange);
-                            }
-
-                            // Remove the marker element
-                            markerEl.parentNode.removeChild(markerEl);
-                        };
-
-                        api.removeMarkerElement = function(markerId) {
-                            var markerEl = doc.getElementById(markerId);
-                            markerEl.parentNode.removeChild(markerEl);
-                        };
-
-                        api.saveSelection = function() {
-                            var selectionInfo = getSelectionInfo( getSelection() );
-                            var savedSelection = {
-                                startMarkerId: insertRangeBoundaryMarker(selectionInfo, true),
-                                endMarkerId: insertRangeBoundaryMarker(selectionInfo, false),
-                                isDomRange: selectionInfo.isDomRange
-                            };
-
-                            // Ensure current selection is unaffected
-                            selectRange( getSelection(), selectionInfo.range );
-
-                            return savedSelection;
-                        };
-
-                        api.restoreSelection = function(savedSelection) {
-                            var range = createRange();
-                            setRangeBoundary(range, savedSelection.startMarkerId, savedSelection.isDomRange, true);
-                            setRangeBoundary(range, savedSelection.endMarkerId, savedSelection.isDomRange, false);
-
-                            // Select the range
-                            selectRange( getSelection(), range );
-                        };
-
-                        api.removeMarkers = function(savedSelection) {
-                            removeMarkerElement(savedSelection.startMarkerId);
-                            removeMarkerElement(savedSelection.endMarkerId);
-                        };
-
-                        api.saveRestoreSupported = true;
-                    }
-                }
-            }
-        }*/
+    api.saveRestore = {
+        saveSelection: saveSelection,
+        restoreSelection: restoreSelection,
+        removeMarkerElement: removeMarkerElement,
+        removeMarkers: removeMarkers
+    };
+});
