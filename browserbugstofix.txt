@@ -1,0 +1,2 @@
+- Firefox 2: setting end before start or vice versa
+- Old WebKit: EndToStart/StartToEnd confusion in compareBoundaryPoints (https://bugs.webkit.org/show_bug.cgi?id=20738)
