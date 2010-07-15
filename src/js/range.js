@@ -57,10 +57,11 @@ var DomRange = (function() {
     }
 
     function getClosestAncestorIn(node, ancestor, selfIsAncestor) {
-        log.debug("getClosestAncestorIn");
+        log.debug("getClosestAncestorIn", node.nodeName, ancestor.nodeName, selfIsAncestor);
         var p, n = selfIsAncestor ? node : node.parentNode;
         while (n) {
             p = n.parentNode;
+            log.debug(p ? p.nodeName : "null", n.nodeName);
             if (p === ancestor) {
                 return n;
             }
@@ -125,12 +126,6 @@ var DomRange = (function() {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    function Boundary(node, offset) {
-        this.node = node;
-        this.offset = offset;
-    }
-
-
     function Range(doc) {
         this._doc = doc;
         this.startContainer = doc;
@@ -152,6 +147,12 @@ var DomRange = (function() {
     Range.END_TO_END = e2e;
     Range.END_TO_START = e2s;
 
+    function dispatchEvent(range, type, args) {
+        for (var i = 0, len = range._listeners.length; i < len; ++i) {
+            range._listeners[type][i].call(range, {target: range, args: args});
+        }
+    }
+
     // Updates commonAncestorContainer and collapsed after boundary change
     function updateCollapsedAndCommonAncestor(range) {
         range.collapsed = (range.startContainer === range.endContainer && range.startOffset === range.endOffset);
@@ -159,31 +160,48 @@ var DomRange = (function() {
             range.startContainer : getCommonAncestor(range.startContainer, range.endContainer);
     }
 
-    function dispatchEvent(range, type, args) {
-        for (var i = 0, len = range._listeners.length; i < len; ++i) {
-            range._listeners[type][i].call(range, {target: range, args: args});
-        }
+    function Boundary(node, offset) {
+        this.node = node;
+        this.offset = offset;
     }
 
     function updateBoundaries(range, startContainer, startOffset, endContainer, endOffset) {
-        var startMoved = (this.startContainer !== startContainer || this.startOffset !== startOffset);
-        var endMoved = (this.endContainer !== endContainer || this.endOffset !== endOffset);
+        var startMoved = (range.startContainer !== startContainer || range.startOffset !== startOffset);
+        var endMoved = (range.endContainer !== endContainer || range.endOffset !== endOffset);
 
-        this.startContainer = startContainer;
-        this.startOffset = startOffset;
-        this.endContainer = endContainer;
-        this.endOffset = endOffset;
+        range.startContainer = startContainer;
+        range.startOffset = startOffset;
+        range.endContainer = endContainer;
+        range.endOffset = endOffset;
 
-        updateCollapsedAndCommonAncestor(this);
-        dispatchEvent(this, "boundarychange", {startMoved: startMoved, endMoved: endMoved});
+        updateCollapsedAndCommonAncestor(range);
+        dispatchEvent(range, "boundarychange", {startMoved: startMoved, endMoved: endMoved});
     }
 
+    function getBoundaryBeforeNode(node) {
+        return new Boundary(node.parentNode, getNodeIndex(node));
+    }
+
+    function getBoundaryAfterNode(node) {
+        return new Boundary(node.parentNode, getNodeIndex(node) + 1);
+    }
+
+    function cloneSubtree(iterator) {
+        for (var node, frag = document.createDocumentFragment(); node = iterator.next(); ) {
+            node = node.cloneNode(!iterator.hasPartiallySelectedSubtree());
+            if (iterator.hasPartiallySelectedSubtree()) {
+                node.appendChild(cloneSubtree(iterator.getSubtreeIterator()));
+            }
+            frag.appendChild(node);
+        }
+        return frag;
+    }
+
+
     /*
-     TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for
-     detachedness
+     TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for detachedness
+     TODO: Add feature tests for DOM methods used: document.createDocumentFragment, deleteData, cloneNode
       */
-
-
 
     Range.prototype = {
         START_TO_START: s2s,
@@ -195,9 +213,6 @@ var DomRange = (function() {
             log.debug("setStart");
             var endContainer = this.endContainer, endOffset = this.endOffset;
             if (node !== this.startContainer || offset !== this.startOffset) {
-                this.startContainer = node;
-                this.startOffset = offset;
-
                 if (comparePoints(node, offset, this.endContainer, this.endOffset) == 1) {
                     endContainer = node;
                     endOffset = offset;
@@ -208,53 +223,47 @@ var DomRange = (function() {
 
         setEnd: function(node, offset) {
             log.debug("setEnd");
+            var startContainer = this.startContainer, startOffset = this.startOffset;
             if (node !== this.endContainer || offset !== this.endOffset) {
-                var startMoved = false;
-                this.endContainer = node;
-                this.endOffset = offset;
-
                 if (comparePoints(node, offset, this.startContainer, this.startOffset) == -1) {
-                    startMoved = true;
-                    this.startContainer = node;
-                    this.startOffset = offset;
+                    startContainer = node;
+                    startOffset = offset;
                 }
-                updateCollapsedAndCommonAncestor(this);
-                dispatchEvent(this, "boundarychange", {startMoved: startMoved, endMoved: true});
+                updateBoundaries(this, startContainer, startOffset, node, offset);
             }
         },
 
         setStartBefore: function(node) {
-            this.setStart(node.parentNode, getNodeIndex(node));
+            var boundary = getBoundaryBeforeNode(node);
+            this.setStart(boundary.node, boundary.offset);
         },
 
         setStartAfter: function(node) {
-            this.setStart(node.parentNode, getNodeIndex(node) + 1);
+            var boundary = getBoundaryAfterNode(node);
+            this.setStart(boundary.node, boundary.offset);
         },
 
         setEndBefore: function(node) {
-            this.setEnd(node.parentNode, getNodeIndex(node));
+            var boundary = getBoundaryBeforeNode(node);
+            this.setEnd(boundary.node, boundary.offset);
         },
 
         setEndAfter: function(node) {
-            this.setEnd(node.parentNode, getNodeIndex(node) + 1);
+            var boundary = getBoundaryAfterNode(node);
+            this.setEnd(boundary.node, boundary.offset);
         },
 
         selectNodeContents: function(node) {
             // This doesn't seem well specified: the spec talks only about selecting the node's contents, which
             // could be taken to mean only its children. However, browsers implement this the same as selectNode for
             // text nodes, so I shall do likewise
-            if (isCharacterDataNode(node)) {
-                this.setStart(node, 0);
-                this.setEnd(node, node.length);
-            } else {
-                this.setStart(node, 0);
-                this.setEnd(node, node.childNodes.length);
-            }
+            var endOffset = isCharacterDataNode(node) ? node.length : node.childNodes.length;
+            updateBoundaries(this, node, 0, node, endOffset);
         },
 
         selectNode: function(node) {
-            this.setStartBefore(node);
-            this.setEndAfter(node);
+            var start = getBoundaryBeforeNode(node), end = getBoundaryAfterNode(node);
+            updateBoundaries(this, start.node, start.offset, end.node, end.offset);
         },
 
         compareBoundaryPoints: function(how, range) {
@@ -266,6 +275,11 @@ var DomRange = (function() {
             nodeB = range[prefixB + "Container"];
             offsetB = range[prefixB + "Offset"];
             return comparePoints(nodeA, offsetA, nodeB, offsetB);
+        },
+
+        cloneContents: function() {
+            // clone subtree
+            return cloneSubtree(new RangeIterator(this));
         }
     };
 
@@ -283,9 +297,9 @@ var DomRange = (function() {
             var root = range.commonAncestorContainer;
 
             this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
-                this.sc.childNodes[this.so] : getClosestAncestorIn(root, this.sc, true);
+                this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
             this._end = (this.ec == root && !isCharacterDataNode(this.ec)) ?
-                this.ec.childNodes[this.eo] : getClosestAncestorIn(root, this.ec, true).nextSibling;
+                this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
         }
     }
 

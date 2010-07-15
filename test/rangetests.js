@@ -99,4 +99,15 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range1.compareBoundaryPoints(range1.END_TO_END, range2), 1);
     });
 
+    testBothRangeTypes("cloneContents 1", function(t, rangeCreator) {
+        var range = rangeCreator(document);
+        range.setStart(t.nodes.plainText, 1);
+        range.setEnd(t.nodes.b, 1);
+        var frag = range.cloneContents();
+        var div = document.createElement("div");
+        div.appendChild(frag);
+        console.log(range.toString(), div.innerHTML, frag);
+    });
+
+
 }, false);
