@@ -35,17 +35,18 @@ xn.test.suite("Range", function(s) {
 
     function testBothRangeTypes(name, testFunc) {
         s.test(name + " (Custom Range)", function(t) {
-            testFunc(t, createJsDomRange(document));
+            testFunc(t, createJsDomRange);
         });
 
         if (hasNativeDomRange) {
             s.test(name + " (Native Range)", function(t) {
-                testFunc(t, createNativeDomRange(document));
+                testFunc(t, createNativeDomRange);
             });
         }
     }
 
-    testBothRangeTypes("Initial Range values", function(t, range) {
+    testBothRangeTypes("Initial Range values", function(t, rangeCreator) {
+        var range = rangeCreator(document);
         t.assertEquivalent(range.startContainer, document);
         t.assertEquivalent(range.startOffset, 0);
         t.assertEquivalent(range.endContainer, document);
@@ -53,7 +54,8 @@ xn.test.suite("Range", function(s) {
     });
 
 
-    testBothRangeTypes("setStart after end test", function(t, range) {
+    testBothRangeTypes("setStart after end test", function(t, rangeCreator) {
+        var range = rangeCreator(document);
         range.setStart(t.nodes.plainText, 2);
         t.assert(range.collapsed);
         t.assertEquivalent(range.startContainer, t.nodes.plainText);
@@ -62,7 +64,8 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range.endOffset, 2);
     });
 
-    testBothRangeTypes("setEnd after start test", function(t, range) {
+    testBothRangeTypes("setEnd after start test", function(t, rangeCreator) {
+        var range = rangeCreator(document);
         range.setEnd(t.nodes.b, 1);
         t.assertFalse(range.collapsed);
         t.assertEquivalent(range.startContainer, document);
@@ -71,7 +74,8 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range.endOffset, 1);
     });
 
-    testBothRangeTypes("setStart after interesting end test", function(t, range) {
+    testBothRangeTypes("setStart after interesting end test", function(t, rangeCreator) {
+        var range = rangeCreator(document);
         range.setEnd(t.nodes.b, 1);
         range.setStart(t.nodes.boldAndItalicText, 2);
         t.assert(range.collapsed);
@@ -81,5 +85,18 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range.endOffset, 2);
     });
 
+    testBothRangeTypes("compareBoundaryPoints 1", function(t, rangeCreator) {
+        var range1 = rangeCreator(document);
+        var range2 = rangeCreator(document);
+        range1.setStart(t.nodes.b, 1);
+        range1.setEnd(t.nodes.boldAndItalicText, 2);
+        range2.setStart(t.nodes.plainText, 1);
+        range2.setEnd(t.nodes.b, 1);
+
+        t.assertEquivalent(range1.compareBoundaryPoints(range1.START_TO_START, range2), 1);
+        t.assertEquivalent(range1.compareBoundaryPoints(range1.START_TO_END, range2), 1);
+        t.assertEquivalent(range1.compareBoundaryPoints(range1.END_TO_START, range2), 0);
+        t.assertEquivalent(range1.compareBoundaryPoints(range1.END_TO_END, range2), 1);
+    });
 
 }, false);

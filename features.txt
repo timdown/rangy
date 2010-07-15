@@ -46,3 +46,4 @@ http://closure-library.googlecode.com/svn/docs/closure_goog_dom_abstractrange.js
 http://trac.webkit.org/browser/trunk/WebCore/dom/Range.cpp
 http://mxr.mozilla.org/mozilla-central/source/content/base/src/nsRange.cpp
 http://code.google.com/p/ierange/issues/list
+http://xerces.apache.org/mirrors.cgi#source

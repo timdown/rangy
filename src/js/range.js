@@ -71,12 +71,12 @@ var DomRange = (function() {
 
     function isCharacterDataNode(node) {
         var t = node.nodeType;
-        return t == 3 || t == 4; // Text or CData
+        return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
     }
 
     function nodeHasStringOffset(node) {
         var t = node.nodeType;
-        return t == 3 || t == 4 || t == 7 || t == 8; // Text, CData, Processing Instruction or Comment
+        return t == 3 || t == 4 || t == 7 || t == 8; // Text, CDataSection, Processing Instruction or Comment
     }
 
 
@@ -125,6 +125,12 @@ var DomRange = (function() {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    function Boundary(node, offset) {
+        this.node = node;
+        this.offset = offset;
+    }
+
+
     function Range(doc) {
         this._doc = doc;
         this.startContainer = doc;
@@ -146,11 +152,11 @@ var DomRange = (function() {
     Range.END_TO_END = e2e;
     Range.END_TO_START = e2s;
 
-
     // Updates commonAncestorContainer and collapsed after boundary change
     function updateCollapsedAndCommonAncestor(range) {
         range.collapsed = (range.startContainer === range.endContainer && range.startOffset === range.endOffset);
-        range.commonAncestorContainer = getCommonAncestor(range.startContainer, range.endContainer);
+        range.commonAncestorContainer = range.collapsed ?
+            range.startContainer : getCommonAncestor(range.startContainer, range.endContainer);
     }
 
     function dispatchEvent(range, type, args) {
@@ -159,10 +165,24 @@ var DomRange = (function() {
         }
     }
 
+    function updateBoundaries(range, startContainer, startOffset, endContainer, endOffset) {
+        var startMoved = (this.startContainer !== startContainer || this.startOffset !== startOffset);
+        var endMoved = (this.endContainer !== endContainer || this.endOffset !== endOffset);
+
+        this.startContainer = startContainer;
+        this.startOffset = startOffset;
+        this.endContainer = endContainer;
+        this.endOffset = endOffset;
+
+        updateCollapsedAndCommonAncestor(this);
+        dispatchEvent(this, "boundarychange", {startMoved: startMoved, endMoved: endMoved});
+    }
+
     /*
      TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for
      detachedness
       */
+
 
 
     Range.prototype = {
@@ -173,18 +193,16 @@ var DomRange = (function() {
 
         setStart: function(node, offset) {
             log.debug("setStart");
+            var endContainer = this.endContainer, endOffset = this.endOffset;
             if (node !== this.startContainer || offset !== this.startOffset) {
-                var endMoved = false;
                 this.startContainer = node;
                 this.startOffset = offset;
 
                 if (comparePoints(node, offset, this.endContainer, this.endOffset) == 1) {
-                    endMoved = true;
-                    this.endContainer = node;
-                    this.endOffset = offset;
+                    endContainer = node;
+                    endOffset = offset;
                 }
-                updateCollapsedAndCommonAncestor(this);
-                dispatchEvent(this, "boundarychange", {startMoved: true, endMoved: endMoved});
+                updateBoundaries(this, node, offset, endContainer, endOffset);
             }
         },
 
@@ -205,10 +223,44 @@ var DomRange = (function() {
             }
         },
 
+        setStartBefore: function(node) {
+            this.setStart(node.parentNode, getNodeIndex(node));
+        },
+
+        setStartAfter: function(node) {
+            this.setStart(node.parentNode, getNodeIndex(node) + 1);
+        },
+
+        setEndBefore: function(node) {
+            this.setEnd(node.parentNode, getNodeIndex(node));
+        },
+
+        setEndAfter: function(node) {
+            this.setEnd(node.parentNode, getNodeIndex(node) + 1);
+        },
+
+        selectNodeContents: function(node) {
+            // This doesn't seem well specified: the spec talks only about selecting the node's contents, which
+            // could be taken to mean only its children. However, browsers implement this the same as selectNode for
+            // text nodes, so I shall do likewise
+            if (isCharacterDataNode(node)) {
+                this.setStart(node, 0);
+                this.setEnd(node, node.length);
+            } else {
+                this.setStart(node, 0);
+                this.setEnd(node, node.childNodes.length);
+            }
+        },
+
+        selectNode: function(node) {
+            this.setStartBefore(node);
+            this.setEndAfter(node);
+        },
+
         compareBoundaryPoints: function(how, range) {
             var nodeA, offsetA, nodeB, offsetB;
-            var prefixA = (how == s2e || how == s2s) ? "start" : "end";
-            var prefixB = (how == e2s || how == s2s) ? "start" : "end";
+            var prefixA = (how == e2s || how == s2s) ? "start" : "end";
+            var prefixB = (how == s2e || how == s2s) ? "start" : "end";
             nodeA = this[prefixA + "Container"];
             offsetA = this[prefixA + "Offset"];
             nodeB = range[prefixB + "Container"];
@@ -223,16 +275,81 @@ var DomRange = (function() {
 
     function RangeIterator(range) {
         this.range = range;
+        if (!range.collapsed) {
+            this.sc = range.startContainer;
+            this.so = range.startOffset;
+            this.ec = range.endContainer;
+            this.eo = range.endOffset;
+            var root = range.commonAncestorContainer;
 
+            this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
+                this.sc.childNodes[this.so] : getClosestAncestorIn(root, this.sc, true);
+            this._end = (this.ec == root && !isCharacterDataNode(this.ec)) ?
+                this.ec.childNodes[this.eo] : getClosestAncestorIn(root, this.ec, true).nextSibling;
+        }
     }
 
     RangeIterator.prototype = {
-        current: null,
-        next: null,
-        end: null
+        _current: null,
+        _next: null,
+        _end: null,
 
+        hasNext: function () {
+            return !!this._next;
+        },
 
+        next: function () {
+            // Move to next node
+            var sibling, current = this._current = this._next;
+            if (current) {
+                sibling = current.nextSibling;
+                this._next = (sibling != this._end) ? sibling : null;
 
+                // Check for partially selected text nodes
+                if (isCharacterDataNode(current)) {
+                    if (current === this.ec) {
+                        (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
+                    }
+                    if (this._current === this.sc) {
+                        (current = current.cloneNode(true)).deleteData(0, this.so);
+                    }
+                }
+            }
+
+            return current;
+        },
+
+        remove: function () {
+            var current = this._current, start, end;
+
+            if (isCharacterDataNode(this._current) && (current === this.sc || current === this.ec)) {
+                start = (current === this.sc) ? this.so : 0;
+                end = (current === this.ec) ? this.eo : current.length;
+                current.deleteData(start, end - start);
+            } else {
+                current.parentNode.removeChild(current);
+            }
+        },
+
+        // Checks if the current node is partially selected
+        hasPartiallySelectedSubtree: function () {
+            var current = this._current;
+            return !isCharacterDataNode(current) &&
+                (isAncestorOf(current, this.sc, true) || isAncestorOf(current, this.ec, true));
+        },
+
+        getSubtreeIterator: function () {
+            var subRange = new Range(this.range._doc);
+            subRange.selectNodeContents(this._current);
+
+            if (isAncestorOf(this._current, this.sc, true)) {
+                subRange.setStart(this.sc, this.so);
+            }
+            if (isAncestorOf(this._current, this.ec, true)) {
+                subRange.setEnd(this.ec, this.range.eo);
+            }
+            return new RangeIterator(subRange);
+        }
     };
 
     Range.RangeIterator = RangeIterator;
