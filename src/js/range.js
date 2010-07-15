@@ -4,7 +4,6 @@ var DomRange = (function() {
 
     // Utility functions
 
-
     var arrayContains = Array.prototype.indexOf ?
         function(arr, val) {
             return arr.indexOf(val) > -1;
@@ -74,7 +73,7 @@ var DomRange = (function() {
         var t = node.nodeType;
         return t == 3 || t == 4; // Text or CData
     }
-    
+
     function nodeHasStringOffset(node) {
         var t = node.nodeType;
         return t == 3 || t == 4 || t == 7 || t == 8; // Text, CData, Processing Instruction or Comment
@@ -93,9 +92,9 @@ var DomRange = (function() {
             // Case 2: node C (container B or an ancestor) is a child node of A
             return offsetA <= getNodeIndex(nodeC) ? -1 : 1;
         } else if ( (nodeC = getClosestAncestorIn(nodeA, nodeB, true)) ) {
-            log.debug("case 3", offsetB, getNodeIndex(nodeC), nodeB.innerHTML, nodeC.innerHTML);
+            log.debug("case 3");
             // Case 3: node C (container A or an ancestor) is a child node of B
-            return offsetB >= getNodeIndex(nodeC) ? -1 : 1;
+            return getNodeIndex(nodeC) < offsetB  ? -1 : 1;
         } else {
             log.debug("case 4");
             // Case 4: containers are siblings or descendants of siblings
@@ -179,7 +178,6 @@ var DomRange = (function() {
                 this.startContainer = node;
                 this.startOffset = offset;
 
-                log.info("Point comparison: " + comparePoints(node, offset, this.endContainer, this.endOffset)  );
                 if (comparePoints(node, offset, this.endContainer, this.endOffset) == 1) {
                     endMoved = true;
                     this.endContainer = node;
@@ -197,7 +195,6 @@ var DomRange = (function() {
                 this.endContainer = node;
                 this.endOffset = offset;
 
-                log.info("Point comparison: " + comparePoints(node, offset, this.startContainer, this.startOffset));
                 if (comparePoints(node, offset, this.startContainer, this.startOffset) == -1) {
                     startMoved = true;
                     this.startContainer = node;
@@ -206,6 +203,17 @@ var DomRange = (function() {
                 updateCollapsedAndCommonAncestor(this);
                 dispatchEvent(this, "boundarychange", {startMoved: startMoved, endMoved: true});
             }
+        },
+
+        compareBoundaryPoints: function(how, range) {
+            var nodeA, offsetA, nodeB, offsetB;
+            var prefixA = (how == s2e || how == s2s) ? "start" : "end";
+            var prefixB = (how == e2s || how == s2s) ? "start" : "end";
+            nodeA = this[prefixA + "Container"];
+            offsetA = this[prefixA + "Offset"];
+            nodeB = range[prefixB + "Container"];
+            offsetB = range[prefixB + "Offset"];
+            return comparePoints(nodeA, offsetA, nodeB, offsetB);
         }
     };
 
@@ -215,7 +223,7 @@ var DomRange = (function() {
 
     function RangeIterator(range) {
         this.range = range;
-        
+
     }
 
     RangeIterator.prototype = {

@@ -7,9 +7,10 @@
         <script type="text/javascript" src="../src/js/log4javascript.js"></script>
         <script type="text/javascript">
             var appender = new log4javascript.InPageAppender();
-            log4javascript.getRootLogger().addAppender(appender);
+            //log4javascript.getRootLogger().addAppender(appender);
             var log = log4javascript.getRootLogger();
             log4javascript.setShowStackTraces(true);
+            //log4javascript.setEnabled(false);
         </script>
 		<script type="text/javascript" src="xntest.js"></script>
 		<script type="text/javascript">

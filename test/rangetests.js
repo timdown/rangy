@@ -7,6 +7,8 @@ xn.test.suite("Range", function(s) {
         return doc.createRange();
     }
 
+    var hasNativeDomRange = "createRange" in document;
+
     s.setUp = function(t) {
         var div = document.createElement("div");
         var plainText = div.appendChild(document.createTextNode("plain"));
@@ -36,9 +38,11 @@ xn.test.suite("Range", function(s) {
             testFunc(t, createJsDomRange(document));
         });
 
-        s.test(name + " (Native Range)", function(t) {
-            testFunc(t, createNativeDomRange(document));
-        });
+        if (hasNativeDomRange) {
+            s.test(name + " (Native Range)", function(t) {
+                testFunc(t, createNativeDomRange(document));
+            });
+        }
     }
 
     testBothRangeTypes("Initial Range values", function(t, range) {
