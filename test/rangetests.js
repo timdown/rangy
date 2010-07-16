@@ -106,7 +106,15 @@ xn.test.suite("Range", function(s) {
         var frag = range.cloneContents();
         var div = document.createElement("div");
         div.appendChild(frag);
-        console.log(range.toString(), div.innerHTML, frag);
+        log.info(range.toString(), div.innerHTML);
+
+/*
+        range.deleteContents();
+        log.info(t.nodes.div.innerHTML);
+*/
+        if (range.getNodes) {
+            console.log(range.getNodes());
+        }
     });
 
 

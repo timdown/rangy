@@ -19,6 +19,10 @@ var DomRange = (function() {
             return false;
         };
 
+    function nodeToString(node) {
+        return isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName;
+    }
+
     function getNodeIndex(node) {
         var i = 0;
         while( (node = node.previousSibling) ) {
@@ -57,16 +61,17 @@ var DomRange = (function() {
     }
 
     function getClosestAncestorIn(node, ancestor, selfIsAncestor) {
-        log.debug("getClosestAncestorIn", node.nodeName, ancestor.nodeName, selfIsAncestor);
+        log.debug("getClosestAncestorIn", nodeToString(node), nodeToString(ancestor), selfIsAncestor);
         var p, n = selfIsAncestor ? node : node.parentNode;
         while (n) {
             p = n.parentNode;
-            log.debug(p ? p.nodeName : "null", n.nodeName);
             if (p === ancestor) {
+                log.debug("getClosestAncestorIn returning " + nodeToString(node));
                 return n;
             }
             n = p;
         }
+        log.debug("getClosestAncestorIn returning null");
         return null;
     }
 
@@ -122,8 +127,6 @@ var DomRange = (function() {
         }
     }
 
-
-
     /*----------------------------------------------------------------------------------------------------------------*/
 
     function Range(doc) {
@@ -136,7 +139,6 @@ var DomRange = (function() {
             boundarychange: [],
             detach: []
         };
-        this._detached = false;
         updateCollapsedAndCommonAncestor(this);
     }
 
@@ -186,10 +188,17 @@ var DomRange = (function() {
         return new Boundary(node.parentNode, getNodeIndex(node) + 1);
     }
 
+    function getEndOffset(node) {
+        return isCharacterDataNode(node) ? node.length : node.childNodes.length;
+    }
+
     function cloneSubtree(iterator) {
+        var partiallySelected;
         for (var node, frag = document.createDocumentFragment(); node = iterator.next(); ) {
-            node = node.cloneNode(!iterator.hasPartiallySelectedSubtree());
-            if (iterator.hasPartiallySelectedSubtree()) {
+            partiallySelected = iterator.isPartiallySelected();
+            log.debug("cloneSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
+            node = node.cloneNode(!partiallySelected);
+            if (partiallySelected) {
                 node.appendChild(cloneSubtree(iterator.getSubtreeIterator()));
             }
             frag.appendChild(node);
@@ -197,6 +206,21 @@ var DomRange = (function() {
         return frag;
     }
 
+    function iterateSubtree(iterator, func) {
+        var partiallySelected;
+        for (var node; node = iterator.next(); ) {
+            partiallySelected = iterator.isPartiallySelected();
+            log.debug("iterateSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
+            func(node);
+            iterateSubtree(iterator.getSubtreeIterator(), func);
+        }
+    }
+
+    function deleteSubtree(iterator) {
+        while (iterator.next()) {
+            iterator.isPartiallySelected() ? deleteSubtree(iterator.getSubtreeIterator()) : iterator.remove();
+        }
+    }
 
     /*
      TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for detachedness
@@ -208,6 +232,8 @@ var DomRange = (function() {
         START_TO_END: s2e,
         END_TO_END: e2e,
         END_TO_START: e2s,
+
+        _detached: false,
 
         setStart: function(node, offset) {
             log.debug("setStart");
@@ -257,8 +283,7 @@ var DomRange = (function() {
             // This doesn't seem well specified: the spec talks only about selecting the node's contents, which
             // could be taken to mean only its children. However, browsers implement this the same as selectNode for
             // text nodes, so I shall do likewise
-            var endOffset = isCharacterDataNode(node) ? node.length : node.childNodes.length;
-            updateBoundaries(this, node, 0, node, endOffset);
+            updateBoundaries(this, node, 0, node, getEndOffset(node));
         },
 
         selectNode: function(node) {
@@ -278,17 +303,71 @@ var DomRange = (function() {
         },
 
         cloneContents: function() {
-            // clone subtree
-            return cloneSubtree(new RangeIterator(this));
+            var iterator = new RangeIterator(this);
+            var clone = cloneSubtree(iterator);
+            iterator.detach();
+            return clone;
+        },
+
+        extractContents: function() {
+            // TODO: Implement this
+            //return cloneSubtree(new RangeIterator(this));
+        },
+
+        deleteContents: function() {
+            var iterator = new RangeIterator(this);
+            var clone = deleteSubtree(iterator);
+            iterator.detach();
+            // TODO: Move range to correct location
+        },
+
+        detach: function() {
+            this._detached = true;
+            this._doc = this.startContainer = this.startOffset = this.endContainer = this.endOffset = null;
+            this.collapsed = this.commonAncestorContainer = null;
+        },
+
+        toString: function() {
+            var textBits = [], iterator = new RangeIterator(this);
+            iterateSubtree(iterator, function(node) {
+                if (isCharacterDataNode(node)) {
+                    textBits.push(node.data);
+                }
+            });
+            iterator.detach();
+            return textBits.join("");
+        },
+
+        // The methods below are all non-standard. The following batch were introduced by Mozilla but have since been
+        // removed.
+
+        // The methods below are non-standard and invented by me.
+        createIterator: function(filter, splitEnds) {
+
+        },
+
+        getNodes: function(filter, splitEnds) {
+            var nodes = [], iterator = new RangeIterator(this);
+            iterateSubtree(iterator, function(node) {
+                if (!filter || filter(node)) {
+                    nodes.push(node);
+                }
+            });
+            iterator.detach();
+            return nodes;
         }
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
 
+    // RangeIterator code indebted to IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
 
     function RangeIterator(range) {
         this.range = range;
+
+        log.info("New RangeIterator ", nodeToString(range.startContainer), range.startOffset, nodeToString(range.endContainer), range.endOffset);
+
         if (!range.collapsed) {
             this.sc = range.startContainer;
             this.so = range.startOffset;
@@ -296,10 +375,12 @@ var DomRange = (function() {
             this.eo = range.endOffset;
             var root = range.commonAncestorContainer;
 
-            this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
-                this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
-            this._end = (this.ec == root && !isCharacterDataNode(this.ec)) ?
-                this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
+            if (this.sc !== this.ec || !isCharacterDataNode(this.sc)) {
+                this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
+                    this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
+                this._end = (this.ec == root && !isCharacterDataNode(this.ec)) ?
+                    this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
+            }
         }
     }
 
@@ -308,16 +389,16 @@ var DomRange = (function() {
         _next: null,
         _end: null,
 
-        hasNext: function () {
+        hasNext: function() {
             return !!this._next;
         },
 
-        next: function () {
+        next: function() {
             // Move to next node
             var sibling, current = this._current = this._next;
             if (current) {
                 sibling = current.nextSibling;
-                this._next = (sibling != this._end) ? sibling : null;
+                this._next = (sibling !== this._end) ? sibling : null;
 
                 // Check for partially selected text nodes
                 if (isCharacterDataNode(current)) {
@@ -333,7 +414,7 @@ var DomRange = (function() {
             return current;
         },
 
-        remove: function () {
+        remove: function() {
             var current = this._current, start, end;
 
             if (isCharacterDataNode(this._current) && (current === this.sc || current === this.ec)) {
@@ -346,23 +427,31 @@ var DomRange = (function() {
         },
 
         // Checks if the current node is partially selected
-        hasPartiallySelectedSubtree: function () {
+        isPartiallySelected: function() {
             var current = this._current;
             return !isCharacterDataNode(current) &&
                 (isAncestorOf(current, this.sc, true) || isAncestorOf(current, this.ec, true));
         },
 
-        getSubtreeIterator: function () {
-            var subRange = new Range(this.range._doc);
-            subRange.selectNodeContents(this._current);
+        getSubtreeIterator: function() {
+            var subRange = new Range(this.range._doc), current = this._current;
+            var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
 
-            if (isAncestorOf(this._current, this.sc, true)) {
-                subRange.setStart(this.sc, this.so);
+            if (isAncestorOf(current, this.sc, true)) {
+                startContainer = this.sc;
+                startOffset = this.so;
             }
-            if (isAncestorOf(this._current, this.ec, true)) {
-                subRange.setEnd(this.ec, this.range.eo);
+            if (isAncestorOf(current, this.ec, true)) {
+                endContainer = this.ec;
+                endOffset = this.eo;
             }
+
+            updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
             return new RangeIterator(subRange);
+        },
+
+        detach: function() {
+            this.range = this._current = this._next = this._end = this.sc = this.so = this.ec = this.eo = null;
         }
     };
 
