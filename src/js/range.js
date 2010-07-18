@@ -19,10 +19,6 @@ var DomRange = (function() {
             return false;
         };
 
-    function nodeToString(node) {
-        return isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName;
-    }
-
     function getNodeIndex(node) {
         var i = 0;
         while( (node = node.previousSibling) ) {
@@ -78,6 +74,10 @@ var DomRange = (function() {
     function isCharacterDataNode(node) {
         var t = node.nodeType;
         return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
+    }
+
+    function nodeToString(node) {
+        return isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName;
     }
 
     function insertAfter(node, precedingNode) {
@@ -295,7 +295,7 @@ var DomRange = (function() {
     }
 
     function isNonTextPartiallySelected(node, range) {
-        return !isCharacterDataNode(node) &&
+        return (node.nodeType != 3) &&
                (isAncestorOf(node, range.startContainer, true) || isAncestorOf(node, range.endContainer, true));
     }
 
@@ -535,7 +535,8 @@ var DomRange = (function() {
 
             // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no
             // non-text nodes.
-            if (iterator._first && (isNonTextPartiallySelected(iterator._first, this) || isNonTextPartiallySelected(iterator._last, this))) {
+            if ((iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                    (iterator._last && isNonTextPartiallySelected(iterator._last, this)))) {
                 iterator.detach();
                 throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
             }
@@ -580,7 +581,9 @@ var DomRange = (function() {
             assertNotDetached(this);
             var textBits = [], iterator = new RangeIterator(this);
             iterateSubtree(iterator, function(node) {
-                if (isCharacterDataNode(node)) {
+                // Accept only text or CDATA nodes
+                log.info("toString: got node", node)
+                if (node.nodeType == 3 || node.nodeType == 4) {
                     textBits.push(node.data);
                 }
             });

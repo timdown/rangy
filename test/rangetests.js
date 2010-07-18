@@ -154,7 +154,12 @@ xn.test.suite("Range", function(s) {
 
     testBothRangeTypes("Acid3 test 8: moving boundary points", function(t, rangeCreator) {
         // test 8: moving boundary points
-        var doc = document.implementation.createDocument(null, null, null);
+        var doc;
+        if (document.implementation && document.implementation.createDocument) {
+            doc = document.implementation.createDocument(null, null, null);
+        } else if (window.ActiveXObject) {
+            doc = new ActiveXObject("MSXML2.DOMDocument");
+        }
         var root = doc.createElement("root");
         doc.appendChild(root);
         var e1 = doc.createElement("e");
@@ -233,7 +238,7 @@ xn.test.suite("Range", function(s) {
 
     function getTestDocument() {
         var iframe = document.getElementById("selectors");
-        var doc = iframe.contentDocument;
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
         for (var i = doc.documentElement.childNodes.length-1; i >= 0; i -= 1) {
             doc.documentElement.removeChild(doc.documentElement.childNodes[i]);
         }
@@ -321,7 +326,6 @@ xn.test.suite("Range", function(s) {
             r.surroundContents(doc.createElement('a'));
             msg = 'no exception raised';
         } catch (e) {
-            console.log(e);
             if ('code' in e) msg += '; code = ' + e.code;
             if (e.code == 3) msg = '';
         }
