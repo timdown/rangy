@@ -725,27 +725,22 @@ var DomRange = (function() {
     // RangeIterator code indebted to IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
 
     function RangeIterator(range) {
-        if (range) {
-            this.range = range;
+        this.range = range;
 
-            log.info("New RangeIterator ", nodeToString(range.startContainer), range.startOffset, nodeToString(range.endContainer), range.endOffset);
+        log.info("New RangeIterator ", nodeToString(range.startContainer), range.startOffset, nodeToString(range.endContainer), range.endOffset);
 
-            if (!range.collapsed) {
-                this.sc = range.startContainer;
-                this.so = range.startOffset;
-                this.ec = range.endContainer;
-                this.eo = range.endOffset;
-                var root = range.commonAncestorContainer;
+        if (!range.collapsed) {
+            this.sc = range.startContainer;
+            this.so = range.startOffset;
+            this.ec = range.endContainer;
+            this.eo = range.endOffset;
+            var root = range.commonAncestorContainer;
 
-                if (this.sc !== this.ec || !isCharacterDataNode(this.sc)) {
-                    this._first = this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
-                        this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
-                    this._last = (this.ec == root && !isCharacterDataNode(this.ec)) ?
-                        this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
-                } else {
-                    this._first = this._last = this._next = this.sc;
-                    this.isSingleCharacterDataNode = true;
-                }
+            if (this.sc !== this.ec || !isCharacterDataNode(this.sc)) {
+                this._first = this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
+                    this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
+                this._last = (this.ec == root && !isCharacterDataNode(this.ec)) ?
+                    this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
             }
         }
     }
@@ -808,10 +803,6 @@ var DomRange = (function() {
         },
 
         getSubtreeIterator: function() {
-            if (this.isSingleCharacterDataNode) {
-                return new RangeIterator(null);
-            }
-
             var subRange = new Range(getRangeDocument(this.range)), current = this._current;
             var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
 
@@ -829,7 +820,7 @@ var DomRange = (function() {
         },
 
         detach: function(detachRange) {
-            if (detachRange && this.range) {
+            if (detachRange) {
                 this.range.detach();
             }
             this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;

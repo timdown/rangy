@@ -284,7 +284,7 @@ xn.test.suite("Range", function(s) {
         doc.body.appendChild(p);
         var r = rangeCreator(doc);
         r.selectNodeContents(doc);
-        t.assertEquals(r.toString(), "Hello Wonderful KittyHow are you?", "toString() on range selecting Document gave wrong output");
+        t.assertEquals(r.toString(), "Hello Wonderful KittyHow are you?", "toString() on range selecting Document gave wrong output: " + r.toString());
         r.setStart(t2, 6);
         r.setEnd(p, 0);
         // <body><h1>Hello <em>Wonder ful<\em> Kitty<\h1><p> How are you?<\p><\body>     (the '\'s are to avoid validation errors)
