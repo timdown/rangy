@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>WebKit Range bug</title>
+    <script type="text/javascript">
+        window.onload = function() {
+            var iframe = document.createElement("iframe");
+            document.body.appendChild(iframe);
+            var doc = iframe.contentDocument;
+            doc.write("<html><head><body>stuff</body></html>");
+            var r = document.createRange();
+            r.selectNodeContents(document.getElementById("test"));
+
+            // Move range start to the iframe document. According to the DOM
+            // Range spec, this should collapse the Range to the new boundary
+            // but in WebKit we get a WRONG_DOCUMENT_ERR
+            try {
+                r.setStart(doc.body, 0);
+                alert(r.startContainer.firstChild.data); // Should be "stuff"
+            } catch (ex) {
+                alert("Error: "  + ex);
+            }
+        };
+    </script>
+</head>
+<body>
+    <div id="test">Some content</div>
+</body>
+</html>
