@@ -642,9 +642,9 @@ var xn = new Object();
 				values[i] = args[i];
 			}
 		} else if (args.length == expectedArgsCount + 1) {
-			comment = args[0];
-			for (i = 1; i < args.length; i++) {
-				values[i - 1] = args[i];
+			comment = args[args.length - 1];
+			for (i = 0; i < args.length; i++) {
+				values[i] = args[i];
 			}
 		} else {
 			throw new Error("Invalid number of arguments passed to assert function");
@@ -683,8 +683,12 @@ var xn = new Object();
 		assert.apply(this, [arguments, 1, testBoolean, "Expected not to be equivalent to false"]);
 	};
 
+    var testTruthy = function(values) {
+        return !!values[0];
+    };
+
 	var testTrue = function(values) {
-		return (values[0] === true);
+		return values[0] === true;
 	};
 
 	Test.prototype.assertTrue = function() {
@@ -692,7 +696,7 @@ var xn = new Object();
 	};
 
 	Test.prototype.assert = function() {
-		assert.apply(this, [arguments, 1, testTrue, "Expected to be true but was {0}"]);
+		assert.apply(this, [arguments, 1, testTruthy, "Expected to be true but was {0}"]);
 	};
 
 	var testFalse = function(values) {

@@ -80,10 +80,36 @@ var DomRange = (function() {
         return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
     }
 
+    function insertAfter(node, precedingNode) {
+        var nextNode = precedingNode.nextSibling, parent = precedingNode.parentNode;
+        if (nextNode) {
+            parent.insertBefore(node, nextNode);
+        } else {
+            parent.appendChild(node);
+        }
+        return node;
+    }
+
+    function splitDataNode(node, index) {
+        var newNode;
+        if (node.nodeType == 3) {
+            newNode = node.splitText(index);
+        } else {
+            newNode = node.cloneNode();
+            newNode.deleteData(0, index);
+            node.deleteData(0, node.length - index);
+            insertAfter(newNode, node);
+        }
+        return newNode;
+    }
+
+
+/*
     function nodeHasStringOffset(node) {
         var t = node.nodeType;
         return t == 3 || t == 4 || t == 7 || t == 8; // Text, CDataSection, Processing Instruction or Comment
     }
+*/
 
 
     function comparePoints(nodeA, offsetA, nodeB, offsetB) {
@@ -126,28 +152,6 @@ var DomRange = (function() {
             }
         }
     }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    function Range(doc) {
-        this._doc = doc;
-        this.startContainer = doc;
-        this.startOffset = 0;
-        this.endContainer = doc;
-        this.endOffset = 0;
-        this._listeners = {
-            boundarychange: [],
-            detach: []
-        };
-        updateCollapsedAndCommonAncestor(this);
-    }
-
-    var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
-
-    Range.START_TO_START = s2s;
-    Range.START_TO_END = s2e;
-    Range.END_TO_END = e2e;
-    Range.END_TO_START = e2s;
 
     function dispatchEvent(range, type, args) {
         for (var i = 0, len = range._listeners.length; i < len; ++i) {
@@ -192,14 +196,31 @@ var DomRange = (function() {
         return isCharacterDataNode(node) ? node.length : node.childNodes.length;
     }
 
+    function insertNodeAtPosition(node, n, o) {
+        if (isCharacterDataNode(n)) {
+            if (o == n.length) {
+                n.parentNode.appendChild(node);
+            } else {
+                n.parentNode.insertBefore(node, o == 0 ? n : splitDataNode(n, o));
+            }
+        } else if (o >= n.childNodes.length) {
+            n.appendChild(node);
+        } else {
+            n.insertBefore(node, n.childNodes[o]);
+        }
+        return node;
+    }
+
     function cloneSubtree(iterator) {
         var partiallySelected;
-        for (var node, frag = document.createDocumentFragment(); node = iterator.next(); ) {
+        for (var node, frag = document.createDocumentFragment(), subIterator; node = iterator.next(); ) {
             partiallySelected = iterator.isPartiallySelected();
             log.debug("cloneSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
             node = node.cloneNode(!partiallySelected);
             if (partiallySelected) {
-                node.appendChild(cloneSubtree(iterator.getSubtreeIterator()));
+                subIterator = iterator.getSubtreeIterator();
+                node.appendChild(cloneSubtree(subIterator));
+                subIterator.detach(true);
             }
             frag.appendChild(node);
         }
@@ -208,23 +229,177 @@ var DomRange = (function() {
 
     function iterateSubtree(iterator, func) {
         var partiallySelected;
-        for (var node; node = iterator.next(); ) {
+        for (var node, subIterator; node = iterator.next(); ) {
             partiallySelected = iterator.isPartiallySelected();
             log.debug("iterateSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
             func(node);
-            iterateSubtree(iterator.getSubtreeIterator(), func);
+            subIterator = iterator.getSubtreeIterator();
+            iterateSubtree(subIterator, func);
+            subIterator.detach(true);
         }
     }
 
     function deleteSubtree(iterator) {
+        var subIterator;
         while (iterator.next()) {
-            iterator.isPartiallySelected() ? deleteSubtree(iterator.getSubtreeIterator()) : iterator.remove();
+            if (iterator.isPartiallySelected()) {
+                subIterator = iterator.getSubtreeIterator();
+                deleteSubtree(subIterator);
+                subIterator.detach(true);
+            } else {
+                iterator.remove();
+            }
         }
     }
 
+    function extractSubtree(iterator) {
+        for (var node, frag = document.createDocumentFragment(), subIterator; node = iterator.next(); ) {
+            if (iterator.isPartiallySelected()) {
+                node = node.cloneNode(false);
+                subIterator = iterator.getSubtreeIterator();
+                node.appendChild(extractSubtree(subIterator));
+                subIterator.detach(true);
+            } else {
+                iterator.remove();
+            }
+            frag.appendChild(node);
+        }
+        return frag;
+    }
+
+    function createRangeContentRemover(remover) {
+        return function() {
+            assertNotDetached(this);
+            var iterator = new RangeIterator(this);
+            var sc = this.startContainer, so = this.startOffset, root = this.commonAncestorContainer;
+
+            // Work out where to position the range after content removal
+            var node, boundary;
+            if (sc !== root) {
+                node = getClosestAncestorIn(sc, root, true);
+                boundary = getBoundaryAfterNode(node);
+                sc = boundary.node;
+                so = boundary.offset;
+            }
+
+            // Remove the content
+            var returnValue = remover(iterator);
+            iterator.detach();
+
+            // TODO: Test this moves the range to the correct location
+            // Move to the new position
+            updateBoundaries(this, sc, so, sc, so);
+
+            return returnValue;
+        };
+    }
+
+    function isNonTextPartiallySelected(node, range) {
+        return !isCharacterDataNode(node) &&
+               (isAncestorOf(node, range.startContainer, true) || isAncestorOf(node, range.endContainer, true));
+    }
+
+    function getRootContainer(node) {
+        var t;
+        while (node) {
+            t = node.nodeType;
+            if (t == 9 || t == 11 || t == 2) {
+                return node;
+            }
+            node = node.parentNode;
+        }
+        return null;
+    }
+
+    function assertNotDetached(range) {
+        if (range._detached) {
+            throw new DOMException("INVALID_STATE_ERR");
+        }
+    }
+
+    var startEndNodeTypes = [1, 2, 3, 4, 5, 7, 8, 9, 11];
+    var beforeAfterNodeTypes = [1, 3, 4, 5, 7, 8, 10];
+    var rootContainerNodeTypes = [2, 9, 11];
+
+    function assertValidNodeType(node, invalidTypes) {
+        if (!arrayContains(invalidTypes, node.nodeType)) {
+            throw new RangeException("INVALID_NODE_TYPE_ERR");
+        }
+    }
+
+    function assertValidOffset(node, offset) {
+        if (offset < 0 || offset > (isCharacterDataNode(node) ? node.length : node.childNodes.length)) {
+            throw new DOMException("INDEX_SIZE_ERR");
+        }
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Exceptions
+
+    var DOMExceptionCodes = {
+        INDEX_SIZE_ERR: 1,
+        HIERARCHY_REQUEST_ERR: 3,
+        WRONG_DOCUMENT_ERR: 4,
+        NO_MODIFICATION_ALLOWED_ERR: 7,
+        INVALID_STATE_ERR: 11
+    };
+
+    function DOMException(codeName) {
+        this.code = DOMExceptionCodes[codeName];
+        this.codeName = codeName;
+    }
+
+    DOMException.prototype = DOMExceptionCodes;
+
+    DOMException.prototype.toString = function() {
+        return "DOMException: " + this.codeName;
+    };
+
+    var RangeExceptionCodes = {
+        BAD_BOUNDARYPOINTS_ERR: 1,
+        INVALID_NODE_TYPE_ERR: 2
+    };
+
+    function RangeException(codeName) {
+        this.code = RangeExceptionCodes[codeName];
+        this.codeName = codeName;
+    }
+
+    RangeException.prototype = RangeExceptionCodes;
+
+    RangeException.prototype.toString = function() {
+        return "RangeException: " + this.codeName;
+    };
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    function Range(doc) {
+        this._doc = doc;
+        this.startContainer = doc;
+        this.startOffset = 0;
+        this.endContainer = doc;
+        this.endOffset = 0;
+        this._listeners = {
+            boundarychange: [],
+            detach: []
+        };
+        updateCollapsedAndCommonAncestor(this);
+    }
+
+    var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
+    var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
+        "commonAncestorContainer"];
+
+    Range.START_TO_START = s2s;
+    Range.START_TO_END = s2e;
+    Range.END_TO_END = e2e;
+    Range.END_TO_START = e2s;
+
+
     /*
      TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for detachedness
-     TODO: Add feature tests for DOM methods used: document.createDocumentFragment, deleteData, cloneNode
+     TODO: Add feature tests for DOM methods used: document.createDocumentFragment, deleteData, cloneNode, splitText
       */
 
     Range.prototype = {
@@ -236,62 +411,96 @@ var DomRange = (function() {
         _detached: false,
 
         setStart: function(node, offset) {
-            log.debug("setStart");
-            var endContainer = this.endContainer, endOffset = this.endOffset;
+            assertNotDetached(this);
+            assertValidNodeType(node, startEndNodeTypes);
+            assertValidOffset(node, offset);
+
+            var ec = this.endContainer, eo = this.endOffset;
             if (node !== this.startContainer || offset !== this.startOffset) {
                 if (comparePoints(node, offset, this.endContainer, this.endOffset) == 1) {
-                    endContainer = node;
-                    endOffset = offset;
+                    ec = node;
+                    eo = offset;
                 }
-                updateBoundaries(this, node, offset, endContainer, endOffset);
+                updateBoundaries(this, node, offset, ec, eo);
             }
         },
 
         setEnd: function(node, offset) {
-            log.debug("setEnd");
-            var startContainer = this.startContainer, startOffset = this.startOffset;
+            assertNotDetached(this);
+            assertValidNodeType(node, startEndNodeTypes);
+            assertValidOffset(node, offset);
+
+            var sc = this.startContainer, so = this.startOffset;
             if (node !== this.endContainer || offset !== this.endOffset) {
                 if (comparePoints(node, offset, this.startContainer, this.startOffset) == -1) {
-                    startContainer = node;
-                    startOffset = offset;
+                    sc = node;
+                    so = offset;
                 }
-                updateBoundaries(this, startContainer, startOffset, node, offset);
+                updateBoundaries(this, sc, so, node, offset);
             }
         },
 
         setStartBefore: function(node) {
+            assertNotDetached(this);
+            assertValidNodeType(node, beforeAfterNodeTypes);
+            assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
+
             var boundary = getBoundaryBeforeNode(node);
             this.setStart(boundary.node, boundary.offset);
         },
 
         setStartAfter: function(node) {
+            assertNotDetached(this);
+            assertValidNodeType(node, beforeAfterNodeTypes);
+            assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
+
             var boundary = getBoundaryAfterNode(node);
             this.setStart(boundary.node, boundary.offset);
         },
 
         setEndBefore: function(node) {
+            assertNotDetached(this);
+            assertValidNodeType(node, beforeAfterNodeTypes);
+            assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
+
             var boundary = getBoundaryBeforeNode(node);
             this.setEnd(boundary.node, boundary.offset);
         },
 
         setEndAfter: function(node) {
+            assertNotDetached(this);
+            assertValidNodeType(node, beforeAfterNodeTypes);
+            assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
+
             var boundary = getBoundaryAfterNode(node);
             this.setEnd(boundary.node, boundary.offset);
+        },
+
+        collapse: function(isStart) {
+            assertNotDetached(this);
+            if (isStart) {
+                updateBoundaries(this, this.startContainer, this.startOffset, this.startContainer, this.startOffset);
+            } else {
+                updateBoundaries(this, this.endContainer, this.endOffset, this.endContainer, this.endOffset);
+            }
         },
 
         selectNodeContents: function(node) {
             // This doesn't seem well specified: the spec talks only about selecting the node's contents, which
             // could be taken to mean only its children. However, browsers implement this the same as selectNode for
             // text nodes, so I shall do likewise
+            assertNotDetached(this);
             updateBoundaries(this, node, 0, node, getEndOffset(node));
         },
 
         selectNode: function(node) {
+            assertNotDetached(this);
             var start = getBoundaryBeforeNode(node), end = getBoundaryAfterNode(node);
             updateBoundaries(this, start.node, start.offset, end.node, end.offset);
         },
 
         compareBoundaryPoints: function(how, range) {
+            assertNotDetached(this);
             var nodeA, offsetA, nodeB, offsetB;
             var prefixA = (how == e2s || how == s2s) ? "start" : "end";
             var prefixB = (how == s2e || how == s2s) ? "start" : "end";
@@ -302,32 +511,73 @@ var DomRange = (function() {
             return comparePoints(nodeA, offsetA, nodeB, offsetB);
         },
 
+        insertNode: function(node) {
+            assertNotDetached(this);
+            insertNodeAtPosition(node, this.startContainer, this.startOffset);
+            this.setStartBefore(node);
+        },
+
         cloneContents: function() {
+            assertNotDetached(this);
             var iterator = new RangeIterator(this);
             var clone = cloneSubtree(iterator);
             iterator.detach();
             return clone;
         },
 
-        extractContents: function() {
-            // TODO: Implement this
-            //return cloneSubtree(new RangeIterator(this));
+        extractContents: createRangeContentRemover(extractSubtree),
+
+        deleteContents: createRangeContentRemover(deleteSubtree),
+
+        surroundContents: function(node) {
+            assertNotDetached(this);
+            var iterator = new RangeIterator(this);
+
+            // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no
+            // non-text nodes.
+            if (iterator._first && (isNonTextPartiallySelected(iterator._first, this) || isNonTextPartiallySelected(iterator._last, this))) {
+                iterator.detach();
+                throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
+            }
+
+            // Extract the contents
+            var content = extractSubtree(iterator);
+            iterator.detach();
+
+            // Clear the children of the node
+            if (node.hasChildNodes()) {
+                while (node.lastChild) {
+                    node.removeChild(node.lastChild);
+                }
+            }
+
+            // Insert the new node and add the extracted contents
+            insertNodeAtPosition(node, this.startContainer, this.startOffset);
+            node.appendChild(content);
+
+            this.selectNode(node);
         },
 
-        deleteContents: function() {
-            var iterator = new RangeIterator(this);
-            var clone = deleteSubtree(iterator);
-            iterator.detach();
-            // TODO: Move range to correct location
+        cloneRange: function() {
+            assertNotDetached(this);
+            var range = new Range(this._doc);
+            var i = rangeProperties.length, prop;
+            while (i--) {
+                prop = rangeProperties[i];
+                range[prop] = this[prop];
+            }
+            return range;
         },
 
         detach: function() {
+            assertNotDetached(this);
             this._detached = true;
             this._doc = this.startContainer = this.startOffset = this.endContainer = this.endOffset = null;
             this.collapsed = this.commonAncestorContainer = null;
         },
 
         toString: function() {
+            assertNotDetached(this);
             var textBits = [], iterator = new RangeIterator(this);
             iterateSubtree(iterator, function(node) {
                 if (isCharacterDataNode(node)) {
@@ -376,9 +626,9 @@ var DomRange = (function() {
             var root = range.commonAncestorContainer;
 
             if (this.sc !== this.ec || !isCharacterDataNode(this.sc)) {
-                this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
+                this._first = this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
                     this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
-                this._end = (this.ec == root && !isCharacterDataNode(this.ec)) ?
+                this._last = (this.ec == root && !isCharacterDataNode(this.ec)) ?
                     this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
             }
         }
@@ -387,7 +637,8 @@ var DomRange = (function() {
     RangeIterator.prototype = {
         _current: null,
         _next: null,
-        _end: null,
+        _first: null,
+        _last: null,
 
         hasNext: function() {
             return !!this._next;
@@ -398,7 +649,7 @@ var DomRange = (function() {
             var sibling, current = this._current = this._next;
             if (current) {
                 sibling = current.nextSibling;
-                this._next = (sibling !== this._end) ? sibling : null;
+                this._next = (sibling !== this._last) ? sibling : null;
 
                 // Check for partially selected text nodes
                 if (isCharacterDataNode(current)) {
@@ -429,8 +680,7 @@ var DomRange = (function() {
         // Checks if the current node is partially selected
         isPartiallySelected: function() {
             var current = this._current;
-            return !isCharacterDataNode(current) &&
-                (isAncestorOf(current, this.sc, true) || isAncestorOf(current, this.ec, true));
+            return isNonTextPartiallySelected(current, this.range);
         },
 
         getSubtreeIterator: function() {
@@ -450,8 +700,11 @@ var DomRange = (function() {
             return new RangeIterator(subRange);
         },
 
-        detach: function() {
-            this.range = this._current = this._next = this._end = this.sc = this.so = this.ec = this.eo = null;
+        detach: function(detachRange) {
+            if (detachRange) {
+                this.range.detach();
+            }
+            this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
         }
     };
 

@@ -229,7 +229,7 @@
         if (isDataNode(n)) {
             if (o == 0) {
                 n.parentNode.insertBefore(node, n);
-            } else if (domPos.offset == n.length) {
+            } else if (o == n.length) {
                 n.parentNode.appendChild(node);
             } else {
                 n.parentNode.insertBefore(node, splitDataNode(n, o));
