@@ -119,6 +119,19 @@ xn.test.suite("Range", function(s) {
 */
     });
 
+    testBothRangeTypes("cloneContents 2", function(t, rangeCreator) {
+        var range = rangeCreator(document);
+        range.setStart(t.nodes.plainText, 1);
+        range.setEnd(t.nodes.plainText, 2);
+        var frag = range.cloneContents();
+        t.assertEquals(frag.nodeType, 11);
+        t.assertEquals(frag.childNodes.length, 1);
+        t.assertEquals(frag.firstChild.nodeType, 3);
+        t.assertEquals(frag.firstChild.data, "l");
+        t.assertEquals(t.nodes.plainText.data, "plain");
+        t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
+    });
+
     testBothRangeTypes("extractContents 1", function(t, rangeCreator) {
         var range = rangeCreator(document);
         range.setStart(t.nodes.plainText, 1);
@@ -128,10 +141,10 @@ xn.test.suite("Range", function(s) {
         t.assertEquals(frag.childNodes.length, 1);
         t.assertEquals(frag.firstChild.nodeType, 3);
         t.assertEquals(frag.firstChild.data, "l");
-        t.assertEquals(t.nodes.plainText.data, "p");
-        t.assertNotNull(t.nodes.plainText.nextSibling);
-        t.assertEquals(t.nodes.plainText.nextSibling.data, "ain");
+        t.assertEquals(t.nodes.plainText.data, "pain");
+        t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
     });
+
 
     // TODO: Write test for setting range boundary to a node in a different document
     // TODO: Write tests for all possible exceptions
@@ -344,6 +357,7 @@ xn.test.suite("Range", function(s) {
             r.surroundContents(doc.createElement('a'));
             msg = 'no exception raised';
         } catch (e) {
+            console.log(e)
             if ('code' in e) msg += '; code = ' + e.code;
             if (e.code == 3) msg = '';
         }

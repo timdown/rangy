@@ -181,6 +181,7 @@ var DomRange = (function() {
         range.endContainer = endContainer;
         range.endOffset = endOffset;
 
+
         updateCollapsedAndCommonAncestor(range);
         dispatchEvent(range, "boundarychange", {startMoved: startMoved, endMoved: endMoved});
     }
@@ -194,7 +195,7 @@ var DomRange = (function() {
     }
 
     function getEndOffset(node) {
-        return isCharacterDataNode(node) ? node.length : node.childNodes.length;
+        return isCharacterDataNode(node) ? node.length : (node.childNodes ? node.childNodes.length : 0);
     }
 
     function insertNodeAtPosition(node, n, o) {
@@ -214,7 +215,7 @@ var DomRange = (function() {
 
     function cloneSubtree(iterator) {
         var partiallySelected;
-        for (var node, frag = document.createDocumentFragment(), subIterator; node = iterator.next(); ) {
+        for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
             partiallySelected = iterator.isPartiallySelectedSubtree();
             log.debug("cloneSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
             node = node.cloneNode(!partiallySelected);
@@ -258,7 +259,10 @@ var DomRange = (function() {
     }
 
     function extractSubtree(iterator) {
-        for (var node, frag = document.createDocumentFragment(), subIterator; node = iterator.next(); ) {
+        log.debug("extract on iterator", iterator);
+        for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
+            log.debug("extractSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + iterator.isPartiallySelectedSubtree());
+
             if (iterator.isPartiallySelectedSubtree()) {
                 node = node.cloneNode(false);
                 subIterator = iterator.getSubtreeIterator();
@@ -278,8 +282,10 @@ var DomRange = (function() {
     function createRangeContentRemover(remover) {
         return function() {
             assertNotDetached(this);
-            var iterator = new RangeIterator(this);
+
             var sc = this.startContainer, so = this.startOffset, root = this.commonAncestorContainer;
+
+            var iterator = new RangeIterator(this);
 
             // Work out where to position the range after content removal
             var node, boundary;
@@ -357,6 +363,7 @@ var DomRange = (function() {
     var rootContainerNodeTypes = [2, 9, 11];
     var readonlyNodeTypes = [5, 6, 10, 12];
     var insertableNodeTypes = [1, 3, 4, 5, 7, 8, 10, 11];
+    var surroundNodeTypes = [1, 3, 4, 5, 7, 8];
 
     function createAncestorFinder(nodeTypes) {
         return function(node, selfIsAncestor) {
@@ -416,9 +423,23 @@ var DomRange = (function() {
         }
     }
 
+    function getDocument(node) {
+        if (node.nodeType == 9) {
+            return node;
+        } else if (typeof node.ownerDocument != "undefined") {
+            return node.ownerDocument;
+        } else if (typeof node.document != "undefined") {
+            return node.document;
+        } else if (node.parentNode) {
+            return getDocument(node.parentNode);
+        } else {
+            throw new Error("getDocument: no document found for node");
+        }
+    }
+
     function getRangeDocument(range) {
         assertNotDetached(range);
-        return getRootContainer(range.startContainer);
+        return getDocument(range.startContainer);
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -584,10 +605,24 @@ var DomRange = (function() {
 
         cloneContents: function() {
             assertNotDetached(this);
-            var iterator = new RangeIterator(this);
-            var clone = cloneSubtree(iterator);
-            iterator.detach();
-            return clone;
+
+            var clone, frag;
+            if (this.collapsed) {
+                return getRangeDocument(this).createDocumentFragment();
+            } else {
+                if (this.startContainer === this.endContainer && isCharacterDataNode(this.startContainer)) {
+                    clone = this.startContainer.cloneNode(true);
+                    clone.data = clone.data.slice(this.startOffset, this.endOffset);
+                    frag = getRangeDocument(this).createDocumentFragment();
+                    frag.appendChild(clone);
+                    return frag;
+                } else {
+                    var iterator = new RangeIterator(this);
+                    clone = cloneSubtree(iterator);
+                    iterator.detach();
+                }
+                return clone;
+            }
         },
 
         extractContents: createRangeContentRemover(extractSubtree),
@@ -595,7 +630,12 @@ var DomRange = (function() {
         deleteContents: createRangeContentRemover(deleteSubtree),
 
         surroundContents: function(node) {
+            // TODO: Check boundary containers are not readonly
+            // TODO: Check start container allows children of the type of the node about to be added
+
             assertNotDetached(this);
+            assertValidNodeType(node, surroundNodeTypes);
+
             var iterator = new RangeIterator(this);
 
             // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no
@@ -652,7 +692,10 @@ var DomRange = (function() {
                 log.info("toString iterator: " + nodeToString(iterator._first) + ", " + nodeToString(iterator._last));
                 iterateSubtree(iterator, function(node) {
                     // Accept only text or CDATA nodes
-                    log.info("toString: got node", node);
+                    log.info("toString: got node", nodeToString(node));
+                    if (node.nodeType == 2) {
+                        log.info("Got attr: ", node);
+                    }
                     if (node.nodeType == 3 || node.nodeType == 4) {
                         textBits.push(node.data);
                     }
@@ -741,6 +784,8 @@ var DomRange = (function() {
                     this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
                 this._last = (this.ec == root && !isCharacterDataNode(this.ec)) ?
                     this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
+            } else {
+                this._first = this._last = this.sc;
             }
         }
     }
@@ -765,8 +810,7 @@ var DomRange = (function() {
             // Move to next node
             var sibling, current = this._current = this._next;
             if (current) {
-                sibling = current.nextSibling;
-                this._next = (current !== this._last) ? sibling : null;
+                this._next = (current !== this._last) ? current.nextSibling : null;
 
                 // Check for partially selected text nodes
                 if (isCharacterDataNode(current)) {
@@ -803,6 +847,11 @@ var DomRange = (function() {
         },
 
         getSubtreeIterator: function() {
+            if (this.sc === this.ec && isCharacterDataNode(this.sc)) {
+                var subRange = this.range.cloneRange();
+                subRange.collapse();
+                return new RangeIterator(subRange);
+            }
             var subRange = new Range(getRangeDocument(this.range)), current = this._current;
             var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
 
