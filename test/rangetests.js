@@ -357,7 +357,6 @@ xn.test.suite("Range", function(s) {
             r.surroundContents(doc.createElement('a'));
             msg = 'no exception raised';
         } catch (e) {
-            console.log(e)
             if ('code' in e) msg += '; code = ' + e.code;
             if (e.code == 3) msg = '';
         }

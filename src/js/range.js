@@ -779,13 +779,14 @@ var DomRange = (function() {
             this.eo = range.endOffset;
             var root = range.commonAncestorContainer;
 
-            if (this.sc !== this.ec || !isCharacterDataNode(this.sc)) {
+            if (this.sc === this.ec && isCharacterDataNode(this.sc)) {
+                this.isSingleCharacterDataNode = true;
+                this._first = this._last = this.sc;
+            } else {
                 this._first = this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
                     this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
                 this._last = (this.ec == root && !isCharacterDataNode(this.ec)) ?
                     this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
-            } else {
-                this._first = this._last = this.sc;
             }
         }
     }
@@ -847,24 +848,26 @@ var DomRange = (function() {
         },
 
         getSubtreeIterator: function() {
-            if (this.sc === this.ec && isCharacterDataNode(this.sc)) {
-                var subRange = this.range.cloneRange();
+            var subRange;
+            if (this.isSingleCharacterDataNode) {
+                subRange = this.range.cloneRange();
                 subRange.collapse();
-                return new RangeIterator(subRange);
-            }
-            var subRange = new Range(getRangeDocument(this.range)), current = this._current;
-            var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
+            } else {
+                subRange = new Range(getRangeDocument(this.range));
+                var current = this._current;
+                var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
 
-            if (isAncestorOf(current, this.sc, true)) {
-                startContainer = this.sc;
-                startOffset = this.so;
-            }
-            if (isAncestorOf(current, this.ec, true)) {
-                endContainer = this.ec;
-                endOffset = this.eo;
-            }
+                if (isAncestorOf(current, this.sc, true)) {
+                    startContainer = this.sc;
+                    startOffset = this.so;
+                }
+                if (isAncestorOf(current, this.ec, true)) {
+                    endContainer = this.ec;
+                    endOffset = this.eo;
+                }
 
-            updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
+                updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
+            }
             return new RangeIterator(subRange);
         },
 

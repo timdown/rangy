@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript" src="../src/js/log4javascript.js"></script>
+    <script type="text/javascript">
+        log4javascript.getRootLogger().addAppender(new log4javascript.InPageAppender());
+    </script>
+
+    <script type="text/javascript" src="../src/js/complete.js"></script>
+    <script type="text/javascript" src="mylib.js"></script>
+    <script type="text/javascript" src="mylib_ranges.js"></script>
+    <script type="text/javascript">
+        function deleteTextAreaSelectedText() {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.deleteSelectedText(ta);
+            ta.focus();
+        }
+
+        function insertText() {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.insertText(ta, "test", 17, true);
+            ta.focus();
+        }
+
+        function pasteText() {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.pasteText(ta, "test");
+            ta.focus();
+        }
+
+        function getSel() {
+            var ta = document.getElementById("ta");
+            var s = rangy.textInputs.getSelection(ta);
+            var s2 = API.getControlSelection(ta);
+            alert(s.start + ", " + s.end + "; " + s2[0] + ", " + s2[1]);
+        }
+
+        function setSel(start, end) {
+            var ta = document.getElementById("ta");
+            rangy.textInputs.setSelection(ta, start, end);
+            ta.focus();
+        }
+    </script>
+</head>
+<body>
+<input type="button" value="delete selected text" onclick="deleteTextAreaSelectedText()">
+<input type="button" value="get selection range" onclick="getSel()">
+<input type="button" value="insert test text" onclick="insertText()">
+<input type="button" value="paste test text" onclick="pasteText()">
+<input type="text" value="19,21" id="s">
+
+<input type="button" value="set selection" onclick="var bits = document.getElementById('s').value.split(','); setSel(bits[0], bits[1])">
+<br>
+    <textarea rows="8" cols="80" id="ta">One
+Two
+tab:|&#0009;|two tabs:|&#0009;&#0009;|
+Three
+
+</textarea></body></html>

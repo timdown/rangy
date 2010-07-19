@@ -47,3 +47,4 @@ http://trac.webkit.org/browser/trunk/WebCore/dom/Range.cpp
 http://mxr.mozilla.org/mozilla-central/source/content/base/src/nsRange.cpp
 http://code.google.com/p/ierange/issues/list
 http://xerces.apache.org/mirrors.cgi#source
+http://www.cinsoft.net/mylib-textselection.js
