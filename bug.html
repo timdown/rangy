@@ -2,13 +2,14 @@
         "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <title>WebKit Range bug</title>
+    <title>WebKit/Opera Range bug</title>
     <script type="text/javascript">
         window.onload = function() {
             var iframe = document.createElement("iframe");
             document.body.appendChild(iframe);
             var doc = iframe.contentDocument;
             doc.write("<html><head><body>stuff</body></html>");
+            doc.close();
             var r = document.createRange();
             r.selectNodeContents(document.getElementById("test"));
 

@@ -82,6 +82,9 @@ if (API && API.attachDocumentReadyListener) {
     el = doc.createElement('input');
     body = API.getBodyElement();
 
+    var reCrLf = /\r\n/g;
+    var reCrLfTrailing = /\r\n$/;
+
     if (isHostMethod(doc, 'createElement') && body && isHostMethod(body, 'appendChild') && el) {
       body.appendChild(el);
       if (typeof el.selectionStart == 'number') {
@@ -95,7 +98,7 @@ if (API && API.attachDocumentReadyListener) {
         };
       } else if (selectionToRange) {
         getControlSelection = function(el) {
-          var documentRange, elementRange, len, start;
+          var documentRange, elementRange, len, start, tempRange, text;
 
           if (isHostMethod(el, 'focus')) {
             el.focus();
@@ -107,12 +110,28 @@ if (API && API.attachDocumentReadyListener) {
               if (el.tagName == 'INPUT') {
                 elementRange.expand('textedit');
               } else {
+
+                // TEXTRANGE elements have issues with trailing CRLF's
+                // Creates a temporary range with a single space between
+                // the selected range and the remaining text
+
+                if (reCrLfTrailing.test(el.value)) {
+                  elementRange.collapse(false);
+                  elementRange.text = ' ';
+                  tempRange = elementRange.duplicate();
+                }
                 elementRange.moveToElementText(el);
               }
-              len = elementRange.text.length;
-              elementRange.setEndPoint('starttostart', documentRange);
-              start = len - elementRange.text.length;
-              var text = documentRange.text.replace(/\r\n/g, '\n');
+              text = elementRange.text.replace(reCrLf, '\n');
+              len = text.length;
+              elementRange.setEndPoint('StartToStart', documentRange);
+              text = elementRange.text.replace(reCrLf, '\n');
+              start = len - text.length;
+              text = documentRange.text.replace(reCrLf, '\n');
+              if (tempRange) {
+                tempRange.moveStart("character", -1);
+                tempRange.text = '';
+              }
               return ([start, start + text.length, text]);
             }
           }
@@ -121,18 +140,12 @@ if (API && API.attachDocumentReadyListener) {
 
         if (isHostMethod(el, 'createTextRange')) {
           setControlSelection = function(el, start, end) {
-            var selection, range = el.createTextRange();
+            var range = el.createTextRange();
 
             range.collapse();
             range.moveStart('character', start);
             range.moveEnd('character', end - start);
             range.select();
-            selection = getControlSelection(el);
-            if (selection[0] != start) {
-              range.moveStart('character', start - selection[0]);
-              range.moveEnd('character', start - selection[0]);
-              range.select();
-            }
           };
         }
       }

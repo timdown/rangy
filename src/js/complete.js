@@ -1112,13 +1112,13 @@
 
                         // Test whether the selection range is at the end of the text input by moving it on by one character
                         // and checking if it's still within the text input.
-                        try {
+                        /*try {
                             range.move("character", 1);
                             isAtEnd = (range.parentElement() != el);
                         } catch (ex) {
                             log.warn("Error moving range", ex);
                             isAtEnd = true;
-                        }
+                        }*/
 
                         range.moveToBookmark(bookmark);
 
@@ -1126,7 +1126,7 @@
                             pos = originalValue.length;
                         } else {
                             // Insert a character in the text input range and use that as a marker
-                            textInputRange.text = " ";
+                            textInputRange.text = "X";
                             precedingRange.setEndPoint("EndToStart", textInputRange);
                             pos = precedingRange.text.length - 1;
 

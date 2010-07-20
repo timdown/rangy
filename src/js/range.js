@@ -417,8 +417,8 @@ var DomRange = (function() {
         }
     }
 
-    function assertSameDocumentOrFragment(range1, range2) {
-        if (getDocumentOrFragmentContainer(range1.startContainer, true) !== getDocumentOrFragmentContainer(range2.startContainer, true)) {
+    function assertSameDocumentOrFragment(node1, node2) {
+        if (getDocumentOrFragmentContainer(node1, true) !== getDocumentOrFragmentContainer(node2, true)) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
     }
@@ -451,6 +451,7 @@ var DomRange = (function() {
         HIERARCHY_REQUEST_ERR: 3,
         WRONG_DOCUMENT_ERR: 4,
         NO_MODIFICATION_ALLOWED_ERR: 7,
+        NOT_FOUND_ERR: 8,
         INVALID_STATE_ERR: 11
     };
 
@@ -498,12 +499,17 @@ var DomRange = (function() {
     var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
     var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer"];
+    var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
 
     Range.START_TO_START = s2s;
     Range.START_TO_END = s2e;
     Range.END_TO_END = e2e;
     Range.END_TO_START = e2s;
 
+    Range.NODE_BEFORE = n_b;
+    Range.NODE_AFTER = n_a;
+    Range.NODE_BEFORE_AND_AFTER = n_b_a;
+    Range.NODE_INSIDE = n_i;
 
     /*
      TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for detachedness
@@ -515,6 +521,11 @@ var DomRange = (function() {
         START_TO_END: s2e,
         END_TO_END: e2e,
         END_TO_START: e2s,
+
+        NODE_BEFORE: n_b,
+        NODE_AFTER: n_a,
+        NODE_BEFORE_AND_AFTER: n_b_a,
+        NODE_INSIDE: n_i,
 
         _detached: false,
 
@@ -569,7 +580,7 @@ var DomRange = (function() {
 
         compareBoundaryPoints: function(how, range) {
             assertNotDetached(this);
-            assertSameDocumentOrFragment(this, range);
+            assertSameDocumentOrFragment(this.startContainer, range.startContainer);
 
             var nodeA, offsetA, nodeB, offsetB;
             var prefixA = (how == e2s || how == s2s) ? "start" : "end";
@@ -707,6 +718,50 @@ var DomRange = (function() {
 
         // The methods below are all non-standard. The following batch were introduced by Mozilla but have since been
         // removed.
+
+        compareNode: function(node) {
+            var parent = node.parentNode;
+            var nodeIndex = getNodeIndex(node);
+
+            if (!parent) {
+                throw new DOMException("NOT_FOUND_ERR");
+            }
+
+            var startComparison = comparePoints(parent, nodeIndex, this.startContainer, this.startOffset),
+                endComparison = comparePoints(parent, nodeIndex + 1, this.endContainer, this.endOffset);
+
+            if (startComparison < 0) { // Node starts before
+                return (endComparison > 0) ? n_b_a : n_b;
+            } else {
+                return (endComparison > 0) ? n_a : n_i;
+            }
+        },
+
+        comparePoint: function(node, offset) {
+            if (!node) {
+                throw new DOMException("HIERARCHY_REQUEST_ERR");
+            }
+            assertSameDocumentOrFragment(node, this.startContainer);
+
+            if (comparePoints(node, offset, this.startContainer, this.startOffset) < 0) {
+                return -1;
+            } else if (comparePoints(node, offset, this.endContainer, this.endOffset) > 0) {
+                return 1;
+            }
+            return 0;
+        },
+
+        createContextualFragment: function(str) {
+
+        },
+
+        intersectsNode: function(node) {
+
+        },
+
+        isPointInRange: function(node, offset) {
+
+        },
 
         // The methods below are non-standard and invented by me.
         createIterator: function(filter, splitEnds) {

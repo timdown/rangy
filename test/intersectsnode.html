@@ -1,0 +1,40 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>intersectsNode test</title>
+    <script type="text/javascript">
+        function rangeIntersectsNode(range, node) {
+            if (range.intersectsNode) {
+                return range.intersectsNode(node)
+            } else {
+                var nodeRange = node.ownerDocument.createRange();
+                try {
+                  nodeRange.selectNode(node);
+                }
+                catch (e) {
+                  nodeRange.selectNodeContents(node);
+                }
+
+                return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) == -1 &&
+                       range.compareBoundaryPoints(Range.START_TO_END, nodeRange) == 1;
+            }
+        }
+
+
+        window.onload = function() {
+            var r = document.createRange();
+            var span = document.getElementById("span");
+            r.setEndAfter(span.previousSibling);
+            r.setStartAfter(span.previousSibling);
+            alert(rangeIntersectsNode(r, span));
+            r.setEndAfter(span);
+            r.setStartAfter(span);
+            alert(rangeIntersectsNode(r, span));
+        };
+    </script>
+</head>
+<body>
+<div id="main">blah<span id="span">tea</span></div>
+</body>
+</html>

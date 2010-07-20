@@ -61,6 +61,7 @@ rangy.addInitListener(function(api) {
 
                     // Test whether the selection range is at the end of the text input by moving it on by one character
                     // and checking if it's still within the text input.
+/*
                     try {
                         range.move("character", 1);
                         isAtEnd = (range.parentElement() != el);
@@ -68,6 +69,7 @@ rangy.addInitListener(function(api) {
                         log.warn("Error moving range", ex);
                         isAtEnd = true;
                     }
+*/
 
                     range.moveToBookmark(bookmark);
 
