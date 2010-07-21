@@ -1,8 +1,7 @@
 var rangy = (function() {
     var log = log4javascript.getLogger("rangy.core");
 
-    var NUMBER = "number", BOOLEAN = "boolean", OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined",
-            STRING = "string";
+    var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
 
     var domRangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer", "START_TO_START", "START_TO_END", "END_TO_START", "END_TO_END"];
@@ -21,51 +20,41 @@ var rangy = (function() {
 
     // Trio of functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
-    function isHostMethod(object, property) {
-        var t = typeof object[property];
-        return t == FUNCTION || (!!(t == OBJECT && object[property])) || t == "unknown";
+    function isHostMethod(o, p) {
+        var t = typeof o[p];
+        return t == FUNCTION || (!!(t == OBJECT && o[p])) || t == "unknown";
     }
 
-    function isHostObject(object, property) {
-        return !!(typeof(object[property]) == OBJECT && object[property]);
+    function isHostObject(o, p) {
+        return !!(typeof o[p] == OBJECT && o[p]);
     }
 
-    function isHostProperty(object, property) {
-        return typeof(object[property]) != UNDEFINED;
+    function isHostProperty(o, p) {
+        return typeof o[p] != UNDEFINED;
+    }
+
+    // Creates a convenience function to save verbose repeated calls to tests functions
+    function createMultiplePropertyTest(testFunc) {
+        return function(o, props) {
+            var i = props.length;
+            while (i--) {
+                if (!testFunc(o, props[i])) {
+                    return false;
+                }
+            }
+            return true;
+        };
     }
 
     // Next trio of functions are a convenience to save verbose repeated calls to previous two functions
-    function areHostMethods(object, properties) {
-        var i = properties.length;
-        while (i--) {
-            if (!isHostMethod(object, properties[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function areHostObjects(object, properties) {
-        for (var i = properties.length; i--; ) {
-            if (!isHostObject(object, properties[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function areHostProperties(object, properties) {
-        for (var i = properties.length; i--; ) {
-            if (!isHostProperty(object, properties[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
+    var areHostMethods = createMultiplePropertyTest(isHostMethod);
+    var areHostObjects = createMultiplePropertyTest(isHostObject);
+    var areHostProperties = createMultiplePropertyTest(isHostProperty);
 
     var api = {
         initialized: false,
+        supported: false,
+
         util: {
             isHostMethod: isHostMethod,
             isHostObject: isHostObject,
@@ -73,6 +62,11 @@ var rangy = (function() {
             areHostMethods: areHostMethods,
             areHostObjects: areHostObjects,
             areHostProperties: areHostProperties
+        },
+        features: {
+        },
+        modules: {
+
         },
         fail: fail
     };
@@ -88,9 +82,7 @@ var rangy = (function() {
         var testRange;
         var implementsDomRange = false, implementsTextRange = false;
 
-        if (typeof document == UNDEFINED) {
-            fail("No document found")
-        }
+        // First, perform basic feature tests
 
         if (isHostMethod(document, "createRange")) {
             testRange = document.createRange();
@@ -112,7 +104,7 @@ var rangy = (function() {
         }
 
         api.initialized = true;
-        api.feature = {
+        api.features = {
             implementsDomRange: implementsDomRange,
             implementsTextRange: implementsTextRange
         };
@@ -135,6 +127,42 @@ var rangy = (function() {
         initListeners.push(listener);
     };
 
+    function Module(name) {
+        this.name = name;
+        this.initialized = false;
+        this.supported = false;
+    }
+
+    Module.prototype.fail = function(reason) {
+        this.initialized = true;
+        this.supported = false;
+        throw new Error("Module '" + this.name + "' failed to load: " + reason);
+    };
+
+    api.createModule = function(name, initFunc) {
+        var module = new Module(name);
+        api.modules[name] = module;
+
+        initListeners.push(function(api) {
+            initFunc(api, module);
+            module.initialized = true;
+            module.supported = false;
+        });
+    };
+
+    api.requireModules = function(modules) {
+        for (var i = 0, len = modules.length, module, moduleName; i < len; ++i) {
+            moduleName = modules[i];
+            module = api.modules[moduleName];
+            if (!module || !(module instanceof Module)) {
+                throw new Error("Module '" + moduleName + "' not found");
+            }
+            if (!module.supported) {
+                throw new Error("Module '" + moduleName + "' not supported");
+            }
+        }
+    };
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Wait for document to load before running tests
@@ -152,21 +180,31 @@ var rangy = (function() {
         }
     };
 
-    if (isHostMethod(doc, "addEventListener")) {
-        doc.addEventListener("DOMContentLoaded", loadHandler, false);
+    // Test whether we have window and document objects that we will need
+    if (typeof window == UNDEFINED) {
+        fail("No window found");
+        return;
+    }
+    if (typeof document == UNDEFINED) {
+        fail("No document found");
+        return;
+    }
+
+    if (isHostMethod(document, "addEventListener")) {
+        document.addEventListener("DOMContentLoaded", loadHandler, false);
     }
 
     // Add a fallback in case the DOMContentLoaded event isn't supported
-    if (isHostMethod(win, "addEventListener")) {
-        win.addEventListener("load", loadHandler, false);
-    } else if (isHostMethod(win, "attachEvent")) {
-        win.attachEvent("onload", loadHandler);
+    if (isHostMethod(window, "addEventListener")) {
+        window.addEventListener("load", loadHandler, false);
+    } else if (isHostMethod(window, "attachEvent")) {
+        window.attachEvent("onload", loadHandler);
     } else {
-        oldOnload = win.onload;
-        win.onload = function(evt) {
+        oldOnload = window.onload;
+        window.onload = function(evt) {
             loadHandler(evt);
             if (oldOnload) {
-                oldOnload.call(win, evt);
+                oldOnload.call(window, evt);
             }
         };
     }
