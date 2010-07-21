@@ -56,6 +56,7 @@ xn.test.suite("Range", function(s) {
 
     testBothRangeTypes("setStart after end test", function(t, rangeCreator) {
         var range = rangeCreator(document);
+        log.info(range)
         range.setStart(t.nodes.plainText, 2);
         t.assert(range.collapsed);
         t.assertEquivalent(range.startContainer, t.nodes.plainText);
@@ -173,6 +174,7 @@ xn.test.suite("Range", function(s) {
         r.setEnd(r.endContainer, endOffset + 1); // added to work around spec bug that smaug is blocking the errata for
         try {
             t.assert(!r.collapsed, "range with inserted comment is collapsed");
+            log.info(r);
             t.assertEquals(r.commonAncestorContainer, document, "range with inserted comment has common ancestor that isn't the document");
             t.assertEquals(r.startContainer, document, "range with inserted comment has start container that isn't the document");
             t.assertEquals(r.startOffset, 0, "range with inserted comment has start offset that isn't zero");

@@ -2,12 +2,83 @@ var DomRange = (function() {
 
     var log = log4javascript.getLogger("Range");
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Trio of functions taken from Peter Michaux's article:
+    // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
+    function isHostMethod(object, property) {
+        var t = typeof object[property];
+        return t == "function" || (!!(t == "object" && object[property])) || t == "unknown";
+    }
+
+    function isHostObject(object, property) {
+        return !!(typeof(object[property]) == "object" && object[property]);
+    }
+
+    function isHostProperty(object, property) {
+        return typeof(object[property]) != "undefined";
+    }
+
+    // Next trio of functions are a convenience to save verbose repeated calls to previous two functions
+    function areHostMethods(object, properties) {
+        var i = properties.length;
+        while (i--) {
+            if (!isHostMethod(object, properties[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function areHostObjects(object, properties) {
+        for (var i = properties.length; i--; ) {
+            if (!isHostObject(object, properties[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function areHostProperties(object, properties) {
+        for (var i = properties.length; i--; ) {
+            if (!isHostProperty(object, properties[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Perform feature tests
+    if (!areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
+        return null;
+    }
+
+    var el = document.createElement("div");
+    if (!areHostMethods(el, ["insertBefore", "appendChild", "cloneNode"] ||
+            !areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]))) {
+        return null;
+    }
+
+    var textNode = document.createTextNode("test");
+    if (!areHostMethods(textNode, ["splitText", "deleteData", "cloneNode"] ||
+            !areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]) ||
+            !areHostProperties(textNode, ["data"]))) {
+        return null;
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     // Utility functions
 
-    var arrayContains = Array.prototype.indexOf ?
+    // Removed use of indexOf because of a bizarre bug in Opera that is thrown in one of the Acid3 tests. Haven't been
+    // able to replicate it outside of the test. The bug is that indexOf return -1 when called on an Array that contains
+    // just the document as a single element and the value searched for is the document.
+    var arrayContains = /*Array.prototype.indexOf ?
         function(arr, val) {
             return arr.indexOf(val) > -1;
-        }:
+        }:*/
 
         function(arr, val) {
             var i = arr.length;
@@ -28,7 +99,6 @@ var DomRange = (function() {
     }
 
     function getCommonAncestor(node1, node2) {
-        log.debug("getCommonAncestor");
         var ancestors = [], n;
         for (n = node1; n; n = n.parentNode) {
             ancestors.push(n);
@@ -104,14 +174,24 @@ var DomRange = (function() {
         return newNode;
     }
 
-
-/*
-    function nodeHasStringOffset(node) {
-        var t = node.nodeType;
-        return t == 3 || t == 4 || t == 7 || t == 8; // Text, CDataSection, Processing Instruction or Comment
+    function getDocument(node) {
+        if (node.nodeType == 9) {
+            return node;
+        } else if (typeof node.ownerDocument != "undefined") {
+            return node.ownerDocument;
+        } else if (typeof node.document != "undefined") {
+            return node.document;
+        } else if (node.parentNode) {
+            return getDocument(node.parentNode);
+        } else {
+            throw new Error("getDocument: no document found for node");
+        }
     }
-*/
 
+    function getRangeDocument(range) {
+        assertNotDetached(range);
+        return getDocument(range.startContainer);
+    }
 
     function comparePoints(nodeA, offsetA, nodeB, offsetB) {
         // See http://www.w3.org/TR/DOM-Level-2-Traversal-Range/ranges.html#Level-2-Range-Comparing
@@ -297,11 +377,7 @@ var DomRange = (function() {
             }
 
             // Check none of the range is read-only
-            iterateSubtree(iterator, function(node) {
-                if (getReadonlyAncestor(node, true)) {
-                    throw new DOMException("NO_MODIFICATION_ALLOWED_ERR");
-                }
-            });
+            iterateSubtree(iterator, assertNodeNotReadOnly);
 
             iterator.reset();
 
@@ -379,7 +455,6 @@ var DomRange = (function() {
         };
     }
 
-
     function getRootContainer(node) {
         var parent;
         while ( (parent = node.parentNode) ) {
@@ -423,23 +498,16 @@ var DomRange = (function() {
         }
     }
 
-    function getDocument(node) {
-        if (node.nodeType == 9) {
-            return node;
-        } else if (typeof node.ownerDocument != "undefined") {
-            return node.ownerDocument;
-        } else if (typeof node.document != "undefined") {
-            return node.document;
-        } else if (node.parentNode) {
-            return getDocument(node.parentNode);
-        } else {
-            throw new Error("getDocument: no document found for node");
+    function assertNodeNotReadOnly(node) {
+        if (getReadonlyAncestor(node, true)) {
+            throw new DOMException("NO_MODIFICATION_ALLOWED_ERR");
         }
     }
 
-    function getRangeDocument(range) {
-        assertNotDetached(range);
-        return getDocument(range.startContainer);
+    function assertNode(node, codeName) {
+        if (!node) {
+            throw new DOMException(codeName);
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -452,6 +520,7 @@ var DomRange = (function() {
         WRONG_DOCUMENT_ERR: 4,
         NO_MODIFICATION_ALLOWED_ERR: 7,
         NOT_FOUND_ERR: 8,
+        NOT_SUPPORTED_ERR: 9,
         INVALID_STATE_ERR: 11
     };
 
@@ -595,10 +664,7 @@ var DomRange = (function() {
         insertNode: function(node) {
             assertNotDetached(this);
             assertValidNodeType(node, insertableNodeTypes);
-
-            if (getReadonlyAncestor(this.startContainer)) {
-                throw new DOMException("NO_MODIFICATION_ALLOWED_ERR");
-            }
+            assertNodeNotReadOnly(this.startContainer);
 
             if (isAncestorOf(node, this.startContainer, true)) {
                 throw new DOMException("HIERARCHY_REQUEST_ERR");
@@ -691,6 +757,7 @@ var DomRange = (function() {
             this._detached = true;
             this.startContainer = this.startOffset = this.endContainer = this.endOffset = null;
             this.collapsed = this.commonAncestorContainer = null;
+            dispatchEvent(this, "detach", null);
         },
 
         toString: function() {
@@ -720,6 +787,8 @@ var DomRange = (function() {
         // removed.
 
         compareNode: function(node) {
+            assertNotDetached(this);
+
             var parent = node.parentNode;
             var nodeIndex = getNodeIndex(node);
 
@@ -727,8 +796,8 @@ var DomRange = (function() {
                 throw new DOMException("NOT_FOUND_ERR");
             }
 
-            var startComparison = comparePoints(parent, nodeIndex, this.startContainer, this.startOffset),
-                endComparison = comparePoints(parent, nodeIndex + 1, this.endContainer, this.endOffset);
+            var startComparison = this.comparePoint(parent, nodeIndex),
+                endComparison = this.comparePoint(parent, nodeIndex + 1);
 
             if (startComparison < 0) { // Node starts before
                 return (endComparison > 0) ? n_b_a : n_b;
@@ -738,9 +807,8 @@ var DomRange = (function() {
         },
 
         comparePoint: function(node, offset) {
-            if (!node) {
-                throw new DOMException("HIERARCHY_REQUEST_ERR");
-            }
+            assertNotDetached(this);
+            assertNode(node, "HIERARCHY_REQUEST_ERR");
             assertSameDocumentOrFragment(node, this.startContainer);
 
             if (comparePoints(node, offset, this.startContainer, this.startOffset) < 0) {
@@ -751,24 +819,70 @@ var DomRange = (function() {
             return 0;
         },
 
-        createContextualFragment: function(str) {
+        createContextualFragment: function(html) {
+            assertNotDetached(this);
+            var sc = this.startContainer, el = (sc.nodeType == 1) ? sc : sc.parentNode;
+            assertNode(el, "NOT_SUPPORTED_ERR");
 
+            var container = el.cloneNode(false);
+
+            // This is obviously non-standard but will work in all recent browsers
+            container.innerHTML = html;
+            var frag = getDocument(el).createDocumentFragment(), n;
+            while ( (n = el.firstChild) ) {
+                frag.appendChild(n);
+            }
+
+            return frag;
         },
 
         intersectsNode: function(node) {
+            assertNotDetached(this);
+            assertNode(node, "NOT_FOUND_ERR");
+            if (getDocument(node) != getRangeDocument(this)) {
+                return false;
+            }
 
+            var parent = node.parentNode, offset = getNodeIndex(node);
+            assertNode(node, "NOT_FOUND_ERR");
+
+            var startComparison = comparePoints(parent, offset, this.startContainer, this.startOffset),
+                endComparison = comparePoints(parent, offset + 1, this.endContainer, this.endOffset);
+
+            return !((startComparison < 0 && endComparison < 0) || (startComparison > 0 && endComparison > 0));
         },
 
         isPointInRange: function(node, offset) {
+            assertNotDetached(this);
+            assertNode(node, "HIERARCHY_REQUEST_ERR");
+            assertSameDocumentOrFragment(node, this.startContainer);
 
+            return (comparePoints(node, offset, this.startContainer, this.startOffset) >= 0) &&
+                   (comparePoints(node, offset, this.endContainer, this.endOffset) <= 0);
         },
 
         // The methods below are non-standard and invented by me.
         createIterator: function(filter, splitEnds) {
+            // TODO: Implement
 
         },
 
+        splitEnds: function() {
+            var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+            assertNotDetached(this);
+
+            if (isCharacterDataNode(sc)) {
+                sc = splitDataNode(sc, so);
+                so = 0;
+            }
+            if (isCharacterDataNode(ec)) {
+                splitDataNode(ec, eo);
+            }
+            updateBoundaries(this, sc, so, ec, eo);
+        },
+
         getNodes: function(filter, splitEnds) {
+            // TODO: Implement
             var nodes = [], iterator = new RangeIterator(this);
             iterateSubtree(iterator, function(node) {
                 if (!filter || filter(node)) {
@@ -864,7 +978,7 @@ var DomRange = (function() {
 
         next: function() {
             // Move to next node
-            var sibling, current = this._current = this._next;
+            var current = this._current = this._next;
             if (current) {
                 this._next = (current !== this._last) ? current.nextSibling : null;
 
@@ -934,7 +1048,28 @@ var DomRange = (function() {
         }
     };
 
+    Range.Boundary = Boundary;
     Range.RangeIterator = RangeIterator;
+    Range.DOMException = DOMException;
+    Range.RangeException = RangeException;
+
+    Range.util = {
+        dom: {
+            getNodeIndex: getNodeIndex,
+            getCommonAncestor: getCommonAncestor,
+            getDocument: getDocument,
+            getRootContainer: getRootContainer,
+            isAncestorOf: isAncestorOf,
+            getClosestAncestorIn: getClosestAncestorIn,
+            isCharacterDataNode: isCharacterDataNode,
+            splitDataNode: splitDataNode,
+            insertAfter: insertAfter,
+            comparePoints: comparePoints,
+            insertNodeAtPosition: insertNodeAtPosition
+        },
+
+        getRangeDocument: getRangeDocument
+    };
 
     return Range;
 })();

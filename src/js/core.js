@@ -4,8 +4,6 @@
     var NUMBER = "number", BOOLEAN = "boolean", OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined",
             STRING = "string";
 
-    var getSelection, createRange, selectRange, testSelection, testRange;
-
     var domRangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer", "START_TO_START", "START_TO_END", "END_TO_START", "END_TO_END"];
 
@@ -43,9 +41,6 @@
         util: {}
     };
 
-    // Create the single global variable to contain everything
-    var globalVarName = (typeof global.rangyGlobalVarName == STRING) ? global.rangyGlobalVarName : "rangy";
-    global[globalVarName] = api;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
