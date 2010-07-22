@@ -1,6 +1,6 @@
 var DomRange = (function() {
 
-    var log = log4javascript.getLogger("Range");
+    var log = log4javascript.getLogger("rangy.DomRange");
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -247,7 +247,7 @@ var DomRange = (function() {
             range.startContainer : getCommonAncestor(range.startContainer, range.endContainer);
     }
 
-    function Boundary(node, offset) {
+    function DomPosition(node, offset) {
         this.node = node;
         this.offset = offset;
     }
@@ -267,11 +267,11 @@ var DomRange = (function() {
     }
 
     function getBoundaryBeforeNode(node) {
-        return new Boundary(node.parentNode, getNodeIndex(node));
+        return new DomPosition(node.parentNode, getNodeIndex(node));
     }
 
     function getBoundaryAfterNode(node) {
-        return new Boundary(node.parentNode, getNodeIndex(node) + 1);
+        return new DomPosition(node.parentNode, getNodeIndex(node) + 1);
     }
 
     function getEndOffset(node) {
@@ -599,6 +599,7 @@ var DomRange = (function() {
         _detached: false,
 
         setStart: function(node, offset) {
+            log.info("setStart", nodeToString(node), offset);
             assertNotDetached(this);
             assertNoDocTypeNotationEntityAncestor(node, true);
             assertValidOffset(node, offset);
@@ -607,6 +608,7 @@ var DomRange = (function() {
         },
 
         setEnd: function(node, offset) {
+            log.info("setEnd", nodeToString(node), offset);
             assertNotDetached(this);
             assertNoDocTypeNotationEntityAncestor(node, true);
             assertValidOffset(node, offset);
@@ -1048,7 +1050,7 @@ var DomRange = (function() {
         }
     };
 
-    Range.Boundary = Boundary;
+    Range.DomPosition = DomPosition;
     Range.RangeIterator = RangeIterator;
     Range.DOMException = DOMException;
     Range.RangeException = RangeException;
