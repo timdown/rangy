@@ -94,7 +94,7 @@ var rangy = (function() {
 
         if (isHostObject(document, "body") && isHostMethod(document.body, "createTextRange")) {
             testRange = document.body.createTextRange();
-            if (areHostMethods(testRange, textRangeMethods) && !areHostProperties(testRange, textRangeProperties)) {
+            if (areHostMethods(testRange, textRangeMethods) && areHostProperties(testRange, textRangeProperties)) {
                 implementsTextRange = true;
             }
         }
@@ -136,6 +136,7 @@ var rangy = (function() {
     Module.prototype.fail = function(reason) {
         this.initialized = true;
         this.supported = false;
+        log.error("Module '" + this.name + "' failed to load: " + reason);
         throw new Error("Module '" + this.name + "' failed to load: " + reason);
     };
 
@@ -146,7 +147,7 @@ var rangy = (function() {
         initListeners.push(function(api) {
             initFunc(api, module);
             module.initialized = true;
-            module.supported = false;
+            module.supported = true;
         });
     };
 

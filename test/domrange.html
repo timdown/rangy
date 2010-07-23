@@ -7,10 +7,18 @@
     <script type="text/javascript">
         log4javascript.getRootLogger().addAppender(new log4javascript.InPageAppender());
         var log = log4javascript.getRootLogger();
+
+        log4javascript.addRenderer(function(o) {
+            return typeof o.nodeType != "undefined";
+        }, function(o) {
+            if (!o) { return "No node"; }
+            return ("data" in o) ? '"' + o.data + '"' : o.nodeName;
+        });
     </script>
 
-    <script type="text/javascript" src="../src/js/rangy.js"></script>
-    <script type="text/javascript" src="../src/js/range.js"></script>
+    <script type="text/javascript" src="../src/js/core.js"></script>
+    <script type="text/javascript" src="../src/js/dom.js"></script>
+    <script type="text/javascript" src="../src/js/domrange.js"></script>
     <script type="text/javascript" src="../src/js/rangewrappers.js"></script>
     <script type="text/javascript">
         function r() {
@@ -20,15 +28,21 @@
         function g(id) {
             return document.getElementById(id);
         }
+
+        function showFragment(frag) {
+            g('ph').innerHTML = "";
+            g('ph').appendChild(frag);
+            log.warn(g('ph').innerHTML);
+        }
     </script>
 </head>
 <body>
 <input type="button" value="reselect" onclick="rangy.reselect(); g('ed').focus()">
-<input type="button" value="get text" onclick="log.info('Selected text: |' + r().toString() + '|');">
+<input type="button" value="get text" onclick="log.warn('Selected text: |' + r().toString() + '|');">
 <input type="button" value="delete" onclick="r().deleteContents()">
-<input type="button" value="extract" onclick="g('ph').appendChild(r().extractContents())">
-<input type="button" value="clone" onclick="g('ph').appendChild(r().cloneContents())">
-<input type="button" value="surround" onclick="var n = document.createElement('span'); n.style.backgroundColor = 'pink'; r().surroundContents(n)">
+<input type="button" value="extract" onclick="showFragment(r().extractContents())">
+<input type="button" value="clone" onclick="showFragment(r().cloneContents())">
+<input type="button" value="surround" onclick="var n = document.createElement('span'); n.style.backgroundColor = 'pink'; try { r().surroundContents(n) } catch (ex) {alert(ex);}">
 <br>
 
 <div style="border: solid green 1px; padding: 2px">

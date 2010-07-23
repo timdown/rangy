@@ -279,6 +279,7 @@ var DomRange = (function() {
     }
 
     function insertNodeAtPosition(node, n, o) {
+        log.info("insertNodeAtPosition ", nodeToString(n), o);
         if (isCharacterDataNode(n)) {
             if (o == n.length) {
                 n.parentNode.appendChild(node);
@@ -527,12 +528,13 @@ var DomRange = (function() {
     function DOMException(codeName) {
         this.code = DOMExceptionCodes[codeName];
         this.codeName = codeName;
+        this.message = "DOMException: " + this.codeName;
     }
 
     DOMException.prototype = DOMExceptionCodes;
 
     DOMException.prototype.toString = function() {
-        return "DOMException: " + this.codeName;
+        return this.message;
     };
 
     var RangeExceptionCodes = {
@@ -543,12 +545,13 @@ var DomRange = (function() {
     function RangeException(codeName) {
         this.code = RangeExceptionCodes[codeName];
         this.codeName = codeName;
+        this.message = "RangeException: " + this.codeName;
     }
 
     RangeException.prototype = RangeExceptionCodes;
 
     RangeException.prototype.toString = function() {
-        return "RangeException: " + this.codeName;
+        return this.message;
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -715,19 +718,18 @@ var DomRange = (function() {
             assertNotDetached(this);
             assertValidNodeType(node, surroundNodeTypes);
 
-            var iterator = new RangeIterator(this);
-
             // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no
             // non-text nodes.
-            if ((iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
-                    (iterator._last && isNonTextPartiallySelected(iterator._last, this)))) {
-                iterator.detach();
+            var iterator = new RangeIterator(this);
+            var boundariesValid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                    (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
+            iterator.detach();
+            if (!boundariesValid) {
                 throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
             }
 
             // Extract the contents
-            var content = extractSubtree(iterator);
-            iterator.detach();
+            var content = this.extractContents();
 
             // Clear the children of the node
             if (node.hasChildNodes()) {
@@ -864,6 +866,17 @@ var DomRange = (function() {
         },
 
         // The methods below are non-standard and invented by me.
+        intersectsRange: function(range) {
+            assertNotDetached(this);
+
+            if (getRangeDocument(range) != getRangeDocument(this)) {
+                throw new DOMException("WRONG_DOCUMENT_ERR");
+            }
+
+            return comparePoints(this.startContainer, this.startOffset, range.endContainer, range.endOffset) < 0 &&
+                   comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset) > 0;
+        },
+
         createIterator: function(filter, splitEnds) {
             // TODO: Implement
 

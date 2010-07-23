@@ -1,6 +1,6 @@
 xn.test.suite("Range", function(s) {
     function createJsDomRange(doc) {
-        return new DomRange(doc);
+        return new rangy.DomRange(doc);
     }
 
     function createNativeDomRange(doc) {

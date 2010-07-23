@@ -1,8 +1,8 @@
 rangy.createModule("DomUtil", function(api, module) {
-    var log = log4javascript.getLogger("rangy.dom.util");
+    var log = log4javascript.getLogger("rangy.dom");
 
     // Perform feature tests
-    if (!api.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
+    if (!api.util.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
         module.fail("document missing a Node creation method");
     }
 
@@ -76,17 +76,14 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
     function getClosestAncestorIn(node, ancestor, selfIsAncestor) {
-        log.debug("getClosestAncestorIn", nodeToString(node), nodeToString(ancestor), selfIsAncestor);
         var p, n = selfIsAncestor ? node : node.parentNode;
         while (n) {
             p = n.parentNode;
             if (p === ancestor) {
-                log.debug("getClosestAncestorIn returning " + nodeToString(node));
                 return n;
             }
             n = p;
         }
-        log.debug("getClosestAncestorIn returning null");
         return null;
     }
 
@@ -173,7 +170,18 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
-    api.util.dom = {
+    function DomPosition(node, offset) {
+        this.node = node;
+        this.offset = offset;
+    }
+
+    DomPosition.prototype = {
+        equals: function(pos) {
+            return this.node === pos.node & this.offset == pos.offset;
+        }
+    };
+
+    api.dom = {
         arrayContains: arrayContains,
         getNodeIndex: getNodeIndex,
         getCommonAncestor: getCommonAncestor,
@@ -183,6 +191,7 @@ rangy.createModule("DomUtil", function(api, module) {
         insertAfter: insertAfter,
         splitDataNode: splitDataNode,
         getDocument: getDocument,
-        comparePoints: comparePoints
+        comparePoints: comparePoints,
+        DomPosition: DomPosition
     };
 });
