@@ -23,7 +23,7 @@
     </script>
 </head>
 <body>
-<input type="button" value="reselect" onclick="rangy.reselect();">
+<input type="button" value="reselect" onclick="rangy.reselect(); g('ed').focus()">
 <input type="button" value="get text" onclick="log.info('Selected text: |' + r().toString() + '|');">
 <input type="button" value="delete" onclick="r().deleteContents()">
 <input type="button" value="extract" onclick="g('ph').appendChild(r().extractContents())">
@@ -32,13 +32,28 @@
 <br>
 
 <div style="border: solid green 1px; padding: 2px">
-    <p>A paragraph with <b>bold text</b> and <i>italic</i> text and <b>some with <i>both</i></b>.</p>
-    <p>A paragraph with <b>bold text</b> and <i>italic</i> text and <b>some with <i>both</i></b>.<br>
-        A paragraph with <b>bold text</b> and <i>italic</i> text and <b>some with <i>both</i></b>.</p>
+    <p>A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
+    <p>A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.<br>
+        A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
 
     <pre>
 Some preformatted text
 Wonder how it'll do
+
+with this, plus some line breaks
+
+
+</pre>
+
+</div>
+
+<div style="border: solid green 1px; padding: 2px" contenteditable="true" id="ed" onkeydown="if (event.keyCode==40 && event.ctrlKey){rangy.reselect(); g('ed').focus(); return false;}">
+    <p><script>document.write("A paragraph\r\nwith ")</script><b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
+    <p>A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.<br>
+        A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
+
+    <pre>
+Some preformatted <script>document.write("text\n\tWonder ")</script>how it'll do
 
 with this, plus some line breaks
 

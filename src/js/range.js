@@ -148,7 +148,7 @@ var DomRange = (function() {
 
     function nodeToString(node) {
         if (!node) { return "No node"; }
-        return isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName;
+        return isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName + "[" + (node.innerText || node.textContent) + "]";
     }
 
     function insertAfter(node, precedingNode) {
@@ -957,8 +957,9 @@ var DomRange = (function() {
                 this._first = this._next = (this.sc == root && !isCharacterDataNode(this.sc)) ?
                     this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
                 this._last = (this.ec == root && !isCharacterDataNode(this.ec)) ?
-                    this.ec.childNodes[this.eo] : getClosestAncestorIn(this.ec, root, true).nextSibling;
+                    this.ec.childNodes[this.eo - 1] : getClosestAncestorIn(this.ec, root, true);
             }
+            log.info("RangeIterator first and last", nodeToString(this._first), nodeToString(this._last));
         }
     }
 

@@ -56,7 +56,7 @@ xn.test.suite("Range", function(s) {
 
     testBothRangeTypes("setStart after end test", function(t, rangeCreator) {
         var range = rangeCreator(document);
-        log.info(range)
+        log.info(range);
         range.setStart(t.nodes.plainText, 2);
         t.assert(range.collapsed);
         t.assertEquivalent(range.startContainer, t.nodes.plainText);
@@ -146,6 +146,12 @@ xn.test.suite("Range", function(s) {
         t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
     });
 
+    testBothRangeTypes("toString 1", function(t, rangeCreator) {
+        var range = rangeCreator(document);
+        range.setStart(t.nodes.plainText, 2);
+        range.setEnd(t.nodes.b, 1);
+        t.assertEquals("ainbold", range.toString());
+    });
 
     // TODO: Write test for setting range boundary to a node in a different document
     // TODO: Write tests for all possible exceptions

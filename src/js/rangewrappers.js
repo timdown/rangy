@@ -9,10 +9,18 @@ rangy.addInitListener(function(api) {
 
     // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an optimized
     // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/)
+
+    // TODO: Split this into stages, so that a character may be inserted at both ends of a TextRange before both are removed
     function getTextRangeBoundaryPosition(textRange, isStart) {
         var workingRange = textRange.duplicate();
         workingRange.collapse(isStart);
         var containerElement = workingRange.parentElement();
+
+        // Deal with nodes such as inputs that cannot have children
+        if (!containerElement.canHaveChildren) {
+            return new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
+        }
+
         var workingNode = dom.getDocument(containerElement).createElement("span");
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var boundaryPosition, boundaryNode;
@@ -35,7 +43,28 @@ rangy.addInitListener(function(api) {
             // so we move the end of the working range to the boundary point and measure the
             // length of its text to get the boundary's offset within the node
             workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
-            boundaryPosition = new DomPosition(boundaryNode, workingRange.text.length);
+
+            // Ensure offsets are relative to the character data node's text. To do this, and to ensure trailing line
+            // breaks are handled correctly, we use the text property of the TextRange to insert a character and split
+            // the node in two after the inserted character
+            var normalizedRangeText = workingRange.text;
+
+            if (/[\r\n]/.test(boundaryNode.data)) {
+                // Insert a character. This is a little destructive but we can restore the node afterwards
+                var tempRange = workingRange.duplicate();
+                tempRange.collapse(false);
+
+                // The following line splits the character data node in two and appends a space to the end of the first
+                // node. We can use this to our advantage to obtain the text we need to get an offset within the node
+                tempRange.text = " ";
+                normalizedRangeText = boundaryNode.data.slice(0, -1);
+
+                // Now we glue the text nodes back together and removing the inserted character
+                var nextNode = boundaryNode.nextSibling;
+                boundaryNode.data = boundaryNode.data.slice(0, -1) + nextNode.data;
+                nextNode.parentNode.removeChild(nextNode);
+            }
+            boundaryPosition = new DomPosition(boundaryNode, normalizedRangeText.length);
         } else {
             // We've hit the boundary exactly, so this must be an element
             boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
@@ -67,6 +96,8 @@ rangy.addInitListener(function(api) {
         // Position the range immediately before the node containing the boundary
         var doc = dom.getDocument(boundaryPosition.node);
         var workingNode = doc.createElement("span");
+
+        // TODO: Is this branching necessary? Can we just use insertBefore with null second param?
         if (boundaryNode) {
             boundaryParent.insertBefore(workingNode, boundaryNode);
         } else {
@@ -91,8 +122,9 @@ rangy.addInitListener(function(api) {
 
     if (api.features.rangesAreTextRanges) {
         WrappedRange = function(textRange) {
-            var start = getTextRangeBoundaryPosition(textRange, true),
-                end = getTextRangeBoundaryPosition(textRange, false);
+            var end = getTextRangeBoundaryPosition(textRange, false),
+                start = getTextRangeBoundaryPosition(textRange, true);
+
 
             this.setStart(start.node, start.offset);
             this.setEnd(end.node, end.offset);
@@ -128,8 +160,8 @@ rangy.addInitListener(function(api) {
             window.getSelection().addRange(r);
         } else {
             r = new WrappedRange(document.selection.createRange());
-            var startRange = createBoundaryTextRange(r, true);
-            var endRange = createBoundaryTextRange(r, false);
+            var startRange = createBoundaryTextRange(new DomPosition(r.startContainer, r.startOffset), true);
+            var endRange = createBoundaryTextRange(new DomPosition(r.endContainer, r.endOffset), false);
             var newRange = document.body.createTextRange();
             newRange.setEndPoint("StartToStart", startRange);
             newRange.setEndPoint("EndToEnd", endRange);

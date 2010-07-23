@@ -61,16 +61,6 @@ rangy.addInitListener(function(api) {
 
                     // Test whether the selection range is at the end of the text input by moving it on by one character
                     // and checking if it's still within the text input.
-/*
-                    try {
-                        range.move("character", 1);
-                        isAtEnd = (range.parentElement() != el);
-                    } catch (ex) {
-                        log.warn("Error moving range", ex);
-                        isAtEnd = true;
-                    }
-*/
-
                     range.moveToBookmark(bookmark);
 
                     if (isAtEnd) {
@@ -81,9 +71,10 @@ rangy.addInitListener(function(api) {
                         precedingRange.setEndPoint("EndToStart", textInputRange);
                         pos = precedingRange.text.length - 1;
 
-                        // Delete the inserted character
-                        textInputRange.moveStart("character", -1);
-                        textInputRange.text = "";
+                        // Executing an undo command to delete the character inserted prevents this method adding to the
+                        // undo stack. This trick came from a user called Trenda on
+                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
+                        document.execCommand("undo");
                     }
                 } else {
                     // Easier case where input value contains no line breaks
