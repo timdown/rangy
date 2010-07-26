@@ -63,19 +63,15 @@ rangy.addInitListener(function(api) {
                     // and checking if it's still within the text input.
                     range.moveToBookmark(bookmark);
 
-                    if (isAtEnd) {
-                        pos = originalValue.length;
-                    } else {
-                        // Insert a character in the text input range and use that as a marker
-                        textInputRange.text = " ";
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        pos = precedingRange.text.length - 1;
+                    // Insert a character in the text input range and use that as a marker
+                    textInputRange.text = " ";
+                    precedingRange.setEndPoint("EndToStart", textInputRange);
+                    pos = precedingRange.text.length - 1;
 
-                        // Executing an undo command to delete the character inserted prevents this method adding to the
-                        // undo stack. This trick came from a user called Trenda on
-                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
-                        document.execCommand("undo");
-                    }
+                    // Executing an undo command to delete the character inserted prevents this method adding to the
+                    // undo stack. This trick came from a user called Trenda on MSDN:
+                    // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
+                    document.execCommand("undo");
                 } else {
                     // Easier case where input value contains no line breaks
                     precedingRange.setEndPoint("EndToStart", textInputRange);

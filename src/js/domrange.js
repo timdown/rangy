@@ -868,7 +868,11 @@ rangy.createModule("DomRange", function(api, module) {
                     current.deleteData(start, end - start);
                 }
             } else {
-                current.parentNode.removeChild(current);
+                if (current.parentNode) {
+                    current.parentNode.removeChild(current);
+                } else {
+                    log.warn("Node to be removed has no parent node. Is this the child of an attribute node in Firefox 2?")
+                }
             }
         },
 
@@ -908,6 +912,12 @@ rangy.createModule("DomRange", function(api, module) {
             }
             this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
         }
+    };
+
+    Range.fromRange = function(r) {
+        var range = new Range(getRangeDocument(r));
+        updateBoundaries(range, r.startContainer, r.startOffset, r.endContainer, r.endOffset);
+        return range;
     };
 
     Range.copyComparisonConstants(Range.prototype);

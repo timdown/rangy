@@ -1,4 +1,4 @@
-rangy.createModule("RangeWrappers", function(api, module) {
+rangy.createModule("WrappedRange", function(api, module) {
     api.requireModules( ["DomRange"] );
 
     var WrappedRange;
@@ -121,7 +121,7 @@ rangy.createModule("RangeWrappers", function(api, module) {
         var doc = dom.getDocument(boundaryPosition.node);
         var workingNode = doc.createElement("span");
 
-        // TODO: Is this branching necessary? Can we just use insertBefore with null second param?
+        // TODO: Check: is this branching necessary? Can we just use insertBefore with null second param?
 /*
         if (boundaryNode) {
             boundaryParent.insertBefore(workingNode, boundaryNode);
@@ -186,22 +186,19 @@ rangy.createModule("RangeWrappers", function(api, module) {
                     updateRangeProperties(this);
                 },
 
-                compareBoundaryPoints: function(type, range) {
-                    return this.nativeRange.compareBoundaryPoints(type, range);
-                },
-
                 deleteContents: function() {
                     this.nativeRange.deleteContents();
                     updateRangeProperties(this);
                 },
 
                 extractContents: function() {
-                    this.nativeRange.extractContents();
+                    var frag = this.nativeRange.extractContents();
                     updateRangeProperties(this);
+                    return frag;
                 },
 
                 cloneContents: function() {
-                    this.nativeRange.cloneContents();
+                    return this.nativeRange.cloneContents();
                 },
 
                 insertNode: function(node) {
@@ -211,6 +208,11 @@ rangy.createModule("RangeWrappers", function(api, module) {
 
                 surroundContents: function(node) {
                     this.nativeRange.surroundContents(node);
+                    updateRangeProperties(this);
+                },
+
+                collapse: function(isStart) {
+                    this.nativeRange.collapse(isStart);
                     updateRangeProperties(this);
                 },
 
@@ -236,13 +238,17 @@ rangy.createModule("RangeWrappers", function(api, module) {
             // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
             // correct for it
 
-            var node = document.createTextNode(" ");
-            document.body.appendChild(node);
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            var testTextNode = document.createTextNode("test");
+            document.body.appendChild(testTextNode);
             var range = document.createRange();
-            range.setStart(node, 0);
-            range.setEnd(node, 0);
+            range.setStart(testTextNode, 0);
+            range.setEnd(testTextNode, 0);
+
+
             try {
-                range.setStart(node, 1);
+                range.setStart(testTextNode, 1);
                 canSetRangeStartAfterEnd = true;
 
                 rangeProto.setStart = function(node, offset) {
@@ -251,7 +257,7 @@ rangy.createModule("RangeWrappers", function(api, module) {
                 };
 
                 rangeProto.setEnd = function(node, offset) {
-                    this.nativeRange.setStart(node, offset);
+                    this.nativeRange.setEnd(node, offset);
                     updateRangeProperties(this);
                 };
 
@@ -270,7 +276,6 @@ rangy.createModule("RangeWrappers", function(api, module) {
                 rangeProto.setStart = function(node, offset) {
                     try {
                         this.nativeRange.setStart(node, offset);
-                        return false;
                     } catch (ex) {
                         this.nativeRange.setEnd(node, offset);
                         this.nativeRange.setStart(node, offset);
@@ -281,7 +286,6 @@ rangy.createModule("RangeWrappers", function(api, module) {
                 rangeProto.setEnd = function(node, offset) {
                     try {
                         this.nativeRange.setEnd(node, offset);
-                        return false;
                     } catch (ex) {
                         this.nativeRange.setStart(node, offset);
                         this.nativeRange.setEnd(node, offset);
@@ -297,7 +301,7 @@ rangy.createModule("RangeWrappers", function(api, module) {
                             this.nativeRange[oppositeName](node);
                             this.nativeRange[name](node);
                         }
-                        this.nativeRange[name](node);
+                        updateRangeProperties(this);
                     };
                 };
             }
@@ -307,10 +311,46 @@ rangy.createModule("RangeWrappers", function(api, module) {
             rangeProto.setEndBefore = createBeforeAfterNodeSetter("setEndBefore", "setStartBefore");
             rangeProto.setEndAfter = createBeforeAfterNodeSetter("setEndAfter", "setStartAfter");
 
-            // Clean up
-            document.body.removeChild(node);
-            range.detach();
+            /*--------------------------------------------------------------------------------------------------------*/
 
+            // Test for WebKit bug that has the beahviour of compareBoundaryPoints round the wrong way for constants
+            // START_TO_END and END_TO_START: https://bugs.webkit.org/show_bug.cgi?id=20738
+
+            range.selectNodeContents(testTextNode);
+            range.setEnd(testTextNode, 3);
+
+            var range2 = document.createRange();
+            range2.selectNodeContents(testTextNode);
+            range2.setEnd(testTextNode, 4);
+            range2.setStart(testTextNode, 2);
+
+            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 && range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
+                // This is the wrong way round, so correct for it
+                log.info("START_TO_END and END_TO_START wrong way round. Correcting in wrapper.");
+
+                rangeProto.compareBoundaryPoints = function(type, range) {
+                    range = range.nativeRange || range;
+                    if (type == range.START_TO_END) {
+                        type = range.END_TO_START;
+                    } else if (type == range.END_TO_START) {
+                        type = range.START_TO_END;
+                    }
+                    return this.nativeRange.compareBoundaryPoints(type, range);
+                };
+            } else {
+                rangeProto.compareBoundaryPoints = function(type, range) {
+                    return this.nativeRange.compareBoundaryPoints(type, range.nativeRange || range);
+                };
+            }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            // TODO: Add extension methods from DomRange
+
+            // Clean up
+            document.body.removeChild(testTextNode);
+            range.detach();
+            range2.detach();
 
             DomRange.copyComparisonConstants(WrappedRange);
             DomRange.copyComparisonConstants(WrappedRange.prototype);
@@ -334,7 +374,7 @@ rangy.createModule("RangeWrappers", function(api, module) {
 
             this.setStart(start.position.node, start.position.offset);
             this.setEnd(end.position.node, end.position.offset);
-            log.info("WrappedRange created", this.startContainer, this.startOffset, this.endContainer, this.endOffset);
+            //log.info("WrappedRange created", this.startContainer, this.startOffset, this.endContainer, this.endOffset);
         };
 
         WrappedRange.prototype = new DomRange(document);
@@ -359,6 +399,22 @@ rangy.createModule("RangeWrappers", function(api, module) {
     }
 
 
+    api.createNativeRange = function(doc) {
+        if (rangy.features.implementsDomRange) {
+            return doc.createRange();
+        } else if (rangy.features.implementsTextRange) {
+            return doc.body.createTextRange();
+        }
+    };
+
+    api.createRange = function(doc) {
+        return new WrappedRange(api.createNativeRange(doc));
+    };
+
+    api.createRangyRange = function(doc) {
+        return new DomRange(doc);
+    };
+
 
     api.getSelectedRange = function() {
         if (window.getSelection) {
@@ -381,4 +437,6 @@ rangy.createModule("RangeWrappers", function(api, module) {
             r.toTextRange().select();
         }
     };
+
+
 });

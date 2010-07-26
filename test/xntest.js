@@ -172,12 +172,14 @@ var xn = new Object();
 			} else if (ex.description) {
 				exStr += ex.description;
 			}
-			if (ex.lineNumber) {
-				exStr += " on line number " + ex.lineNumber;
-			}
-			if (ex.fileName) {
-				exStr += " in file " + ex.fileName;
-			}
+            try {
+                if (ex.lineNumber) {
+                    exStr += " on line number " + ex.lineNumber;
+                }
+                if (ex.fileName) {
+                    exStr += " in file " + ex.fileName;
+                }
+            } catch(ex) {}
 			return exStr;
 		}
 		return null;
@@ -443,7 +445,7 @@ var xn = new Object();
 		if (t.isAsync) {
 			t.whenFinished = afterTest;
 		} else {
-			setTimeout(afterTest, 1);
+			window.setTimeout(afterTest, 1);
 		}
 	};
 

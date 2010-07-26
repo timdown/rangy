@@ -1,10 +1,16 @@
 xn.test.suite("Range", function(s) {
+    var DomRange = rangy.DomRange;
+
     function createJsDomRange(doc) {
         return new rangy.DomRange(doc);
     }
 
     function createNativeDomRange(doc) {
         return doc.createRange();
+    }
+
+    function createWrappedNativeDomRange(doc) {
+        return rangy.createRange(doc);
     }
 
     var hasNativeDomRange = "createRange" in document;
@@ -32,10 +38,13 @@ xn.test.suite("Range", function(s) {
         t.nodes = null;
     };
 
-
-    function testBothRangeTypes(name, testFunc) {
+    function testAllRangeTypes(name, testFunc) {
         s.test(name + " (Custom Range)", function(t) {
             testFunc(t, createJsDomRange);
+        });
+
+        s.test(name + " (Wrapped Native Range)", function(t) {
+            testFunc(t, createWrappedNativeDomRange);
         });
 
         if (hasNativeDomRange) {
@@ -45,7 +54,7 @@ xn.test.suite("Range", function(s) {
         }
     }
 
-    testBothRangeTypes("Initial Range values", function(t, rangeCreator) {
+    testAllRangeTypes("Initial Range values", function(t, rangeCreator) {
         var range = rangeCreator(document);
         t.assertEquivalent(range.startContainer, document);
         t.assertEquivalent(range.startOffset, 0);
@@ -54,9 +63,10 @@ xn.test.suite("Range", function(s) {
     });
 
 
-    testBothRangeTypes("setStart after end test", function(t, rangeCreator) {
+    testAllRangeTypes("setStart after end test", function(t, rangeCreator) {
         var range = rangeCreator(document);
-        log.info(range);
+        //log.info(range);
+        range.setEnd(t.nodes.plainText, 0);
         range.setStart(t.nodes.plainText, 2);
         t.assert(range.collapsed);
         t.assertEquivalent(range.startContainer, t.nodes.plainText);
@@ -65,17 +75,18 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range.endOffset, 2);
     });
 
-    testBothRangeTypes("setEnd after start test", function(t, rangeCreator) {
+    testAllRangeTypes("setEnd after start test", function(t, rangeCreator) {
         var range = rangeCreator(document);
+        range.selectNodeContents(t.nodes.div);
         range.setEnd(t.nodes.b, 1);
         t.assertFalse(range.collapsed);
-        t.assertEquivalent(range.startContainer, document);
+        t.assertEquivalent(range.startContainer, t.nodes.div);
         t.assertEquivalent(range.startOffset, 0);
         t.assertEquivalent(range.endContainer, t.nodes.b);
         t.assertEquivalent(range.endOffset, 1);
     });
 
-    testBothRangeTypes("setStart after interesting end test", function(t, rangeCreator) {
+    testAllRangeTypes("setStart after interesting end test", function(t, rangeCreator) {
         var range = rangeCreator(document);
         range.setEnd(t.nodes.b, 1);
         range.setStart(t.nodes.boldAndItalicText, 2);
@@ -86,7 +97,18 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range.endOffset, 2);
     });
 
-    testBothRangeTypes("compareBoundaryPoints 1", function(t, rangeCreator) {
+
+    testAllRangeTypes("setEndAfter 1", function(t, rangeCreator) {
+        var range = rangeCreator(document);
+        range.setStart(t.nodes.plainText, 1);
+        range.collapse(true);
+        range.setEndAfter(t.nodes.plainText);
+
+        t.assertFalse(range.collapsed);
+        t.assertEquals(range.toString(), "lain");
+    });
+
+    testAllRangeTypes("compareBoundaryPoints 1", function(t, rangeCreator) {
         var range1 = rangeCreator(document);
         var range2 = rangeCreator(document);
         range1.setStart(t.nodes.b, 1);
@@ -100,7 +122,7 @@ xn.test.suite("Range", function(s) {
         t.assertEquivalent(range1.compareBoundaryPoints(range1.END_TO_END, range2), 1);
     });
 
-    testBothRangeTypes("cloneContents 1", function(t, rangeCreator) {
+    testAllRangeTypes("cloneContents 1", function(t, rangeCreator) {
         var range = rangeCreator(document);
         range.setStart(t.nodes.plainText, 1);
         range.setEnd(t.nodes.b, 1);
@@ -120,7 +142,7 @@ xn.test.suite("Range", function(s) {
 */
     });
 
-    testBothRangeTypes("cloneContents 2", function(t, rangeCreator) {
+    testAllRangeTypes("cloneContents 2", function(t, rangeCreator) {
         var range = rangeCreator(document);
         range.setStart(t.nodes.plainText, 1);
         range.setEnd(t.nodes.plainText, 2);
@@ -133,7 +155,7 @@ xn.test.suite("Range", function(s) {
         t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
     });
 
-    testBothRangeTypes("extractContents 1", function(t, rangeCreator) {
+    testAllRangeTypes("extractContents 1", function(t, rangeCreator) {
         var range = rangeCreator(document);
         range.setStart(t.nodes.plainText, 1);
         range.setEnd(t.nodes.plainText, 2);
@@ -146,7 +168,7 @@ xn.test.suite("Range", function(s) {
         t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
     });
 
-    testBothRangeTypes("toString 1", function(t, rangeCreator) {
+    testAllRangeTypes("toString 1", function(t, rangeCreator) {
         var range = rangeCreator(document);
         range.setStart(t.nodes.plainText, 2);
         range.setEnd(t.nodes.b, 1);
@@ -159,7 +181,7 @@ xn.test.suite("Range", function(s) {
 
     // Tests adapted from Acid3 Range tests at http://acid3.acidtests.org/
 
-    testBothRangeTypes("Acid3 test 7: basic ranges tests", function(t, rangeCreator) {
+    testAllRangeTypes("Acid3 test 7: basic ranges initial position tests", function(t, rangeCreator) {
         var r = rangeCreator(document);
         t.assert(r, "range not created");
         t.assert(r.collapsed, "new range wasn't collapsed");
@@ -191,7 +213,7 @@ xn.test.suite("Range", function(s) {
         }
     });
 
-    testBothRangeTypes("Acid3 test 8: moving boundary points", function(t, rangeCreator) {
+    testAllRangeTypes("Acid3 test 8: moving boundary points", function(t, rangeCreator) {
         // test 8: moving boundary points
         var doc;
         if (document.implementation && document.implementation.createDocument) {
@@ -287,7 +309,7 @@ xn.test.suite("Range", function(s) {
         return doc;
     }
 
-    testBothRangeTypes("Acid3 test 9: extractContents() in a Document", function(t, rangeCreator) {
+    testAllRangeTypes("Acid3 test 9: extractContents() in a Document", function(t, rangeCreator) {
         var doc = getTestDocument();
         var h1 = doc.createElement('h1');
         var t1 = doc.createTextNode('Hello ');
@@ -331,7 +353,7 @@ xn.test.suite("Range", function(s) {
         t.assert(f.childNodes[1] != p, "failure 15");
     });
 
-    testBothRangeTypes("Acid3 test 10: Ranges and Attribute Nodes", function(t, rangeCreator) {
+    testAllRangeTypes("Acid3 test 10: Ranges and Attribute Nodes", function(t, rangeCreator) {
         // test 10: Ranges and Attribute Nodes
         var e = document.getElementById('test');
         if (!e.getAttributeNode) {
@@ -352,7 +374,7 @@ xn.test.suite("Range", function(s) {
         e.id = 'test';
     });
 
-    testBothRangeTypes("Acid3 test 11: Ranges and Comments", function(t, rangeCreator) {
+    testAllRangeTypes("Acid3 test 11: Ranges and Comments", function(t, rangeCreator) {
         // test 11: Ranges and Comments
         var msg;
         var doc = getTestDocument();
@@ -387,7 +409,7 @@ xn.test.suite("Range", function(s) {
         t.assertEquals(r.toString(), "", "comments returned text");
     });
 
-    testBothRangeTypes("Acid3 test 12: Ranges under mutations: insertion into text nodes", function(t, rangeCreator) {
+    testAllRangeTypes("Acid3 test 12: Ranges under mutations: insertion into text nodes", function(t, rangeCreator) {
         var doc = getTestDocument();
         var p = doc.createElement('p');
         var t1 = doc.createTextNode('12345');
