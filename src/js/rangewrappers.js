@@ -6,12 +6,13 @@ rangy.createModule("RangeWrappers", function(api, module) {
     var DomPosition = dom.DomPosition;
     var DomRange = rangy.DomRange;
 
-    var log = log4javascript.getLogger("rangy.WrappedRange");
+    var log = log4javascript.getLogger("rangy.RangeWrappers");
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an optimized
-    // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/)
+    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an improved
+    // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/), fixing problems that
+    // library has with line breaks in preformatted text, optimizations and other bugs
 
     function BoundaryResult(position, cleanUpFunc) {
         this.position = position;
@@ -31,7 +32,8 @@ rangy.createModule("RangeWrappers", function(api, module) {
 
         // Deal with nodes such as inputs that cannot have children
         if (!containerElement.canHaveChildren) {
-            return new BoundaryResult(new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement)), null);
+            return new BoundaryResult(
+                    new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement)), null);
         }
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
@@ -120,11 +122,14 @@ rangy.createModule("RangeWrappers", function(api, module) {
         var workingNode = doc.createElement("span");
 
         // TODO: Is this branching necessary? Can we just use insertBefore with null second param?
+/*
         if (boundaryNode) {
             boundaryParent.insertBefore(workingNode, boundaryNode);
         } else {
             boundaryParent.appendChild(workingNode);
         }
+*/
+        boundaryParent.insertBefore(workingNode, boundaryNode);
 
         var workingRange = doc.body.createTextRange();
         workingRange.moveToElementText(workingNode);
@@ -143,8 +148,178 @@ rangy.createModule("RangeWrappers", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     if (api.features.implementsDomRange) {
+        // This is a wrapper around the browser's native DOM Range. It has two aims:
+        // - Provide workarounds for specific browser bugs
+        // - provide convenient extensions, as found in Rangy's DomRange
+
+        (function() {
+            var rangeProto;
+            var rangeProperties = DomRange.rangeProperties;
+            var canSetRangeStartAfterEnd;
+
+            function updateRangeProperties(range) {
+                var i = rangeProperties.length, prop;
+                while (i--) {
+                    prop = rangeProperties[i];
+                    range[prop] = range.nativeRange[prop];
+                }
+            }
+
+            var createBeforeAfterNodeSetter;
+
+            WrappedRange = function(range) {
+                if (!range) {
+                    throw new Error("Range must be specified");
+                }
+                this.nativeRange = range;
+                updateRangeProperties(this);
+            };
+
+            rangeProto = WrappedRange.prototype = {
+                selectNode: function(node) {
+                    this.nativeRange.selectNode(node);
+                    updateRangeProperties(this);
+                },
+
+                selectNodeContents: function(node) {
+                    this.nativeRange.selectNodeContents(node);
+                    updateRangeProperties(this);
+                },
+
+                compareBoundaryPoints: function(type, range) {
+                    return this.nativeRange.compareBoundaryPoints(type, range);
+                },
+
+                deleteContents: function() {
+                    this.nativeRange.deleteContents();
+                    updateRangeProperties(this);
+                },
+
+                extractContents: function() {
+                    this.nativeRange.extractContents();
+                    updateRangeProperties(this);
+                },
+
+                cloneContents: function() {
+                    this.nativeRange.cloneContents();
+                },
+
+                insertNode: function(node) {
+                    this.nativeRange.insertNode(node);
+                    updateRangeProperties(this);
+                },
+
+                surroundContents: function(node) {
+                    this.nativeRange.surroundContents(node);
+                    updateRangeProperties(this);
+                },
+
+                cloneRange: function() {
+                    return new WrappedRange(this.nativeRange.cloneRange());
+                },
+
+                toString: function() {
+                    return this.nativeRange.toString();
+                },
+
+                detach: function() {
+                    this.nativeRange.detach();
+                    this.detached = true;
+                    var i = rangeProperties.length, prop;
+                    while (i--) {
+                        prop = rangeProperties[i];
+                        this[prop] = null;
+                    }
+                }
+            };
+
+            // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
+            // correct for it
+
+            var node = document.createTextNode(" ");
+            document.body.appendChild(node);
+            var range = document.createRange();
+            range.setStart(node, 0);
+            range.setEnd(node, 0);
+            try {
+                range.setStart(node, 1);
+                canSetRangeStartAfterEnd = true;
+
+                rangeProto.setStart = function(node, offset) {
+                    this.nativeRange.setStart(node, offset);
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.setEnd = function(node, offset) {
+                    this.nativeRange.setStart(node, offset);
+                    updateRangeProperties(this);
+                };
+
+                createBeforeAfterNodeSetter = function(name, oppositeName) {
+                    return function(node) {
+                        this.nativeRange[name](node);
+                        updateRangeProperties(this);
+                    };
+                };
+
+            } catch(ex) {
+                log.info("Browser has bug (present in Firefox 2 and below) that prevents moving the start of a Range to a point after its current end. Correcting for it.");
+
+                canSetRangeStartAfterEnd = false;
+
+                rangeProto.setStart = function(node, offset) {
+                    try {
+                        this.nativeRange.setStart(node, offset);
+                        return false;
+                    } catch (ex) {
+                        this.nativeRange.setEnd(node, offset);
+                        this.nativeRange.setStart(node, offset);
+                    }
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.setEnd = function(node, offset) {
+                    try {
+                        this.nativeRange.setEnd(node, offset);
+                        return false;
+                    } catch (ex) {
+                        this.nativeRange.setStart(node, offset);
+                        this.nativeRange.setEnd(node, offset);
+                    }
+                    updateRangeProperties(this);
+                };
+
+                createBeforeAfterNodeSetter = function(name, oppositeName) {
+                    return function(node) {
+                        try {
+                            this.nativeRange[name](node);
+                        } catch (ex) {
+                            this.nativeRange[oppositeName](node);
+                            this.nativeRange[name](node);
+                        }
+                        this.nativeRange[name](node);
+                    };
+                };
+            }
+
+            rangeProto.setStartBefore = createBeforeAfterNodeSetter("setStartBefore", "setEndBefore");
+            rangeProto.setStartAfter = createBeforeAfterNodeSetter("setStartAfter", "setEndAfter");
+            rangeProto.setEndBefore = createBeforeAfterNodeSetter("setEndBefore", "setStartBefore");
+            rangeProto.setEndAfter = createBeforeAfterNodeSetter("setEndAfter", "setStartAfter");
+
+            // Clean up
+            document.body.removeChild(node);
+            range.detach();
+
+
+            DomRange.copyComparisonConstants(WrappedRange);
+            DomRange.copyComparisonConstants(WrappedRange.prototype);
+        })();
 
     } else if (api.features.implementsTextRange) {
+        // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
+        // prototype
+
         WrappedRange = function(textRange) {
             var start, end;
             if (textRange.text) {
@@ -163,13 +338,26 @@ rangy.createModule("RangeWrappers", function(api, module) {
         };
 
         WrappedRange.prototype = new DomRange(document);
+
+        WrappedRange.prototype.toTextRange = function() {
+            var startRange = createBoundaryTextRange(new DomPosition(this.startContainer, this.startOffset), true);
+            var endRange = createBoundaryTextRange(new DomPosition(this.endContainer, this.endOffset), false);
+            var textRange = dom.getDocument(this.startContainer).body.createTextRange();
+            textRange.setEndPoint("StartToStart", startRange);
+            textRange.setEndPoint("EndToEnd", endRange);
+            return textRange;
+        };
+
+        DomRange.copyComparisonConstants(WrappedRange);
+        DomRange.copyComparisonConstants(WrappedRange.prototype);
+
+        // Add WrappedRange as the Range property of the global object to allow expression like Range.END_TO_END to work
+        var globalObj = (function() { return this; })();
+        if (typeof globalObj.Range == "undefined") {
+            globalObj.Range = WrappedRange;
+        }
     }
 
-    // Add WrappedRange as the Range property of the global object to allow expression like Range.END_TO_END to work
-    var globalObj = (function() { return this; })();
-    if (typeof globalObj.Range == "undefined") {
-        globalObj.Range = WrappedRange;
-    }
 
 
     api.getSelectedRange = function() {
@@ -190,12 +378,7 @@ rangy.createModule("RangeWrappers", function(api, module) {
             window.getSelection().addRange(r);
         } else {
             r = new WrappedRange(document.selection.createRange());
-            var startRange = createBoundaryTextRange(new DomPosition(r.startContainer, r.startOffset), true);
-            var endRange = createBoundaryTextRange(new DomPosition(r.endContainer, r.endOffset), false);
-            var newRange = document.body.createTextRange();
-            newRange.setEndPoint("StartToStart", startRange);
-            newRange.setEndPoint("EndToEnd", endRange);
-            newRange.select();
+            r.toTextRange().select();
         }
     };
 });

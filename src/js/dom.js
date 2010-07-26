@@ -13,7 +13,7 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
     var textNode = document.createTextNode("test");
-    if (!api.util.areHostMethods(textNode, ["splitText", "deleteData", "cloneNode"] ||
+    if (!api.util.areHostMethods(textNode, ["splitText", "deleteData", "insertData", "appendData", "cloneNode"] ||
             !api.util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]) ||
             !api.util.areHostProperties(textNode, ["data"]))) {
         module.fail("Incomplete Text Node implementation");
@@ -170,6 +170,47 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
+    function NodeIterator(root) {
+        this.root = root;
+        this._next = root;
+    }
+
+    NodeIterator.prototype = {
+        _current: null,
+
+        hasNext: function() {
+            return !!this._next;
+        },
+
+        next: function() {
+            var n = this._current = this._next;
+            var child, next;
+            if (this._current) {
+                child = n.firstChild;
+                if (child) {
+                    this._next = child;
+                } else {
+                    next = null;
+                    while ((n !== this.root) && !(next = n.nextSibling)) {
+                        n = n.parentNode;
+                    }
+                    this._next = next;
+                }
+            }
+            return this._current;
+        },
+
+        detach: function() {
+            this._current = this._next = this.root = null;
+        }
+    };
+
+
+    function createIterator(root) {
+        return new NodeIterator(root);
+    }
+
+
     function DomPosition(node, offset) {
         this.node = node;
         this.offset = offset;
@@ -192,6 +233,7 @@ rangy.createModule("DomUtil", function(api, module) {
         splitDataNode: splitDataNode,
         getDocument: getDocument,
         comparePoints: comparePoints,
+        createIterator: createIterator,
         DomPosition: DomPosition
     };
 });

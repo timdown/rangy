@@ -87,15 +87,35 @@ rangy.createModule("DomRange", function(api, module) {
         return frag;
     }
 
-    function iterateSubtree(iterator, func) {
-        var partiallySelected;
-        for (var node, subIterator; node = iterator.next(); ) {
-            partiallySelected = iterator.isPartiallySelectedSubtree();
-            log.debug("iterateSubtree got node " + nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
-            func(node);
-            subIterator = iterator.getSubtreeIterator();
-            iterateSubtree(subIterator, func);
-            subIterator.detach(true);
+    function iterateSubtree(rangeIterator, func, iteratorState) {
+        var it, n;
+        iteratorState = iteratorState || { stop: false };
+        for (var node, subRangeIterator; node = rangeIterator.next(); ) {
+            if (rangeIterator.isPartiallySelectedSubtree()) {
+                // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of the
+                // node selected by the Range.
+                if (func(node) === false) {
+                    iteratorState.stop = true;
+                    return;
+                } else {
+                    subRangeIterator = rangeIterator.getSubtreeIterator();
+                    iterateSubtree(subRangeIterator, func, iteratorState);
+                    subRangeIterator.detach(true);
+                    if (iteratorState.stop) {
+                        return;
+                    }
+                }
+            } else {
+                // The whole node is selected, so we can use efficient DOM iteration to iterate over the node and its
+                // descendant
+                it = dom.createIterator(node);
+                while ( (n = it.next()) ) {
+                    if (func(n) === false) {
+                        iteratorState.stop = true;
+                        return;
+                    }
+                }
+            }
         }
     }
 
@@ -139,7 +159,7 @@ rangy.createModule("DomRange", function(api, module) {
 
             var sc = this.startContainer, so = this.startOffset, root = this.commonAncestorContainer;
 
-            var iterator = new RangeIterator(this);
+            var iterator = new RangeIterator(this, true);
 
             // Work out where to position the range after content removal
             var node, boundary;
@@ -165,6 +185,47 @@ rangy.createModule("DomRange", function(api, module) {
             return returnValue;
         };
     }
+
+    function getNodesInRange(range, nodeTypes, filter) {
+        var filterNodeTypes = !!(nodeTypes && nodeTypes.length), regex;
+        var filterExists = !!filter;
+        if (filterNodeTypes) {
+            regex = new RegExp("^(" + nodeTypes.join("|") + ")$");
+        }
+        var nodes = [];
+        iterateSubtree(new RangeIterator(range, false), function(node) {
+            if ((!filterNodeTypes || regex.test(node.nodeType)) && (!filterExists || filter(node))) {
+                nodes.push(node);
+            }
+        });
+        return nodes;
+    }
+
+    // Currently iterates through all nodes in the range on creation until I think of a decent way to do it
+    // TODO: Look into making this a proper iterator, not requiring preloading everything first
+    function RangeNodeIterator(range, nodeTypes, filter) {
+        this.nodes = getNodesInRange(range, nodeTypes, filter);
+        this._next = this.nodes[0];
+        this._pointer = 0;
+    }
+
+    RangeNodeIterator.prototype = {
+        _current: null,
+
+        hasNext: function() {
+            return !!this._next;
+        },
+
+        next: function() {
+            this._current = this._next;
+            this._next = this.nodes[ this._pointer++ ];
+            return this._current;
+        },
+
+        detach: function() {
+            this._current = this._next = this.nodes = null;
+        }
+    };
 
     function createBeforeAfterNodeSetter(isBefore, isStart) {
         return function(node) {
@@ -340,15 +401,20 @@ rangy.createModule("DomRange", function(api, module) {
         updateCollapsedAndCommonAncestor(this);
     }
 
-    var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
     var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer"];
+
+    var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
     var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
 
-    Range.START_TO_START = s2s;
-    Range.START_TO_END = s2e;
-    Range.END_TO_END = e2e;
-    Range.END_TO_START = e2s;
+    Range.copyComparisonConstants = function(obj) {
+        var constants = ["START_TO_START", "START_TO_END", "END_TO_END", "END_TO_START"], i = constants.length;
+        while (i--) {
+            obj[constants[i]] = i;
+        }
+    };
+
+    Range.copyComparisonConstants(Range);
 
     Range.NODE_BEFORE = n_b;
     Range.NODE_AFTER = n_a;
@@ -360,11 +426,6 @@ rangy.createModule("DomRange", function(api, module) {
       */
 
     Range.prototype = {
-        START_TO_START: s2s,
-        START_TO_END: s2e,
-        END_TO_END: e2e,
-        END_TO_START: e2s,
-
         NODE_BEFORE: n_b,
         NODE_AFTER: n_a,
         NODE_BEFORE_AND_AFTER: n_b_a,
@@ -465,7 +526,7 @@ rangy.createModule("DomRange", function(api, module) {
                     frag.appendChild(clone);
                     return frag;
                 } else {
-                    var iterator = new RangeIterator(this);
+                    var iterator = new RangeIterator(this, true);
                     clone = cloneSubtree(iterator);
                     iterator.detach();
                 }
@@ -486,7 +547,7 @@ rangy.createModule("DomRange", function(api, module) {
 
             // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no
             // non-text nodes.
-            var iterator = new RangeIterator(this);
+            var iterator = new RangeIterator(this, true);
             var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
                     (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
             iterator.detach();
@@ -536,10 +597,10 @@ rangy.createModule("DomRange", function(api, module) {
             if (sc === this.endContainer && dom.isCharacterDataNode(sc)) {
                 return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
             } else {
-                var textBits = [], iterator = new RangeIterator(this);
+                var textBits = [], iterator = new RangeIterator(this, true);
                 log.info("toString iterator: " + nodeToString(iterator._first) + ", " + nodeToString(iterator._last));
                 iterateSubtree(iterator, function(node) {
-                    // Accept only text or CDATA nodes
+                    // Accept only text or CDATA nodes, not comments
                     log.info("toString: got node", nodeToString(node));
                     if (node.nodeType == 2) {
                         log.info("Got attr: ", node);
@@ -632,6 +693,8 @@ rangy.createModule("DomRange", function(api, module) {
         },
 
         // The methods below are non-standard and invented by me.
+
+        // Sharing a boundary start-to-end or end-to-start does not count as intersection.
         intersectsRange: function(range) {
             assertNotDetached(this);
 
@@ -643,12 +706,7 @@ rangy.createModule("DomRange", function(api, module) {
                    dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset) > 0;
         },
 
-        createIterator: function(filter, splitEnds) {
-            // TODO: Implement
-
-        },
-
-        splitEnds: function() {
+        splitBoundaries: function() {
             var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
             assertNotDetached(this);
 
@@ -662,16 +720,37 @@ rangy.createModule("DomRange", function(api, module) {
             updateBoundaries(this, sc, so, ec, eo);
         },
 
-        getNodes: function(filter, splitEnds) {
-            // TODO: Implement
-            var nodes = [], iterator = new RangeIterator(this);
-            iterateSubtree(iterator, function(node) {
-                if (!filter || filter(node)) {
-                    nodes.push(node);
+        normalizeBoundaries: function() {
+            var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+            var sibling, textToInsert;
+            assertNotDetached(this);
+
+            if (dom.isCharacterDataNode(sc)) {
+                sibling = sc.previousSibling;
+                if (sibling && dom.isCharacterDataNode(sibling)) {
+                    sc.insertData(0, sibling.data);
+                    so = sibling.length;
+                    sibling.parentNode.removeChild(sibling);
                 }
-            });
-            iterator.detach();
-            return nodes;
+            }
+
+            if (dom.isCharacterDataNode(ec)) {
+                sibling = ec.nextSibling;
+                if (sibling && dom.isCharacterDataNode(sibling)) {
+                    ec.appendData(sibling.data);
+                    sibling.parentNode.removeChild(sibling);
+                }
+            }
+
+            updateBoundaries(this, sc, so, ec, eo);
+        },
+
+        createNodeIterator: function(nodeTypes, filter) {
+            return new RangeNodeIterator(this, nodeTypes, filter);
+        },
+
+        getNodes: function(nodeTypes, filter) {
+            return getNodesInRange(this, nodeTypes, filter);
         }
     };
 
@@ -717,8 +796,9 @@ rangy.createModule("DomRange", function(api, module) {
 
     // RangeIterator code indebted to IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
 
-    function RangeIterator(range) {
+    function RangeIterator(range, clonePartiallySelectedTextNodes) {
         this.range = range;
+        this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
 
         log.info("New RangeIterator ", nodeToString(range.startContainer), range.startOffset, nodeToString(range.endContainer), range.endOffset);
 
@@ -765,7 +845,7 @@ rangy.createModule("DomRange", function(api, module) {
                 this._next = (current !== this._last) ? current.nextSibling : null;
 
                 // Check for partially selected text nodes
-                if (dom.isCharacterDataNode(current)) {
+                if (dom.isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
                     if (current === this.ec) {
                         (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
                     }
@@ -819,7 +899,7 @@ rangy.createModule("DomRange", function(api, module) {
 
                 updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
             }
-            return new RangeIterator(subRange);
+            return new RangeIterator(subRange, true);
         },
 
         detach: function(detachRange) {
@@ -830,6 +910,9 @@ rangy.createModule("DomRange", function(api, module) {
         }
     };
 
+    Range.copyComparisonConstants(Range.prototype);
+
+    Range.rangeProperties = rangeProperties;
     Range.RangeIterator = RangeIterator;
     Range.DOMException = DOMException;
     Range.RangeException = RangeException;

@@ -34,6 +34,24 @@
             g('ph').appendChild(frag);
             log.warn(g('ph').innerHTML);
         }
+
+        function iterateNodes(root, func) {
+            var n = root, child, next;
+            while (n) {
+                func(n);
+                child = n.firstChild;
+                if (child) {
+                    n = child;
+                } else {
+                    next = null;
+                    while ((n !== root) && !(next = n.nextSibling)) {
+                        n = n.parentNode;
+                    }
+                    n = next;
+                }
+            }
+        }
+        
     </script>
 </head>
 <body>

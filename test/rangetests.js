@@ -453,4 +453,5 @@ xn.test.suite("Range", function(s) {
         t.assertEquals(r.endContainer, doc.body, "endContainer is wrong after deletion");
         t.assertEquals(r.endOffset, 0, "endOffset is wrong after deletion");
     });*/
+
 }, false);
