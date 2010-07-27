@@ -308,7 +308,7 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function assertNotDetached(range) {
-        if (range._detached) {
+        if (!range.startContainer) {
             throw new DOMException("INVALID_STATE_ERR");
         }
     }
@@ -430,8 +430,6 @@ rangy.createModule("DomRange", function(api, module) {
         NODE_AFTER: n_a,
         NODE_BEFORE_AND_AFTER: n_b_a,
         NODE_INSIDE: n_i,
-
-        _detached: false,
 
         setStart: function(node, offset) {
             assertNotDetached(this);
@@ -585,7 +583,6 @@ rangy.createModule("DomRange", function(api, module) {
 
         detach: function() {
             assertNotDetached(this);
-            this._detached = true;
             this.startContainer = this.startOffset = this.endContainer = this.endOffset = null;
             this.collapsed = this.commonAncestorContainer = null;
             dispatchEvent(this, "detach", null);
@@ -657,8 +654,9 @@ rangy.createModule("DomRange", function(api, module) {
 
             var container = el.cloneNode(false);
 
-            // This is obviously non-standard but will work in all recent browsers
+            // The next line is obviously non-standard but will work in all recent browsers
             container.innerHTML = html;
+
             var frag = dom.getDocument(el).createDocumentFragment(), n;
             while ( (n = el.firstChild) ) {
                 frag.appendChild(n);
@@ -670,7 +668,7 @@ rangy.createModule("DomRange", function(api, module) {
         intersectsNode: function(node) {
             assertNotDetached(this);
             assertNode(node, "NOT_FOUND_ERR");
-            if (dom.getDocument(node) != getRangeDocument(this)) {
+            if (dom.getDocument(node) !== getRangeDocument(this)) {
                 return false;
             }
 
@@ -760,7 +758,7 @@ rangy.createModule("DomRange", function(api, module) {
     function() {
         function createGetter(propName) {
             return function() {
-                if (this._detached) {
+                if (!this.startContainer) {
                     throw new DOMException("INVALID_STATE_ERR");
                 }
                 return this["_" + propName];

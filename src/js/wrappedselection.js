@@ -44,18 +44,22 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (util.areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
         selProto.removeAllRanges = function() {
             this.nativeSelection.removeAllRanges();
+            this.rangeCount = 0;
         };
 
         selProto.addRange = function(range) {
             this.nativeSelection.addRange(range.nativeRange || range);
+            this.rangeCount++;
         };
     } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select")) {
         selProto.removeAllRanges = function() {
             this.nativeSelection.empty();
+            this.rangeCount = 0;
         };
 
         selProto.addRange = function(range) {
             (range.nativeRange || range).select();
+            this.rangeCount = 1;
         };
     } else {
         module.fail("No means of selecting a Range or TextRange was found");
