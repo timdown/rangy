@@ -10,7 +10,14 @@
         var log = log4javascript.getRootLogger();
         log4javascript.setShowStackTraces(true);
     </script>
+<!--
     <script type="text/javascript" src="../src/js/rangy.js"></script>
+-->
+    <script type="text/javascript" src="../src/js/core.js"></script>
+    <script type="text/javascript" src="../src/js/dom.js"></script>
+    <script type="text/javascript" src="../src/js/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/textmutation.js"></script>
     <script type="text/javascript">
 
@@ -20,7 +27,7 @@
             var s = document.getElementById("s");
             var i = document.getElementById("i");
             var s_text = s.firstChild, i_text = i.firstChild;
-            rangy.createSelection(s_text, 2, i_text, 4);
+            //rangy.createSelection(s_text, 2, i_text, 4);
 
             cssClassMutator1 = rangy.createCssClassMutator("test1", true);
             cssClassMutator2 = rangy.createCssClassMutator("test2", true);

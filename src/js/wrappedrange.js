@@ -345,7 +345,16 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // TODO: Add extension methods from DomRange
+            // Add extension methods from DomRange
+            var methodsToInherit = ["compareNode", "comparePoint", "createContextualFragment", "intersectsNode",
+                "isPointInRange", "intersectsRange", "splitBoundaries", "normalizeBoundaries", "createNodeIterator",
+                "getNodes"];
+
+            var i = methodsToInherit.length, methodName, domRangeProto = DomRange.prototype;
+            while (i--) {
+                methodName = methodsToInherit[i];
+                rangeProto[methodName] = domRangeProto[methodName];
+            }
 
             // Clean up
             document.body.removeChild(testTextNode);
@@ -353,7 +362,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             range2.detach();
 
             DomRange.copyComparisonConstants(WrappedRange);
-            DomRange.copyComparisonConstants(WrappedRange.prototype);
+            DomRange.copyComparisonConstants(rangeProto);
         })();
 
     } else if (api.features.implementsTextRange) {

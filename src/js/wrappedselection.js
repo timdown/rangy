@@ -8,7 +8,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var util = api.util;
     var DomRange = api.DomRange;
 
-    var getSelection;
+    var getSelection, getRangeCount;
 
     // Test for the Range/TextRange and Selection features required
     // Test for ability to retrieve selection
@@ -28,7 +28,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function WrappedSelection(selection) {
         this.nativeSelection = selection;
+        this.rangeCount = getRangeCount(this);
     }
+
+    api.getSelection = function(win) {
+        return new WrappedSelection(getSelection(win));
+    };
+
 
     var selProto = WrappedSelection.prototype;
     var testSelection = getSelection();
@@ -68,8 +74,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
             return (this.nativeSelection.rangeCount == 0) ? null : this.nativeSelection.getRangeAt(index);
         };
 
-        selProto.getRangeCount = function() {
-            return this.nativeSelection.rangeCount;
+        getRangeCount = function(sel) {
+            return sel.nativeSelection.rangeCount;
         };
     } else if (util.isHostMethod(testSelection, "createRange")) {
         selProto.getRangeAt = function(index) {
@@ -86,8 +92,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         };
 
-        selProto.getRangeCount = function() {
-            return (this.nativeSelection.type == "None") ? 0 : 1;
+        getRangeCount = function(sel) {
+            return (sel.nativeSelection.type == "None") ? 0 : 1;
         };
     } else if (selectionHasAnchorAndFocus && typeof testRange.collapsed == "boolean" &&
             typeof testSelection.isCollapsed == "boolean" && api.features.implementsDomRange) {
@@ -113,8 +119,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         };
 
-        selProto.getRangeCount = function() {
-            return (this.nativeSelection.anchorNode === null) ? 0 : 1;
+        getRangeCount = function(sel) {
+            return (sel.nativeSelection.anchorNode === null) ? 0 : 1;
         };
     } else {
         module.fail("No means of obtaining a Range or TextRange from the user's selection was found");
@@ -185,6 +191,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 */
 
+    selProto.getAllRanges = function() {
+        var ranges = [];
+        for (var i = 0; i < this.rangeCount; ++i) {
+            ranges[i] = this.getRangeAt(i);
+        }
+        return ranges;
+    };
 
 
 

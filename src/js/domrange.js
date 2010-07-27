@@ -404,7 +404,7 @@ rangy.createModule("DomRange", function(api, module) {
     var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer"];
 
-    var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
+    var s2s = 0, s2e = 1, e2s = 3;
     var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
 
     Range.copyComparisonConstants = function(obj) {
@@ -722,7 +722,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         normalizeBoundaries: function() {
             var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
-            var sibling, textToInsert;
+            var sibling;
             assertNotDetached(this);
 
             if (dom.isCharacterDataNode(sc)) {

@@ -1,4 +1,6 @@
-rangy.addInitListener(function(api) {
+rangy.createModule("TextMutation", function(api, module) {
+    api.requireModules( ["WrappedSelection", "WrappedRange"] );
+
     var log = log4javascript.getLogger("rangy.textmutation");
 
     // TODO: Investigate best way to implement these
@@ -55,124 +57,10 @@ rangy.addInitListener(function(api) {
         return getSortedClassName(el1) == getSortedClassName(el2);
     }
 
-
-    function createNextPreviousNodeMover(isNext) {
-        var f = function(node, includeChildren) {
-            var sibling, parentNode;
-            if (includeChildren && node.hasChildNodes()) {
-                return node[isNext ? "firstChild" : "lastChild"];
-            } else {
-                sibling = node[isNext ? "nextSibling" : "previousSibling"];
-                if (sibling) {
-                    return sibling;
-                } else {
-                    parentNode = node.parentNode;
-                    return parentNode ? f(node.parentNode, false) : null;
-                }
-            }
-        };
-        return f;
-    }
-
-    var previousNode = createNextPreviousNodeMover(false);
-    var nextNode = createNextPreviousNodeMover(true);
-
-    function createTextNodeFinder(first) {
-        return function(node) {
-            var n, f = first ? nextNode : previousNode;
-            for ( n = node; n; n = f(n, true) ) {
-                if (n.nodeType == 3) {
-                    return n;
-                }
-            }
-            return null;
-        };
-    }
-
-    var firstTextNodeInOrAfter = createTextNodeFinder(true);
-    var lastTextNodeInOrBefore = createTextNodeFinder(false);
-
-
     function fail(reason) {
         alert("TextMutation module for Rangy not supported in your browser. Reason: " + reason);
     }
 
-    // Check for existence of working splitText method of a text node
-    var testTextNode = document.createTextNode("test"), secondTextNode;
-    document.body.appendChild(testTextNode);
-    if (api.util.isHostMethod(testTextNode, "splitText")) {
-        secondTextNode = testTextNode.splitText(2);
-        if (testTextNode.data != "te" || !testTextNode.nextSibling || testTextNode.nextSibling.data != "st") {
-            fail("incorrect implementation of text node splitText() method");
-        }
-    } else {
-        fail("missing implementation of text node splitText() method");
-    }
-    document.body.removeChild(testTextNode);
-    if (secondTextNode) {
-        document.body.removeChild(secondTextNode);
-    }
-
-    function getTextNodesBetween(startTextNode, endTextNode) {
-        var textNodes = [];
-        for (var n = startTextNode; n && n !== endTextNode; n = nextNode(n, true)) {
-            if (n.nodeType == 3) {
-                textNodes.push(n);
-            }
-        }
-        if (endTextNode.nodeType == 3) {
-            textNodes.push(endTextNode);
-        }
-        return textNodes;
-    }
-
-    function getTextNodesInRange(range, split) {
-        var rangeStart = api.getRangeStart(range), rangeEnd = api.getRangeEnd(range);
-        var startNode = rangeStart.node, endNode = rangeEnd.node, tempNode;
-        var startOffset = rangeStart.offset, endOffset = rangeEnd.offset;
-        log.info("getTextNodesInRange", startNode.nodeValue, rangeStart.offset, endNode.nodeValue, rangeEnd.offset);
-
-        // Split the start and end container text nodes, if necessary
-        if (endNode.nodeType == 3) {
-            if (split && rangeEnd.offset < endNode.length) {
-                endNode.splitText(rangeEnd.offset);
-                api.setRangeEnd(range, endNode, endNode.length);
-            }
-        } else if (endNode.hasChildNodes()) {
-            tempNode = endNode.childNodes[rangeEnd.offset - 1] || previousNode(endNode.childNodes[rangeEnd.offset], true);
-            endNode = lastTextNodeInOrBefore(tempNode);
-            endOffset = endNode.length;
-        } else {
-            endNode = lastTextNodeInOrBefore(endNode);
-            endOffset = endNode.length;
-        }
-
-        if (startNode.nodeType == 3) {
-            //log.info("Start node is text: " + startNode.nodeValue, endNode.nodeValue);
-            if (split && rangeStart.offset > 0) {
-                tempNode = startNode.splitText(rangeStart.offset);
-                if (endNode === startNode) {
-                    endNode = tempNode;
-                }
-                startNode = tempNode;
-                api.setRangeStart(range, startNode, 0);
-            }
-        } else if (startNode.hasChildNodes()) {
-            tempNode = startNode.childNodes[rangeStart.offset] || nextNode(startNode.childNodes[rangeStart.offset - 1], true);
-            startNode = firstTextNodeInOrAfter(tempNode);
-            startOffset = 0;
-        } else {
-            startNode = firstTextNodeInOrAfter(startNode);
-            startOffset = 0;
-        }
-
-        log.info("start:" + startNode + ", end:" + endNode);
-        //log.info("Now: ", startNode.nodeValue, rangeStart.offset, endNode.nodeValue, rangeEnd.offset);
-
-        //log.info("getTextNodesInRange start and end nodes equal: " + (startNode === endNode));
-
-        return (startNode === endNode) ? [startNode] : getTextNodesBetween(startNode, endNode);
-    }
 
     var returnFalseFunc = function() { return false; };
     var noOpFunc = function() {};
@@ -183,7 +71,8 @@ rangy.addInitListener(function(api) {
         var checkApplied = options.checkApplied || returnFalseFunc;
 
         function applyToRange(range) {
-            var textNodes = getTextNodesInRange(range, true), textNode;
+            range.splitBoundaries();
+            var textNodes = range.getNodes( [3] ), textNode;
             if (options.preApplyCallback) {
                 options.preApplyCallback(textNodes, range);
             }
@@ -194,9 +83,9 @@ rangy.addInitListener(function(api) {
                     apply(textNode);
                 }
             }
-            api.setRangeStart(range, textNodes[0], 0);
+            range.setStart(textNodes[0], 0);
             textNode = textNodes[textNodes.length - 1];
-            api.setRangeEnd(range, textNode, textNode.length);
+            range.setEnd(textNode, textNode.length);
             log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
             if (options.postApplyCallback) {
                 options.postApplyCallback(textNodes, range);
@@ -206,17 +95,18 @@ rangy.addInitListener(function(api) {
         function applyToSelection(win) {
             win = win || window;
             var sel = api.getSelection(win);
-            var ranges = api.getAllSelectionRanges(sel), range;
-            api.emptySelection(sel);
+            var range, ranges = sel.getAllRanges();
+            sel.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
                 range = ranges[i];
                 applyToRange(range);
-                api.addRangeToSelection(sel, range);
+                sel.addRange(range);
             }
         }
 
         function undoToRange(range) {
-            var textNodes = getTextNodesInRange(range, true), textNode;
+            range.splitBoundaries();
+            var textNodes = range.getNodes( [3] ), textNode;
 
             if (options.preUndoCallback) {
                 options.preUndoCallback(textNodes, range);
@@ -228,9 +118,9 @@ rangy.addInitListener(function(api) {
                     undo(textNode);
                 }
             }
-            api.setRangeStart(range, textNodes[0], 0);
+            range.setStart(textNodes[0], 0);
             textNode = textNodes[textNodes.length - 1];
-            api.setRangeEnd(range, textNode, textNode.length);
+            range.setEnd(textNode, textNode.length);
             log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
 
             if (options.postUndoCallback) {
@@ -241,17 +131,17 @@ rangy.addInitListener(function(api) {
         function undoToSelection(win) {
             win = win || window;
             var sel = api.getSelection(win);
-            var ranges = api.getAllSelectionRanges(sel), range;
-            api.emptySelection(sel);
+            var ranges = sel.getAllRanges(), range;
+            sel.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
                 range = ranges[i];
                 undoToRange(range);
-                api.addRangeToSelection(sel, range);
+                sel.addRange(range);
             }
         }
 
         function isAppliedToRange(range) {
-            var textNodes = getTextNodesInRange(range, false);
+            var textNodes = range.getNodes( [3] );
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 if (!checkApplied(textNodes[i])) {
                     return false;
@@ -263,7 +153,7 @@ rangy.addInitListener(function(api) {
         function isAppliedToSelection(win) {
             win = win || window;
             var sel = api.getSelection(win);
-            var ranges = api.getAllSelectionRanges(sel);
+            var ranges = sel.getAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
                 if (!isAppliedToRange(ranges[i])) {
                     return false;
