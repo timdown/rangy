@@ -388,14 +388,20 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         WrappedRange.prototype = new DomRange(document);
 
-        WrappedRange.prototype.toTextRange = function() {
-            var startRange = createBoundaryTextRange(new DomPosition(this.startContainer, this.startOffset), true);
-            var endRange = createBoundaryTextRange(new DomPosition(this.endContainer, this.endOffset), false);
-            var textRange = dom.getDocument(this.startContainer).body.createTextRange();
+        WrappedRange.rangeToTextRange = function(range) {
+            var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+            var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
+            var textRange = dom.getDocument(range.startContainer).body.createTextRange();
             textRange.setEndPoint("StartToStart", startRange);
             textRange.setEndPoint("EndToEnd", endRange);
             return textRange;
         };
+
+/*
+        WrappedRange.prototype.toTextRange = function() {
+            return WrappedRange.rangeToTextRange(this);
+        };
+*/
 
         DomRange.copyComparisonConstants(WrappedRange);
         DomRange.copyComparisonConstants(WrappedRange.prototype);
@@ -407,6 +413,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         }
     }
 
+    api.WrappedRange = WrappedRange;
 
     api.createNativeRange = function(doc) {
         if (rangy.features.implementsDomRange) {
@@ -423,7 +430,6 @@ rangy.createModule("WrappedRange", function(api, module) {
     api.createRangyRange = function(doc) {
         return new DomRange(doc);
     };
-
 
     api.getSelectedRange = function() {
         if (window.getSelection) {

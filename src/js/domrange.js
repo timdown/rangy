@@ -91,6 +91,7 @@ rangy.createModule("DomRange", function(api, module) {
         var it, n;
         iteratorState = iteratorState || { stop: false };
         for (var node, subRangeIterator; node = rangeIterator.next(); ) {
+            //log.debug("iterateSubtree, partially selected: " + rangeIterator.isPartiallySelectedSubtree(), nodeToString(node));
             if (rangeIterator.isPartiallySelectedSubtree()) {
                 // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of the
                 // node selected by the Range.
@@ -187,11 +188,14 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function getNodesInRange(range, nodeTypes, filter) {
+        log.info("getNodesInRange, " + nodeTypes.join(","));
         var filterNodeTypes = !!(nodeTypes && nodeTypes.length), regex;
         var filterExists = !!filter;
         if (filterNodeTypes) {
             regex = new RegExp("^(" + nodeTypes.join("|") + ")$");
         }
+        log.info(regex.pattern);
+
         var nodes = [];
         iterateSubtree(new RangeIterator(range, false), function(node) {
             if ((!filterNodeTypes || regex.test(node.nodeType)) && (!filterExists || filter(node))) {
@@ -611,7 +615,8 @@ rangy.createModule("DomRange", function(api, module) {
             }
         },
 
-        // The methods below are all non-standard. The following batch were introduced by Mozilla but have since been
+        // The methods below are all non-standard. All are designed to be able to be copied to range wrapper objects,
+        // by avoiding calls updateBoundaries. The following batch were introduced by Mozilla but have since been
         // removed.
 
         compareNode: function(node) {
@@ -705,23 +710,41 @@ rangy.createModule("DomRange", function(api, module) {
         },
 
         splitBoundaries: function() {
+            log.debug("splitBoundaries called");
             var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+            var startEndSame = (sc === ec);
             assertNotDetached(this);
 
-            if (dom.isCharacterDataNode(sc)) {
-                sc = dom.splitDataNode(sc, so);
-                so = 0;
-            }
-            if (dom.isCharacterDataNode(ec)) {
+            if (dom.isCharacterDataNode(ec) && eo < ec.length) {
                 dom.splitDataNode(ec, eo);
+                this.setEnd(ec, eo);
+                log.debug("Split end", nodeToString(ec), eo);
             }
-            updateBoundaries(this, sc, so, ec, eo);
+
+            if (dom.isCharacterDataNode(sc) && so > 0) {
+                sc = dom.splitDataNode(sc, so);
+                if (startEndSame) {
+                    this.setEnd(sc, eo - so);
+                }
+                so = 0;
+                this.setStart(sc, so);
+                log.debug("Split start", nodeToString(sc), so);
+            }
         },
 
         normalizeBoundaries: function() {
             var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
-            var sibling;
+            var sibling, startEndSame = (sc === ec);
             assertNotDetached(this);
+
+            if (dom.isCharacterDataNode(ec)) {
+                sibling = ec.nextSibling;
+                if (sibling && dom.isCharacterDataNode(sibling)) {
+                    ec.appendData(sibling.data);
+                    sibling.parentNode.removeChild(sibling);
+                    this.setEnd(ec, eo);
+                }
+            }
 
             if (dom.isCharacterDataNode(sc)) {
                 sibling = sc.previousSibling;
@@ -729,18 +752,12 @@ rangy.createModule("DomRange", function(api, module) {
                     sc.insertData(0, sibling.data);
                     so = sibling.length;
                     sibling.parentNode.removeChild(sibling);
+                    if (startEndSame) {
+                        this.setEnd(sc, eo + so);
+                    }
+                    this.setStart(sc, so);
                 }
             }
-
-            if (dom.isCharacterDataNode(ec)) {
-                sibling = ec.nextSibling;
-                if (sibling && dom.isCharacterDataNode(sibling)) {
-                    ec.appendData(sibling.data);
-                    sibling.parentNode.removeChild(sibling);
-                }
-            }
-
-            updateBoundaries(this, sc, so, ec, eo);
         },
 
         createNodeIterator: function(nodeTypes, filter) {
@@ -809,7 +826,7 @@ rangy.createModule("DomRange", function(api, module) {
 
             if (this.sc === this.ec && dom.isCharacterDataNode(this.sc)) {
                 this.isSingleCharacterDataNode = true;
-                this._first = this._last = this.sc;
+                this._first = this._last = this._next = this.sc;
             } else {
                 this._first = this._next = (this.sc === root && !dom.isCharacterDataNode(this.sc)) ?
                     this.sc.childNodes[this.so] : dom.getClosestAncestorIn(this.sc, root, true);
@@ -844,6 +861,7 @@ rangy.createModule("DomRange", function(api, module) {
 
                 // Check for partially selected text nodes
                 if (dom.isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
+                    log.debug("** CLONING ***")
                     if (current === this.ec) {
                         (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
                     }
@@ -901,7 +919,7 @@ rangy.createModule("DomRange", function(api, module) {
 
                 updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
             }
-            return new RangeIterator(subRange, true);
+            return new RangeIterator(subRange, this.clonePartiallySelectedTextNodes);
         },
 
         detach: function(detachRange) {

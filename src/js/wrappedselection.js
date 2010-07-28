@@ -7,6 +7,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var dom = api.dom;
     var util = api.util;
     var DomRange = api.DomRange;
+    var WrappedRange = api.WrappedRange;
 
     var getSelection, getRangeCount;
 
@@ -35,7 +36,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return new WrappedSelection(getSelection(win));
     };
 
-
     var selProto = WrappedSelection.prototype;
     var testSelection = getSelection();
     var testRange = api.createNativeRange(document);
@@ -58,7 +58,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
 
         selProto.addRange = function(range) {
-            (range.nativeRange || range).select();
+            WrappedRange.rangeToTextRange(range).select();
             this.rangeCount = 1;
         };
     } else {
@@ -75,7 +75,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         selProto.getRangeAt = function(index) {
-            return (this.nativeSelection.rangeCount == 0) ? null : this.nativeSelection.getRangeAt(index);
+            return (this.nativeSelection.rangeCount == 0) ?
+                   null : new WrappedRange(this.nativeSelection.getRangeAt(index));
         };
 
         getRangeCount = function(sel) {
@@ -86,9 +87,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (index == 0) {
                 var range = this.nativeSelection.createRange();
                 if (this.nativeSelection.type == "Text") {
-                    return api.createRange(dom.getDocument(range.parentElement()));
+                    return new WrappedRange(range);
                 } else {
                     // ??
+                    // TODO: Do something about control ranges
 
                 }
             } else {

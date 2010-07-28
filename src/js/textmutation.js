@@ -1,13 +1,15 @@
 rangy.createModule("TextMutation", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
+    var dom = api.dom;
+
     var log = log4javascript.getLogger("rangy.textmutation");
 
     // TODO: Investigate best way to implement these
     function hasClass(el, cssClass) {
         if (el.className) {
             var classNames = el.className.split(" ");
-            return api.util.arrayContains(classNames, cssClass);
+            return dom.arrayContains(classNames, cssClass);
         }
         return false;
     }
@@ -56,11 +58,6 @@ rangy.createModule("TextMutation", function(api, module) {
     function hasSameClasses(el1, el2) {
         return getSortedClassName(el1) == getSortedClassName(el2);
     }
-
-    function fail(reason) {
-        alert("TextMutation module for Rangy not supported in your browser. Reason: " + reason);
-    }
-
 
     var returnFalseFunc = function() { return false; };
     var noOpFunc = function() {};
@@ -141,7 +138,10 @@ rangy.createModule("TextMutation", function(api, module) {
         }
 
         function isAppliedToRange(range) {
+            //log.info("Applie", range)
+            range.splitBoundaries();
             var textNodes = range.getNodes( [3] );
+            log.info("textNodes", textNodes);
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 if (!checkApplied(textNodes[i])) {
                     return false;
@@ -204,6 +204,7 @@ rangy.createModule("TextMutation", function(api, module) {
         }
 
         function textNodeHasClass(textNode) {
+            log.debug("textnode: " + textNode + ", parent: " + textNode.parentNode);
             return elementHasClass(textNode.parentNode);
         }
 
@@ -260,7 +261,7 @@ rangy.createModule("TextMutation", function(api, module) {
         };
 
         function splitCssSpan(textNode) {
-            var doc = api.dom.getDocument(textNode);
+            var doc = dom.getDocument(textNode);
             var parent = textNode.parentNode, previous = textNode.previousSibling, next = textNode.nextSibling;
             var span, n;
             if (next) {
@@ -269,13 +270,13 @@ rangy.createModule("TextMutation", function(api, module) {
                 for (n = next; n; n = textNode.nextSibling) {
                     span.appendChild(n);
                 }
-                api.dom.insertAfter(span, parent);
+                dom.insertAfter(span, parent);
             }
             if (previous) {
                 span = doc.createElement("span");
                 span.className = parent.className;
                 span.appendChild(textNode);
-                api.dom.insertAfter(span, parent);
+                dom.insertAfter(span, parent);
             }
         }
 
@@ -284,8 +285,6 @@ rangy.createModule("TextMutation", function(api, module) {
                 log.group("preApplyCallback");
                 var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
                 var startParent = startNode.parentNode, endParent = endNode.parentNode;
-                var doc = api.dom.getDocument(startNode);
-                var span;
 
                 if (isRangySpan(startParent) && startParent.childNodes.length > 1) {
                     log.debug("Splitting start");
@@ -375,8 +374,8 @@ rangy.createModule("TextMutation", function(api, module) {
                     log.info(rangeStartNode.nodeValue, rangeStartOffset, rangeEndNode.nodeValue, rangeEndOffset);
 
                     // Set the range boundaries
-                    api.setRangeStart(range, rangeStartNode, rangeStartOffset);
-                    api.setRangeEnd(range, rangeEndNode, rangeEndOffset);
+                    range.setStart(rangeStartNode, rangeStartOffset);
+                    range.setEnd(rangeEndNode, rangeEndOffset);
                 }
                 log.groupEnd();
             } : null;
@@ -390,7 +389,7 @@ rangy.createModule("TextMutation", function(api, module) {
                     addClass(parent, cssClass);
                     addClass(parent, uniqueCssClass);
                 } else {
-                    var span = createSpan(api.dom.getDocument(textNode));
+                    var span = createSpan(dom.getDocument(textNode));
                     textNode.parentNode.insertBefore(span, textNode);
                     span.appendChild(textNode);
                 }
@@ -416,14 +415,14 @@ rangy.createModule("TextMutation", function(api, module) {
                 log.group("Undo, text node is " + textNode.data, el.className);
                 if (nextNode && previousNode) {
                     // In this case we need to create a new span for the subsequent text node
-                    var span = createSpan(api.dom.getDocument(textNode));
+                    var span = createSpan(dom.getDocument(textNode));
                     span.appendChild(nextNode);
-                    api.dom.insertAfter(span, el);
+                    dom.insertAfter(span, el);
                     span.parentNode.insertBefore(textNode, span);
                 } else if (nextNode) {
                     parent.insertBefore(textNode, el);
                 } else if (previousNode) {
-                    api.dom.insertAfter(textNode, el);
+                    dom.insertAfter(textNode, el);
                 } else {
                     removeClass(el, cssClass);
                     removeClass(el, uniqueCssClass);
