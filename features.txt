@@ -44,7 +44,9 @@ http://mozile.mozdev.org/0.8/doc/jsdoc/overview-summary-InternetExplorerSelectio
 http://code.google.com/p/ierange/source/browse/trunk/ierange.js
 http://closure-library.googlecode.com/svn/docs/closure_goog_dom_abstractrange.js.source.html
 http://trac.webkit.org/browser/trunk/WebCore/dom/Range.cpp
+http://trac.webkit.org/browser/trunk/WebCore/page/DOMSelection.cpp
 http://mxr.mozilla.org/mozilla-central/source/content/base/src/nsRange.cpp
 http://code.google.com/p/ierange/issues/list
 http://xerces.apache.org/mirrors.cgi#source
 http://www.cinsoft.net/mylib-textselection.js
+http://dev.w3.org/html5/spec/editing.html#selection

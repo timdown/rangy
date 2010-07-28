@@ -67,8 +67,7 @@ var rangy = (function() {
         },
         modules: {
 
-        },
-        fail: fail
+        }
     };
 
     function fail(reason) {
@@ -76,6 +75,8 @@ var rangy = (function() {
         api.initialized = true;
         api.supported = false;
     }
+
+    api.fail = fail;
 
     // Initialization
     function init() {

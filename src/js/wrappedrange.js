@@ -369,6 +369,11 @@ rangy.createModule("WrappedRange", function(api, module) {
         // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
         // prototype
 
+        function nodeToString(node) {
+            if (!node) { return "No node"; }
+            return dom.isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName;
+        }
+
         WrappedRange = function(textRange) {
             var start, end;
             if (textRange.text) {
@@ -383,7 +388,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             this.setStart(start.position.node, start.position.offset);
             this.setEnd(end.position.node, end.position.offset);
-            //log.info("WrappedRange created", this.startContainer, this.startOffset, this.endContainer, this.endOffset);
+            log.info("WrappedRange created", nodeToString(this.startContainer), this.startOffset, nodeToString(this.endContainer), this.endOffset);
         };
 
         WrappedRange.prototype = new DomRange(document);
@@ -431,6 +436,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         return new DomRange(doc);
     };
 
+/*
     api.getSelectedRange = function() {
         if (window.getSelection) {
             //return new WrappedRange(window.getSelection().getRangeAt(0));
@@ -452,6 +458,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             r.toTextRange().select();
         }
     };
+*/
 
 
 });

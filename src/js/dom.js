@@ -222,6 +222,29 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     };
 
+    var DOMExceptionCodes = {
+        INDEX_SIZE_ERR: 1,
+        HIERARCHY_REQUEST_ERR: 3,
+        WRONG_DOCUMENT_ERR: 4,
+        NO_MODIFICATION_ALLOWED_ERR: 7,
+        NOT_FOUND_ERR: 8,
+        NOT_SUPPORTED_ERR: 9,
+        INVALID_STATE_ERR: 11
+    };
+
+    function DOMException(codeName) {
+        this.code = DOMExceptionCodes[codeName];
+        this.codeName = codeName;
+        this.message = "DOMException: " + this.codeName;
+    }
+
+    DOMException.prototype = DOMExceptionCodes;
+
+    DOMException.prototype.toString = function() {
+        return this.message;
+    };
+
+
     api.dom = {
         arrayContains: arrayContains,
         getNodeIndex: getNodeIndex,
@@ -234,6 +257,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getDocument: getDocument,
         comparePoints: comparePoints,
         createIterator: createIterator,
-        DomPosition: DomPosition
+        DomPosition: DomPosition,
+        DOMException: DOMException
     };
 });

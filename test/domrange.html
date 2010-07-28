@@ -8,21 +8,23 @@
         log4javascript.getRootLogger().addAppender(new log4javascript.InPageAppender());
         var log = log4javascript.getRootLogger();
 
-        log4javascript.addRenderer(function(o) {
+/*        log4javascript.addRenderer(function(o) {
             return typeof o.nodeType != "undefined";
         }, function(o) {
             if (!o) { return "No node"; }
             return ("data" in o) ? '"' + o.data + '"' : o.nodeName;
-        });
+        });*/
     </script>
 
     <script type="text/javascript" src="../src/js/core.js"></script>
     <script type="text/javascript" src="../src/js/dom.js"></script>
     <script type="text/javascript" src="../src/js/domrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
     <script type="text/javascript">
         function r() {
-            return rangy.getSelectedRange();
+            var sel = rangy.getSelection();
+            return sel.getRangeAt(0);
         }
 
         function g(id) {
@@ -35,32 +37,22 @@
             log.warn(g('ph').innerHTML);
         }
 
-        function iterateNodes(root, func) {
-            var n = root, child, next;
-            while (n) {
-                func(n);
-                child = n.firstChild;
-                if (child) {
-                    n = child;
-                } else {
-                    next = null;
-                    while ((n !== root) && !(next = n.nextSibling)) {
-                        n = n.parentNode;
-                    }
-                    n = next;
-                }
-            }
+        function reselect() {
+            var sel = rangy.getSelection();
+            var range = sel.getRangeAt(0);
+            sel.removeAllRanges();
+            sel.addRange(range);
         }
-        
     </script>
 </head>
 <body>
-<input type="button" value="reselect" onclick="rangy.reselect(); g('ed').focus()">
-<input type="button" value="get text" onclick="log.warn('Selected text: |' + r().toString() + '|');">
+<input type="button" value="reselect" onclick="reselect(); g('ed').focus()">
+<input type="button" value="get text" onclick="log.warn('Selected text: |' + rangy.getSelection() + '|');">
 <input type="button" value="delete" onclick="r().deleteContents()">
 <input type="button" value="extract" onclick="showFragment(r().extractContents())">
 <input type="button" value="clone" onclick="showFragment(r().cloneContents())">
 <input type="button" value="surround" onclick="var n = document.createElement('span'); n.style.backgroundColor = 'pink'; try { r().surroundContents(n) } catch (ex) {alert(ex);}">
+<input type="button" value="delete selection" onclick="rangy.getSelection().deleteFromDocument(); g('ed').focus()">
 <br>
 
 <div style="border: solid green 1px; padding: 2px">
@@ -79,7 +71,7 @@ with this, plus some line breaks
 
 </div>
 
-<div style="border: solid green 1px; padding: 2px" contenteditable="true" id="ed" onkeydown="if (event.keyCode==40 && event.ctrlKey){rangy.reselect(); g('ed').focus(); return false;}">
+<div style="border: solid green 1px; padding: 2px" contenteditable="true" id="ed" onkeydown="if (event.keyCode==40 && event.ctrlKey){reselect(); g('ed').focus(); return false;}">
     <p><script>document.write("A paragraph\r\nwith ")</script><b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
     <p>A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.<br>
         A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>

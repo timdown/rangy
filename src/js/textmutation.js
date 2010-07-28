@@ -156,6 +156,7 @@ rangy.createModule("TextMutation", function(api, module) {
             var ranges = sel.getAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
                 if (!isAppliedToRange(ranges[i])) {
+
                     return false;
                 }
             }
