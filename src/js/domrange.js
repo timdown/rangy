@@ -403,10 +403,6 @@ rangy.createModule("DomRange", function(api, module) {
     Range.NODE_BEFORE_AND_AFTER = n_b_a;
     Range.NODE_INSIDE = n_i;
 
-    /*
-     TODO: Add getters/setters/object property attributes for startContainer etc that prevent setting and check for detachedness
-      */
-
     Range.prototype = {
         NODE_BEFORE: n_b,
         NODE_AFTER: n_a,
@@ -485,8 +481,8 @@ rangy.createModule("DomRange", function(api, module) {
                 throw new DOMException("HIERARCHY_REQUEST_ERR");
             }
 
-            // TODO: Add check for whether the container of the start of the Range is of a type that does not allow
-            // children of the type of node
+            // No check for whether the container of the start of the Range is of a type that does not allow children of
+            // the type of node: the browser's DOM implementation should do this for us when we attempt to add the node
 
             insertNodeAtPosition(node, this.startContainer, this.startOffset);
             this.setStartBefore(node);
@@ -519,10 +515,9 @@ rangy.createModule("DomRange", function(api, module) {
         deleteContents: createRangeContentRemover(deleteSubtree),
 
         surroundContents: function(node) {
-            // TODO: Check boundary containers are not readonly
-            // TODO: Check start container allows children of the type of the node about to be added
-
             assertNotDetached(this);
+            assertNodeNotReadOnly(this.startContainer);
+            assertNodeNotReadOnly(this.endContainer);
             assertValidNodeType(node, surroundNodeTypes);
 
             // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no

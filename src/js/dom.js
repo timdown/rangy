@@ -62,7 +62,6 @@ rangy.createModule("DomUtil", function(api, module) {
         return null;
     }
 
-    // TODO: Add check for contains() and use it when present
     function isAncestorOf(ancestor, descendant, selfIsAncestor) {
         var n = selfIsAncestor ? descendant : descendant.parentNode;
         while (n) {

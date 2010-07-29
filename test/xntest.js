@@ -82,6 +82,8 @@ var xn = new Object();
 		}
 	};
 
+    xn.addEventListener = addEventListener;
+
 	// Clones an array
 	var cloneArray = function(arr) {
 		return arr.slice(0);

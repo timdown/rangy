@@ -177,9 +177,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     WrappedRange.rangeToTextRange(wrappedRange).select();
                     return wrappedRange;
                 } else if (this.nativeSelection.type == "Control") {
-                    // ??
-                    // TODO: Do something about control ranges
-
+                    // We do nothing with ControlRanges, which don't naturally fit with the DOM Ranges. You could view
+                    // a selected Control Range as a selection containing multiple Ranges, each spanning an element,
+                    // but these Ranges should then be immutable.
+                    throw new DOMException("INDEX_SIZE_ERR");
                 }
             } else if (index < 0 || index >= this.rangeCount) {
                 throw new DOMException("INDEX_SIZE_ERR");
@@ -187,7 +188,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
 
         getRangeCount = function(sel) {
-            return (sel.nativeSelection.type == "None") ? 0 : 1;
+            // ControlRanges are ignored. See comment above for getRangeAt.
+            return (sel.nativeSelection.type == "Text") ? 1 : 0;
         };
     } else {
         module.fail("No means of obtaining a Range or TextRange from the user's selection was found");
@@ -348,7 +350,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // The following are non-standard extensions
 
-    // TODO: Investigate Mozilla extensions containsNode, extend, [modify - too hard], selectionLanguageChange
+    // TODO: Investigate Mozilla extensions containsNode, extend, [not modify - too hard], selectionLanguageChange
 
     // Thes two are mine, added for convenience
     selProto.getAllRanges = function() {

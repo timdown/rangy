@@ -1,3 +1,0 @@
-rangy.rangeUtil = (function() {
-
-});

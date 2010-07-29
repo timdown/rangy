@@ -1,2 +1,2 @@
-- Apply class 1. Apply class 2 to range in the middle. Apply class 1 to same range.
-- Multiple selections within same text node
+- CSS Class applier: multiple selections within same text node
+- Range/Selection wrappers: handling selections within text inputs

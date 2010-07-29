@@ -121,15 +121,13 @@ rangy.createModule("WrappedRange", function(api, module) {
         var doc = dom.getDocument(boundaryPosition.node);
         var workingNode = doc.createElement("span");
 
-        // TODO: Check: is this branching necessary? Can we just use insertBefore with null second param?
-/*
+        // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report for
+        // IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
         if (boundaryNode) {
             boundaryParent.insertBefore(workingNode, boundaryNode);
         } else {
             boundaryParent.appendChild(workingNode);
         }
-*/
-        boundaryParent.insertBefore(workingNode, boundaryNode);
 
         var workingRange = doc.body.createTextRange();
         workingRange.moveToElementText(workingNode);

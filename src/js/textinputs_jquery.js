@@ -1,5 +1,4 @@
 (function() {
-    var log = log4javascript.getLogger("rangy.textInputs");
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, pasteText;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
@@ -42,7 +41,7 @@
             end: end,
             length: end - start,
             text: el.value.slice(start, end)
-        }
+        };
     }
 
     jQuery(document).ready(function() {
@@ -65,7 +64,7 @@
             getSelectionBoundary = function(el, isStart) {
                 el.focus();
                 var range = document.selection.createRange();
-                var originalValue, textInputRange, precedingRange, pos, bookmark, isAtEnd;
+                var originalValue, textInputRange, precedingRange, pos, bookmark;
 
                 if (range) {
                     // Collapse the selected range if the selection is not a caret
@@ -84,32 +83,19 @@
                     if (originalValue.indexOf("\r\n") > -1) {
                         // Trickier case where input value contains line breaks
 
-                        // Test whether the selection range is at the end of the text input by moving it on by one
-                        // character and checking if it's still within the text input.
-/*
-                        try {
-                            range.move("character", 1);
-                            isAtEnd = (range.parentElement() != el);
-                        } catch (ex) {
-                            log.warn("Error moving range", ex);
-                            isAtEnd = true;
-                        }
-*/
-
+                        // Test whether the selection range is at the end of the text input by moving it on by one character
+                        // and checking if it's still within the text input.
                         range.moveToBookmark(bookmark);
 
-                        if (isAtEnd) {
-                            pos = originalValue.length;
-                        } else {
-                            // Insert a character in the text input range and use that as a marker
-                            textInputRange.text = " ";
-                            precedingRange.setEndPoint("EndToStart", textInputRange);
-                            pos = precedingRange.text.length - 1;
+                        // Insert a character in the text input range and use that as a marker
+                        textInputRange.text = " ";
+                        precedingRange.setEndPoint("EndToStart", textInputRange);
+                        pos = precedingRange.text.length - 1;
 
-                            // Delete the inserted character
-                            textInputRange.moveStart("character", -1);
-                            textInputRange.text = "";
-                        }
+                        // Executing an undo command to delete the character inserted prevents this method adding to the
+                        // undo stack. This trick came from a user called Trenda on MSDN:
+                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
+                        document.execCommand("undo");
                     } else {
                         // Easier case where input value contains no line breaks
                         precedingRange.setEndPoint("EndToStart", textInputRange);
@@ -194,11 +180,11 @@
             return function() {
                 var el = this.jquery ? this[0] : this;
                 var nodeName = el.nodeName.toLowerCase();
-                if (el.nodeType == 1 && nodeName == "textarea" || (nodeName == "input" && el.type == "text")) {
+                if (el.nodeType == 1 && (nodeName == "textarea" || (nodeName == "input" && el.type == "text"))) {
                     var args = [el].concat(Array.prototype.slice.call(arguments));
                     return func.apply(this, args);
                 }
-            }
+            };
         }
 
         jQuery.fn.extend({

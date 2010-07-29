@@ -18,18 +18,12 @@
     <script type="text/javascript" src="../src/js/domrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/textmutation.js"></script>F
+    <script type="text/javascript" src="../src/js/textmutation.js"></script>
     <script type="text/javascript">
 
         var cssClassMutator1, cssClassMutator2;
 
         rangy.addInitListener(function(rangy) {
-            var s = document.getElementById("s");
-            var i = document.getElementById("i");
-            var s_text = s.firstChild, i_text = i.firstChild;
-            //rangy.createSelection(s_text, 2, i_text, 4);
-            log.info("Rangy init listener")
-
             cssClassMutator1 = rangy.createCssClassMutator("test1", true);
             cssClassMutator2 = rangy.createCssClassMutator("test2", true);
         });
