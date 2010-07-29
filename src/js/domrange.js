@@ -916,7 +916,8 @@ rangy.createModule("DomRange", function(api, module) {
     Range.RangeException = RangeException;
 
     Range.util = {
-        getRangeDocument: getRangeDocument
+        getRangeDocument: getRangeDocument,
+        nodeToString: nodeToString
     };
 
     rangy.DomRange = Range;

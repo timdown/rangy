@@ -27,6 +27,15 @@
             return sel.getRangeAt(0);
         }
 
+        function logSel() {
+            var ranges = rangy.getSelection().getAllRanges();
+            var util = rangy.DomRange.util;
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                log.warn("Selected range " + i + ":", util.nodeToString(ranges[i].startContainer), ranges[i].startOffset,
+                        util.nodeToString(ranges[i].endContainer), ranges[i].endOffset);
+            }
+        }
+
         function g(id) {
             return document.getElementById(id);
         }
@@ -46,6 +55,7 @@
     </script>
 </head>
 <body>
+<input type="button" value="log selection" onclick="logSel();">
 <input type="button" value="reselect" onclick="reselect(); g('ed').focus()">
 <input type="button" value="get text" onclick="log.warn('Selected text: |' + rangy.getSelection() + '|');">
 <input type="button" value="delete" onclick="r().deleteContents()">
@@ -56,9 +66,12 @@
 <br>
 
 <div style="border: solid green 1px; padding: 2px">
+    <h2>A subheading</h2>
     <p>A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
     <p>A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.<br>
-        A paragraph with <b>bold text</b> with <i>italic</i> words plus <b>some using <i>both</i></b>.</p>
+        A paragraph with <b>bold text</b> with <i>italic</i> words
+        <img src="claridge.jpg" alt="claridge">
+        plus <b>some using <i>both</i></b>.</p>
 <textarea rows="5" cols="60">
     Some text and some more text and some more text
 </textarea>
@@ -70,6 +83,7 @@ with this, plus some line breaks
 
 
 </pre>
+    <table><tr><td>one</td><td>two</td></tr><tr><td>one</td><td>two</td></tr></table>
 
 </div>
 

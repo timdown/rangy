@@ -180,6 +180,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     // We do nothing with ControlRanges, which don't naturally fit with the DOM Ranges. You could view
                     // a selected Control Range as a selection containing multiple Ranges, each spanning an element,
                     // but these Ranges should then be immutable.
+                    log.info("Got controlrange", this.nativeSelection.createRange());
                     throw new DOMException("INDEX_SIZE_ERR");
                 }
             } else if (index < 0 || index >= this.rangeCount) {
@@ -242,6 +243,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else {
         selProto.toString = function() {
+            log.debug("selection toString called");
             var rangeTexts = [];
             for (var i = 0, len = this.rangeCount; i < len; ++i) {
                 rangeTexts[i] = "" + this.getRangeAt(i);
@@ -354,6 +356,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // Thes two are mine, added for convenience
     selProto.getAllRanges = function() {
+        log.error("getAllRanges");
         var ranges = [];
         for (var i = 0; i < this.rangeCount; ++i) {
             ranges[i] = this.getRangeAt(i);

@@ -30,6 +30,8 @@ rangy.createModule("WrappedRange", function(api, module) {
         workingRange.collapse(isStart);
         var containerElement = workingRange.parentElement();
 
+        log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + containerElement.nodeName);
+
         // Deal with nodes such as inputs that cannot have children
         if (!containerElement.canHaveChildren) {
             return new BoundaryResult(
@@ -38,7 +40,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
-        var boundaryPosition, boundaryNode, tempRange, normalizedRangeText, cleanUpFunc = null;
+        var previousNode, nextNode, boundaryPosition, boundaryNode, tempRange, normalizedRangeText, cleanUpFunc = null;
 
         // Move the working range through the container's children, starting at
         // the end and working backwards, until the working range reaches or goes
@@ -80,7 +82,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 // Now we create a function to be called later that glues the text nodes back together and removing the
                 // inserted character
                 cleanUpFunc = function() {
-                    var nextNode = boundaryNode.nextSibling;
+                    nextNode = boundaryNode.nextSibling;
                     boundaryNode.data = boundaryNode.data.slice(0, -1) + nextNode.data;
                     nextNode.parentNode.removeChild(nextNode);
                     textRange.collapse();
@@ -89,7 +91,19 @@ rangy.createModule("WrappedRange", function(api, module) {
             boundaryPosition = new DomPosition(boundaryNode, normalizedRangeText.length);
         } else {
             // We've hit the boundary exactly, so this must be an element
-            boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
+            log.debug("Hit boundary exactly");
+
+            // If the boundary immediately follows a character data node and this is the end boundary, we should favour
+            // a position within that, and likewise for a start boundary precding a character data node
+            previousNode = !isStart && workingNode.previousSibling;
+            nextNode = isStart && workingNode.nextSibling;
+            if (nextNode && dom.isCharacterDataNode(nextNode)) {
+                boundaryPosition = new DomPosition(nextNode, 0);
+            } else if (previousNode && dom.isCharacterDataNode(previousNode)) {
+                boundaryPosition = new DomPosition(previousNode, previousNode.length);
+            } else {
+                boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
+            }
         }
 
         // Clean up
