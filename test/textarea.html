@@ -36,6 +36,7 @@
 
         function getSel() {
             var ta = document.getElementById("ta");
+            alert(getSelectionBoundary(ta, true) + ", " + getSelectionBoundary(ta, false));
             var s = rangy.textInputs.getSelection(ta);
             var s2 = $(ta).getSelection();
             alert(s.start + ", " + s.end + "; " + s2.start + ", " + s2.end);
@@ -47,6 +48,51 @@
             ta.focus();
         }
 
+    function getSelectionBoundary(el, start) {
+        var property = start ? "selectionStart" : "selectionEnd";
+        var originalValue, textInputRange, precedingRange, pos, bookmark;
+
+        if (typeof el[property] == "number") {
+            return el[property];
+        } else if (document.selection && document.selection.createRange) {
+            el.focus();
+
+            var range = document.selection.createRange();
+            if (range) {
+                // Collapse the selected range if the selection is not a caret
+                if (document.selection.type == "Text") {
+                    range.collapse(!!start);
+                }
+
+                originalValue = el.value;
+                textInputRange = el.createTextRange();
+                precedingRange = el.createTextRange();
+                pos = 0;
+
+                bookmark = range.getBookmark();
+                textInputRange.moveToBookmark(bookmark);
+
+                if (originalValue.indexOf("\r\n") > -1) {
+                    // Trickier case where input value contains line breaks
+
+                    // Insert a character in the text input range and use that as a marker
+                    textInputRange.text = " ";
+                    precedingRange.setEndPoint("EndToStart", textInputRange);
+                    pos = precedingRange.text.length - 1;
+
+                    // Executing an undo command deletes the character inserted and prevents adding to the
+                    // undo stack.
+                    document.execCommand("undo");
+                } else {
+                    // Easier case where input value contains no line breaks
+                    precedingRange.setEndPoint("EndToStart", textInputRange);
+                    pos = precedingRange.text.length;
+                }
+                return pos;
+            }
+        }
+        return 0;
+    }
     </script>
 </head>
 <body>

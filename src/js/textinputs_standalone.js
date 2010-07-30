@@ -58,9 +58,6 @@ rangy.addInitListener(function(api) {
 
                 if (originalValue.indexOf("\r\n") > -1) {
                     // Trickier case where input value contains line breaks
-
-                    // Test whether the selection range is at the end of the text input by moving it on by one character
-                    // and checking if it's still within the text input.
                     range.moveToBookmark(bookmark);
 
                     // Insert a character in the text input range and use that as a marker

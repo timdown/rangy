@@ -28,8 +28,18 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     function getTextRangeBoundaryPosition(textRange, isStart) {
         var workingRange = textRange.duplicate();
+        //log.debug("getTextRangeBoundaryPosition. Uncollapsed textrange parent is " + workingRange.parentElement().nodeName);
+        var wholeRangeContainerElement = workingRange.parentElement();
         workingRange.collapse(isStart);
+        //log.debug("getTextRangeBoundaryPosition. Collapsed textrange parent is " + workingRange.parentElement().nodeName);
         var containerElement = workingRange.parentElement();
+
+        // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
+        // check for that
+        if (!dom.isAncestorOf(wholeRangeContainerElement, containerElement, true)) {
+            containerElement = wholeRangeContainerElement;
+            log.debug("Collapse has moved TextRange outside its original container, so correcting");
+        }
 
         log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + containerElement.nodeName);
 
@@ -37,7 +47,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
         if (!containerElement.canHaveHTML) {
             return new BoundaryResult(
-                    new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement)), null);
+                    new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement)), null, false);
         }
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
@@ -122,40 +132,69 @@ rangy.createModule("WrappedRange", function(api, module) {
     // This method is an optimized version of code found in Tim Cameron Ryan's IERange
     // (http://code.google.com/p/ierange/)
     function createBoundaryTextRange(boundaryPosition, isStart) {
-        var boundaryNode, boundaryParent;
+        var boundaryNode, boundaryParent, boundaryOffset = boundaryPosition.offset;
+        var doc = dom.getDocument(boundaryPosition.node);
+        var workingNode, childNodes, workingRange = doc.body.createTextRange();
+        var isAtStartOfElementContent = false, isAtEndOfElementContent = false;
         var nodeIsDataNode = dom.isCharacterDataNode(boundaryPosition.node);
-        var childNodes;
+
+        // There is a shortcut we can take that prevents the need to insert anything into the DOM if the boundary is at
+        // either end of the contents of an element, which is to use TextRange's moveToElementText method
 
         if (nodeIsDataNode) {
             boundaryNode = boundaryPosition.node;
             boundaryParent = boundaryNode.parentNode;
+
+            // Check if the boundary is at the start of end of the contents of an element
+            if (boundaryParent.nodeType == 1) {
+                if (boundaryOffset == 0 && !boundaryNode.previousSibling) {
+                    isAtStartOfElementContent = true;
+                } else if (boundaryOffset == boundaryNode.length && !boundaryNode.nextSibling) {
+                    isAtEndOfElementContent = true;
+                }
+            }
         } else {
             childNodes = boundaryPosition.node.childNodes;
-            boundaryNode = (boundaryPosition.offset < childNodes.length) ? childNodes[boundaryPosition.offset] : null;
+
+            // Check if the boundary is at the start of end of the contents of an element
+            if (boundaryPosition.node.nodeType == 1) {
+                if (boundaryOffset == 0) {
+                    isAtStartOfElementContent = true;
+                } else if (boundaryOffset == childNodes.length) {
+                    isAtEndOfElementContent = true;
+                }
+            }
+
+            boundaryNode = (boundaryOffset < childNodes.length) ? childNodes[boundaryOffset] : null;
             boundaryParent = boundaryPosition.node;
         }
 
-        // Position the range immediately before the node containing the boundary
-        var doc = dom.getDocument(boundaryPosition.node);
-        var workingNode = doc.createElement("span");
-
-        // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report for
-        // IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
-        if (boundaryNode) {
-            boundaryParent.insertBefore(workingNode, boundaryNode);
+        // Check if we can just use moveToElementText
+        if (isAtStartOfElementContent || isAtEndOfElementContent) {
+            log.info("createBoundaryTextRange moving to text of element " + boundaryParent.nodeName);
+            workingRange.moveToElementText(boundaryParent);
+            workingRange.collapse(isAtStartOfElementContent);
         } else {
-            boundaryParent.appendChild(workingNode);
-        }
+            // Position the range immediately before the node containing the boundary
+            workingNode = doc.createElement("span");
 
-        var workingRange = doc.body.createTextRange();
-        workingRange.moveToElementText(workingNode);
+            // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
+            // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
+            if (boundaryNode) {
+                boundaryParent.insertBefore(workingNode, boundaryNode);
+            } else {
+                boundaryParent.appendChild(workingNode);
+            }
 
-        // Clean up
-        boundaryParent.removeChild(workingNode);
+            workingRange.moveToElementText(workingNode);
 
-        // Move the working range to the text offset, if required
-        if (nodeIsDataNode) {
-            workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryPosition.offset);
+            // Clean up
+            boundaryParent.removeChild(workingNode);
+
+            // Move the working range to the text offset, if required
+            if (nodeIsDataNode) {
+                workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryOffset);
+            }
         }
 
         return workingRange;
@@ -393,6 +432,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         WrappedRange = function(textRange) {
             var start, end;
             if (textRange.text) {
+                log.warn("Creating Range from TextRange. parent element: " + textRange.parentElement().nodeName);
                 end = getTextRangeBoundaryPosition(textRange, false);
                 start = getTextRangeBoundaryPosition(textRange, true);
                 start.cleanUp();

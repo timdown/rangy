@@ -218,7 +218,14 @@ rangy.createModule("DomUtil", function(api, module) {
     DomPosition.prototype = {
         equals: function(pos) {
             return this.node === pos.node & this.offset == pos.offset;
-        }
+        }/*,
+
+        isStartOfElementContent: function() {
+            var isCharacterData = isCharacterDataNode(this.node);
+            var el = isCharacterData ? this.node.parentNode : this.node;
+            return (el && el.nodeType == 1 && (isCharacterData ?
+            if (isCharacterDataNode(this.node) && !this.node.previousSibling && this.node.parentNode)
+        }*/
     };
 
     var DOMExceptionCodes = {
