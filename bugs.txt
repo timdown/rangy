@@ -1,2 +1,0 @@
-- CSS Class applier: multiple selections within same text node
-- Range/Selection wrappers: handling selections within text inputs

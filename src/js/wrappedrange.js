@@ -14,9 +14,10 @@ rangy.createModule("WrappedRange", function(api, module) {
     // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/), fixing problems that
     // library has with line breaks in preformatted text, optimizations and other bugs
 
-    function BoundaryResult(position, cleanUpFunc) {
+    function BoundaryResult(position, cleanUpFunc, alteredDom) {
         this.position = position;
         this.cleanUpFunc = cleanUpFunc;
+        this.alteredDom = alteredDom;
     }
 
     BoundaryResult.prototype.cleanUp = function() {
@@ -32,8 +33,9 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + containerElement.nodeName);
 
-        // Deal with nodes such as inputs that cannot have children
-        if (!containerElement.canHaveChildren) {
+        // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
+        // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
+        if (!containerElement.canHaveHTML) {
             return new BoundaryResult(
                     new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement)), null);
         }
@@ -41,6 +43,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         var workingNode = dom.getDocument(containerElement).createElement("span");
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var previousNode, nextNode, boundaryPosition, boundaryNode, tempRange, normalizedRangeText, cleanUpFunc = null;
+        var alteredDom = false;
 
         // Move the working range through the container's children, starting at
         // the end and working backwards, until the working range reaches or goes
@@ -78,6 +81,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 // node. We can use this to our advantage to obtain the text we need to get an offset within the node
                 tempRange.text = " ";
                 normalizedRangeText = boundaryNode.data.slice(0, -1);
+                alteredDom = true;
 
                 // Now we create a function to be called later that glues the text nodes back together and removing the
                 // inserted character
@@ -111,7 +115,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         log.info("textrange text: " + textRange.text);
 
-        return new BoundaryResult(boundaryPosition, cleanUpFunc);
+        return new BoundaryResult(boundaryPosition, cleanUpFunc, alteredDom);
     }
 
     // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
@@ -393,9 +397,11 @@ rangy.createModule("WrappedRange", function(api, module) {
                 start = getTextRangeBoundaryPosition(textRange, true);
                 start.cleanUp();
                 end.cleanUp();
+                this.alteredDom = start.alteredDom || end.alteredDom;
             } else {
                 end = start = getTextRangeBoundaryPosition(textRange, true);
                 start.cleanUp();
+                this.alteredDom = start.alteredDom;
             }
 
             this.setStart(start.position.node, start.position.offset);

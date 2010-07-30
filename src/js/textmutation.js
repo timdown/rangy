@@ -90,15 +90,18 @@ rangy.createModule("TextMutation", function(api, module) {
         }
 
         function applyToSelection(win) {
+            //log.group("applyToSelection");
             win = win || window;
             var sel = api.getSelection(win);
             var range, ranges = sel.getAllRanges();
             sel.removeAllRanges();
-            for (var i = 0, len = ranges.length; i < len; ++i) {
+            var i = ranges.length;
+            while (i--) {
                 range = ranges[i];
                 applyToRange(range);
                 sel.addRange(range);
             }
+            //log.groupEnd();
         }
 
         function undoToRange(range) {
@@ -151,15 +154,18 @@ rangy.createModule("TextMutation", function(api, module) {
         }
 
         function isAppliedToSelection(win) {
+            log.group("isAppliedToSelection");
             win = win || window;
             var sel = api.getSelection(win);
             var ranges = sel.getAllRanges();
-            for (var i = 0, len = ranges.length; i < len; ++i) {
+            var i = ranges.length;
+            while (i--) {
                 if (!isAppliedToRange(ranges[i])) {
-
+                    log.groupEnd();
                     return false;
                 }
             }
+            log.groupEnd();
             return true;
         }
 
@@ -192,7 +198,6 @@ rangy.createModule("TextMutation", function(api, module) {
     }
 
     var nextCssId = 0;
-
 
     function createCssClassMutator(cssClass, normalize) {
         var uniqueCssClass = "rangy_" + (++nextCssId);
