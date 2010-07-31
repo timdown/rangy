@@ -4,7 +4,7 @@
 <head>
     <title>Rangy Text Inputs jQuery plugin demo</title>
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
-    <script type="text/javascript" src="../build/textinputs_jquery.js"></script>
+    <script type="text/javascript" src="../src/js/textinputs_jquery.js"></script>
     <style type="text/css">
         p.inputcontainer {
             background-color: lightgoldenrodyellow;
@@ -17,7 +17,7 @@
 
 <p class="inputcontainer">
     <input type="button" value="get selection range" onclick="var sel = $('#ti').getSelection(); alert(sel.start + ',' + sel.end);">
-    <input type="button" value="paste test text" onclick="$('#ti').pasteText('**Test**')">
+    <input type="button" value="paste test text" onclick="$('#ti').replaceSelectedText('**Test**')">
     <input type="button" value="set selection" onclick="$('#ti').setSelection($('#ti_start')[0].value, $('#ti_end')[0].value)">
     Start: <input type="text" id="ti_start" size="3" value="5">
     End: <input type="text" id="ti_end" size="3" value="7">
@@ -29,7 +29,8 @@
 
 <p class="inputcontainer">
     <input type="button" value="get selection range" onclick="var sel = $('#ta').getSelection(); alert(sel.start + ',' + sel.end);">
-    <input type="button" value="paste test text" onclick="$('#ta').pasteText('**Test**')">
+    <input type="button" value="paste test text" onclick="$('#ta').replaceSelectedText('**Test**')">
+    <input type="button" value="surround selected text" onclick="$('#ta').surroundText('[Before]', '[After]')">
     <input type="button" value="set selection" onclick="$('#ta').setSelection($('#ta_start')[0].value, $('#ta_end')[0].value)">
     Start: <input type="text" id="ta_start" size="3" value="5">
     End: <input type="text" id="ta_end" size="3" value="7">

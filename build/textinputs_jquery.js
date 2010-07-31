@@ -1,31 +1,205 @@
-/**
-Rangy Text Inputs plug-in for jQuery
-Part of the Rangy project
-http://code.google.com/p/rangy
-Build date: 29/7/2010
+(function() {
+    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, replaceSelectedText;
+    var surroundText, extractText;
 
-Licensed under the MIT licence.
+    // Trio of isHost* functions taken from Peter Michaux's article:
+    // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
+    function isHostMethod(object, property) {
+        var t = typeof object[property];
+        return t === "function" || (!!(t == "object" && object[property])) || t == "unknown";
+    }
 
-The MIT License
+    function isHostProperty(object, property) {
+        return typeof(object[property]) != "undefined";
+    }
 
-Copyright (c) 2010 Tim Down
+    function isHostObject(object, property) {
+        return !!(typeof(object[property]) == "object" && object[property]);
+    }
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    function fail(reason) {
+        if (window.console && window.console.log) {
+            window.console.log("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
+        }
+    }
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+    function adjustOffsets(el, start, end) {
+        if (start < 0) {
+            start += el.value.length;
+        }
+        if (typeof end == "undefined") {
+            end = start;
+        }
+        if (end < 0) {
+            end += el.value.length;
+        }
+        return { start: start, end: end };
+    }
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
- */
-(function(){var l,f,k,j,b,a,g;function m(n,p){var o=typeof n[p];return o==="function"||(!!(o=="object"&&n[p]))||o=="unknown"}function e(n,o){return typeof(n[o])!="undefined"}function d(n,o){return !!(typeof(n[o])=="object"&&n[o])}function c(n){if(window.console&&window.console.log){window.console.log("TextInputs module for Rangy not supported in your browser. Reason: "+n)}}function h(o,p,n){if(p<0){p+=o.value.length}if(typeof n=="undefined"){n=p}if(n<0){n+=o.value.length}return{start:p,end:n}}function i(o,p,n){return{start:p,end:n,length:n-p,text:o.value.slice(p,n)}}jQuery(document).ready(function(){var o=document.createElement("textarea");document.body.appendChild(o);if(e(o,"selectionStart")&&e(o,"selectionEnd")){f=function(r){var s=r.selectionStart,q=r.selectionEnd;return i(r,s,q)};k=function(s,q,r){var t=h(s,q,r);s.selectionStart=t.start;s.selectionEnd=t.end}}else{if(m(o,"createTextRange")&&d(document,"selection")&&m(document.selection,"createRange")){l=function(w,t){w.focus();var u=document.selection.createRange();var s,q,r,x,v;if(u){if(u.text){u.collapse(!!t)}s=w.value;q=w.createTextRange();r=w.createTextRange();x=0;v=u.getBookmark();q.moveToBookmark(v);if(s.indexOf("\r\n")>-1){u.moveToBookmark(v);q.text=" ";r.setEndPoint("EndToStart",q);x=r.text.length-1;document.execCommand("undo")}else{r.setEndPoint("EndToStart",q);x=r.text.length}return x}return 0};f=function(r){var s=l(r,true),q=l(r,false);return i(r,s,q)};var p=function(q,r){return r-(q.value.slice(0,r).split("\r\n").length-1)};k=function(u,q,t){var v=h(u,q,t);var s=u.createTextRange();var r=p(u,v.start);s.collapse(true);if(v.start==v.end){s.move("character",r)}else{s.moveEnd("character",p(u,v.end));s.moveStart("character",r)}s.select()}}else{document.body.removeChild(o);c("No means of finding text input caret position");return}}document.body.removeChild(o);j=function(q){var r=f(q),s;if(r.start!=r.end){s=q.value;q.value=s.slice(0,r.start)+s.slice(r.end);k(q,r.start,r.start)}};b=function(r,u,q,s){var t;if(u!=q){t=r.value;r.value=t.slice(0,u)+t.slice(q)}if(s){k(r,u,u)}};a=function(r,u,q,s){var t=r.value,v;r.value=t.slice(0,q)+u+t.slice(q);if(s){v=q+u.length;k(r,v,v)}};g=function(q,t){var r=f(q),s=q.value;q.value=s.slice(0,r.start)+t+s.slice(r.end);var u=r.start+t.length;k(q,u,u)};function n(q){return function(){var s=this.jquery?this[0]:this;var t=s.nodeName.toLowerCase();if(s.nodeType==1&&(t=="textarea"||(t=="input"&&s.type=="text"))){var r=[s].concat(Array.prototype.slice.call(arguments));return q.apply(this,r)}}}jQuery.fn.extend({getSelection:n(f),setSelection:n(k),deleteSelectedText:n(j),deleteText:n(b),insertText:n(a),pasteText:n(g)})})})();
+    function makeSelection(el, start, end) {
+        return {
+            start: start,
+            end: end,
+            length: end - start,
+            text: el.value.slice(start, end)
+        };
+    }
+
+    jQuery(document).ready(function() {
+        var testTextArea = document.createElement("textarea");
+        document.body.appendChild(testTextArea);
+
+        if (isHostProperty(testTextArea, "selectionStart") && isHostProperty(testTextArea, "selectionEnd")) {
+            getSelection = function(el) {
+                var start = el.selectionStart, end = el.selectionEnd;
+                return makeSelection(el, start, end);
+            };
+
+            setSelection = function(el, startOffset, endOffset) {
+                var offsets = adjustOffsets(el, startOffset, endOffset);
+                el.selectionStart = offsets.start;
+                el.selectionEnd = offsets.end;
+            };
+        } else if (isHostMethod(testTextArea, "createTextRange") && isHostObject(document, "selection") &&
+                   isHostMethod(document.selection, "createRange")) {
+            getSelectionBoundary = function(el, isStart) {
+                el.focus();
+                var range = document.selection.createRange();
+                var originalValue, textInputRange, precedingRange, pos, bookmark;
+
+                if (range) {
+                    // Collapse the selected range if the selection is not a caret
+                    if (range.text) {
+                        range.collapse(!!isStart);
+                    }
+
+                    originalValue = el.value;
+                    textInputRange = el.createTextRange();
+                    precedingRange = el.createTextRange();
+                    pos = 0;
+
+                    bookmark = range.getBookmark();
+                    textInputRange.moveToBookmark(bookmark);
+
+                    if (originalValue.indexOf("\r\n") > -1) {
+                        // Trickier case where input value contains line breaks
+
+                        // Insert a character in the text input range and use that as a marker
+                        textInputRange.text = " ";
+                        precedingRange.setEndPoint("EndToStart", textInputRange);
+                        pos = precedingRange.text.length - 1;
+
+                        // Executing an undo command to delete the character inserted prevents this method adding to the
+                        // undo stack. This trick came from a user called Trenda on MSDN:
+                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
+                        document.execCommand("undo");
+                    } else {
+                        // Easier case where input value contains no line breaks
+                        precedingRange.setEndPoint("EndToStart", textInputRange);
+                        pos = precedingRange.text.length;
+                    }
+                    return pos;
+                }
+                return 0;
+            };
+
+            getSelection = function(el) {
+                var start = getSelectionBoundary(el, true), end = getSelectionBoundary(el, false);
+                return makeSelection(el, start, end);
+            };
+
+            // Moving across a line break only counts as moving one character in a TextRange, whereas a line break in the
+            // textarea value is two characters. This function corrects for that by converting a text offset into a range
+            // character offset by subtracting one character for every line break in the textarea prior to the offset
+            var offsetToRangeCharacterMove = function(el, offset) {
+                return offset - (el.value.slice(0, offset).split("\r\n").length - 1);
+            };
+
+            setSelection = function(el, startOffset, endOffset) {
+                var offsets = adjustOffsets(el, startOffset, endOffset);
+                var range = el.createTextRange();
+                var startCharMove = offsetToRangeCharacterMove(el, offsets.start);
+                range.collapse(true);
+                if (offsets.start == offsets.end) {
+                    range.move("character", startCharMove);
+                } else {
+                    range.moveEnd("character", offsetToRangeCharacterMove(el, offsets.end));
+                    range.moveStart("character", startCharMove);
+                }
+                range.select();
+            };
+        } else {
+            document.body.removeChild(testTextArea);
+            fail("No means of finding text input caret position");
+            return;
+        }
+
+        // Clean up
+        document.body.removeChild(testTextArea);
+
+        deleteSelectedText = function(el) {
+            var sel = getSelection(el), val;
+            if (sel.start != sel.end) {
+                val = el.value;
+                el.value = val.slice(0, sel.start) + val.slice(sel.end);
+                setSelection(el, sel.start, sel.start);
+            }
+        };
+
+        deleteText = function(el, start, end, moveSelection) {
+            var val;
+            if (start != end) {
+                val = el.value;
+                el.value = val.slice(0, start) + val.slice(end);
+            }
+            if (moveSelection) {
+                setSelection(el, start, start);
+            }
+        };
+
+        insertText = function(el, text, index, moveSelection) {
+            var val = el.value, caretIndex;
+            el.value = val.slice(0, index) + text + val.slice(index);
+            if (moveSelection) {
+                caretIndex = index + text.length;
+                setSelection(el, caretIndex, caretIndex);
+            }
+        };
+
+        replaceSelectedText = function(el, text) {
+            var sel = getSelection(el), val = el.value;
+            el.value = val.slice(0, sel.start) + text + val.slice(sel.end);
+            var caretIndex = sel.start + text.length;
+            setSelection(el, caretIndex, caretIndex);
+        };
+
+        surroundText = function(el, before, after) {
+            var sel = getSelection(el), val = el.value;
+            el.value = val.slice(0, sel.start) + before + sel.text + after + val.slice(sel.end);
+            var startIndex = sel.start + before.length;
+            var endIndex = startIndex + sel.length;
+            setSelection(el, startIndex, endIndex);
+        };
+
+        function jQuerify(func) {
+            return function() {
+                var el = this.jquery ? this[0] : this;
+                var nodeName = el.nodeName.toLowerCase();
+                if (el.nodeType == 1 && (nodeName == "textarea" || (nodeName == "input" && el.type == "text"))) {
+                    var args = [el].concat(Array.prototype.slice.call(arguments));
+                    return func.apply(this, args);
+                }
+            };
+        }
+
+        jQuery.fn.extend({
+            getSelection: jQuerify(getSelection),
+            setSelection: jQuerify(setSelection),
+            deleteSelectedText: jQuerify(deleteSelectedText),
+            deleteText: jQuerify(deleteText),
+            insertText: jQuerify(insertText),
+            replaceSelectedText: jQuerify(replaceSelectedText),
+            surroundText: jQuerify(surroundText)
+        });
+    });
+})();

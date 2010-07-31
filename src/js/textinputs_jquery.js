@@ -1,5 +1,6 @@
 (function() {
-    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, pasteText;
+    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, replaceSelectedText;
+    var surroundText, extractSelectedText;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
@@ -44,6 +45,11 @@
         };
     }
 
+    function getTextAreaTextNode(el) {
+        var textNode = el.firstChild;
+        return (textNode && textNode.nodeType == 3) ? textNode : null;
+    }
+
     jQuery(document).ready(function() {
         var testTextArea = document.createElement("textarea");
         document.body.appendChild(testTextArea);
@@ -82,10 +88,6 @@
 
                     if (originalValue.indexOf("\r\n") > -1) {
                         // Trickier case where input value contains line breaks
-
-                        // Test whether the selection range is at the end of the text input by moving it on by one character
-                        // and checking if it's still within the text input.
-                        range.moveToBookmark(bookmark);
 
                         // Insert a character in the text input range and use that as a marker
                         textInputRange.text = " ";
@@ -140,24 +142,42 @@
         // Clean up
         document.body.removeChild(testTextArea);
 
-        deleteSelectedText = function(el) {
-            var sel = getSelection(el), val;
-            if (sel.start != sel.end) {
-                val = el.value;
-                el.value = val.slice(0, sel.start) + val.slice(sel.end);
-                setSelection(el, sel.start, sel.start);
-            }
-        };
-
         deleteText = function(el, start, end, moveSelection) {
-            var val;
+            var val, valChanged = false;
             if (start != end) {
                 val = el.value;
-                el.value = val.slice(0, start) + val.slice(end);
+                var textNode = getTextAreaTextNode(el);
+                if (textNode) {
+                    if (textNode.data == val) {
+                        textNode.deleteData(start, end - start);
+                    } else {
+                        textNode.data = val.slice(0, start) + val.slice(end);
+                    }
+                    // Test whether the value has changed
+                    valChanged = (el.value != val);
+                }
+                if (!valChanged) {
+                    el.value = val.slice(0, start) + val.slice(end);
+                }
             }
             if (moveSelection) {
                 setSelection(el, start, start);
             }
+        };
+
+        deleteSelectedText = function(el) {
+            var sel = getSelection(el);
+            deleteText(el, sel.start, sel.end, true);
+        };
+
+        extractSelectedText = function(el) {
+            var sel = getSelection(el), val;
+            if (sel.start != sel.end) {
+                val = el.value;
+                el.value = val.slice(0, sel.start) + val.slice(sel.end);
+            }
+            setSelection(el, sel.start, sel.start);
+            return sel.text;
         };
 
         insertText = function(el, text, index, moveSelection) {
@@ -169,31 +189,69 @@
             }
         };
 
-        pasteText = function(el, text) {
+        replaceSelectedText = function(el, text) {
             var sel = getSelection(el), val = el.value;
             el.value = val.slice(0, sel.start) + text + val.slice(sel.end);
             var caretIndex = sel.start + text.length;
             setSelection(el, caretIndex, caretIndex);
         };
 
-        function jQuerify(func) {
+        surroundText = function(el, before, after, moveSelection) {
+            var sel = getSelection(el), val = el.value;
+
+            var valChanged = false;
+            var newText = before + sel.text + after;
+            var textNode = getTextAreaTextNode(el);
+            if (textNode) {
+                if (textNode.data == val) {
+                    alert("calling text node replaceData")
+                    textNode.replaceData(sel.start, sel.length, newText);
+                } else {
+                    alert("Setting text node data")
+                    textNode.data = val.slice(0, sel.start) + newText + val.slice(sel.end);
+                }
+                // Test whether the value has changed
+                valChanged = (el.value != val);
+            }
+            if (!valChanged) {
+                alert("Setting value")
+                el.value = val.slice(0, sel.start) + newText + val.slice(sel.end);
+            }
+
+            var startIndex = sel.start + before.length;
+            var endIndex = startIndex + sel.length;
+            if (moveSelection) {
+                setSelection(el, startIndex, endIndex);
+            }
+        };
+
+        function jQuerify(func, returnThis) {
             return function() {
                 var el = this.jquery ? this[0] : this;
                 var nodeName = el.nodeName.toLowerCase();
+
                 if (el.nodeType == 1 && (nodeName == "textarea" || (nodeName == "input" && el.type == "text"))) {
                     var args = [el].concat(Array.prototype.slice.call(arguments));
-                    return func.apply(this, args);
+                    var result = func.apply(this, args);
+                    if (!returnThis) {
+                        return result;
+                    }
+                }
+                if (returnThis) {
+                    return this;
                 }
             };
         }
 
         jQuery.fn.extend({
-            getSelection: jQuerify(getSelection),
-            setSelection: jQuerify(setSelection),
-            deleteSelectedText: jQuerify(deleteSelectedText),
-            deleteText: jQuerify(deleteText),
-            insertText: jQuerify(insertText),
-            pasteText: jQuerify(pasteText)
+            getSelection: jQuerify(getSelection, false),
+            setSelection: jQuerify(setSelection, true),
+            deleteSelectedText: jQuerify(deleteSelectedText, true),
+            deleteText: jQuerify(deleteText, true),
+            extractSelectedText: jQuerify(extractSelectedText, false),
+            insertText: jQuerify(insertText, true),
+            replaceSelectedText: jQuerify(replaceSelectedText, true),
+            surroundText: jQuerify(surroundText, true)
         });
     });
 })();
