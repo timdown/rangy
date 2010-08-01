@@ -1,9 +1,11 @@
-rangy.createModule("TextMutation", function(api, module) {
+rangy.createModule("Boldifier", function(api, module) {
     api.requireModules( ["TextMutation"] );
+
+    var util = api.util;
 
     var isBold;
 
-    if (api.isHostMethod(window, "getComputedStyle")) {
+    if (util.isHostMethod(window, "getComputedStyle")) {
         isBold = function(textNode) {
             return (window.getComputedStyle(textNode.parentNode, null).fontWeight == "bold");
         }
@@ -24,4 +26,6 @@ rangy.createModule("TextMutation", function(api, module) {
             normalize: true
         }) ;
     }
+
+    api.createBoldifier = createBoldifier;
 });

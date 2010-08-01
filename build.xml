@@ -1,0 +1,69 @@
+<project name="Widgit Symbol Editor" default="build" basedir="">
+	<property file="${basedir}/build.properties"/>
+
+	<target name="init">
+		<!--<delete dir="${svn.checkout.dir}"/>-->
+		<delete dir="${working.dir}"/>
+		<delete dir="${output.dir}"/>
+		<mkdir dir="${build.dir}"/>
+		<mkdir dir="${svn.checkout.dir}"/>
+	</target>
+
+	<!--
+	Note: this task requires SvnAnt to be installed on your machine, and the
+	jar files in SvanAnt's lib dir being copied to Ant's lib directory.
+	See http://subclipse.tigris.org/svnant.html
+	-->
+    <taskdef name="svn" classname="org.tigris.subversion.svnant.SvnTask"/>
+
+	<target name="svncheckout" depends="init" description="Checks out code from Subversion">
+		<svn>
+			<checkout url="${svn.url}" destPath="${svn.checkout.dir}" />
+			<wcVersion path="${svn.checkout.dir}" prefix="svncheckout." />
+		</svn>
+		<property name="build.version" value="${version.base}.${svncheckout.revision.max}"/>
+		<echo message="Set build version to ${build.version}" />
+	</target>
+
+	<target name="compress.js" depends="svncheckout">
+	    <filelist id="files.js" dir="${svn.checkout.js.dir}">
+			<file name="core.js" />
+			<file name="dom.js" />
+			<file name="domrange.js" />
+			<file name="wrappedrange.js" />
+			<file name="wrappedselection.js" />
+	    </filelist>
+
+		<concat destfile="${build.temp.src.js.file}" >
+            <filelist refid="files.js"/>
+		</concat>
+
+	  <copy file="${svn.checkout.js.dir}/header.js" tofile="${build.header.js.file}"/>
+
+	  <!-- Replace version number -->
+	  <replace file="${build.header.js.file}" token="%%build:version%%" value="${version.base}.${build.version}"/>
+
+	    <!-- Remove all logging calls -->
+        <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
+        <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
+
+	    <!-- Compress -->
+	    <java jar="${yuicompressor.jar.path}" fork="true" output="${build.temp.compressed.js.file}">
+	        <arg value="${build.temp.src.js.file}"/>
+	    </java>
+
+	  <!-- Append header to compressed and uncompressed files -->
+	  <concat destfile="${build.src.js.file}">
+		  <filelist dir="${build.dir}" files="header.js, temp-src.js"/>
+	  </concat>
+	  <concat destfile="${build.js.file}">
+		  <filelist dir="${build.dir}" files="header.js, temp.js"/>
+	  </concat>
+
+
+
+
+	</target>
+
+	<target name="build" description="Full build" depends="compress.js"/>
+</project>

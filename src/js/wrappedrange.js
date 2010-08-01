@@ -424,11 +424,6 @@ rangy.createModule("WrappedRange", function(api, module) {
         // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
         // prototype
 
-        function nodeToString(node) {
-            if (!node) { return "No node"; }
-            return dom.isCharacterDataNode(node) ? '"' + node.data + '"' : node.nodeName;
-        }
-
         WrappedRange = function(textRange) {
             var start, end;
             if (textRange.text) {
@@ -446,7 +441,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             this.setStart(start.position.node, start.position.offset);
             this.setEnd(end.position.node, end.position.offset);
-            log.info("WrappedRange created", nodeToString(this.startContainer), this.startOffset, nodeToString(this.endContainer), this.endOffset);
         };
 
         WrappedRange.prototype = new DomRange(document);
@@ -459,12 +453,6 @@ rangy.createModule("WrappedRange", function(api, module) {
             textRange.setEndPoint("EndToEnd", endRange);
             return textRange;
         };
-
-/*
-        WrappedRange.prototype.toTextRange = function() {
-            return WrappedRange.rangeToTextRange(this);
-        };
-*/
 
         DomRange.copyComparisonConstants(WrappedRange);
         DomRange.copyComparisonConstants(WrappedRange.prototype);
@@ -493,30 +481,4 @@ rangy.createModule("WrappedRange", function(api, module) {
     api.createRangyRange = function(doc) {
         return new DomRange(doc);
     };
-
-/*
-    api.getSelectedRange = function() {
-        if (window.getSelection) {
-            //return new WrappedRange(window.getSelection().getRangeAt(0));
-            return window.getSelection().getRangeAt(0);
-        } else {
-            return new WrappedRange(document.selection.createRange());
-        }
-    };
-
-    api.reselect = function() {
-        var r;
-        if (window.getSelection) {
-            //return new WrappedRange(window.getSelection().getRangeAt(0));
-            r = window.getSelection().getRangeAt(0);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(r);
-        } else {
-            r = new WrappedRange(document.selection.createRange());
-            r.toTextRange().select();
-        }
-    };
-*/
-
-
 });
