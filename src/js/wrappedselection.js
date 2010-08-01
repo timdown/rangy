@@ -62,10 +62,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function updateAnchorAndFocusFromNativeSelection(sel) {
         var n = sel.nativeSelection;
-        sel.anchorNode = n.startContainer;
-        sel.anchorOffset = n.startOffset;
-        sel.focusNode = n.endContainer;
-        sel.focusOffset = n.endOffset;
+        sel.anchorNode = n.anchorNode;
+        sel.anchorOffset = n.anchorOffset;
+        sel.focusNode = n.focusNode;
+        sel.focusOffset = n.focusOffset;
     }
 
     function updateEmptySelection(sel) {
@@ -73,6 +73,28 @@ rangy.createModule("WrappedSelection", function(api, module) {
         sel.anchorOffset = sel.focusOffset = 0;
         sel.rangeCount = 0;
         sel.isCollapsed = true;
+    }
+
+    function getNativeRange(range) {
+        var nativeRange;
+        if (range instanceof DomRange) {
+            nativeRange = range._selectionNativeRange;
+            if (!nativeRange) {
+                nativeRange = api.createNativeRange(dom.getDocument(range.startContainer));
+                nativeRange.setEnd(range.endContainer, range.endOffset);
+                nativeRange.setStart(range.startContainer, range.startOffset);
+                range._selectionNativeRange = nativeRange;
+                range.attachListener("detach", function() {
+                    log.debug("Got detach event, removing _selectionNativeRange");
+                    this._selectionNativeRange = null;
+                });
+            }
+        } else if (range instanceof WrappedRange) {
+            nativeRange = range.nativeRange;
+        } else if (window.Range && (range instanceof Range)) {
+            nativeRange = range;
+        }
+        return nativeRange;
     }
 
     function WrappedSelection(selection) {
@@ -93,11 +115,21 @@ rangy.createModule("WrappedSelection", function(api, module) {
             updateEmptySelection(this);
         };
 
-        selProto.addRange = function(range) {
-            this.nativeSelection.addRange(range.nativeRange || range);
-            updateAnchorAndFocusFromNativeSelection(this);
-            this.rangeCount++;
-        };
+        if (typeof testSelection.rangeCount == "number") {
+            selProto.addRange = function(range) {
+                this.nativeSelection.addRange(getNativeRange(range));
+                updateAnchorAndFocusFromNativeSelection(this);
+                this.isCollapsed = selectionIsCollapsed(this);
+                this.rangeCount = this.nativeSelection.rangeCount;
+            };
+        } else {
+            selProto.addRange = function(range) {
+                this.nativeSelection.addRange(getNativeRange(range));
+                updateAnchorAndFocusFromNativeSelection(this);
+                this.isCollapsed = selectionIsCollapsed(this);
+                this.rangeCount = 1;
+            };
+        }
     } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select")) {
         selProto.removeAllRanges = function() {
             this.nativeSelection.empty();
@@ -209,24 +241,27 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // Removal of a single range
     if (util.isHostMethod(testSelection, "removeRange") && typeof testSelection.rangeCount == "number") {
         selProto.removeRange = function(range) {
-            this.nativeSelection.removeRange(range);
+            this.nativeSelection.removeRange(getNativeRange(range));
             updateAnchorAndFocusFromNativeSelection(this);
             this.rangeCount = this.nativeSelection.rangeCount;
+            this.isCollapsed = selectionIsCollapsed(this);
         };
     } else {
         selProto.removeRange = function(range) {
             var ranges = this.getAllRanges(), removed = false;
             this.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
-                if (removed || ranges[i] !== range) {
+                if (removed || !DomRange.util.rangesEqual(ranges[i], range)) {
                     this.addRange(ranges[i]);
                 } else {
                     // According to the HTML 5 spec, the same range may be added to the selection multiple times.
                     // removeRange should only remove the first instance, so the following ensures only the first
                     // instance is removed
-                    this.rangeCount--;
                     removed = true;
                 }
+            }
+            if (!this.rangeCount) {
+                updateEmptySelection(this);
             }
         };
     }

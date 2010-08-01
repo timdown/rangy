@@ -16,8 +16,11 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function dispatchEvent(range, type, args) {
-        for (var i = 0, len = range._listeners.length; i < len; ++i) {
-            range._listeners[type][i].call(range, {target: range, args: args});
+        var listeners = range._listeners[type];
+        if (listeners) {
+            for (var i = 0, len = listeners.length; i < len; ++i) {
+                listeners[i].call(range, {target: range, args: args});
+            }
         }
     }
 
@@ -409,6 +412,10 @@ rangy.createModule("DomRange", function(api, module) {
         NODE_BEFORE_AND_AFTER: n_b_a,
         NODE_INSIDE: n_i,
 
+        attachListener: function(type, listener) {
+            this._listeners[type].push(listener);
+        },
+
         setStart: function(node, offset) {
             assertNotDetached(this);
             assertNoDocTypeNotationEntityAncestor(node, true);
@@ -563,6 +570,7 @@ rangy.createModule("DomRange", function(api, module) {
             this.startContainer = this.startOffset = this.endContainer = this.endOffset = null;
             this.collapsed = this.commonAncestorContainer = null;
             dispatchEvent(this, "detach", null);
+            this._listeners = null;
         },
 
         toString: function() {

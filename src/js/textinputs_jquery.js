@@ -1,6 +1,6 @@
 (function() {
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, replaceSelectedText;
-    var surroundText, extractSelectedText;
+    var surroundSelectedText, extractSelectedText;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
@@ -43,11 +43,6 @@
             length: end - start,
             text: el.value.slice(start, end)
         };
-    }
-
-    function getTextAreaTextNode(el) {
-        var textNode = el.firstChild;
-        return (textNode && textNode.nodeType == 3) ? textNode : null;
     }
 
     jQuery(document).ready(function() {
@@ -143,22 +138,10 @@
         document.body.removeChild(testTextArea);
 
         deleteText = function(el, start, end, moveSelection) {
-            var val, valChanged = false;
+            var val;
             if (start != end) {
                 val = el.value;
-                var textNode = getTextAreaTextNode(el);
-                if (textNode) {
-                    if (textNode.data == val) {
-                        textNode.deleteData(start, end - start);
-                    } else {
-                        textNode.data = val.slice(0, start) + val.slice(end);
-                    }
-                    // Test whether the value has changed
-                    valChanged = (el.value != val);
-                }
-                if (!valChanged) {
-                    el.value = val.slice(0, start) + val.slice(end);
-                }
+                el.value = val.slice(0, start) + val.slice(end);
             }
             if (moveSelection) {
                 setSelection(el, start, start);
@@ -196,28 +179,9 @@
             setSelection(el, caretIndex, caretIndex);
         };
 
-        surroundText = function(el, before, after, moveSelection) {
+        surroundSelectedText = function(el, before, after, moveSelection) {
             var sel = getSelection(el), val = el.value;
-
-            var valChanged = false;
-            var newText = before + sel.text + after;
-            var textNode = getTextAreaTextNode(el);
-            if (textNode) {
-                if (textNode.data == val) {
-                    alert("calling text node replaceData")
-                    textNode.replaceData(sel.start, sel.length, newText);
-                } else {
-                    alert("Setting text node data")
-                    textNode.data = val.slice(0, sel.start) + newText + val.slice(sel.end);
-                }
-                // Test whether the value has changed
-                valChanged = (el.value != val);
-            }
-            if (!valChanged) {
-                alert("Setting value")
-                el.value = val.slice(0, sel.start) + newText + val.slice(sel.end);
-            }
-
+            el.value = val.slice(0, sel.start) + before + sel.text + after + val.slice(sel.end);
             var startIndex = sel.start + before.length;
             var endIndex = startIndex + sel.length;
             if (moveSelection) {
@@ -251,7 +215,7 @@
             extractSelectedText: jQuerify(extractSelectedText, false),
             insertText: jQuerify(insertText, true),
             replaceSelectedText: jQuerify(replaceSelectedText, true),
-            surroundText: jQuerify(surroundText, true)
+            surroundSelectedText: jQuerify(surroundSelectedText, true)
         });
     });
 })();
