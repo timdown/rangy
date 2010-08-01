@@ -30,6 +30,11 @@ function testExceptionCode(t, func, code) {
     }
 }
 
+function getOtherDocument() {
+    var iframe = document.getElementById("selectors");
+    return iframe.contentDocument || iframe.contentWindow.document;
+}
+
 function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectionCreatorName, rangeCreator, rangeCreatorName) {
     xn.test.suite(selectionCreatorName + " in " + winName + " window with range creator " + rangeCreatorName, function(s) {
         var win, doc;
@@ -136,8 +141,83 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             }
         });
 
+        s.test("Collapse same document test", function(t) {
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            sel.addRange(range);
+            sel.collapse(t.nodes.plainText, 1);
+            t.assertEquals(sel.rangeCount, 1);
+            t.assertEquivalent(sel.anchorNode, t.nodes.plainText);
+            t.assertEquals(sel.anchorOffset, 1);
+            t.assertEquivalent(sel.focusNode, t.nodes.plainText);
+            t.assertEquals(sel.focusOffset, 1);
+            t.assertEquivalent(sel.isCollapsed, true);
+        });
+
+        s.test("Collapse other document test", function(t) {
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            sel.addRange(range);
+            sel.collapse(t.nodes.b, 1);
+            var otherDoc = getOtherDocument();
+            testExceptionCode(t, function() {
+                sel.collapse(otherDoc.body, 0);
+            }, DOMException.prototype.WRONG_DOCUMENT_ERR);
+        });
+
+        s.test("collapseToStart test", function(t) {
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.boldText, 1);
+            range.setEnd(t.nodes.boldText, 2);
+            sel.addRange(range);
+            sel.collapseToStart();
+            t.assertEquals(sel.rangeCount, 1);
+            t.assertEquivalent(sel.anchorNode, t.nodes.boldText);
+            t.assertEquals(sel.anchorOffset, 1);
+            t.assertEquivalent(sel.focusNode, t.nodes.boldText);
+            t.assertEquals(sel.focusOffset, 1);
+            t.assertEquivalent(sel.isCollapsed, true);
+        });
 
 
+        s.test("collapseToEnd test", function(t) {
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.boldText, 1);
+            range.setEnd(t.nodes.boldText, 2);
+            sel.addRange(range);
+            sel.collapseToEnd();
+            t.assertEquals(sel.rangeCount, 1);
+            t.assertEquivalent(sel.anchorNode, t.nodes.boldText);
+            t.assertEquals(sel.anchorOffset, 2);
+            t.assertEquivalent(sel.focusNode, t.nodes.boldText);
+            t.assertEquals(sel.focusOffset, 2);
+            t.assertEquivalent(sel.isCollapsed, true);
+        });
+
+
+        s.test("selectAllChildren same document test", function(t) {
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.plainText, 1);
+            range.setEnd(t.nodes.plainText, 2);
+            sel.addRange(range);
+            sel.selectAllChildren(doc.body);
+            t.assertEquals(sel.rangeCount, 1);
+            t.assertEquivalent(sel.anchorNode, doc.body);
+            t.assertEquals(sel.anchorOffset, 0);
+            t.assertEquivalent(sel.focusNode, doc.body);
+            t.assertEquals(sel.focusOffset, doc.body.childNodes.length);
+            t.assertEquivalent(sel.isCollapsed, false);
+        });
     }, false);
 }
 
