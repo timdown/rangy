@@ -601,8 +601,6 @@ rangy.createModule("DomRange", function(api, module) {
         // removed.
 
         compareNode: function(node) {
-            assertNotDetached(this);
-
             var parent = node.parentNode;
             var nodeIndex = dom.getNodeIndex(node);
 
@@ -618,6 +616,18 @@ rangy.createModule("DomRange", function(api, module) {
             } else {
                 return (endComparison > 0) ? n_a : n_i;
             }
+        },
+
+        containsNode: function(node) {
+            var parent = node.parentNode;
+            var nodeIndex = dom.getNodeIndex(node);
+
+            if (!parent) {
+                throw new DOMException("NOT_FOUND_ERR");
+            }
+            //console.log("start: " + this.comparePoint(parent, nodeIndex) + ", end: " + this.comparePoint(parent, nodeIndex + 1));
+
+            return this.comparePoint(parent, nodeIndex) >= 0 && this.comparePoint(parent, nodeIndex + 1) <= 0;
         },
 
         comparePoint: function(node, offset) {

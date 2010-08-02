@@ -238,6 +238,25 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals("ainbold", range.toString());
         });
 
+        s.test("containsNode 1", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNode(t.nodes.plainText);
+            t.assert(range.containsNode(t.nodes.plainText));
+            t.assertFalse(range.containsNode(t.nodes.b));
+            t.assertFalse(range.containsNode(t.nodes.div));
+        });
+
+        s.test("containsNode 2", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNode(t.nodes.b);
+            t.assert(range.containsNode(t.nodes.b));
+            t.assert(range.containsNode(t.nodes.boldText));
+            t.assert(range.containsNode(t.nodes.boldAndItalicText));
+            t.assert(range.containsNode(t.nodes.i));
+            t.assertFalse(range.containsNode(t.nodes.plainText));
+            t.assertFalse(range.containsNode(t.nodes.div));
+        });
+
         // TODO: Write test for setting range boundary to a node in a different document
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node

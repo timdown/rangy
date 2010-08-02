@@ -403,7 +403,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             // Add extension methods from DomRange
             var methodsToInherit = ["compareNode", "comparePoint", "createContextualFragment", "intersectsNode",
                 "isPointInRange", "intersectsRange", "splitBoundaries", "normalizeBoundaries", "createNodeIterator",
-                "getNodes"];
+                "getNodes", "containsNode"];
 
             var i = methodsToInherit.length, methodName, domRangeProto = DomRange.prototype;
             while (i--) {
