@@ -5,6 +5,10 @@
 		<!--<delete dir="${svn.checkout.dir}"/>-->
 		<delete dir="${working.dir}"/>
 		<delete dir="${output.dir}"/>
+	    <delete includeemptydirs="true">
+		  <fileset dir="${build.dir}" includes="**/*"/>
+		</delete>
+
 		<mkdir dir="${build.dir}"/>
 		<mkdir dir="${svn.checkout.dir}"/>
 	</target>
@@ -41,7 +45,7 @@
 	  <copy file="${svn.checkout.js.dir}/header.js" tofile="${build.header.js.file}"/>
 
 	  <!-- Replace version number -->
-	  <replace file="${build.header.js.file}" token="%%build:version%%" value="${version.base}.${build.version}"/>
+	  <replace file="${build.header.js.file}" token="%%build:version%%" value="${build.version}"/>
 
 	    <!-- Remove all logging calls -->
         <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
@@ -56,13 +60,9 @@
 	  <concat destfile="${build.src.js.file}">
 		  <filelist dir="${build.dir}" files="header.js, temp-src.js"/>
 	  </concat>
-	  <concat destfile="${build.js.file}">
+	  <concat destfile="${build.compressed.js.file}">
 		  <filelist dir="${build.dir}" files="header.js, temp.js"/>
 	  </concat>
-
-
-
-
 	</target>
 
 	<target name="build" description="Full build" depends="compress.js"/>
