@@ -618,18 +618,6 @@ rangy.createModule("DomRange", function(api, module) {
             }
         },
 
-        containsNode: function(node) {
-            var parent = node.parentNode;
-            var nodeIndex = dom.getNodeIndex(node);
-
-            if (!parent) {
-                throw new DOMException("NOT_FOUND_ERR");
-            }
-            //console.log("start: " + this.comparePoint(parent, nodeIndex) + ", end: " + this.comparePoint(parent, nodeIndex + 1));
-
-            return this.comparePoint(parent, nodeIndex) >= 0 && this.comparePoint(parent, nodeIndex + 1) <= 0;
-        },
-
         comparePoint: function(node, offset) {
             assertNotDetached(this);
             assertNode(node, "HIERARCHY_REQUEST_ERR");
@@ -645,16 +633,24 @@ rangy.createModule("DomRange", function(api, module) {
 
         createContextualFragment: function(html) {
             assertNotDetached(this);
+/*
             var sc = this.startContainer, el = (sc.nodeType == 1) ? sc : sc.parentNode;
             assertNode(el, "NOT_SUPPORTED_ERR");
-
             var container = el.cloneNode(false);
 
             // The next line is obviously non-standard but will work in all recent browsers
             container.innerHTML = html;
+*/
 
-            var frag = dom.getDocument(el).createDocumentFragment(), n;
-            while ( (n = el.firstChild) ) {
+            var doc = getRangeDocument(this);
+            var container = doc.createElement("div");
+
+            // The next line is obviously non-standard but will work in all recent browsers
+            container.innerHTML = html;
+
+            var frag = doc.createDocumentFragment(), n;
+
+            while ( (n = container.firstChild) ) {
                 frag.appendChild(n);
             }
 
@@ -698,6 +694,22 @@ rangy.createModule("DomRange", function(api, module) {
 
             return dom.comparePoints(this.startContainer, this.startOffset, range.endContainer, range.endOffset) < 0 &&
                    dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset) > 0;
+        },
+
+        containsNode: function(node) {
+            var parent = node.parentNode;
+            var nodeIndex = dom.getNodeIndex(node);
+
+            if (!parent) {
+                throw new DOMException("NOT_FOUND_ERR");
+            }
+            //console.log("start: " + this.comparePoint(parent, nodeIndex) + ", end: " + this.comparePoint(parent, nodeIndex + 1));
+
+            return this.comparePoint(parent, nodeIndex) >= 0 && this.comparePoint(parent, nodeIndex + 1) <= 0;
+        },
+
+        containsNodeContents: function(node) {
+            return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, getEndOffset(node)) <= 0;
         },
 
         splitBoundaries: function() {

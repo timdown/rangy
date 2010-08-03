@@ -257,6 +257,41 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertFalse(range.containsNode(t.nodes.div));
         });
 
+        s.test("containsNodeContents 1", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            t.assert(range.containsNodeContents(t.nodes.plainText));
+            t.assertFalse(range.containsNode(t.nodes.b));
+            t.assertFalse(range.containsNode(t.nodes.div));
+        });
+
+        s.test("containsNodeContents 2", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            range.setStart(t.nodes.plainText, 1);
+            t.assertFalse(range.containsNodeContents(t.nodes.plainText));
+        });
+
+        s.test("containsNodeContents 3", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.b);
+            t.assert(range.containsNodeContents(t.nodes.b));
+            t.assert(range.containsNode(t.nodes.boldText));
+            t.assert(range.containsNode(t.nodes.boldAndItalicText));
+            t.assert(range.containsNode(t.nodes.i));
+            t.assertFalse(range.containsNodeContents(t.nodes.plainText));
+            t.assertFalse(range.containsNodeContents(t.nodes.div));
+        });
+
+        s.test("createContextualFragment 1", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            var frag = range.createContextualFragment("<div>Test</div>");
+            t.assertEquals(frag.childNodes.length, 1);
+            t.assertEquals(frag.firstChild.nodeName.toLowerCase(), "div");
+            t.assertEquals(frag.firstChild.firstChild.data, "Test");
+        });
+
         // TODO: Write test for setting range boundary to a node in a different document
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
