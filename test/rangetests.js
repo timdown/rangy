@@ -292,7 +292,64 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals(frag.firstChild.firstChild.data, "Test");
         });
 
-        // TODO: Write test for setting range boundary to a node in a different document
+        s.test("selectNode 1", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNode(t.nodes.plainText);
+            t.assertEquals(range.toString(), t.nodes.plainText.data);
+            t.assertEquals(range.startContainer, t.nodes.div);
+            t.assertEquals(range.startOffset, 0);
+            t.assertEquals(range.endContainer, t.nodes.div);
+            t.assertEquals(range.endOffset, 1);
+        });
+
+        s.test("selectNode 2", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNode(t.nodes.b);
+            t.assertEquals(range.startContainer, t.nodes.div);
+            t.assertEquals(range.startOffset, 1);
+            t.assertEquals(range.endContainer, t.nodes.div);
+            t.assertEquals(range.endOffset, 2);
+        });
+
+        s.test("selectNodeContents 1", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            t.assertEquals(range.toString(), t.nodes.plainText.data);
+            t.assertEquals(range.startContainer, t.nodes.plainText);
+            t.assertEquals(range.startOffset, 0);
+            t.assertEquals(range.endContainer, t.nodes.plainText);
+            t.assertEquals(range.endOffset, t.nodes.plainText.length);
+        });
+
+        s.test("selectNodeContents 2", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.b);
+            t.assertEquals(range.startContainer, t.nodes.b);
+            t.assertEquals(range.startOffset, 0);
+            t.assertEquals(range.endContainer, t.nodes.b);
+            t.assertEquals(range.endOffset, t.nodes.b.childNodes.length);
+        });
+
+        s.test("intersectsNode 1", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.b);
+            t.assert(range.intersectsNode(t.nodes.b));
+        });
+
+        s.test("intersectsNode 2", function(t) {
+            var range = rangeCreator(doc);
+            range.setStartBefore(t.nodes.b);
+            range.collapse(true);
+            t.assert(range.intersectsNode(t.nodes.b));
+        });
+
+        s.test("intersectsNode 3", function(t) {
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.plainText, t.nodes.plainText.length);
+            range.collapse(true);
+            t.assertFalse(range.intersectsNode(t.nodes.b));
+        });
+
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
 

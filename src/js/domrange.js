@@ -633,15 +633,6 @@ rangy.createModule("DomRange", function(api, module) {
 
         createContextualFragment: function(html) {
             assertNotDetached(this);
-/*
-            var sc = this.startContainer, el = (sc.nodeType == 1) ? sc : sc.parentNode;
-            assertNode(el, "NOT_SUPPORTED_ERR");
-            var container = el.cloneNode(false);
-
-            // The next line is obviously non-standard but will work in all recent browsers
-            container.innerHTML = html;
-*/
-
             var doc = getRangeDocument(this);
             var container = doc.createElement("div");
 
@@ -665,7 +656,7 @@ rangy.createModule("DomRange", function(api, module) {
             }
 
             var parent = node.parentNode, offset = dom.getNodeIndex(node);
-            assertNode(node, "NOT_FOUND_ERR");
+            assertNode(parent, "NOT_FOUND_ERR");
 
             var startComparison = dom.comparePoints(parent, offset, this.startContainer, this.startOffset),
                 endComparison = dom.comparePoints(parent, offset + 1, this.endContainer, this.endOffset);
