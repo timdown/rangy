@@ -9,6 +9,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var util = api.util;
     var DomRange = api.DomRange;
     var WrappedRange = api.WrappedRange;
+    var DOMException = dom.DOMException;
 
     var getSelection, selectionIsCollapsed;
 
@@ -36,7 +37,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                                      util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]));
 
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
-    
+
     // Selection collapsedness
     if (typeof testSelection.isCollapsed == BOOLEAN) {
         selectionIsCollapsed = function(sel) {

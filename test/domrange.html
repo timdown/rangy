@@ -16,14 +16,14 @@
         });*/
     </script>
 
-<!--
     <script type="text/javascript" src="../src/js/core.js"></script>
     <script type="text/javascript" src="../src/js/dom.js"></script>
     <script type="text/javascript" src="../src/js/domrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
--->
+<!--
     <script type="text/javascript" src="../build/rangy-core.js"></script>
+-->
     <script type="text/javascript">
         function r() {
             var sel = rangy.getSelection();
@@ -62,9 +62,9 @@
 <input type="button" value="log selection" onclick="logSel();">
 <input type="button" value="reselect" onclick="reselect(); g('ed').focus()">
 <input type="button" value="get text" onclick="log.warn('Selected text: |' + rangy.getSelection() + '|');">
-<input type="button" value="delete" onclick="r().deleteContents()">
-<input type="button" value="extract" onclick="showFragment(r().extractContents())">
-<input type="button" value="clone" onclick="showFragment(r().cloneContents())">
+<input type="button" value="delete" onclick="try { r().deleteContents() } catch (ex) {alert(ex);}">
+<input type="button" value="extract" onclick="try { showFragment(r().extractContents()) } catch (ex) {alert(ex);}">
+<input type="button" value="clone" onclick="try { showFragment(r().cloneContents()) } catch (ex) {alert(ex);}">
 <input type="button" value="surround" onclick="var n = document.createElement('span'); n.style.backgroundColor = 'pink'; try { r().surroundContents(n) } catch (ex) {alert(ex);}">
 <input type="button" value="delete selection" onclick="rangy.getSelection().deleteFromDocument(); g('ed').focus()">
 <br>
