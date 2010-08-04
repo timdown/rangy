@@ -5,6 +5,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var DomRange = rangy.DomRange;
+    var rangeUtil = DomRange.util;
 
     var log = log4javascript.getLogger("rangy.RangeWrappers");
 
@@ -236,11 +237,6 @@ rangy.createModule("WrappedRange", function(api, module) {
                     updateRangeProperties(this);
                 },
 
-                selectNodeContents: function(node) {
-                    this.nativeRange.selectNodeContents(node);
-                    updateRangeProperties(this);
-                },
-
                 deleteContents: function() {
                     this.nativeRange.deleteContents();
                     updateRangeProperties(this);
@@ -290,14 +286,17 @@ rangy.createModule("WrappedRange", function(api, module) {
                 }
             };
 
-            // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
-            // correct for it
-
-            /*--------------------------------------------------------------------------------------------------------*/
+            // Create test range and node for deature detection
 
             var testTextNode = document.createTextNode("test");
             document.body.appendChild(testTextNode);
             var range = document.createRange();
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
+            // correct for it
+
             range.setStart(testTextNode, 0);
             range.setEnd(testTextNode, 0);
 
@@ -365,6 +364,25 @@ rangy.createModule("WrappedRange", function(api, module) {
             rangeProto.setStartAfter = createBeforeAfterNodeSetter("setStartAfter", "setEndAfter");
             rangeProto.setEndBefore = createBeforeAfterNodeSetter("setEndBefore", "setStartBefore");
             rangeProto.setEndAfter = createBeforeAfterNodeSetter("setEndAfter", "setStartAfter");
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            // Test for and correct Firefox 2 behaviour with selectNodeContents on text nodes: it collapses the range to
+            // the 0th character of the text node
+            range.selectNodeContents(testTextNode);
+            if (range.startContainer == testTextNode && range.endContainer == testTextNode &&
+                    range.startOffset == 0 && range.endOffset == testTextNode.length) {
+                rangeProto.selectNodeContents = function(node) {
+                    this.nativeRange.selectNodeContents(node);
+                    updateRangeProperties(this);
+                };
+            } else {
+                rangeProto.selectNodeContents = function(node) {
+                    this.setStart(node, 0);
+                    this.setEnd(node, rangeUtil.getEndOffset(node));
+                };
+            }
+
 
             /*--------------------------------------------------------------------------------------------------------*/
 

@@ -32,6 +32,7 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
         var DomRange = rangy.DomRange;
         var DOMException = rangy.dom.DOMException;
         var RangeException = DomRange.RangeException;
+        var testRange = rangeCreator(document);
 
         s.setUp = function(t) {
             doc = docs[0];
@@ -238,51 +239,6 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals("ainbold", range.toString());
         });
 
-        s.test("containsNode 1", function(t) {
-            var range = rangeCreator(doc);
-            range.selectNode(t.nodes.plainText);
-            t.assert(range.containsNode(t.nodes.plainText));
-            t.assertFalse(range.containsNode(t.nodes.b));
-            t.assertFalse(range.containsNode(t.nodes.div));
-        });
-
-        s.test("containsNode 2", function(t) {
-            var range = rangeCreator(doc);
-            range.selectNode(t.nodes.b);
-            t.assert(range.containsNode(t.nodes.b));
-            t.assert(range.containsNode(t.nodes.boldText));
-            t.assert(range.containsNode(t.nodes.boldAndItalicText));
-            t.assert(range.containsNode(t.nodes.i));
-            t.assertFalse(range.containsNode(t.nodes.plainText));
-            t.assertFalse(range.containsNode(t.nodes.div));
-        });
-
-        s.test("containsNodeContents 1", function(t) {
-            var range = rangeCreator(doc);
-            range.selectNodeContents(t.nodes.plainText);
-            t.assert(range.containsNodeContents(t.nodes.plainText));
-            t.assertFalse(range.containsNode(t.nodes.b));
-            t.assertFalse(range.containsNode(t.nodes.div));
-        });
-
-        s.test("containsNodeContents 2", function(t) {
-            var range = rangeCreator(doc);
-            range.selectNodeContents(t.nodes.plainText);
-            range.setStart(t.nodes.plainText, 1);
-            t.assertFalse(range.containsNodeContents(t.nodes.plainText));
-        });
-
-        s.test("containsNodeContents 3", function(t) {
-            var range = rangeCreator(doc);
-            range.selectNodeContents(t.nodes.b);
-            t.assert(range.containsNodeContents(t.nodes.b));
-            t.assert(range.containsNode(t.nodes.boldText));
-            t.assert(range.containsNode(t.nodes.boldAndItalicText));
-            t.assert(range.containsNode(t.nodes.i));
-            t.assertFalse(range.containsNodeContents(t.nodes.plainText));
-            t.assertFalse(range.containsNodeContents(t.nodes.div));
-        });
-
         s.test("createContextualFragment 1", function(t) {
             var range = rangeCreator(doc);
             range.selectNodeContents(t.nodes.plainText);
@@ -314,11 +270,11 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
         s.test("selectNodeContents 1", function(t) {
             var range = rangeCreator(doc);
             range.selectNodeContents(t.nodes.plainText);
-            t.assertEquals(range.toString(), t.nodes.plainText.data);
             t.assertEquals(range.startContainer, t.nodes.plainText);
             t.assertEquals(range.startOffset, 0);
             t.assertEquals(range.endContainer, t.nodes.plainText);
             t.assertEquals(range.endOffset, t.nodes.plainText.length);
+            t.assertEquals(range.toString(), t.nodes.plainText.data);
         });
 
         s.test("selectNodeContents 2", function(t) {
@@ -330,29 +286,81 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals(range.endOffset, t.nodes.b.childNodes.length);
         });
 
-        s.test("intersectsNode 1", function(t) {
-            var range = rangeCreator(doc);
-            range.selectNodeContents(t.nodes.b);
-            t.assert(range.intersectsNode(t.nodes.b));
-        });
+        if (testRange.containsNode) {
+            s.test("containsNode 1", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNode(t.nodes.plainText);
+                t.assert(range.containsNode(t.nodes.plainText));
+                t.assertFalse(range.containsNode(t.nodes.b));
+                t.assertFalse(range.containsNode(t.nodes.div));
+            });
 
-        s.test("intersectsNode 2", function(t) {
-            var range = rangeCreator(doc);
-            range.setStartBefore(t.nodes.b);
-            range.collapse(true);
-            t.assert(range.intersectsNode(t.nodes.b));
-        });
+            s.test("containsNode 2", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNode(t.nodes.b);
+                t.assert(range.containsNode(t.nodes.b));
+                t.assert(range.containsNode(t.nodes.boldText));
+                t.assert(range.containsNode(t.nodes.boldAndItalicText));
+                t.assert(range.containsNode(t.nodes.i));
+                t.assertFalse(range.containsNode(t.nodes.plainText));
+                t.assertFalse(range.containsNode(t.nodes.div));
+            });
+        }
 
-        s.test("intersectsNode 3", function(t) {
-            var range = rangeCreator(doc);
-            range.setStart(t.nodes.plainText, t.nodes.plainText.length);
-            range.collapse(true);
-            t.assertFalse(range.intersectsNode(t.nodes.b));
-        });
+        if (testRange.containsNodeContents) {
+            s.test("containsNodeContents 1", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                t.assert(range.containsNodeContents(t.nodes.plainText));
+                t.assertFalse(range.containsNode(t.nodes.b));
+                t.assertFalse(range.containsNode(t.nodes.div));
+            });
+
+            s.test("containsNodeContents 2", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                range.setStart(t.nodes.plainText, 1);
+                t.assertFalse(range.containsNodeContents(t.nodes.plainText));
+            });
+
+            s.test("containsNodeContents 3", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.b);
+                t.assert(range.containsNodeContents(t.nodes.b));
+                t.assert(range.containsNode(t.nodes.boldText));
+                t.assert(range.containsNode(t.nodes.boldAndItalicText));
+                t.assert(range.containsNode(t.nodes.i));
+                t.assertFalse(range.containsNodeContents(t.nodes.plainText));
+                t.assertFalse(range.containsNodeContents(t.nodes.div));
+            });
+        }
+
+        if (testRange.intersectsNode) {
+            s.test("intersectsNode 1", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.b);
+                t.assert(range.intersectsNode(t.nodes.b));
+            });
+
+            s.test("intersectsNode 2", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartBefore(t.nodes.b);
+                range.collapse(true);
+                t.assert(range.intersectsNode(t.nodes.b));
+            });
+
+            s.test("intersectsNode 3", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, t.nodes.plainText.length);
+                range.collapse(true);
+                t.assertFalse(range.intersectsNode(t.nodes.b));
+            });
+        }
 
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
 
+        testRange.detach();
     }, false);
 }
 

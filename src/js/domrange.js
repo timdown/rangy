@@ -939,6 +939,7 @@ rangy.createModule("DomRange", function(api, module) {
     Range.util = {
         getRangeDocument: getRangeDocument,
         nodeToString: nodeToString,
+        getEndOffset: getEndOffset,
         rangesEqual: function(r1, r2) {
             return r1.startContainer === r2.startContainer &&
                    r1.startOffset === r2.startOffset &&
