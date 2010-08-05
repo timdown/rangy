@@ -29,3 +29,5 @@ rangy.createModule("Boldifier", function(api, module) {
 
     api.createBoldifier = createBoldifier;
 });
+
+// 

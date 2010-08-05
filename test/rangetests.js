@@ -286,6 +286,49 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals(range.endOffset, t.nodes.b.childNodes.length);
         });
 
+        s.test("collapse in element", function(t) {
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.b);
+            range.collapse(true);
+            t.assert(range.collapsed);
+            t.assertEquivalent(range.startContainer, t.nodes.b);
+            t.assertEquals(range.startOffset, 0);
+            t.assertEquivalent(range.endContainer, t.nodes.b);
+            t.assertEquals(range.endOffset, 0);
+
+            range.selectNodeContents(t.nodes.b);
+            t.assertFalse(range.collapsed);
+            range.collapse(false);
+            t.assert(range.collapsed);
+            t.assertEquivalent(range.startContainer, t.nodes.b);
+            t.assertEquals(range.startOffset, t.nodes.b.childNodes.length);
+            t.assertEquivalent(range.endContainer, t.nodes.b);
+            t.assertEquals(range.endOffset, t.nodes.b.childNodes.length);
+        });
+
+        s.test("collapse in text node", function(t) {
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.plainText, 1);
+            range.setEnd(t.nodes.plainText, 2);
+            range.collapse(true);
+            t.assert(range.collapsed);
+            t.assertEquivalent(range.startContainer, t.nodes.plainText);
+            t.assertEquals(range.startOffset, 1);
+            t.assertEquivalent(range.endContainer, t.nodes.plainText);
+            t.assertEquals(range.endOffset, 1);
+
+            range.setStart(t.nodes.plainText, 1);
+            range.setEnd(t.nodes.plainText, 2);
+            t.assertFalse(range.collapsed);
+            range.collapse(false);
+            t.assert(range.collapsed);
+            t.assertEquivalent(range.startContainer, t.nodes.plainText);
+            t.assertEquals(range.startOffset, 2);
+            t.assertEquivalent(range.endContainer, t.nodes.plainText);
+            t.assertEquals(range.endOffset, 2);
+        });
+
+
         if (testRange.containsNode) {
             s.test("containsNode 1", function(t) {
                 var range = rangeCreator(doc);
