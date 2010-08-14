@@ -1,0 +1,24 @@
+#intro {
+    font-size: 125%;
+}
+
+p.small {
+    font-size: 75%;
+}
+
+span.smaller {
+    font-size: 75%;
+}
+
+pre {
+    border: solid darkblue 1px;
+    padding: 3px;
+}
+
+#buttons {
+    float: right;
+    border: solid black 1px;
+    background-color: lightgoldenrodyellow;
+    color: darkblue;
+    padding: 3px;
+}
