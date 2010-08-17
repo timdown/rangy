@@ -1,0 +1,6 @@
+- Implement ControlRange as multiple Ranges spanning single elements? Would mean checking range spans a single element in addRange. Possible.
+- Write IE test for Range boundaries when switching between TextRange and WrappedRange (seems to change after a couple of iterations)
+- Investigate IE 9 crash: seems to happen on cloneContents 1 test in the second suite
+- Add option to use DoMRange rather than WrappedRange in selection? Is this necessary?
+- Check what happens in IE when a TextRange generated from a text input is passed to WrappedRange constructor
+

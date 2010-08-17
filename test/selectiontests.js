@@ -114,6 +114,22 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, true);
         });
 
+        s.test("removeRange instance test", function(t) {
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.selectNodeContents(t.nodes.plainText);
+            sel.addRange(range);
+            range.selectNodeContents(t.nodes.b);
+            sel.removeRange(range);
+            t.assertEquals(sel.rangeCount, 0);
+            t.assertNull(sel.anchorNode);
+            t.assertEquals(sel.anchorOffset, 0);
+            t.assertNull(sel.focusNode);
+            t.assertEquals(sel.focusOffset, 0);
+            t.assertEquivalent(sel.isCollapsed, true);
+        });
+
         s.test("getRangeAt test", function(t) {
             var sel = selectionCreator(win);
             sel.removeAllRanges();

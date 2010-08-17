@@ -146,7 +146,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
             return new WrappedRange(this.nativeSelection.getRangeAt(index));
         };
 
-
         selProto.refresh = function() {
             updateAnchorAndFocusFromNativeSelection(this);
             this.isCollapsed = selectionIsCollapsed(this);
