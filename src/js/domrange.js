@@ -317,7 +317,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         next: function() {
             this._current = this._next;
-            this._next = this.nodes[ this._pointer++ ];
+            this._next = this.nodes[ ++this._pointer ];
             return this._current;
         },
 
