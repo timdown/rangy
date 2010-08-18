@@ -70,22 +70,25 @@ rangy.createModule("TextMutation", function(api, module) {
         function applyToRange(range) {
             range.splitBoundaries();
             var textNodes = range.getNodes( [3] ), textNode;
-            if (options.preApplyCallback) {
-                options.preApplyCallback(textNodes, range);
-            }
 
-            for (var i = 0, len = textNodes.length; i < len; ++i) {
-                textNode = textNodes[i];
-                if (!checkApplied(textNode)) {
-                    apply(textNode);
+            if (textNodes.length) {
+                if (options.preApplyCallback) {
+                    options.preApplyCallback(textNodes, range);
                 }
-            }
-            range.setStart(textNodes[0], 0);
-            textNode = textNodes[textNodes.length - 1];
-            range.setEnd(textNode, textNode.length);
-            log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
-            if (options.postApplyCallback) {
-                options.postApplyCallback(textNodes, range);
+
+                for (var i = 0, len = textNodes.length; i < len; ++i) {
+                    textNode = textNodes[i];
+                    if (!checkApplied(textNode)) {
+                        apply(textNode);
+                    }
+                }
+                range.setStart(textNodes[0], 0);
+                textNode = textNodes[textNodes.length - 1];
+                range.setEnd(textNode, textNode.length);
+                log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
+                if (options.postApplyCallback) {
+                    options.postApplyCallback(textNodes, range);
+                }
             }
         }
 
@@ -108,23 +111,25 @@ rangy.createModule("TextMutation", function(api, module) {
             range.splitBoundaries();
             var textNodes = range.getNodes( [3] ), textNode;
 
-            if (options.preUndoCallback) {
-                options.preUndoCallback(textNodes, range);
-            }
-
-            for (var i = 0, len = textNodes.length; i < len; ++i) {
-                textNode = textNodes[i];
-                if (checkApplied(textNode)) {
-                    undo(textNode);
+            if (textNodes.length) {
+                if (options.preUndoCallback) {
+                    options.preUndoCallback(textNodes, range);
                 }
-            }
-            range.setStart(textNodes[0], 0);
-            textNode = textNodes[textNodes.length - 1];
-            range.setEnd(textNode, textNode.length);
-            log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
 
-            if (options.postUndoCallback) {
-                options.postUndoCallback(textNodes, range);
+                for (var i = 0, len = textNodes.length; i < len; ++i) {
+                    textNode = textNodes[i];
+                    if (checkApplied(textNode)) {
+                        undo(textNode);
+                    }
+                }
+                range.setStart(textNodes[0], 0);
+                textNode = textNodes[textNodes.length - 1];
+                range.setEnd(textNode, textNode.length);
+                log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
+
+                if (options.postUndoCallback) {
+                    options.postUndoCallback(textNodes, range);
+                }
             }
         }
 
@@ -289,17 +294,19 @@ rangy.createModule("TextMutation", function(api, module) {
         var preApplyCallback = normalize ?
             function(textNodes, range) {
                 log.group("preApplyCallback");
-                var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
-                var startParent = startNode.parentNode, endParent = endNode.parentNode;
+                if (textNodes.length) {
+                    var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
+                    var startParent = startNode.parentNode, endParent = endNode.parentNode;
 
-                if (isRangySpan(startParent) && startParent.childNodes.length > 1) {
-                    log.debug("Splitting start");
-                    splitCssSpan(startNode);
-                }
+                    if (isRangySpan(startParent) && startParent.childNodes.length > 1) {
+                        log.debug("Splitting start");
+                        splitCssSpan(startNode);
+                    }
 
-                if (isRangySpan(endParent) && endParent.childNodes.length > 1) {
-                    log.debug("Splitting end");
-                    splitCssSpan(endNode);
+                    if (isRangySpan(endParent) && endParent.childNodes.length > 1) {
+                        log.debug("Splitting end");
+                        splitCssSpan(endNode);
+                    }
                 }
                 log.groupEnd();
             } : null;

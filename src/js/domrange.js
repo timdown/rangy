@@ -797,18 +797,16 @@ rangy.createModule("DomRange", function(api, module) {
 
                 if (dom.isCharacterDataNode(ec) && eo < ec.length) {
                     dom.splitDataNode(ec, eo);
-                    //this.setEnd(ec, eo);
                     log.debug("Split end", nodeToString(ec), eo);
                 }
 
                 if (dom.isCharacterDataNode(sc) && so > 0) {
                     sc = dom.splitDataNode(sc, so);
                     if (startEndSame) {
-                        //this.setEnd(sc, eo - so);
                         eo -= so;
+                        ec = sc;
                     }
                     so = 0;
-                    //this.setStart(sc, so);
                     log.debug("Split start", nodeToString(sc), so);
                 }
                 boundaryUpdater(this, sc, so, ec, eo);
@@ -824,7 +822,6 @@ rangy.createModule("DomRange", function(api, module) {
                     if (sibling && dom.isCharacterDataNode(sibling)) {
                         ec.appendData(sibling.data);
                         sibling.parentNode.removeChild(sibling);
-                        //this.setEnd(ec, eo);
                     }
                 }
 
@@ -835,10 +832,9 @@ rangy.createModule("DomRange", function(api, module) {
                         so = sibling.length;
                         sibling.parentNode.removeChild(sibling);
                         if (startEndSame) {
-                            //this.setEnd(sc, eo + so);
                             eo += so;
+                            ec = sc;
                         }
-                        //this.setStart(sc, so);
                     }
                 }
                 boundaryUpdater(this, sc, so, ec, eo);

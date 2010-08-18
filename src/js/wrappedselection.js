@@ -99,6 +99,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function WrappedSelection(selection) {
         this.nativeSelection = selection;
+        this._ranges = [];
         this.refresh();
     }
 
@@ -125,14 +126,14 @@ rangy.createModule("WrappedSelection", function(api, module) {
     } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select")) {
         selProto.removeAllRanges = function() {
             this.nativeSelection.empty();
-            this._range = null;
+            this._ranges.length = 0;
             updateEmptySelection(this);
         };
 
         selProto.addRange = function(range) {
-            this._range = range;
-            this.rangeCount = 1;
-            this.isCollapsed = this._range.collapsed;
+            this._ranges.push(range);
+            this.rangeCount = this._ranges.length;
+            this.isCollapsed = this.rangeCount == 1 && this._ranges[0].collapsed;
             updateAnchorAndFocusFromRange(this, range);
             WrappedRange.rangeToTextRange(range).select();
         };
@@ -156,7 +157,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (index < 0 || index >= this.rangeCount) {
                 throw new DOMException("INDEX_SIZE_ERR");
             } else {
-                return this._range.cloneRange();
+                return this._ranges[index];
             }
         };
 
@@ -176,11 +177,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 }
                 updateAnchorAndFocusFromNativeSelection(this);
                 this.isCollapsed = range.collapsed;
-                this._range = range;
+                this._ranges = [range];
                 this.rangeCount = 1;
             } else {
                 updateEmptySelection(this);
-                this._range = null;
+                this._ranges = [];
             }
         };
     } else if (util.isHostMethod(testSelection, "createRange") && api.features.implementsTextRange) {
@@ -188,42 +189,48 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (index < 0 || index >= this.rangeCount) {
                 throw new DOMException("INDEX_SIZE_ERR");
             } else {
-                return this._range;
+                return this._ranges[index];
             }
         };
 
         selProto.refresh = function() {
-            var range;
+            var range = this.nativeSelection.createRange(), wrappedRange, domRange;
             log.warn("selection refresh called, selection type: " + this.nativeSelection.type);
 
             // We do nothing with ControlRanges, which don't naturally fit with the DOM Ranges. You could view a
             // selected Control Range as a selection containing multiple Ranges, each spanning an element, but these
             // Ranges should then be immutable, which Ranges are most definitely not.
-            if (this.nativeSelection.type != "Control") {
-                range = this.nativeSelection.createRange();
-                if (range && typeof range.text != "undefined") {
-                    // Create a Range from the selected TextRange
-                    this._range = new WrappedRange(range);
-
-                    // Next line is to work round a problem with the TextRange-to-DOM Range code in the case where a
-                    // range boundary falls within a preformatted text node containing line breaks: the original
-                    // TextRange is altered in the process, so if it was selected, the selection changes and we need to
-                    // create a new TextRange and select it
-                    if (this._range.alteredDom) {
-                        WrappedRange.rangeToTextRange(this._range).select();
-                    }
-
-                    updateAnchorAndFocusFromRange(this, this._range);
-                    this.rangeCount = 1;
-                    this.isCollapsed = this._range.collapsed;
-                    return;
+            if (this.nativeSelection.type == "Control") {
+                this.rangeCount = range.length;
+                this._ranges.length = 0;
+                for (var i = 0, len = range.length, el; i < len; ++i) {
+                    el = range.item(i);
+                    domRange = new DomRange(dom.getDocument(el));
+                    domRange.selectNode(el);
+                    this._ranges.push(domRange);
                 }
-            } else {
-                log.info("Selection type was Control, so selection is considered empty");
-            }
+                log.info("Selection type was Control");
+            } else if (range && typeof range.text != "undefined") {
+                // Create a Range from the selected TextRange
+                wrappedRange = new WrappedRange(range);
+                this._ranges = [wrappedRange];
 
-            updateEmptySelection(this);
-            this._range = null;
+                // Next line is to work round a problem with the TextRange-to-DOM Range code in the case where a
+                // range boundary falls within a preformatted text node containing line breaks: the original
+                // TextRange is altered in the process, so if it was selected, the selection changes and we need to
+                // create a new TextRange and select it
+                if (wrappedRange.alteredDom) {
+                    WrappedRange.rangeToTextRange(wrappedRange).select();
+                }
+
+                updateAnchorAndFocusFromRange(this, wrappedRange);
+                this.rangeCount = 1;
+                this.isCollapsed = wrappedRange.collapsed;
+                return;
+            } else {
+                updateEmptySelection(this);
+                this._ranges.length = this.rangeCount = 0;
+            }
         };
     } else {
         module.fail("No means of obtaining a Range or TextRange from the user's selection was found");

@@ -221,8 +221,8 @@ rangy.createModule("WrappedRange", function(api, module) {
             }
 
             function updateNativeRange(range, startContainer, startOffset, endContainer,endOffset) {
-                var startMoved = (range.startContainer !== startContainer || range.startOffset !== startOffset);
-                var endMoved = (range.endContainer !== endContainer || range.endOffset !== endOffset);
+                var startMoved = (range.startContainer !== startContainer || range.startOffset != startOffset);
+                var endMoved = (range.endContainer !== endContainer || range.endOffset != endOffset);
 
                 if (endMoved) {
                     range.setEnd(endContainer, endOffset);
