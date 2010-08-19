@@ -131,11 +131,40 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
 
         selProto.addRange = function(range) {
-            this._ranges.push(range);
-            this.rangeCount = this._ranges.length;
-            this.isCollapsed = this.rangeCount == 1 && this._ranges[0].collapsed;
-            updateAnchorAndFocusFromRange(this, range);
-            WrappedRange.rangeToTextRange(range).select();
+            if (this.nativeSelection.type == "Control") {
+                var controlRange = this.nativeSelection.createRange();
+                var rangeElements = range.getNodes([1]);
+                if (rangeElements.length) {
+                    var doc = dom.getDocument(controlRange.item(0));
+                    var newControlRange = doc.body.createControlRange();
+                    for (var i = 0, len = controlRange.length; i < len; ++i) {
+                        newControlRange.add(controlRange.item(i));
+                    }
+                    newControlRange.addElement(rangeElements[0]);
+                    newControlRange.select();
+
+                    // Update based on what's now in the selection
+                    controlRange = this.nativeSelection.createRange();
+                    len = this.rangeCount = controlRange.length;
+                    this._ranges.length = 0;
+                    var selectedRange;
+                    for (i = 0; i < len; ++i) {
+                        selectedRange = api.createRange(doc);
+                        selectedRange.selectNode(controlRange.item(i));
+                        this._ranges.push(selectedRange);
+                    }
+                    this.isCollapsed = this.rangeCount == 1 && this._ranges[0].collapsed;
+                    updateAnchorAndFocusFromRange(this, this._ranges[this.rangeCount - 1]);
+                    log.debug(this);
+                } else {
+                    throw new Error("addRange: no element in Range, so cannot add to ControlRange");
+                }
+            } else {
+                WrappedRange.rangeToTextRange(range).select();
+                this._ranges.push(range);
+                this.rangeCount = this._ranges.length;
+                this.isCollapsed = this.rangeCount == 1 && this._ranges[0].collapsed;
+            }
         };
     } else {
         module.fail("No means of selecting a Range or TextRange was found");

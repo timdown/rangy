@@ -500,6 +500,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     api.WrappedRange = WrappedRange;
 
     api.createNativeRange = function(doc) {
+        doc = doc || document;
         if (rangy.features.implementsDomRange) {
             return doc.createRange();
         } else if (rangy.features.implementsTextRange) {
@@ -508,10 +509,12 @@ rangy.createModule("WrappedRange", function(api, module) {
     };
 
     api.createRange = function(doc) {
+        doc = doc || document;
         return new WrappedRange(api.createNativeRange(doc));
     };
 
     api.createRangyRange = function(doc) {
+        doc = doc || document;
         return new DomRange(doc);
     };
 });
