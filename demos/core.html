@@ -1,5 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
-    "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
     <title>Rangy Core Demo</title>
@@ -9,6 +8,44 @@
         function reportSelection() {
             alert(rangy.getSelection().getRangeAt(0));
         }
+
+        function deleteSelection() {
+            rangy.getSelection().deleteFromDocument();
+        }
+
+        function collapseSelectionToStart() {
+            rangy.getSelection().collapseToStart();
+        }
+
+        function collapseSelectionToEnd() {
+            rangy.getSelection().collapseToEnd();
+        }
+
+        function getFirstRange() {
+            var sel = rangy.getSelection();
+            return sel.rangeCount ? sel.getRangeAt(0) : null;
+        }
+
+        function showContent(frag) {
+            var displayEl = document.getElementById("selectioncontent");
+            var codeEl = document.getElementById("code");
+            while (displayEl.firstChild) {
+                displayEl.removeChild(displayEl.firstChild);
+            }
+            displayEl.appendChild(frag);
+            codeEl.value = displayEl.innerHTML;
+        }
+
+        function extractRange() {
+            var range = getFirstRange();
+            if (range) {
+                showContent(range.extractContents());
+            }
+        }
+
+        try {
+            document.execCommand("MultipleSelection", true, true);
+        } catch (ex) {}
     </script>
 </head>
 <body>
@@ -16,13 +53,30 @@
 
     <p id="intro">
         Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
+        the right hand size to manipulate the selection.
     </p>
 
-    <hr>
 
     <div id="buttons">
-        <input type="button" onclick="reportSelection();" value="Get selection">
+        <h3>Selection methods</h3>
+        <p>The following buttons act on the whole selection:</p>
+        <input type="button" onclick="reportSelection();" value="Get selection"><br>
+        <input type="button" onclick="deleteSelection();" value="Delete selection"><br>
+        <input type="button" onclick="collapseSelectionToStart();" value="Collapse to start">
+        <input type="button" onclick="collapseSelectionToEnd();" value="Collapse to end">
+
+        <h3>Range methods</h3>
+        <p>The following buttons act on the first range in the current selection:</p>
+        <input type="button" onclick="extractRange();" value="Extract"><br>
+
+        <h4>Selection/Range HTML</h4>
+        <textarea rows="10" cols="10" id="code"></textarea>
+
+        <h4>Selection/Range content</h4>
+        <div id="selectioncontent"></div>
+
     </div>
+    <div id="content">
     <p>
         <b>Association football</b> is a sport played between two teams. It is usually called <b>football</b>, but in
         some countries, such as the United States, it is called <b>soccer</b>. In
@@ -49,8 +103,8 @@ Federation Internationale de Football Association) has more members than the Uni
 It is played by both males and females.
 
 
-    </pre>
-
+</pre>
+</div>
 
     <p class="small">
         Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia</a> page on
