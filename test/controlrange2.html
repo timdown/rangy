@@ -20,18 +20,18 @@
         document.selection.empty();
 
         function addImage(id) {
-            var sel = rangy.getSelection();
+            var sel = window.getSelection();
             var im = document.getElementById(id);
-            var range = rangy.createRange();
+            var range = document.createRange();
             range.selectNode(im);
             sel.addRange(range);
             document.getElementById("editor").focus();
         }
 
         function removeImage(id) {
-            var sel = rangy.getSelection();
+            var sel = window.getSelection();
             var im = document.getElementById(id);
-            var range = rangy.createRange();
+            var range = document.createRange();
             range.selectNode(im);
             sel.removeRange(range);
         }

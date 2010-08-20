@@ -3,3 +3,4 @@
 - Add option to use DoMRange rather than WrappedRange in selection? Is this necessary?
 - Add more selection tests
 - Check range passed to removeRange, addRange in selection. Possibly convert TextRange/ControlRange to WrappedRange?
+- Test native addRange in Webkit. Appears not to work for Range containing just an image

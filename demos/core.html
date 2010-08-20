@@ -32,7 +32,9 @@
             while (displayEl.firstChild) {
                 displayEl.removeChild(displayEl.firstChild);
             }
-            displayEl.appendChild(frag);
+            if (frag) {
+                displayEl.appendChild(frag);
+            }
             codeEl.value = displayEl.innerHTML;
         }
 
@@ -40,6 +42,35 @@
             var range = getFirstRange();
             if (range) {
                 showContent(range.extractContents());
+            }
+        }
+
+        function cloneRange() {
+            var range = getFirstRange();
+            if (range) {
+                showContent(range.cloneContents());
+            }
+        }
+
+        function deleteRange() {
+            var range = getFirstRange();
+            if (range) {
+                range.deleteContents();
+                //showContent(null);
+            }
+        }
+
+        function surroundRange() {
+            var range = getFirstRange();
+            if (range) {
+                var el = document.createElement("span");
+                el.style.backgroundColor = "pink";
+                try {
+                    range.surroundContents(el);
+                } catch(ex) {
+                    alert("Unable to surround range: " + ex);
+                }
+                //showContent(null);
             }
         }
 
@@ -60,14 +91,17 @@
     <div id="buttons">
         <h3>Selection methods</h3>
         <p>The following buttons act on the whole selection:</p>
-        <input type="button" onclick="reportSelection();" value="Get selection"><br>
-        <input type="button" onclick="deleteSelection();" value="Delete selection"><br>
+        <input type="button" onclick="reportSelection();" value="Get selection">
+        <input type="button" onclick="deleteSelection();" value="Delete selection">
         <input type="button" onclick="collapseSelectionToStart();" value="Collapse to start">
         <input type="button" onclick="collapseSelectionToEnd();" value="Collapse to end">
 
         <h3>Range methods</h3>
         <p>The following buttons act on the first range in the current selection:</p>
-        <input type="button" onclick="extractRange();" value="Extract"><br>
+        <input type="button" onclick="extractRange();" value="Extract">
+        <input type="button" onclick="cloneRange();" value="Clone">
+        <input type="button" onclick="deleteRange();" value="Delete">
+        <input type="button" onclick="surroundRange();" value="Surround">
 
         <h4>Selection/Range HTML</h4>
         <textarea rows="10" cols="10" id="code"></textarea>
@@ -97,8 +131,10 @@
     </p>
     <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
     <pre contenteditable="true">
-Football is the world's most popular sport. It is played in more countries than any other game. In fact, FIFA (the
-Federation Internationale de Football Association) has more members than the United Nations.
+Football is the world's most popular sport. It is played in more
+countries than any other game. In fact, FIFA (the Federation
+Internationale de Football Association) has more members than the
+United Nations.
 
 It is played by both males and females.
 

@@ -38,6 +38,18 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
+    // ControlRanges
+    var selectionHasType = util.isHostProperty(testSelection, "type");
+    var implementsControlRange = false, testControlRange;
+
+    if (util.isHostObject(document, "body") && util.isHostMethod(document.body, "createControlRange")) {
+        testControlRange = document.body.createControlRange();
+        if (util.areHostProperties(testControlRange, ["item", "add"])) {
+            implementsControlRange = true;
+        }
+    }
+    api.features.implementsControlRange = implementsControlRange;
+
     // Selection collapsedness
     if (typeof testSelection.isCollapsed == BOOLEAN) {
         selectionIsCollapsed = function(sel) {
@@ -97,6 +109,33 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return nativeRange;
     }
 
+    function getSingleElementFromRange(range) {
+        var nodes = range.getNodes();
+        if (nodes.length != 1 || nodes[0].nodeType != 1) {
+            throw new Error("getSingleElementFromRange: range did not consist of a single element");
+        }
+        return nodes[0];
+    }
+
+    function updateFromControlRange(sel) {
+        // Update the wrapped selection based on what's now in the native selection
+        sel._ranges.length = 0;
+        if (sel.nativeSelection.type == "None") {
+            updateEmptySelection(sel);
+        } else {
+            var controlRange = sel.nativeSelection.createRange();
+            sel.rangeCount = controlRange.length;
+            var range, doc = dom.getDocument(controlRange.item(i));
+            for (var i = 0; i < sel.rangeCount; ++i) {
+                range = api.createRange(doc);
+                range.selectNode(controlRange.item(i));
+                sel._ranges.push(range);
+            }
+            sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
+            updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1]);
+        }
+    }
+
     function WrappedSelection(selection) {
         this.nativeSelection = selection;
         this._ranges = [];
@@ -123,7 +162,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
             this.rangeCount = (typeof this.nativeSelection.rangeCount == "number") ?
                               this.nativeSelection.rangeCount : 1;
         };
-    } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select")) {
+    } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select") &&
+               selectionHasType && implementsControlRange) {
+
         selProto.removeAllRanges = function() {
             this.nativeSelection.empty();
             this._ranges.length = 0;
@@ -133,32 +174,20 @@ rangy.createModule("WrappedSelection", function(api, module) {
         selProto.addRange = function(range) {
             if (this.nativeSelection.type == "Control") {
                 var controlRange = this.nativeSelection.createRange();
-                var rangeElements = range.getNodes([1]);
-                if (rangeElements.length) {
-                    var doc = dom.getDocument(controlRange.item(0));
-                    var newControlRange = doc.body.createControlRange();
-                    for (var i = 0, len = controlRange.length; i < len; ++i) {
-                        newControlRange.add(controlRange.item(i));
-                    }
-                    newControlRange.addElement(rangeElements[0]);
-                    newControlRange.select();
+                var rangeElement = getSingleElementFromRange(range);
 
-                    // Update based on what's now in the selection
-                    controlRange = this.nativeSelection.createRange();
-                    len = this.rangeCount = controlRange.length;
-                    this._ranges.length = 0;
-                    var selectedRange;
-                    for (i = 0; i < len; ++i) {
-                        selectedRange = api.createRange(doc);
-                        selectedRange.selectNode(controlRange.item(i));
-                        this._ranges.push(selectedRange);
-                    }
-                    this.isCollapsed = this.rangeCount == 1 && this._ranges[0].collapsed;
-                    updateAnchorAndFocusFromRange(this, this._ranges[this.rangeCount - 1]);
-                    log.debug(this);
-                } else {
-                    throw new Error("addRange: no element in Range, so cannot add to ControlRange");
+                // Create a new ControlRange containing all the elements in the selected ControlRange plus the element
+                // contained by the supplied range
+                var doc = dom.getDocument(controlRange.item(0));
+                var newControlRange = doc.body.createControlRange();
+                for (var i = 0, len = controlRange.length; i < len; ++i) {
+                    newControlRange.add(controlRange.item(i));
                 }
+                newControlRange.add(rangeElement);
+                newControlRange.select();
+
+                // Update the wrapped selection based on what's now in the native selection
+                updateFromControlRange(this);
             } else {
                 WrappedRange.rangeToTextRange(range).select();
                 this._ranges.push(range);
@@ -230,15 +259,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             // selected Control Range as a selection containing multiple Ranges, each spanning an element, but these
             // Ranges should then be immutable, which Ranges are most definitely not.
             if (this.nativeSelection.type == "Control") {
-                this.rangeCount = range.length;
-                this._ranges.length = 0;
-                for (var i = 0, len = range.length, el; i < len; ++i) {
-                    el = range.item(i);
-                    domRange = new DomRange(dom.getDocument(el));
-                    domRange.selectNode(el);
-                    this._ranges.push(domRange);
-                }
-                log.info("Selection type was Control");
+                updateFromControlRange(this);
             } else if (range && typeof range.text != "undefined") {
                 // Create a Range from the selected TextRange
                 wrappedRange = new WrappedRange(range);
@@ -255,7 +276,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 updateAnchorAndFocusFromRange(this, wrappedRange);
                 this.rangeCount = 1;
                 this.isCollapsed = wrappedRange.collapsed;
-                return;
             } else {
                 updateEmptySelection(this);
                 this._ranges.length = this.rangeCount = 0;
@@ -267,6 +287,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     // Removal of a single range
+
     if (util.isHostMethod(testSelection, "removeRange") && typeof testSelection.rangeCount == "number") {
         selProto.removeRange = function(range) {
             this.nativeSelection.removeRange(getNativeRange(range));
@@ -275,12 +296,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
             this.isCollapsed = selectionIsCollapsed(this);
         };
     } else {
-        selProto.removeRange = function(range) {
-            var ranges = this.getAllRanges(), removed = false;
-            this.removeAllRanges();
+        var removeRangeManually = function(sel, range) {
+            var ranges = sel.getAllRanges(), removed = false;
+            sel.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
                 if (removed || !DomRange.util.rangesEqual(ranges[i], range)) {
-                    this.addRange(ranges[i]);
+                    sel.addRange(ranges[i]);
                 } else {
                     // According to the HTML 5 spec, the same range may be added to the selection multiple times.
                     // removeRange should only remove the first instance, so the following ensures only the first
@@ -288,10 +309,43 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     removed = true;
                 }
             }
-            if (!this.rangeCount) {
-                updateEmptySelection(this);
+            if (!sel.rangeCount) {
+                updateEmptySelection(sel);
             }
         };
+
+        if (selectionHasType && implementsControlRange) {
+            selProto.removeRange = function(range) {
+                if (this.nativeSelection.type == "Control") {
+                    var controlRange = this.nativeSelection.createRange();
+                    var rangeElement = getSingleElementFromRange(range);
+
+                    // Create a new ControlRange containing all the elements in the selected ControlRange minus the
+                    // element contained by the supplied range
+                    var doc = dom.getDocument(controlRange.item(0));
+                    var newControlRange = doc.body.createControlRange();
+                    var el, removed = false;
+                    for (var i = 0, len = controlRange.length; i < len; ++i) {
+                        el = controlRange.item(i);
+                        if (el !== rangeElement || removed) {
+                            newControlRange.add(controlRange.item(i));
+                        } else {
+                            removed = true;
+                        }
+                    }
+                    newControlRange.select();
+
+                    // Update the wrapped selection based on what's now in the native selection
+                    updateFromControlRange(this);
+                } else {
+                    removeRangeManually(this, range);
+                }
+            }
+        } else {
+            selProto.removeRange = function(range) {
+                removeRangeManually(this, range);
+            }
+        }
     }
 
     // Detecting if a selection is backwards
