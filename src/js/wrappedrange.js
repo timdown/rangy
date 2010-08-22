@@ -1,6 +1,9 @@
 rangy.createModule("WrappedRange", function(api, module) {
     api.requireModules( ["DomRange"] );
 
+    /**
+     * @constructor
+     */
     var WrappedRange;
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
@@ -11,6 +14,11 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    /**
+     * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
+     * TODO: Look into making this a proper iterator, not requiring preloading everything first
+     * @constructor
+     */
     function BoundaryResult(position, cleanUpFunc, alteredDom) {
         this.position = position;
         this.cleanUpFunc = cleanUpFunc;
@@ -466,28 +474,10 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // Add extension methods from DomRange
-/*
-            var methodsToInherit = ["compareNode", "comparePoint", "createContextualFragment", "intersectsNode",
-                "isPointInRange", "intersectsRange", "splitBoundaries", "normalizeBoundaries", "createNodeIterator",
-                "getNodes", "containsNode", "containsNodeContents"];
-
-            var i = methodsToInherit.length, methodName, domRangeProto = DomRange.prototype;
-            while (i--) {
-                methodName = methodsToInherit[i];
-                rangeProto[methodName] = domRangeProto[methodName];
-            }
-*/
-
             // Clean up
             document.body.removeChild(testTextNode);
             range.detach();
             range2.detach();
-/*
-
-            DomRange.copyComparisonConstants(WrappedRange);
-            DomRange.copyComparisonConstants(rangeProto);
-*/
         })();
 
     } else if (api.features.implementsTextRange) {

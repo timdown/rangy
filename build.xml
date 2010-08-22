@@ -33,6 +33,9 @@
 		<echo message="Set build version to ${build.version}" />
 	</target>
 
+    <taskdef name="jscomp" classname="com.google.javascript.jscomp.ant.CompileTask"
+			 classpath="${googlecompressor.jar.path}"/>
+
 	<target name="compress.js" depends="svncheckout">
 	    <filelist id="files.js" dir="${svn.checkout.js.dir}">
 			<file name="core.js" />
@@ -46,30 +49,45 @@
             <filelist refid="files.js"/>
 		</concat>
 
+<!--
 	  <copy file="${svn.checkout.js.dir}/header.js" tofile="${build.header.js.file}"/>
+-->
 
 	  <!-- Replace version number -->
-	  <replace file="${build.header.js.file}" token="%%build:version%%" value="${build.version}"/>
+	  <replace file="${build.temp.src.js.file}" token="%%build:version%%" value="${build.version}"/>
 
 	  <!-- Replace build date -->
-	  <replace file="${build.header.js.file}" token="%%build:date%%" value="${TODAY}"/>
+	  <replace file="${build.temp.src.js.file}" token="%%build:date%%" value="${TODAY}"/>
 
 	    <!-- Remove all logging calls -->
         <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
         <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
 
 	    <!-- Compress -->
+<!--
 	    <java jar="${yuicompressor.jar.path}" fork="true" output="${build.temp.compressed.js.file}">
 	        <arg value="${build.temp.src.js.file}"/>
 	    </java>
+-->
+
+	  <jscomp compilationLevel="advanced" warning="verbose"
+			  debug="false" output="${build.temp.compressed.js.file}">
+
+		<sources dir="${build.dir}">
+		  <file name="temp-src.js"/>
+		</sources>
+
+	  </jscomp>
 
 	  <!-- Append header to compressed and uncompressed files -->
+<!--
 	  <concat destfile="${build.src.js.file}">
 		  <filelist dir="${build.dir}" files="header.js, temp-src.js"/>
 	  </concat>
 	  <concat destfile="${build.compressed.js.file}">
 		  <filelist dir="${build.dir}" files="header.js, temp.js"/>
 	  </concat>
+-->
 	</target>
 
 	<target name="build" description="Full build" depends="compress.js"/>

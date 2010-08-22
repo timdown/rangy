@@ -10,6 +10,9 @@ rangy.createModule("DomRange", function(api, module) {
 
     // RangeIterator code indebted to IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
 
+    /**
+     * @constructor
+     */
     function RangeIterator(range, clonePartiallySelectedTextNodes) {
         this.range = range;
         this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
@@ -131,18 +134,21 @@ rangy.createModule("DomRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Exceptions
-    var RangeExceptionCodes = {
+    var rangeExceptionCodes = {
         BAD_BOUNDARYPOINTS_ERR: 1,
         INVALID_NODE_TYPE_ERR: 2
     };
 
+    /**
+     * @constructor
+     */
     function RangeException(codeName) {
-        this.code = RangeExceptionCodes[codeName];
+        this.code = rangeExceptionCodes[codeName];
         this.codeName = codeName;
         this.message = "RangeException: " + this.codeName;
     }
 
-    RangeException.prototype = RangeExceptionCodes;
+    RangeException.prototype = rangeExceptionCodes;
 
     RangeException.prototype.toString = function() {
         return this.message;
@@ -299,8 +305,11 @@ rangy.createModule("DomRange", function(api, module) {
         return nodes;
     }
 
-    // Currently iterates through all nodes in the range on creation until I think of a decent way to do it
-    // TODO: Look into making this a proper iterator, not requiring preloading everything first
+    /**
+     * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
+     * TODO: Look into making this a proper iterator, not requiring preloading everything first
+     * @constructor
+     */
     function RangeNodeIterator(range, nodeTypes, filter) {
         this.nodes = getNodesInRange(range, nodeTypes, filter);
         this._next = this.nodes[0];

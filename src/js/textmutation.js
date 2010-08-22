@@ -323,7 +323,7 @@ rangy.createModule("TextMutation", function(api, module) {
                     return adjacentNode[forward ? "firstChild" : "lastChild"];
                 }
             } else if (isTextNode) {
-                // Can merge if the node's previous sibling is a text node
+                // Can merge if the node's previous/next sibling is a text node
                 adjacentNode = node[propName];
                 if (adjacentNode && adjacentNode.nodeType == 3) {
                     return adjacentNode;
@@ -455,19 +455,35 @@ rangy.createModule("TextMutation", function(api, module) {
 
     var nextCssId = 0;
 
-    function createSurrounder(templateElement, checkApplied, normalize) {
-        // Options: templateElement, checkApplied, normalize
-        var uniqueCssClass = "rangy_" + (++nextCssId);
+    function createSimpleSurrounder(tagName, normalize) {
+        tagName = tagName.toUpperCase();
         normalize = (typeof normalize == "boolean") ? normalize : true;
 
-        function createSurrounderElement() {
-            var el = templateElement.cloneNode(false);
-            addClass(el, uniqueCssClass);
-            return el;
+        function createSurrounderElement(doc) {
+            return doc.createElement(tagName);
         }
 
-        function isRangyElement(node) {
-            return node.nodeType == 1 && hasMatchingClass(node, /rangy_[\d]+/);
+        function isSurrounderElement(node) {
+            return node.nodeType == 1 && node.nodeName == tagName;
+        }
+
+        function isTextNodeSurrounded(textNode) {
+            var n = textNode.parentNode;
+            while (n) {
+                if (isSurrounderElement(n)) {
+                    return true;
+                }
+                n = n.parentNode;
+            }
+            return false;
+        }
+
+        function areMergeable(el1, el2) {
+            // Use hideous innerHTML hack to compare nodes for merging, since the attributes property is wrong in IE
+            var div1 = document.createElement("div"), div2 = document.createElement("div");
+            div1.appendChild(el1.cloneNode(false));
+            div2.appendChild(el2.cloneNode(false));
+            return div1.innerHTML == div2.innerHTML;
         }
 
         function Merge(firstNode) {
@@ -535,17 +551,19 @@ rangy.createModule("TextMutation", function(api, module) {
         var preApplyCallback = normalize ?
             function(textNodes, range) {
                 log.group("preApplyCallback");
-                var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
-                var startParent = startNode.parentNode, endParent = endNode.parentNode;
+                if (textNodes.length) {
+                    var startNode = textNodes[0], endNode = textNodes[textNodes.length - 1];
+                    var startParent = startNode.parentNode, endParent = endNode.parentNode;
 
-                if (isRangyElement(startParent) && startParent.childNodes.length > 1) {
-                    log.debug("Splitting start");
-                    splitSurrounderElement(startNode);
-                }
+                    if (isSurrounderElement(startParent) && startParent.childNodes.length > 1) {
+                        log.debug("Splitting start");
+                        splitSurrounderElement(startNode);
+                    }
 
-                if (isRangyElement(endParent) && endParent.childNodes.length > 1) {
-                    log.debug("Splitting end");
-                    splitSurrounderElement(endNode);
+                    if (isSurrounderElement(endParent) && endParent.childNodes.length > 1) {
+                        log.debug("Splitting end");
+                        splitSurrounderElement(endNode);
+                    }
                 }
                 log.groupEnd();
             } : null;
@@ -555,14 +573,14 @@ rangy.createModule("TextMutation", function(api, module) {
             var el = isTextNode ? node.parentNode : node;
             var adjacentNode;
             var propName = forward ? "nextSibling" : "previousSibling";
-            if (isRangyElement(el)) {
+            if (isSurrounderElement(el)) {
                 // Compare element with its sibling
                 adjacentNode = el[propName];
-                if (adjacentNode && el.nodeName == adjacentNode.nodeName && hasSameClasses(el, adjacentNode)) {
+                if (adjacentNode && areMergeable(el, adjacentNode)) {
                     return adjacentNode[forward ? "firstChild" : "lastChild"];
                 }
             } else if (isTextNode) {
-                // Can merge if the node's previous sibling is a text node
+                // Can merge if the node's previous/next sibling is a text node
                 adjacentNode = node[propName];
                 if (adjacentNode && adjacentNode.nodeType == 3) {
                     return adjacentNode;
@@ -635,22 +653,11 @@ rangy.createModule("TextMutation", function(api, module) {
 
         return createTextMutator({
             apply: function(textNode) {
-                log.group("Surrounding text node. textNode: " + textNode.data);
+                log.group("Applying surrounder. textNode: " + textNode.data);
                 var parent = textNode.parentNode;
-/*
-                if (isRangyElement(parent) && parent.childNodes.length == 1) {
-                    addClass(parent, cssClass);
-                    addClass(parent, uniqueCssClass);
-                } else {
-                    var el = createSurrounderElement();
-                    parent.insertBefore(el, textNode);
-                    el.appendChild(textNode);
-                }
-*/
-                var el = createSurrounderElement();
-                parent.insertBefore(el, textNode);
+                var el = createSurrounderElement(dom.getDocument(textNode));
+                textNode.parentNode.insertBefore(el, textNode);
                 el.appendChild(textNode);
-
                 log.groupEnd();
             },
 
@@ -662,7 +669,7 @@ rangy.createModule("TextMutation", function(api, module) {
 
             postUndoCallback: postApplyCallback,
 
-            checkApplied: textNodeHasClass,
+            checkApplied: isTextNodeSurrounded,
 
             undo: function(textNode) {
                 var el = textNode.parentNode;
@@ -673,29 +680,22 @@ rangy.createModule("TextMutation", function(api, module) {
                 log.group("Undo, text node is " + textNode.data, el.className);
                 if (nextNode && previousNode) {
                     // In this case we need to create a new span for the subsequent text node
-                    var span = createSpan(dom.getDocument(textNode));
-                    span.appendChild(nextNode);
-                    dom.insertAfter(span, el);
-                    span.parentNode.insertBefore(textNode, span);
+                    var surrounderEl = createSurrounderElement(dom.getDocument(textNode));
+                    surrounderEl.appendChild(nextNode);
+                    dom.insertAfter(surrounderEl, el);
+                    surrounderEl.parentNode.insertBefore(textNode, surrounderEl);
                 } else if (nextNode) {
                     parent.insertBefore(textNode, el);
                 } else if (previousNode) {
                     dom.insertAfter(textNode, el);
-                } else {
-                    removeClass(el, cssClass);
-                    removeClass(el, uniqueCssClass);
-                    log.info("Removed classes. class now: " + el.className, isRangyElement(el));
-                    log.debug("element contents: " + el.innerHTML);
-                    if (!isRangyElement(el)) {
-                        parent.insertBefore(textNode, el);
-                        parent.removeChild(el);
-                    }
+                } else if (isSurrounderElement(el)) {
+                    parent.insertBefore(textNode, el);
+                    parent.removeChild(el);
                 }
                 log.groupEnd();
             }
         });
-
     }
 
-    api.createSurrounder = createSurrounder;
+    api.createSimpleSurrounder = createSimpleSurrounder;
 });

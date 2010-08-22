@@ -15,6 +15,7 @@ rangy.createModule("Boldifier", function(api, module) {
         }
     }
 
+/*
     function createBoldifier(win) {
         win = win || window;
         var templateElement = win.document.createElement("strong");
@@ -26,8 +27,15 @@ rangy.createModule("Boldifier", function(api, module) {
             normalize: true
         }) ;
     }
+*/
+
+    function createBoldifier(win) {
+        win = win || window;
+
+        return rangy.createSimpleSurrounder("strong", true);
+    }
 
     api.createBoldifier = createBoldifier;
 });
 
-// 
+//

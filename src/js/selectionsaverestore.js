@@ -1,4 +1,4 @@
-rangy.createModule("WrappedSelection", function(api, module) {
+rangy.createModule("SaveRestore", function(api, module) {
     api.requireModules( ["DomRange", "WrappedRange"] );
 
     var dom = api.dom;

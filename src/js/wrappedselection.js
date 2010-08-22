@@ -138,6 +138,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     }
 
+    /**
+     * @constructor
+     */
     function WrappedSelection(selection) {
         this.nativeSelection = selection;
         this._ranges = [];

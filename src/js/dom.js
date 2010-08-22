@@ -169,6 +169,9 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
+    /**
+     * @constructor
+     */
     function NodeIterator(root) {
         this.root = root;
         this._next = root;
@@ -210,6 +213,9 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
 
+    /**
+     * @constructor
+     */
     function DomPosition(node, offset) {
         this.node = node;
         this.offset = offset;
@@ -228,7 +234,7 @@ rangy.createModule("DomUtil", function(api, module) {
         }*/
     };
 
-    var DOMExceptionCodes = {
+    var domExceptionCodes = {
         INDEX_SIZE_ERR: 1,
         HIERARCHY_REQUEST_ERR: 3,
         WRONG_DOCUMENT_ERR: 4,
@@ -238,13 +244,16 @@ rangy.createModule("DomUtil", function(api, module) {
         INVALID_STATE_ERR: 11
     };
 
+    /**
+     * @constructor
+     */
     function DOMException(codeName) {
-        this.code = DOMExceptionCodes[codeName];
+        this.code = domExceptionCodes[codeName];
         this.codeName = codeName;
         this.message = "DOMException: " + this.codeName;
     }
 
-    DOMException.prototype = DOMExceptionCodes;
+    DOMException.prototype = domExceptionCodes;
 
     DOMException.prototype.toString = function() {
         return this.message;

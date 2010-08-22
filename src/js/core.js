@@ -1,3 +1,12 @@
+/**
+ * @license Rangy, a cross-browser JavaScript range and selection library
+ * http://code.google.com/p/rangy/
+ *
+ * Copyright 2010, Tim Down
+ * Licensed under the MIT license.
+ * Version: %%build:version%%
+ * Build date: %%build:date%%
+ */
 var rangy = (function() {
     var log = log4javascript.getLogger("rangy.core");
 
@@ -128,6 +137,9 @@ var rangy = (function() {
         initListeners.push(listener);
     };
 
+    /**
+     * @constructor
+     */
     function Module(name) {
         this.name = name;
         this.initialized = false;
