@@ -680,9 +680,6 @@ rangy.createModule("DomRange", function(api, module) {
                     iterateSubtree(iterator, function(node) {
                         // Accept only text or CDATA nodes, not comments
                         log.info("toString: got node", nodeToString(node));
-                        if (node.nodeType == 2) {
-                            log.info("Got attr: ", node);
-                        }
                         if (node.nodeType == 3 || node.nodeType == 4) {
                             textBits.push(node.data);
                         }
@@ -897,6 +894,9 @@ rangy.createModule("DomRange", function(api, module) {
         range._listeners = null;
     }
 
+    /**
+     * @constructor
+     */
     function Range(doc) {
         this.startContainer = doc;
         this.startOffset = 0;

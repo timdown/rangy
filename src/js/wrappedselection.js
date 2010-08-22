@@ -127,7 +127,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         } else {
             var controlRange = sel.nativeSelection.createRange();
             sel.rangeCount = controlRange.length;
-            var range, doc = dom.getDocument(controlRange.item(i));
+            var range, doc = dom.getDocument(controlRange.item(0));
             for (var i = 0; i < sel.rangeCount; ++i) {
                 range = api.createRange(doc);
                 range.selectNode(controlRange.item(i));
