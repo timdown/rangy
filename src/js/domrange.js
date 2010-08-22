@@ -578,8 +578,9 @@ rangy.createModule("DomRange", function(api, module) {
                     throw new DOMException("HIERARCHY_REQUEST_ERR");
                 }
 
-                // No check for whether the container of the start of the Range is of a type that does not allow children of
-                // the type of node: the browser's DOM implementation should do this for us when we attempt to add the node
+                // No check for whether the container of the start of the Range is of a type that does not allow
+                // children of the type of node: the browser's DOM implementation should do this for us when we attempt
+                // to add the node
 
                 insertNodeAtPosition(node, this.startContainer, this.startOffset);
                 this.setStartBefore(node);
@@ -816,17 +817,23 @@ rangy.createModule("DomRange", function(api, module) {
                 var sibling, startEndSame = (sc === ec);
                 assertNotDetached(this);
 
-                if (dom.isCharacterDataNode(ec)) {
-                    sibling = ec.nextSibling;
+                var startNode = dom.isCharacterDataNode(sc) ? sc : sc.childNodes[so];
+                var endNode = dom.isCharacterDataNode(ec) ? ec : (eo ? ec.childNodes[eo - 1] : null);
+
+                if (endNode && dom.isCharacterDataNode(endNode)) {
+                    sibling = endNode.nextSibling;
                     if (sibling && dom.isCharacterDataNode(sibling)) {
+                        ec = endNode;
+                        eo = endNode.length;
                         ec.appendData(sibling.data);
                         sibling.parentNode.removeChild(sibling);
                     }
                 }
 
-                if (dom.isCharacterDataNode(sc)) {
-                    sibling = sc.previousSibling;
+                if (startNode && dom.isCharacterDataNode(startNode)) {
+                    sibling = startNode.previousSibling;
                     if (sibling && dom.isCharacterDataNode(sibling)) {
+                        sc = startNode;
                         sc.insertData(0, sibling.data);
                         so = sibling.length;
                         sibling.parentNode.removeChild(sibling);

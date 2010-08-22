@@ -13,6 +13,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var getSelection, selectionIsCollapsed;
 
+    var log = log4javascript.getLogger("rangy.WrappedSelection");
+
     // Test for the Range/TextRange and Selection features required
     // Test for ability to retrieve selection
     if (api.util.isHostMethod(window, "getSelection")) {

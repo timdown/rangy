@@ -60,3 +60,10 @@ pre {
     background-color: white;
     overflow: auto;
 }
+
+.unselectable {
+    user-select: none; /* CSS3 */
+    -moz-user-select: none;
+    -moz-user-focus: ignore;
+    -khtml-user-select: none;
+}

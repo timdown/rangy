@@ -3,7 +3,16 @@
 <head>
     <title>Rangy Core Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
+<!--
     <script type="text/javascript" src="../build/rangy-core-src.js"></script>
+-->
+    <script type="text/javascript" src="../src/js/log4javascript.js"></script>
+    <script type="text/javascript" src="../src/js/core.js"></script>
+    <script type="text/javascript" src="../src/js/dom.js"></script>
+    <script type="text/javascript" src="../src/js/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
+
     <script type="text/javascript">
         function reportSelection() {
             alert(rangy.getSelection().getRangeAt(0));
@@ -74,6 +83,24 @@
             }
         }
 
+        function insertNodeAtRange() {
+            var range = getFirstRange();
+            if (range) {
+                var el = document.createElement("span");
+                el.style.backgroundColor = "lightblue";
+                el.style.color = "red";
+                el.style.fontWeight = "bold";
+                el.appendChild(document.createTextNode("**INSERTED NODE**"));
+                //alert(window.getSelection().getRangeAt(0))
+                //window.getSelection().getRangeAt(0).insertNode(el);
+                range.insertNode(el);
+                var sel = rangy.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                //alert(range);
+            }
+        }
+
         try {
             document.execCommand("MultipleSelection", true, true);
         } catch (ex) {}
@@ -91,17 +118,18 @@
     <div id="buttons">
         <h3>Selection methods</h3>
         <p>The following buttons act on the whole selection:</p>
-        <input type="button" onclick="reportSelection();" value="Get selection">
-        <input type="button" onclick="deleteSelection();" value="Delete selection">
-        <input type="button" onclick="collapseSelectionToStart();" value="Collapse to start">
-        <input type="button" onclick="collapseSelectionToEnd();" value="Collapse to end">
+        <input type="button" onclick="reportSelection();" value="Get selection" unselectable="on" class="unselectable">
+        <input type="button" onclick="deleteSelection();" value="Delete selection" unselectable="on" class="unselectable">
+        <input type="button" onclick="collapseSelectionToStart();" value="Collapse to start" unselectable="on" class="unselectable">
+        <input type="button" onclick="collapseSelectionToEnd();" value="Collapse to end" unselectable="on" class="unselectable">
 
         <h3>Range methods</h3>
         <p>The following buttons act on the first range in the current selection:</p>
-        <input type="button" onclick="extractRange();" value="Extract">
-        <input type="button" onclick="cloneRange();" value="Clone">
-        <input type="button" onclick="deleteRange();" value="Delete">
-        <input type="button" onclick="surroundRange();" value="Surround">
+        <input type="button" onclick="extractRange();" value="Extract" unselectable="on" class="unselectable">
+        <input type="button" onclick="cloneRange();" value="Clone" unselectable="on" class="unselectable">
+        <input type="button" onclick="deleteRange();" value="Delete" unselectable="on" class="unselectable">
+        <input type="button" onclick="surroundRange();" value="Surround" unselectable="on" class="unselectable">
+        <input type="button" onclick="insertNodeAtRange();" value="Insert node" unselectable="on" class="unselectable">
 
         <h4>Selection/Range HTML</h4>
         <textarea rows="10" cols="10" id="code"></textarea>
@@ -143,8 +171,8 @@ It is played by both males and females.
 </div>
 
     <p class="small">
-        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia</a> page on
-        Association Football, licensed under the
+        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
+        Association Football</a>, licensed under the
         <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
             Commons Attribution/Share-Alike License</a>.
     </p>

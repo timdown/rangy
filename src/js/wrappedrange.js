@@ -7,7 +7,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     var DomRange = rangy.DomRange;
     var rangeUtil = DomRange.util;
 
-    var log = log4javascript.getLogger("rangy.RangeWrappers");
+    var log = log4javascript.getLogger("rangy.WrappedRange");
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -277,10 +277,16 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return this.nativeRange.cloneContents();
             };
 
+            // Until I can find a way to prgrammatically trigger the Firefox bug (apparently long-standing, still
+            // present in 3.6.8) that throws "Index or size is negative or greater than the allowed amount" for
+            // insertNode in some circumstances, all browsers will have to use the Rangy's own implementation of
+            // insertNode, which works but is almost certainly slower than the native implementation.
+/*
             rangeProto.insertNode = function(node) {
                 this.nativeRange.insertNode(node);
                 updateRangeProperties(this);
             };
+*/
 
             rangeProto.surroundContents = function(node) {
                 this.nativeRange.surroundContents(node);
@@ -305,6 +311,36 @@ rangy.createModule("WrappedRange", function(api, module) {
             var testTextNode = document.createTextNode("test");
             document.body.appendChild(testTextNode);
             var range = document.createRange();
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            // Test for Firefox bug (apparently long-standing, still present in 3.6.8) that throws "Index or size is
+            // negative or greater than the allowed amount" for insertNode in some circumstances, and correct for it
+            // by using DomRange's insertNode implementation
+
+/*
+            var span = document.body.insertBefore(document.createElement("span"), testTextNode);
+            var spanText = span.appendChild(document.createTextNode("span"));
+            range.setEnd(testTextNode, 2);
+            range.setStart(spanText, 2);
+            var nodeToInsert = document.createElement("span");
+            nodeToInsert.innerHTML = "OIDUIIU"
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            range = sel.getRangeAt(0);
+            //alert(range)
+            range.insertNode(nodeToInsert);
+
+            nodeToInsert.parentNode.removeChild(nodeToInsert);
+            range.setEnd(testTextNode, 2);
+            range.setStart(spanText, 2);
+            nodeToInsert = document.createElement("span");
+            nodeToInsert.innerHTML = "werw"
+            range.insertNode(nodeToInsert);
+            alert(range)
+*/
+
 
             /*--------------------------------------------------------------------------------------------------------*/
 

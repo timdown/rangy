@@ -18,13 +18,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
         markerEl = doc.createElement("span");
         markerEl.id = markerId;
         markerEl.appendChild(doc.createTextNode(markerTextChar));
+
         boundaryRange.insertNode(markerEl);
-
-        // Make sure the current range boundary is preserved
-        range[atStart ? "setStartAfter" : "setEndBefore"](markerEl);
-
         boundaryRange.detach();
-        return markerId;
+        return markerEl;
     }
 
     function setRangeBoundary(doc, range, markerId, atStart) {
@@ -37,11 +34,18 @@ rangy.createModule("WrappedSelection", function(api, module) {
         win = win || window;
         var sel = api.getSelection(win);
         var ranges = sel.getAllRanges();
-        var rangeInfos = [];
+        var rangeInfos = [], startEl, endEl;
         for (var i = 0, len = ranges.length; i < len; ++i) {
+            endEl = insertRangeBoundaryMarker(ranges[i], false);
+            startEl = insertRangeBoundaryMarker(ranges[i], true);
+
+            // Update the range after potential changes to ensure it stays selected
+            ranges[i].setEndBefore(endEl);
+            ranges[i].setStartAfter(startEl);
+
             rangeInfos.push({
-                startMarkerId: insertRangeBoundaryMarker(ranges[i], true),
-                endMarkerId: insertRangeBoundaryMarker(ranges[i], false)
+                startMarkerId: startEl.id,
+                endMarkerId: endEl.id
             });
         }
 
@@ -50,20 +54,25 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return {
             win: win,
             doc: win.document,
-            rangeInfos: rangeInfos
+            rangeInfos: rangeInfos,
+            restored: false
         };
     }
 
     function restoreSelection(savedSelection) {
-        var rangeInfos = savedSelection.rangeInfos;
-        var sel = api.getSelection(savedSelection.win);
-        sel.removeAllRanges();
-        for (var i = 0, len = rangeInfos.length, rangeInfo, range; i < len; ++i) {
-            rangeInfo = rangeInfos[i];
-            range = api.createRange(savedSelection.doc);
-            setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
-            setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
-            sel.addRange(range);
+        if (!savedSelection.restored) {
+            var rangeInfos = savedSelection.rangeInfos;
+            var sel = api.getSelection(savedSelection.win);
+            sel.removeAllRanges();
+            for (var i = 0, len = rangeInfos.length, rangeInfo, range; i < len; ++i) {
+                rangeInfo = rangeInfos[i];
+                range = api.createRange(savedSelection.doc);
+                setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
+                setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
+                range.normalizeBoundaries();
+                sel.addRange(range);
+            }
+            savedSelection.restored = true;
         }
     }
 
