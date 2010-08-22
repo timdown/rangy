@@ -5,5 +5,5 @@
  * Copyright 2010, Tim Down
  * Licensed under the MIT license.
  * Version: %%build:version%%
- * Build date: 2 August 2010
+ * Build date: 21 August 2010
  */
