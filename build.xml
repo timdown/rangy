@@ -1,6 +1,10 @@
 <project name="Widgit Symbol Editor" default="build" basedir="">
 	<property file="${basedir}/build.properties"/>
 
+	<tstamp>
+	  	<format property="TODAY" pattern="d MMMM yyyy" locale="en,UK"/>
+	</tstamp>
+
 	<target name="init">
 		<!--<delete dir="${svn.checkout.dir}"/>-->
 		<delete dir="${working.dir}"/>
@@ -46,6 +50,9 @@
 
 	  <!-- Replace version number -->
 	  <replace file="${build.header.js.file}" token="%%build:version%%" value="${build.version}"/>
+
+	  <!-- Replace build date -->
+	  <replace file="${build.header.js.file}" token="%%build:date%%" value="${TODAY}"/>
 
 	    <!-- Remove all logging calls -->
         <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
