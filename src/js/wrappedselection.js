@@ -257,7 +257,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
 
         selProto.refresh = function() {
-            var range = this.nativeSelection.createRange(), wrappedRange, domRange;
+            var range = this.nativeSelection.createRange(), wrappedRange;
             log.warn("selection refresh called, selection type: " + this.nativeSelection.type);
 
             // We do nothing with ControlRanges, which don't naturally fit with the DOM Ranges. You could view a
@@ -345,11 +345,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 } else {
                     removeRangeManually(this, range);
                 }
-            }
+            };
         } else {
             selProto.removeRange = function(range) {
                 removeRangeManually(this, range);
-            }
+            };
         }
     }
 
