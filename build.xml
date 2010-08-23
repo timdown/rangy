@@ -45,49 +45,30 @@
 			<file name="wrappedselection.js" />
 	    </filelist>
 
-		<concat destfile="${build.temp.src.js.file}" >
+		<concat destfile="${build.src.js.file}" >
             <filelist refid="files.js"/>
 		</concat>
 
-<!--
-	  <copy file="${svn.checkout.js.dir}/header.js" tofile="${build.header.js.file}"/>
--->
-
 	  <!-- Replace version number -->
-	  <replace file="${build.temp.src.js.file}" token="%%build:version%%" value="${build.version}"/>
+	  <replace file="${build.src.js.file}" token="%%build:version%%" value="${build.version}"/>
 
 	  <!-- Replace build date -->
-	  <replace file="${build.temp.src.js.file}" token="%%build:date%%" value="${TODAY}"/>
+	  <replace file="${build.src.js.file}" token="%%build:date%%" value="${TODAY}"/>
 
-	    <!-- Remove all logging calls -->
-        <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
-        <replaceregexp file="${build.temp.src.js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
+	  <!-- Remove all logging calls -->
+	  <replaceregexp file="${build.src.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
+	  <replaceregexp file="${build.src.js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
 
 	    <!-- Compress -->
-<!--
-	    <java jar="${yuicompressor.jar.path}" fork="true" output="${build.temp.compressed.js.file}">
-	        <arg value="${build.temp.src.js.file}"/>
-	    </java>
--->
-
-	  <jscomp compilationLevel="advanced" warning="verbose"
-			  debug="false" output="${build.temp.compressed.js.file}">
+	  <jscomp compilationLevel="simple"
+			  debug="false" output="${build.compressed.js.file}">
 
 		<sources dir="${build.dir}">
-		  <file name="temp-src.js"/>
+		  <file name="rangy-core-src.js"/>
 		</sources>
 
 	  </jscomp>
 
-	  <!-- Append header to compressed and uncompressed files -->
-<!--
-	  <concat destfile="${build.src.js.file}">
-		  <filelist dir="${build.dir}" files="header.js, temp-src.js"/>
-	  </concat>
-	  <concat destfile="${build.compressed.js.file}">
-		  <filelist dir="${build.dir}" files="header.js, temp.js"/>
-	  </concat>
--->
 	</target>
 
 	<target name="build" description="Full build" depends="compress.js"/>
