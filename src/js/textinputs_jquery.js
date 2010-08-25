@@ -10,7 +10,7 @@
  */
 (function() {
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText;
-    var replaceSelectedText, surroundSelectedText, extractSelectedText;
+    var replaceSelectedText, surroundSelectedText, extractSelectedText, collapse;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
@@ -69,6 +69,14 @@
                 var offsets = adjustOffsets(el, startOffset, endOffset);
                 el.selectionStart = offsets.start;
                 el.selectionEnd = offsets.end;
+            };
+
+            collapse = function(el, toStart) {
+                if (toStart) {
+                    el.selectionEnd = el.selectionStart;
+                } else {
+                    el.selectionStart = el.selectionEnd;
+                }
             };
         } else if (isHostMethod(testTextArea, "createTextRange") && isHostObject(document, "selection") &&
                    isHostMethod(document.selection, "createRange")) {
@@ -136,6 +144,12 @@
                     range.moveEnd("character", offsetToRangeCharacterMove(el, offsets.end));
                     range.moveStart("character", startCharMove);
                 }
+                range.select();
+            };
+
+            collapse = function(el, toStart) {
+                var range = document.selection.createRange();
+                range.collapse(toStart);
                 range.select();
             };
         } else {
@@ -225,7 +239,8 @@
             extractSelectedText: jQuerify(extractSelectedText, false),
             insertText: jQuerify(insertText, true),
             replaceSelectedText: jQuerify(replaceSelectedText, true),
-            surroundSelectedText: jQuerify(surroundSelectedText, true)
+            surroundSelectedText: jQuerify(surroundSelectedText, true),
+            collapse: jQuerify(collapse, true)
         });
     });
 })();
