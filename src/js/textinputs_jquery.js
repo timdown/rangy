@@ -203,14 +203,12 @@
             setSelection(el, caretIndex, caretIndex);
         };
 
-        surroundSelectedText = function(el, before, after, moveSelection) {
+        surroundSelectedText = function(el, before, after) {
             var sel = getSelection(el), val = el.value;
             el.value = val.slice(0, sel.start) + before + sel.text + after + val.slice(sel.end);
             var startIndex = sel.start + before.length;
             var endIndex = startIndex + sel.length;
-            if (moveSelection) {
-                setSelection(el, startIndex, endIndex);
-            }
+            setSelection(el, startIndex, endIndex);
         };
 
         function jQuerify(func, returnThis) {
@@ -234,13 +232,13 @@
         jQuery.fn.extend({
             getSelection: jQuerify(getSelection, false),
             setSelection: jQuerify(setSelection, true),
+            collapseSelection: jQuerify(collapse, true),
             deleteSelectedText: jQuerify(deleteSelectedText, true),
             deleteText: jQuerify(deleteText, true),
             extractSelectedText: jQuerify(extractSelectedText, false),
             insertText: jQuerify(insertText, true),
             replaceSelectedText: jQuerify(replaceSelectedText, true),
-            surroundSelectedText: jQuerify(surroundSelectedText, true),
-            collapse: jQuerify(collapse, true)
+            surroundSelectedText: jQuerify(surroundSelectedText, true)
         });
     });
 })();

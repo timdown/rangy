@@ -11,7 +11,7 @@
 	<body>
         <div id="container" class="nonav">
             <div id="header">
-                <h1>Rangy 0.1</h1>
+                <h1>Rangy</h1>
                 <div id="nav">
                     <span class="navitem">home</span>
                     | <a class="navitem" href="http://code.google.com/p/rangy/downloads/list"
@@ -25,23 +25,23 @@
                 <div id="toc">
                     <h2>Contents</h2>
                     <ul>
-                        <li><a href="#intro">Introduction</a></li>
+                        <li><a href="#overview">Overview</a></li>
                         <li><a href="#api">API</a></li>
                     </ul>
                 </div>
-                <div id="intro">
-                    <h2>Introduction</h2>
-                    <p>
-                        <span class="rangy">Rangy</span> is a modular, cross-browser JavaScript range and selection
-                        library. It provides a simple API for performing common range and selection tasks in all major
-                        browsers, abstracting away the wildly different implementations of this functionality between
-                        Internet Explorer and DOM-compliant browsers.
-                    </p>
+                <div id="overview">
+                    <h2>Overview</h2>
                     <p>
                         Rangy Text Inputs is a small jQuery plug-in for manipulating the selection and value of HTML
                         textareas and text inputs. Unlike similar plug-ins, Rangy Text Inputs works correctly in all
                         situations in Internet Explorer 6-8, including in textareas with leading or trailing empty
                         lines.
+                    </p>
+                    <p>
+                        <span class="rangy">Rangy</span> is a modular, cross-browser JavaScript range and selection
+                        library. It provides a simple API for performing common range and selection tasks in all major
+                        browsers, abstracting away the wildly different implementations of this functionality between
+                        Internet Explorer and DOM-compliant browsers.
                     </p>
                 </div>
                 <div id="api">
@@ -102,6 +102,14 @@
                                 </li>
                             </ul>
                         </li>
+                        <li class="method" id="collapseSelection">
+                            <div class="methodsignature"><code>Element <strong>collapseSelection</strong>(Boolean
+                                <em>toStart</em>)</code></div>
+                            <div class="summary">
+                                Collapses the selection within the text input to a caret at the either the start or the
+                                end of the selection (depending on <code>toStart</code>) and returns the text input.
+                            </div>
+                        </li>
                         <li class="method" id="deleteSelectedText">
                             <div class="methodsignature"><code>Element <strong>deleteSelectedText</strong>()</code></div>
                             <div class="summary">
@@ -121,7 +129,33 @@
                                 <em>text</em>)</code></div>
                             <div class="summary">
                                 Replaces the selected text in the text input with the text provided, collapses the
-                                selection to the end of the replacement text and returns the text input.
+                                selection to a caret at the end of the replacement text and returns the text input.
+                            </div>
+                        </li>
+                        <li class="method" id="surroundSelectedText">
+                            <div class="methodsignature"><code>Element <strong>surroundSelectedText</strong>(String
+                                <em>before</em>, String <em>after</em>)</code></div>
+                            <div class="summary">
+                                Surrounds the selected text in the text input with the text provided, moves the
+                                selection to include the surrounded text and returns the text input.
+                            </div>
+                        </li>
+                        <li class="method" id="insertText">
+                            <div class="methodsignature"><code>Element <strong>insertText</strong>(String <em>text</em>,
+                                Number <em>index</em>, Boolean <em>moveSelection</em>)</code></div>
+                            <div class="summary">
+                                Inserts <code>text</code> at position <code>index</code> in the text input's value,
+                                optionally moves the caret to the end of the inserted text (depending on
+                                <code>moveSelection</code>) and returns the text input.
+                            </div>
+                        </li>
+                        <li class="method" id="deleteText">
+                            <div class="methodsignature"><code>Element <strong>deleteText</strong>(Number
+                                <em>start</em>, Number <em>end</em>, Boolean <em>moveSelection</em>)</code></div>
+                            <div class="summary">
+                                Deletes text at between positions <code>start</code> and <code>end</code> in the text
+                                input's value, optionally moves the caret to the point at which the text was deleted
+                                (depending on <code>moveSelection</code>) and returns the text input.
                             </div>
                         </li>
                     </ul>
@@ -134,5 +168,6 @@
                 <a href="http://www.opensource.org/licenses/mit-license.php" title="MIT License">MIT License</a>
             </div>
         </div>
+<!--build:analytics-->
     </body>
 </html>
