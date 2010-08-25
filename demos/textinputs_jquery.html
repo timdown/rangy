@@ -4,11 +4,13 @@
     <title>Rangy Text Inputs jQuery plugin demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    <script type="text/javascript" src="../src/js/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/textinputs_jquery.js"></script>
 <!--
     <script type="text/javascript" src="../build/rangy-textinputs-jquery.js"></script>
 -->
     <script type="text/javascript">
+        var log = log4javascript.getDefaultLogger();
     </script>
     <style type="text/css">
         p.inputcontainer {
@@ -25,7 +27,10 @@
     <input type="button" class="unselectable" value="get selection range" onclick="var sel = $('#ti').getSelection(); alert(sel.start + ',' + sel.end);">
     <input type="button" class="unselectable" value="paste test text" onclick="$('#ti').replaceSelectedText('**Test**')">
     <input type="button" class="unselectable" value="extract selected text" onclick="alert($('#ti').extractSelectedText())">
-    <input type="button" class="unselectable" value="surround selected text" onclick="$('#ti').surroundSelectedText('[Before]', '[After]', true)">
+    <input type="button" class="unselectable" value="surround selected text" onclick="$('#ti').surroundSelectedText('[Before]', '[After]', true); $('#ti').focus()">
+    <input type="button" class="unselectable" value="replace selected text" onclick="$('#ti').replaceSelectedText('[Replacement text]'); $('#ti').focus()">
+    <input type="button" class="unselectable" value="collapse to start" onclick="$('#ti').collapse(true); $('#ti').focus()">
+    <input type="button" class="unselectable" value="collapse to end" onclick="$('#ti').collapse(false); $('#ti').focus()">
     <input type="button" class="unselectable" value="set selection" onclick="$('#ti').setSelection($('#ti_start')[0].value, $('#ti_end')[0].value); $('#ti').focus()">
     Start: <input type="text" id="ti_start" size="3" value="5">
     End: <input type="text" id="ti_end" size="3" value="7">
@@ -39,8 +44,8 @@
     <input type="button" class="unselectable" value="get selection range" onclick="var sel = $('#ta').getSelection(); alert(sel.start + ',' + sel.end);">
     <input type="button" class="unselectable" value="paste test text" onclick="$('#ta').replaceSelectedText('**Test**')">
     <input type="button" class="unselectable" value="extract selected text" onclick="alert($('#ta').extractSelectedText())">
-    <input type="button" class="unselectable" value="surround selected text" onclick="$('#ta').surroundSelectedText('[Before]', '[After]', true)">
-    <input type="button" class="unselectable" value="replace selected text" onclick="$('#ta').replaceSelectedText('[Replacement text]')">
+    <input type="button" class="unselectable" value="surround selected text" onclick="$('#ta').surroundSelectedText('[Before]', '[After]', true); $('#ta').focus()">
+    <input type="button" class="unselectable" value="replace selected text" onclick="$('#ta').replaceSelectedText('[Replacement text]'); $('#ta').focus()">
     <input type="button" class="unselectable" value="collapse to start" onclick="$('#ta').collapse(true); $('#ta').focus()">
     <input type="button" class="unselectable" value="collapse to end" onclick="$('#ta').collapse(false); $('#ta').focus()">
     <input type="button" class="unselectable" value="set selection" onclick="$('#ta').setSelection($('#ta_start')[0].value, $('#ta_end')[0].value); $('#ta').focus()">

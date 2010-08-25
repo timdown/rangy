@@ -86,24 +86,20 @@
                 var originalValue, textInputRange, precedingRange, pos, bookmark;
 
                 if (range) {
-                    // Collapse the selected range if the selection is not a caret
-                    if (range.text) {
-                        range.collapse(!!isStart);
-                    }
+                    range.collapse(!!isStart);
 
                     originalValue = el.value;
                     textInputRange = el.createTextRange();
                     precedingRange = el.createTextRange();
                     pos = 0;
 
-                    bookmark = range.getBookmark();
-                    textInputRange.moveToBookmark(bookmark);
-
                     if (originalValue.indexOf("\r\n") > -1) {
                         // Trickier case where input value contains line breaks
 
                         // Insert a character in the text input range and use that as a marker
-                        textInputRange.text = " ";
+                        range.text = " ";
+                        bookmark = range.getBookmark();
+                        textInputRange.moveToBookmark(bookmark);
                         precedingRange.setEndPoint("EndToStart", textInputRange);
                         pos = precedingRange.text.length - 1;
 
@@ -113,6 +109,8 @@
                         document.execCommand("undo");
                     } else {
                         // Easier case where input value contains no line breaks
+                        bookmark = range.getBookmark();
+                        textInputRange.moveToBookmark(bookmark);
                         precedingRange.setEndPoint("EndToStart", textInputRange);
                         pos = precedingRange.text.length;
                     }
@@ -122,7 +120,7 @@
             };
 
             getSelection = function(el) {
-                var start = getSelectionBoundary(el, true), end = getSelectionBoundary(el, false);
+                var end = getSelectionBoundary(el, false), start = getSelectionBoundary(el, true);
                 return makeSelection(el, start, end);
             };
 
@@ -205,6 +203,7 @@
 
         surroundSelectedText = function(el, before, after) {
             var sel = getSelection(el), val = el.value;
+            log.info(sel.start + ", " + sel.end + ", '" + sel.text + "'");
             el.value = val.slice(0, sel.start) + before + sel.text + after + val.slice(sel.end);
             var startIndex = sel.start + before.length;
             var endIndex = startIndex + sel.length;
