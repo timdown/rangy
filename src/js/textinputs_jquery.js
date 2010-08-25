@@ -1,6 +1,16 @@
+/**
+ * @license Rangy Text Inputs, a cross-browser textarea and text input library
+ * Part of Rangy, a cross-browser JavaScript range and selection library
+ * http://code.google.com/p/rangy/
+ *
+ * Copyright 2010, Tim Down
+ * Licensed under the MIT license.
+ * Version: %%build:version%%
+ * Build date: %%build:date%%
+ */
 (function() {
-    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText, replaceSelectedText;
-    var surroundSelectedText, extractSelectedText;
+    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText;
+    var replaceSelectedText, surroundSelectedText, extractSelectedText;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting

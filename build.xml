@@ -71,5 +71,30 @@
 
 	</target>
 
-	<target name="build" description="Full build" depends="compress.js"/>
+  <target name="build.textinputs.jquery" depends="svncheckout">
+	<copy file="${svn.checkout.js.dir}/textinputs_jquery.js" tofile="${build.textinputs.jquery.js.file}"/>
+
+	<!-- Replace version number -->
+	<replace file="${build.textinputs.jquery.js.file}" token="%%build:version%%" value="${build.version}"/>
+
+	<!-- Replace build date -->
+	<replace file="${build.textinputs.jquery.js.file}" token="%%build:date%%" value="${TODAY}"/>
+
+	<!-- Remove all logging calls -->
+	<replaceregexp file="${build.textinputs.jquery.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
+	<replaceregexp file="${build.textinputs.jquery.js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
+
+	  <!-- Compress -->
+	<jscomp compilationLevel="simple"
+			debug="false" output="${build.textinputs.jquery.compressed.js.file}">
+
+	  <sources dir="${build.dir}">
+		<file name="rangy-textinputs-jquery-src.js"/>
+	  </sources>
+
+	</jscomp>
+
+  </target>
+
+	<target name="build" description="Full build" depends="compress.js, build.textinputs.jquery"/>
 </project>
