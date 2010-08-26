@@ -31,7 +31,7 @@
     <input type="button" class="unselectable" value="replace selected text" onclick="$('#ti').replaceSelectedText('[Replacement text]'); $('#ti').focus()">
     <input type="button" class="unselectable" value="collapse to start" onclick="$('#ti').collapseSelection(true); $('#ti').focus()">
     <input type="button" class="unselectable" value="collapse to end" onclick="$('#ti').collapseSelection(false); $('#ti').focus()">
-    <input type="button" class="unselectable" value="set selection" onclick="$('#ti').setSelection($('#ti_start')[0].value, $('#ti_end')[0].value); $('#ti').focus()">
+    <input type="button" class="unselectable" value="set selection" onclick="$('#ti').setSelection(+$('#ti_start')[0].value, +$('#ti_end')[0].value); $('#ti').focus()">
     Start: <input type="text" id="ti_start" size="3" value="5">
     End: <input type="text" id="ti_end" size="3" value="7">
     <br><br>
@@ -48,7 +48,7 @@
     <input type="button" class="unselectable" value="replace selected text" onclick="$('#ta').replaceSelectedText('[Replacement text]'); $('#ta').focus()">
     <input type="button" class="unselectable" value="collapse to start" onclick="$('#ta').collapseSelection(true); $('#ta').focus()">
     <input type="button" class="unselectable" value="collapse to end" onclick="$('#ta').collapseSelection(false); $('#ta').focus()">
-    <input type="button" class="unselectable" value="set selection" onclick="$('#ta').setSelection($('#ta_start')[0].value, $('#ta_end')[0].value); $('#ta').focus()">
+    <input type="button" class="unselectable" value="set selection" onclick="$('#ta').setSelection(+$('#ta_start')[0].value, +$('#ta_end')[0].value); $('#ta').focus()">
     Start: <input type="text" id="ta_start" size="3" value="5">
     End: <input type="text" id="ta_end" size="3" value="7">
 

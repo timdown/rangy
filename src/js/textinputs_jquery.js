@@ -10,7 +10,7 @@
  */
 (function() {
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText;
-    var replaceSelectedText, surroundSelectedText, extractSelectedText, collapse;
+    var replaceSelectedText, surroundSelectedText, extractSelectedText, collapseSelection;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
@@ -71,7 +71,7 @@
                 el.selectionEnd = offsets.end;
             };
 
-            collapse = function(el, toStart) {
+            collapseSelection = function(el, toStart) {
                 if (toStart) {
                     el.selectionEnd = el.selectionStart;
                 } else {
@@ -90,7 +90,7 @@
 
                     originalValue = el.value;
                     textInputRange = el.createTextRange();
-                    precedingRange = el.createTextRange();
+                    precedingRange = textInputRange.duplicate();
                     pos = 0;
 
                     if (originalValue.indexOf("\r\n") > -1) {
@@ -124,9 +124,10 @@
                 return makeSelection(el, start, end);
             };
 
-            // Moving across a line break only counts as moving one character in a TextRange, whereas a line break in the
-            // textarea value is two characters. This function corrects for that by converting a text offset into a range
-            // character offset by subtracting one character for every line break in the textarea prior to the offset
+            // Moving across a line break only counts as moving one character in a TextRange, whereas a line break in
+            // the textarea value is two characters. This function corrects for that by converting a text offset into a
+            // range character offset by subtracting one character for every line break in the textarea prior to the
+            // offset
             var offsetToRangeCharacterMove = function(el, offset) {
                 return offset - (el.value.slice(0, offset).split("\r\n").length - 1);
             };
@@ -145,7 +146,7 @@
                 range.select();
             };
 
-            collapse = function(el, toStart) {
+            collapseSelection = function(el, toStart) {
                 var range = document.selection.createRange();
                 range.collapse(toStart);
                 range.select();
@@ -231,7 +232,7 @@
         jQuery.fn.extend({
             getSelection: jQuerify(getSelection, false),
             setSelection: jQuerify(setSelection, true),
-            collapseSelection: jQuerify(collapse, true),
+            collapseSelection: jQuerify(collapseSelection, true),
             deleteSelectedText: jQuerify(deleteSelectedText, true),
             deleteText: jQuerify(deleteText, true),
             extractSelectedText: jQuerify(extractSelectedText, false),

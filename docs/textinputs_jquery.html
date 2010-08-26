@@ -89,8 +89,11 @@
                         <li class="method" id="setSelection">
                             <div class="methodsignature"><code>Element <strong>setSelection</strong>(Number <em>start</em>,
                                 Number <em>end</em>)</code></div>
-                            <div class="summary">Sets the selected portion of the text input and returns the text
-                                input.</div>
+                            <div class="summary">
+                                Sets the selected portion of the text input and returns the text input. A negative
+                                number for <code>start</code> or <code>end</code> is treated as an offset relative to
+                                the end of the text input (e.g. -2 is treated as two characters from the end).
+                            </div>
                             <ul class="params">
                                 <li class="param">
                                     <code class="paramname">start</code>
@@ -146,7 +149,9 @@
                             <div class="summary">
                                 Inserts <code>text</code> at position <code>index</code> in the text input's value,
                                 optionally moves the caret to the end of the inserted text (depending on
-                                <code>moveSelection</code>) and returns the text input.
+                                <code>moveSelection</code>) and returns the text input. A negative number for
+                                <code>index</code> is treated as an offset relative to the end of the text input
+                                (e.g. -2 is treated as two characters from the end).
                             </div>
                         </li>
                         <li class="method" id="deleteText">
@@ -155,7 +160,9 @@
                             <div class="summary">
                                 Deletes text at between positions <code>start</code> and <code>end</code> in the text
                                 input's value, optionally moves the caret to the point at which the text was deleted
-                                (depending on <code>moveSelection</code>) and returns the text input.
+                                (depending on <code>moveSelection</code>) and returns the text input. A negative number
+                                for <code>start</code> or <code>end</code> is treated as an offset relative to the end
+                                of the text input (e.g. -2 is treated as two characters from the end).
                             </div>
                         </li>
                     </ul>
