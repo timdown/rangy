@@ -72,11 +72,10 @@ var rangy = (function() {
             areHostObjects: areHostObjects,
             areHostProperties: areHostProperties
         },
-        features: {
-        },
-        modules: {
 
-        }
+        features: {},
+
+        modules: {}
     };
 
     function fail(reason) {
@@ -182,7 +181,6 @@ var rangy = (function() {
     // Wait for document to load before running tests
 
     var docReady = false;
-    var oldOnload;
 
     var loadHandler = function(e) {
         log.info("loadHandler, event is " + e.type);
@@ -214,13 +212,7 @@ var rangy = (function() {
     } else if (isHostMethod(window, "attachEvent")) {
         window.attachEvent("onload", loadHandler);
     } else {
-        oldOnload = window.onload;
-        window.onload = function(evt) {
-            loadHandler(evt);
-            if (oldOnload) {
-                oldOnload.call(window, evt);
-            }
-        };
+        fail("Window does not have required addEventListener or attachEvent method");
     }
 
     return api;

@@ -8,9 +8,12 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-var rangy = (function() {
+var rangy;
+(function() {
+    var UNDEF = "undefined";
     var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText;
     var replaceSelectedText, surroundSelectedText, extractSelectedText, collapseSelection;
+    var initialized = false;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
@@ -20,7 +23,7 @@ var rangy = (function() {
     }
 
     function isHostProperty(object, property) {
-        return typeof(object[property]) != "undefined";
+        return typeof(object[property]) != UNDEF;
     }
 
     function isHostObject(object, property) {
@@ -29,7 +32,7 @@ var rangy = (function() {
 
     function fail(reason) {
         if (window.console && window.console.log) {
-            window.console.log("TextInputs module for Rangy not supported in your browser. Reason: " + reason);
+            window.console.log("Rangy Text Inputs not supported in your browser. Reason: " + reason);
         }
     }
 
@@ -37,7 +40,7 @@ var rangy = (function() {
         if (start < 0) {
             start += el.value.length;
         }
-        if (typeof end == "undefined") {
+        if (typeof end == UNDEF) {
             end = start;
         }
         if (end < 0) {
@@ -55,7 +58,7 @@ var rangy = (function() {
         };
     }
 
-    jQuery(document).ready(function() {
+    function init() {
         var testTextArea = document.createElement("textarea");
         document.body.appendChild(testTextArea);
 
@@ -211,7 +214,7 @@ var rangy = (function() {
             setSelection(el, startIndex, endIndex);
         };
 
-        return {
+        rangy = {
             getSelection: getSelection,
             setSelection: setSelection,
             collapseSelection: collapseSelection,
@@ -221,6 +224,46 @@ var rangy = (function() {
             insertText: insertText,
             replaceSelectedText: replaceSelectedText,
             surroundSelectedText: surroundSelectedText
+        };
+
+        initialized = true;
+    }
+
+    // Wait for document to load before creating API
+
+    var docReady = false;
+
+    var loadHandler = function(e) {
+        log.info("loadHandler, event is " + e.type);
+        if (!docReady) {
+            docReady = true;
+            if (!initialized) {
+                init();
+            }
         }
-    });
+    };
+
+    // Test whether we have window and document objects that we will need
+    if (typeof window == UNDEF) {
+        fail("No window found");
+        return;
+    }
+    if (typeof document == UNDEF) {
+        fail("No document found");
+        return;
+    }
+
+    if (isHostMethod(document, "addEventListener")) {
+        document.addEventListener("DOMContentLoaded", loadHandler, false);
+    }
+
+    // Add a fallback in case the DOMContentLoaded event isn't supported
+    if (isHostMethod(window, "addEventListener")) {
+        window.addEventListener("load", loadHandler, false);
+    } else if (isHostMethod(window, "attachEvent")) {
+        window.attachEvent("onload", loadHandler);
+    } else {
+        fail("Window does not have required addEventListener or attachEvent method");
+    }
+
 })();

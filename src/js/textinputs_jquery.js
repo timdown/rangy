@@ -1,5 +1,5 @@
 /**
- * @license Rangy Text Inputs, a cross-browser textarea and text input library
+ * @license Rangy Text Inputs, a cross-browser textarea and text input library plug-in for jQuery.
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
  *
