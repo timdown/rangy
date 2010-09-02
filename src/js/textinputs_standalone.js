@@ -123,7 +123,60 @@ var rangy;
             };
 
             getSelection = function(el) {
-                var end = getSelectionBoundary(el, false), start = getSelectionBoundary(el, true);
+                //var end = getSelectionBoundary(el, false), start = getSelectionBoundary(el, true);
+                var start = 0, end = 0;
+                var range = document.selection.createRange();
+                var originalValue, normalizedValue, normalizedValueLength, textInputRange, precedingRange, pos, bookmark;
+                var collapsed;
+
+                if (range) {
+                    collapsed = !range.text.length;
+                    originalValue = el.value;
+                    textInputRange = el.createTextRange();
+                    precedingRange = textInputRange.duplicate();
+
+                    bookmark = range.getBookmark();
+                    textInputRange.moveToBookmark(bookmark);
+
+                    if (originalValue.indexOf("\r\n") > -1) {
+                        normalizedValue = originalValue.replace(/\r\n/g, "\r");
+                        normalizedValueLength = normalizedValue.length;
+
+                        // Trickier case where input value contains line breaks
+                        end = normalizedValueLength - textInputRange.moveEnd("character", originalValue.length);
+                        if (collapsed) {
+                            start = end;
+                        } else {
+                            start = normalizedValueLength - textInputRange.moveStart("character", originalValue.length);
+                        }
+
+                        alert(start + ", " + end);
+
+
+/*
+                        // Insert a character in the text input range and use that as a marker
+                        range.text = " ";
+                        precedingRange.setEndPoint("EndToStart", textInputRange);
+                        pos = precedingRange.text.length - 1;
+
+                        // Executing an undo command to delete the character inserted prevents this method adding to the
+                        // undo stack. This trick came from a user called Trenda on MSDN:
+                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
+                        document.execCommand("undo");
+*/
+                    } else {
+                        // Easier case where input value contains no line breaks
+                        precedingRange.setEndPoint("EndToStart", textInputRange);
+                        start = precedingRange.text.length;
+                        if (collapsed) {
+                            end = start;
+                        } else {
+                            precedingRange.setEndPoint("EndToEnd", textInputRange);
+                            end = precedingRange.text.length;
+                        }
+                    }
+                }
+                //return 0;
                 return makeSelection(el, start, end);
             };
 
