@@ -37,14 +37,14 @@
 <h1>Rangy Text Inputs jQuery Demo</h1>
 
 <p class="inputcontainer">
-    <input type="button" class="unselectable" value="get selection range" onclick="var sel = rangy.getSelection(ti); alert(sel.start + ',' + sel.end);">
-    <input type="button" class="unselectable" value="paste test text" onclick="rangy.replaceSelectedText(ti, '**Test**')">
-    <input type="button" class="unselectable" value="extract selected text" onclick="alert(rangy.extractSelectedText(ti))">
-    <input type="button" class="unselectable" value="surround selected text" onclick="rangy.surroundSelectedText(ti, '[Before]', '[After]', true); ti.focus()">
-    <input type="button" class="unselectable" value="replace selected text" onclick="rangy.replaceSelectedText(ti, '[Replacement text]'); ti.focus()">
-    <input type="button" class="unselectable" value="collapse to start" onclick="rangy.collapseSelection(ti, true); ti.focus()">
-    <input type="button" class="unselectable" value="collapse to end" onclick="rangy.collapseSelection(ti, false); ti.focus()">
-    <input type="button" class="unselectable" value="set selection" onclick="rangy.setSelection(ti, +ti_start.value, +ti_end.value); ti.focus()">
+    <input type="button" class="unselectable" value="get selection range" onmousedown="var sel = rangy.getSelection(ti); alert(sel.start + ',' + sel.end);">
+    <input type="button" class="unselectable" value="paste test text" onmousedown="rangy.replaceSelectedText(ti, '**Test**')">
+    <input type="button" class="unselectable" value="extract selected text" onmousedown="alert(rangy.extractSelectedText(ti))">
+    <input type="button" class="unselectable" value="surround selected text" onmousedown="rangy.surroundSelectedText(ti, '[Before]', '[After]', true); ti.focus()">
+    <input type="button" class="unselectable" value="replace selected text" onmousedown="rangy.replaceSelectedText(ti, '[Replacement text]'); ti.focus()">
+    <input type="button" class="unselectable" value="collapse to start" onmousedown="rangy.collapseSelection(ti, true); ti.focus()">
+    <input type="button" class="unselectable" value="collapse to end" onmousedown="rangy.collapseSelection(ti, false); ti.focus()">
+    <input type="button" class="unselectable" value="set selection" onmousedown="rangy.setSelection(ti, +ti_start.value, +ti_end.value); ti.focus()">
     Start: <input type="text" id="ti_start" size="3" value="5">
     End: <input type="text" id="ti_end" size="3" value="7">
     <br><br>
@@ -54,14 +54,14 @@
 <br><br>
 
 <p class="inputcontainer">
-    <input type="button" class="unselectable" value="get selection range" onclick="var sel = rangy.getSelection(ta); alert(sel.start + ',' + sel.end);">
-    <input type="button" class="unselectable" value="paste test text" onclick="rangy.replaceSelectedText(ta, '**Test**')">
-    <input type="button" class="unselectable" value="extract selected text" onclick="alert(rangy.extractSelectedText(ta))">
-    <input type="button" class="unselectable" value="surround selected text" onclick="rangy.surroundSelectedText(ta, '[Before]', '[After]', true); ta.focus()">
-    <input type="button" class="unselectable" value="replace selected text" onclick="rangy.replaceSelectedText(ta, '[Replacement text]'); ta.focus()">
-    <input type="button" class="unselectable" value="collapse to start" onclick="rangy.collapseSelection(ta, true); ta.focus()">
-    <input type="button" class="unselectable" value="collapse to end" onclick="rangy.collapseSelection(ta, false); ta.focus()">
-    <input type="button" class="unselectable" value="set selection" onclick="rangy.setSelection(ta, +ta_start.value, +ta_end.value); ta.focus()">
+    <input type="button" class="unselectable" value="get selection range" onmousedown="var sel = rangy.getSelection(ta); alert(sel.start + ',' + sel.end);">
+    <input type="button" class="unselectable" value="paste test text" onmousedown="rangy.replaceSelectedText(ta, '**Test**')">
+    <input type="button" class="unselectable" value="extract selected text" onmousedown="alert(rangy.extractSelectedText(ta))">
+    <input type="button" class="unselectable" value="surround selected text" onmousedown="rangy.surroundSelectedText(ta, '[Before]', '[After]', true); ta.focus()">
+    <input type="button" class="unselectable" value="replace selected text" onmousedown="rangy.replaceSelectedText(ta, '[Replacement text]'); ta.focus()">
+    <input type="button" class="unselectable" value="collapse to start" onmousedown="rangy.collapseSelection(ta, true); ta.focus()">
+    <input type="button" class="unselectable" value="collapse to end" onmousedown="rangy.collapseSelection(ta, false); ta.focus()">
+    <input type="button" class="unselectable" value="set selection" onmousedown="rangy.setSelection(ta, +ta_start.value, +ta_end.value); ta.focus()">
     Start: <input type="text" id="ta_start" size="3" value="5">
     End: <input type="text" id="ta_end" size="3" value="7">
 
