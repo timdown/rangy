@@ -9,7 +9,7 @@
  * Build date: %%build:date%%
  */
 (function() {
-    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText;
+    var getSelection, setSelection, deleteSelectedText, deleteText, insertText;
     var replaceSelectedText, surroundSelectedText, extractSelectedText, collapseSelection;
 
     // Trio of isHost* functions taken from Peter Michaux's article:
@@ -80,86 +80,33 @@
             };
         } else if (isHostMethod(testTextArea, "createTextRange") && isHostObject(document, "selection") &&
                    isHostMethod(document.selection, "createRange")) {
-            getSelectionBoundary = function(el, isStart) {
-                el.focus();
-                var range = document.selection.createRange();
-                var originalValue, textInputRange, precedingRange, pos, bookmark;
-
-                if (range) {
-                    range.collapse(!!isStart);
-
-                    originalValue = el.value;
-                    textInputRange = el.createTextRange();
-                    precedingRange = textInputRange.duplicate();
-                    pos = 0;
-
-                    if (originalValue.indexOf("\r\n") > -1) {
-                        // Trickier case where input value contains line breaks
-
-                        // Insert a character in the text input range and use that as a marker
-                        range.text = " ";
-                        bookmark = range.getBookmark();
-                        textInputRange.moveToBookmark(bookmark);
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        pos = precedingRange.text.length - 1;
-
-                        // Executing an undo command to delete the character inserted prevents this method adding to the
-                        // undo stack. This trick came from a user called Trenda on MSDN:
-                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
-                        document.execCommand("undo");
-                    } else {
-                        // Easier case where input value contains no line breaks
-                        bookmark = range.getBookmark();
-                        textInputRange.moveToBookmark(bookmark);
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        pos = precedingRange.text.length;
-                    }
-                    return pos;
-                }
-                return 0;
-            };
 
             getSelection = function(el) {
-                //var end = getSelectionBoundary(el, false), start = getSelectionBoundary(el, true);
-                var start = 0, end = 0;
+                var start = 0, end = 0, normalizedValue, textInputRange, len, endRange;
                 var range = document.selection.createRange();
-                var originalValue, textInputRange, precedingRange, pos, bookmark;
 
-                if (range) {
-                    originalValue = el.value;
+                if (range && range.parentElement() == el) {
+                    len = el.value.length;
+
+                    normalizedValue = el.value.replace(/\r\n/g, "\n");
                     textInputRange = el.createTextRange();
-                    precedingRange = textInputRange.duplicate();
-
-                    bookmark = range.getBookmark();
-                    textInputRange.moveToBookmark(bookmark);
-
-                    if (originalValue.indexOf("\r\n") > -1) {
-                        // Trickier case where input value contains line breaks
-                        start = -textInputRange.moveStart(originalValue.length);
-                        end = -textInputRange.moveEnd(originalValue.length);
-
-
-/*
-                        // Insert a character in the text input range and use that as a marker
-                        range.text = " ";
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        pos = precedingRange.text.length - 1;
-
-                        // Executing an undo command to delete the character inserted prevents this method adding to the
-                        // undo stack. This trick came from a user called Trenda on MSDN:
-                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
-                        document.execCommand("undo");
-*/
+                    textInputRange.moveToBookmark(range.getBookmark());
+                    endRange = el.createTextRange();
+                    endRange.collapse(false);
+                    if (textInputRange.compareEndPoints("StartToEnd", endRange) > -1) {
+                        start = end = len;
                     } else {
-                        // Easier case where input value contains no line breaks
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        start = precedingRange.text.length;
-                        precedingRange.setEndPoint("EndToEnd", textInputRange);
-                        end = precedingRange.text.length;
+                        start = -textInputRange.moveStart("character", -len);
+                        start += normalizedValue.slice(0, start).split("\n").length - 1;
+                        if (textInputRange.compareEndPoints("EndToEnd", endRange) > -1) {
+                            end = len;
+                        } else {
+                            end = -textInputRange.moveEnd("character", -len);
+                            end += normalizedValue.slice(0, end).split("\n").length - 1;
+                        }
                     }
-                    return pos;
                 }
-                //return 0;
+
                 return makeSelection(el, start, end);
             };
 

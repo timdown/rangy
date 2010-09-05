@@ -11,7 +11,7 @@
 var rangy;
 (function() {
     var UNDEF = "undefined";
-    var getSelectionBoundary, getSelection, setSelection, deleteSelectedText, deleteText, insertText;
+    var getSelection, setSelection, deleteSelectedText, deleteText, insertText;
     var replaceSelectedText, surroundSelectedText, extractSelectedText, collapseSelection;
     var initialized = false;
 
@@ -83,69 +83,31 @@ var rangy;
             };
         } else if (isHostMethod(testTextArea, "createTextRange") && isHostObject(document, "selection") &&
                    isHostMethod(document.selection, "createRange")) {
-            getSelectionBoundary = function(el, isStart) {
-                el.focus();
-                var range = document.selection.createRange();
-                var originalValue, textInputRange, precedingRange, pos, bookmark;
-
-                if (range) {
-                    range.collapse(!!isStart);
-
-                    originalValue = el.value;
-                    textInputRange = el.createTextRange();
-                    precedingRange = textInputRange.duplicate();
-                    pos = 0;
-
-                    if (originalValue.indexOf("\r\n") > -1) {
-                        // Trickier case where input value contains line breaks
-
-                        // Insert a character in the text input range and use that as a marker
-                        range.text = " ";
-                        bookmark = range.getBookmark();
-                        textInputRange.moveToBookmark(bookmark);
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        pos = precedingRange.text.length - 1;
-
-                        // Executing an undo command to delete the character inserted prevents this method adding to the
-                        // undo stack. This trick came from a user called Trenda on MSDN:
-                        // http://msdn.microsoft.com/en-us/library/ms534676%28VS.85%29.aspx
-                        document.execCommand("undo");
-                    } else {
-                        // Easier case where input value contains no line breaks
-                        bookmark = range.getBookmark();
-                        textInputRange.moveToBookmark(bookmark);
-                        precedingRange.setEndPoint("EndToStart", textInputRange);
-                        pos = precedingRange.text.length;
-                    }
-                    return pos;
-                }
-                return 0;
-            };
-
 
             getSelection = function(el) {
-                //var end = getSelectionBoundary(el, false), start = getSelectionBoundary(el, true);
-                var start = 0, end = 0, normalizedValue, textInputRange, elStart;
+                var start = 0, end = 0, normalizedValue, textInputRange, len, endRange;
                 var range = document.selection.createRange();
 
                 if (range && range.parentElement() == el) {
-                    // Trickier case where input value contains line breaks
+                    len = el.value.length;
+
                     normalizedValue = el.value.replace(/\r\n/g, "\n");
-
-                    start = -range.moveStart("character", -1e8);
-                    end = -range.moveEnd("character", -1e8);
-
                     textInputRange = el.createTextRange();
-                    range.moveToBookmark(textInputRange.getBookmark());
-                    elStart = range.moveStart("character", -1e8);
-
-                    // Adjust the position to be relative to the start of the input
-                    start += elStart;
-                    end += elStart;
-
-                    // Correct for line breaks
-                    start += normalizedValue.slice(0, start).split("\n").length - 1;
-                    end += normalizedValue.slice(0, end).split("\n").length - 1;
+                    textInputRange.moveToBookmark(range.getBookmark());
+                    endRange = el.createTextRange();
+                    endRange.collapse(false);
+                    if (textInputRange.compareEndPoints("StartToEnd", endRange) > -1) {
+                        start = end = len;
+                    } else {
+                        start = -textInputRange.moveStart("character", -len);
+                        start += normalizedValue.slice(0, start).split("\n").length - 1;
+                        if (textInputRange.compareEndPoints("EndToEnd", endRange) > -1) {
+                            end = len;
+                        } else {
+                            end = -textInputRange.moveEnd("character", -len);
+                            end += normalizedValue.slice(0, end).split("\n").length - 1;
+                        }
+                    }
                 }
 
                 return makeSelection(el, start, end);
