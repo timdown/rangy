@@ -234,7 +234,16 @@ rangy.createModule("DomUtil", function(api, module) {
         }*/
     };
 
-    var domExceptionCodes = {
+    /**
+     * @constructor
+     */
+    function DOMException(codeName) {
+        this.code = this[codeName];
+        this.codeName = codeName;
+        this.message = "DOMException: " + this.codeName;
+    }
+
+    DOMException.prototype = {
         INDEX_SIZE_ERR: 1,
         HIERARCHY_REQUEST_ERR: 3,
         WRONG_DOCUMENT_ERR: 4,
@@ -244,21 +253,9 @@ rangy.createModule("DomUtil", function(api, module) {
         INVALID_STATE_ERR: 11
     };
 
-    /**
-     * @constructor
-     */
-    function DOMException(codeName) {
-        this.code = domExceptionCodes[codeName];
-        this.codeName = codeName;
-        this.message = "DOMException: " + this.codeName;
-    }
-
-    DOMException.prototype = domExceptionCodes;
-
     DOMException.prototype.toString = function() {
         return this.message;
     };
-
 
     api.dom = {
         arrayContains: arrayContains,

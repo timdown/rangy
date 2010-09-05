@@ -134,21 +134,20 @@ rangy.createModule("DomRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Exceptions
-    var rangeExceptionCodes = {
-        BAD_BOUNDARYPOINTS_ERR: 1,
-        INVALID_NODE_TYPE_ERR: 2
-    };
 
     /**
      * @constructor
      */
     function RangeException(codeName) {
-        this.code = rangeExceptionCodes[codeName];
+        this.code = this[codeName];
         this.codeName = codeName;
         this.message = "RangeException: " + this.codeName;
     }
 
-    RangeException.prototype = rangeExceptionCodes;
+    RangeException.prototype = {
+        BAD_BOUNDARYPOINTS_ERR: 1,
+        INVALID_NODE_TYPE_ERR: 2
+    };
 
     RangeException.prototype.toString = function() {
         return this.message;
