@@ -218,7 +218,6 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, true);
         });
 
-
         s.test("selectAllChildren same document test", function(t) {
             var sel = selectionCreator(win);
             sel.removeAllRanges();
@@ -234,6 +233,23 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquals(sel.focusOffset, doc.body.childNodes.length);
             t.assertEquivalent(sel.isCollapsed, false);
         });
+
+        s.test("HTML 5 toString test", function(t) {
+            var div = doc.createElement("div");
+            div.innerHTML = 'one<script type="text/javascript">var x = 1;</script>two';
+            doc.body.appendChild(div);
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.selectNodeContents(div);
+            sel.addRange(range);
+            var rangeText = range.toString();
+            var selText = sel.toString();
+            doc.body.removeChild(div);
+            t.assertEquals(rangeText, "onevar x = 1;two");
+            t.assertEquals(selText, "onevar x = 1;two");
+        });
+
     }, false);
 }
 
