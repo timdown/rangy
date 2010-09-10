@@ -105,6 +105,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             var range = rangeCreator(doc);
             range.selectNodeContents(t.nodes.plainText);
             sel.addRange(range);
+            t.assertEquals(sel.rangeCount, 1);
             sel.removeRange(range);
             t.assertEquals(sel.rangeCount, 0);
             t.assertNull(sel.anchorNode);
@@ -120,6 +121,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             var range = rangeCreator(doc);
             range.selectNodeContents(t.nodes.plainText);
             sel.addRange(range);
+            t.assertEquals(sel.rangeCount, 1);
             range.selectNodeContents(t.nodes.b);
             sel.removeRange(range);
             t.assertEquals(sel.rangeCount, 0);
@@ -201,7 +203,6 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, true);
         });
 
-
         s.test("collapseToEnd test", function(t) {
             var sel = selectionCreator(win);
             sel.removeAllRanges();
@@ -234,7 +235,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, false);
         });
 
-        s.test("HTML 5 toString test", function(t) {
+        s.test("HTML 5 toString script contents test", function(t) {
             var div = doc.createElement("div");
             div.innerHTML = 'one<script type="text/javascript">var x = 1;</script>two';
             doc.body.appendChild(div);
@@ -250,6 +251,21 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquals(selText, "onevar x = 1;two");
         });
 
+        s.test("HTML 5 toString display:none contents test", function(t) {
+            var div = doc.createElement("div");
+            div.innerHTML = 'one<div style="display: none">two</div>three';
+            doc.body.appendChild(div);
+            var sel = selectionCreator(win);
+            sel.removeAllRanges();
+            var range = rangeCreator(doc);
+            range.selectNodeContents(div);
+            sel.addRange(range);
+            var rangeText = range.toString();
+            var selText = sel.toString();
+            doc.body.removeChild(div);
+            t.assertEquals(rangeText, "onetwothree");
+            t.assertEquals(selText, "onetwothree");
+        });
     }, false);
 }
 

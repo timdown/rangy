@@ -40,6 +40,19 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
+    // Test whether the removeRange works as the HTML 5 draft spec suggests, which is that it looks for the first
+    // occurrence of the actual range object provided and removes it
+    var hasWorkingRemoveRange = false;
+    if (util.areHostMethods(testSelection, ["removeRange", "removeAllRanges", "addRange", "getRangeAt"]) &&
+            typeof testSelection.rangeCount == "number") {
+        testSelection.removeAllRanges();
+        testSelection.addRange(testRange);
+        if (testSelection.rangeCount == 1) {
+            testSelection.removeRange(testRange);
+            hasWorkingRemoveRange = (testSelection.rangeCount == 0);
+        }
+    }
+
     // ControlRanges
     var selectionHasType = util.isHostProperty(testSelection, "type");
     var implementsControlRange = false, testControlRange;
@@ -157,7 +170,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (selectionHasAnchorAndFocus && util.areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
         selProto.removeAllRanges = function() {
             this.nativeSelection.removeAllRanges();
+            console.log("removeAllRanges before: " + this.rangeCount);
             updateEmptySelection(this);
+            console.log("removeAllRanges after: " + this.rangeCount);
         };
 
         selProto.addRange = function(range) {
@@ -293,7 +308,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // Removal of a single range
 
-    if (util.isHostMethod(testSelection, "removeRange") && typeof testSelection.rangeCount == "number") {
+    if (hasWorkingRemoveRange) {
         selProto.removeRange = function(range) {
             this.nativeSelection.removeRange(getNativeRange(range));
             updateAnchorAndFocusFromNativeSelection(this);
@@ -303,9 +318,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
     } else {
         var removeRangeManually = function(sel, range) {
             var ranges = sel.getAllRanges(), removed = false;
+            console.log("removeRangeManually with " + ranges.length + " ranges (rangeCount " + sel.rangeCount);
             sel.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
-                if (removed || !DomRange.util.rangesEqual(ranges[i], range)) {
+                //if (removed || !DomRange.util.rangesEqual(ranges[i], range)) {
+                if (removed || range !== ranges[i]) {
                     sel.addRange(ranges[i]);
                 } else {
                     // According to the HTML 5 spec, the same range may be added to the selection multiple times.
@@ -317,6 +334,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (!sel.rangeCount) {
                 updateEmptySelection(sel);
             }
+            console.log("removeRangeManually finished with rangeCount " + sel.rangeCount);
         };
 
         if (selectionHasType && implementsControlRange) {
@@ -369,41 +387,28 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     // Selection text
-    if (util.isHostMethod(testSelection, "toString")) {
-        selProto.toString = function() {
-            return "" + this.nativeSelection;
-        };
-    } else {
-        selProto.toString = function() {
-            log.debug("selection toString called");
-            var rangeTexts = [];
-            for (var i = 0, len = this.rangeCount; i < len; ++i) {
-                rangeTexts[i] = "" + this.getRangeAt(i);
-            }
-            return rangeTexts.join("");
-        };
-    }
+    // This is conformant to the HTML 5 draft spec but differs from WebKit and Mozilla's implementation
+    selProto.toString = function() {
+        log.debug("selection toString called");
+        var rangeTexts = [];
+        for (var i = 0, len = this.rangeCount; i < len; ++i) {
+            rangeTexts[i] = "" + this.getRangeAt(i);
+        }
+        return rangeTexts.join("");
+    };
 
-    if (util.isHostMethod(testSelection, "collapse")) {
-        selProto.collapse = function(node, offset) {
-            this.nativeSelection.collapse(node, offset);
-            updateAnchorAndFocusFromNativeSelection(this);
-            this.rangeCount = 1;
-            this.isCollapsed = true;
-        };
-    } else {
-        selProto.collapse = function(node, offset) {
-            if (this.anchorNode && (dom.getDocument(this.anchorNode) !== dom.getDocument(node))) {
-                throw new DOMException("WRONG_DOCUMENT_ERR");
-            }
-            var range = api.createRange(dom.getDocument(node));
-            range.setStart(node, offset);
-            range.collapse(true);
-            this.removeAllRanges();
-            this.addRange(range);
-            this.isCollapsed = true;
-        };
-    }
+    // No current browsers conform fully to the HTML 5 draft spec for this method, so Rangy's own method is always used
+    selProto.collapse = function(node, offset) {
+        if (this.anchorNode && (dom.getDocument(this.anchorNode) !== dom.getDocument(node))) {
+            throw new DOMException("WRONG_DOCUMENT_ERR");
+        }
+        var range = api.createRange(dom.getDocument(node));
+        range.setStart(node, offset);
+        range.collapse(true);
+        this.removeAllRanges();
+        this.addRange(range);
+        this.isCollapsed = true;
+    };
 
     if (util.isHostMethod(testSelection, "collapseToStart")) {
         selProto.collapseToStart = function() {
