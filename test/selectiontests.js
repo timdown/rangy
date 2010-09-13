@@ -132,6 +132,58 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, true);
         });
 
+        if (rangy.features.selectionSupportsMultipleRanges) {
+            s.test("removeRange multiple instances of same range test", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                sel.addRange(range);
+                sel.addRange(range);
+                t.assertEquals(sel.rangeCount, 2);
+                sel.removeRange(range);
+                t.assertEquals(sel.rangeCount, 1);
+                sel.removeRange(range);
+                t.assertEquals(sel.rangeCount, 0);
+            });
+
+            s.test("Multiple ranges test", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                sel.addRange(range);
+                var r2 = rangeCreator(doc);
+                r2.selectNodeContents(t.nodes.boldText);
+                sel.addRange(r2);
+
+                if (sel.rangeCount == 2) {
+                    t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
+                    t.assert(DomRange.util.rangesEqual(r2, sel.getRangeAt(1)));
+                } else if (sel.rangeCount == 1) {
+                    t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
+                }
+            });
+        } else {
+            s.test("Adding mutiple ranges where only one is supported", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range1 = rangeCreator(doc);
+                range1.selectNodeContents(t.nodes.plainText);
+                var range2 = rangeCreator(doc);
+                range2.selectNodeContents(t.nodes.b);
+                sel.addRange(range1);
+                t.assertEquals(sel.rangeCount, 1);
+                sel.addRange(range2);
+                t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(range2, sel.getRangeAt(0));
+                sel.removeRange(range1);
+                t.assertEquals(sel.rangeCount, 1);
+                sel.removeRange(range2);
+                t.assertEquals(sel.rangeCount, 0);
+            });
+        }
+
         s.test("getRangeAt test", function(t) {
             var sel = selectionCreator(win);
             sel.removeAllRanges();
@@ -139,24 +191,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             range.selectNodeContents(t.nodes.plainText);
             sel.addRange(range);
             t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
-        });
-
-        s.test("Multiple ranges test", function(t) {
-            var sel = selectionCreator(win);
-            sel.removeAllRanges();
-            var range = rangeCreator(doc);
-            range.selectNodeContents(t.nodes.plainText);
-            sel.addRange(range);
-            var r2 = rangeCreator(doc);
-            r2.selectNodeContents(t.nodes.boldText);
-            sel.addRange(r2);
-
-            if (sel.rangeCount == 2) {
-                t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
-                t.assert(DomRange.util.rangesEqual(r2, sel.getRangeAt(1)));
-            } else if (sel.rangeCount == 1) {
-                t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
-            }
+            t.assertEquivalent(range, sel.getRangeAt(0));
         });
 
         s.test("Collapse same document test", function(t) {
