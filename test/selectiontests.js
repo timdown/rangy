@@ -74,6 +74,15 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.nodes = null;
         };
 
+        function setUp_noRangeCheck(t) {
+            t.initialCheckSelectionRanges = rangy.checkSelectionRanges;
+            rangy.checkSelectionRanges = false;
+        }
+
+        function tearDown_noRangeCheck(t) {
+            rangy.checkSelectionRanges = t.initialCheckSelectionRanges;
+        }
+
         s.test("removeAllRanges test", function(t) {
             var sel = selectionCreator(win);
             sel.removeAllRanges();
@@ -97,7 +106,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.plainText);
             t.assertEquals(sel.focusOffset, t.nodes.plainText.length);
             t.assertEquivalent(sel.isCollapsed, false);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("removeRange test", function(t) {
             var sel = selectionCreator(win);
@@ -113,7 +122,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertNull(sel.focusNode);
             t.assertEquals(sel.focusOffset, 0);
             t.assertEquivalent(sel.isCollapsed, true);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("removeRange instance test", function(t) {
             var sel = selectionCreator(win);
@@ -130,7 +139,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertNull(sel.focusNode);
             t.assertEquals(sel.focusOffset, 0);
             t.assertEquivalent(sel.isCollapsed, true);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         if (rangy.features.selectionSupportsMultipleRanges) {
             s.test("removeRange multiple instances of same range test", function(t) {
@@ -145,7 +154,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.rangeCount, 1);
                 sel.removeRange(range);
                 t.assertEquals(sel.rangeCount, 0);
-            });
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
             s.test("Multiple ranges test", function(t) {
                 var sel = selectionCreator(win);
@@ -163,9 +172,10 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 } else if (sel.rangeCount == 1) {
                     t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
                 }
-            });
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
         } else {
             s.test("Adding mutiple ranges where only one is supported", function(t) {
+                rangy.checkSelectionRanges = false;
                 var sel = selectionCreator(win);
                 sel.removeAllRanges();
                 var range1 = rangeCreator(doc);
@@ -181,7 +191,8 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.rangeCount, 1);
                 sel.removeRange(range2);
                 t.assertEquals(sel.rangeCount, 0);
-            });
+                rangy.checkSelectionRanges = false;
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
         }
 
         s.test("getRangeAt test", function(t) {
@@ -192,7 +203,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             sel.addRange(range);
             t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
             t.assertEquivalent(range, sel.getRangeAt(0));
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("Collapse same document test", function(t) {
             var sel = selectionCreator(win);
@@ -207,7 +218,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.plainText);
             t.assertEquals(sel.focusOffset, 1);
             t.assertEquivalent(sel.isCollapsed, true);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("Collapse other document test", function(t) {
             var sel = selectionCreator(win);
@@ -220,7 +231,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             testExceptionCode(t, function() {
                 sel.collapse(otherDoc.body, 0);
             }, DOMException.prototype.WRONG_DOCUMENT_ERR);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("collapseToStart test", function(t) {
             var sel = selectionCreator(win);
@@ -236,7 +247,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.boldText);
             t.assertEquals(sel.focusOffset, 1);
             t.assertEquivalent(sel.isCollapsed, true);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("collapseToEnd test", function(t) {
             var sel = selectionCreator(win);
@@ -268,12 +279,13 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, doc.body);
             t.assertEquals(sel.focusOffset, doc.body.childNodes.length);
             t.assertEquivalent(sel.isCollapsed, false);
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
-        s.test("HTML 5 toString script contents test", function(t) {
+        s.test("HTML5 toString script contents test", function(t) {
             var div = doc.createElement("div");
             div.innerHTML = 'one<script type="text/javascript">var x = 1;</script>two';
             doc.body.appendChild(div);
+            var s = doc.getElementById("s1");
             var sel = selectionCreator(win);
             sel.removeAllRanges();
             var range = rangeCreator(doc);
@@ -284,9 +296,9 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             doc.body.removeChild(div);
             t.assertEquals(rangeText, "onevar x = 1;two");
             t.assertEquals(selText, "onevar x = 1;two");
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
-        s.test("HTML 5 toString display:none contents test", function(t) {
+        s.test("HTML5 toString display:none contents test", function(t) {
             var div = doc.createElement("div");
             div.innerHTML = 'one<div style="display: none">two</div>three';
             doc.body.appendChild(div);
@@ -300,7 +312,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             doc.body.removeChild(div);
             t.assertEquals(rangeText, "onetwothree");
             t.assertEquals(selText, "onetwothree");
-        });
+        }, setUp_noRangeCheck, tearDown_noRangeCheck);
     }, false);
 }
 

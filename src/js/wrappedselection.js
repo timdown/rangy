@@ -4,6 +4,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.requireModules( ["DomRange", "WrappedRange"] );
 
+    api.checkSelectionRanges = true;
+
     var BOOLEAN = "boolean";
     var dom = api.dom;
     var util = api.util;
@@ -37,7 +39,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // Obtaining a range from a selection
     var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"] &&
                                      util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]));
-
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test whether the native selection is capable of supporting multiple ranges
@@ -47,9 +48,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
         var testRange2 = api.createNativeRange(document);
         testRange2.selectNodeContents(document.body);
+        var testRange3 = api.createNativeRange(document);
+        testRange3.selectNodeContents(document.body.firstChild);
         testSelection.removeAllRanges();
-        testSelection.addRange(testRange);
         testSelection.addRange(testRange2);
+        testSelection.addRange(testRange3);
         selectionSupportsMultipleRanges = (testSelection.rangeCount == 2);
     }
 
@@ -67,34 +70,32 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
     api.features.implementsControlRange = implementsControlRange;
 
+
     // Selection collapsedness
-    if (typeof testSelection.isCollapsed == BOOLEAN) {
-        selectionIsCollapsed = function(sel) {
-            return sel.nativeSelection.isCollapsed;
-        };
-    } else if (selectionHasAnchorAndFocus) {
+    if (selectionHasAnchorAndFocus) {
         selectionIsCollapsed = function(sel) {
             return sel.anchorNode === sel.focusNode && sel.anchorOffset === sel.focusOffset;
         };
     } else {
         selectionIsCollapsed = function(sel) {
-            return sel.rangeCount ? sel.getRangeAt(0).collapsed : false;
+            return sel.rangeCount ? sel.getRangeAt(sel.rangeCount - 1).collapsed : false;
         };
     }
 
-    function updateAnchorAndFocusFromRange(sel, range) {
-        sel.anchorNode = range.startContainer;
-        sel.anchorOffset = range.startOffset;
-        sel.focusNode = range.endContainer;
-        sel.focusOffset = range.endOffset;
+    function updateAnchorAndFocusFromRange(sel, range, backwards) {
+        var anchorPrefix = backwards ? "end" : "start", focusPrefix = backwards ? "start" : "end";
+        sel.anchorNode = range[anchorPrefix + "Container"];
+        sel.anchorOffset = range[anchorPrefix + "Offset"];
+        sel.focusNode = range[focusPrefix + "Container"];
+        sel.focusOffset = range[focusPrefix + "Offset"];
     }
 
     function updateAnchorAndFocusFromNativeSelection(sel) {
-        var n = sel.nativeSelection;
-        sel.anchorNode = n.anchorNode;
-        sel.anchorOffset = n.anchorOffset;
-        sel.focusNode = n.focusNode;
-        sel.focusOffset = n.focusOffset;
+        var nativeSel = sel.nativeSelection;
+        sel.anchorNode = nativeSel.anchorNode;
+        sel.anchorOffset = nativeSel.anchorOffset;
+        sel.focusNode = nativeSel.focusNode;
+        sel.focusOffset = nativeSel.focusOffset;
     }
 
     function updateEmptySelection(sel) {
@@ -150,8 +151,36 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 sel._ranges.push(range);
             }
             sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
-            updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1]);
+            updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], false);
         }
+    }
+
+    var getSelectionRangeAt;
+
+    if (util.isHostMethod(testSelection,  "getRangeAt")) {
+        getSelectionRangeAt = function(sel, index) {
+            try {
+                return sel.getRangeAt(index);
+            } catch(ex) {
+                return null;
+            }
+        };
+    } else if (selectionHasAnchorAndFocus) {
+        getSelectionRangeAt = function(sel, index) {
+            var doc = dom.getDocument(sel.anchorNode);
+            var range = api.createRange(doc);
+            range.setStart(sel.anchorNode, sel.anchorOffset);
+            range.setEnd(sel.focusNode, sel.focusOffset);
+
+            // Handle the case when the selection was selected backwards (from the end to the start in the
+            // document)
+            if (range.collapsed !== this.isCollapsed) {
+                range.setStart(sel.focusNode, sel.focusOffset);
+                range.setEnd(sel.anchorNode, sel.anchorOffset);
+            }
+
+            return range;
+        };
     }
 
     /**
@@ -178,15 +207,26 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
         selProto.addRange = function(range) {
             if (selectionSupportsMultipleRanges) {
-                this._ranges.push(range);
                 this.rangeCount++;
             } else {
-                this._ranges[0] = range;
+                this.removeAllRanges();
                 this.rangeCount = 1;
             }
             this.nativeSelection.addRange(getNativeRange(range));
-            updateAnchorAndFocusFromNativeSelection(this);
+
+            // Check whether the range that we added to the selection is reflected in the last range extracted from
+            // the selection
+            if (api.checkSelectionRanges) {
+                var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
+                if (nativeRange && !DomRange.util.rangesEqual(nativeRange, range)) {
+                    // Happens in WebKit with, for example, a selection placed at the start of a text node
+                    range = nativeRange;
+                }
+            }
+            this._ranges[this.rangeCount - 1] = range;
+            updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
             this.isCollapsed = selectionIsCollapsed(this);
+            //console.log("Native: " + this.nativeSelection.isCollapsed, this.nativeSelection.rangeCount, "" + this.nativeSelection.getRangeAt(0), this.nativeSelection.anchorOffset, this.nativeSelection.focusOffset);
         };
     } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select") &&
                selectionHasType && implementsControlRange) {
@@ -218,6 +258,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 this._ranges[0] = range;
                 this.rangeCount = 1;
                 this.isCollapsed = this._ranges[0].collapsed;
+                updateAnchorAndFocusFromRange(this, range, false);
             }
         };
     } else {
@@ -235,32 +276,27 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         selProto.refresh = function() {
-            updateAnchorAndFocusFromNativeSelection(this);
             this.isCollapsed = selectionIsCollapsed(this);
-            this.rangeCount = this.nativeSelection.rangeCount;
-        };
-    } else if (selectionHasAnchorAndFocus && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
-        selProto.refresh = function() {
-            var doc, range, sel = this.nativeSelection;
-            if (sel.anchorNode) {
-                doc = dom.getDocument(sel.anchorNode);
-                range = api.createRange(doc);
-                range.setStart(sel.anchorNode, sel.anchorOffset);
-                range.setEnd(sel.focusNode, sel.focusOffset);
-
-                // Handle the case when the selection was selected backwards (from the end to the start in the
-                // document)
-                if (range.collapsed !== this.isCollapsed) {
-                    range.setStart(sel.focusNode, sel.focusOffset);
-                    range.setEnd(sel.anchorNode, sel.anchorOffset);
+            this._ranges.length = this.rangeCount = this.nativeSelection.rangeCount;
+            if (this.rangeCount) {
+                for (var i = 0, len = this.rangeCount; i < len; ++i) {
+                    this._ranges[i] = this.nativeSelection.getRangeAt(i);
                 }
-                updateAnchorAndFocusFromNativeSelection(this);
-                this.isCollapsed = range.collapsed;
-                this._ranges = [range];
-                this.rangeCount = 1;
+                updateAnchorAndFocusFromRange(this, this._ranges[this.rangeCount - 1], selectionIsBackwards(this.nativeSelection));
             } else {
                 updateEmptySelection(this);
-                this._ranges = [];
+            }
+        };
+    } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
+        selProto.refresh = function() {
+            var doc, range, sel = this.nativeSelection, backwards = false;
+            if (sel.anchorNode) {
+                range = getSelectionRangeAt(sel, 0);
+                this._ranges = [range];
+                this.rangeCount = 1;
+                updateAnchorAndFocusFromNativeSelection(this);
+            } else {
+                updateEmptySelection(this);
             }
         };
     } else if (util.isHostMethod(testSelection, "createRange") && api.features.implementsTextRange) {
@@ -283,7 +319,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     WrappedRange.rangeToTextRange(wrappedRange).select();
                 }
 
-                updateAnchorAndFocusFromRange(this, wrappedRange);
+                updateAnchorAndFocusFromRange(this, wrappedRange, false);
                 this.rangeCount = 1;
                 this.isCollapsed = wrappedRange.collapsed;
             } else {
@@ -350,16 +386,21 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     // Detecting if a selection is backwards
+    var selectionIsBackwards;
     if (selectionHasAnchorAndFocus && api.features.implementsDomRange) {
-        selProto.isBackwards = function() {
-            var sel = this.nativeSelection, backwards = false;
+        selectionIsBackwards = function(sel) {
+            var backwards = false;
             if (sel.anchorNode) {
                 backwards = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
             }
             return backwards;
         };
-    } else {
+
         selProto.isBackwards = function() {
+            return selectionIsBackwards(this);
+        };
+    } else {
+        selectionIsBackwards = selProto.isBackwards = function() {
             return false;
         };
     }
@@ -370,7 +411,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         log.debug("selection toString called");
         var rangeTexts = [];
         for (var i = 0, len = this.rangeCount; i < len; ++i) {
-            rangeTexts[i] = "" + this.getRangeAt(i);
+            rangeTexts[i] = "" + this._ranges[i];
         }
         return rangeTexts.join("");
     };
@@ -388,47 +429,23 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.isCollapsed = true;
     };
 
-    if (util.isHostMethod(testSelection, "collapseToStart")) {
-        selProto.collapseToStart = function() {
-            this.nativeSelection.collapseToStart();
-            updateAnchorAndFocusFromNativeSelection(this);
-            this.rangeCount = 1;
-            this.isCollapsed = true;
-        };
-    } else {
-        selProto.collapseToStart = function() {
-            if (this.rangeCount) {
-                var range = this.getRangeAt(0);
-                range.collapse(true);
-                this.removeAllRanges();
-                this.addRange(range);
-                this.isCollapsed = true;
-            } else {
-                throw new DOMException("INVALID_STATE_ERR");
-            }
-        };
-    }
+    selProto.collapseToStart = function() {
+        if (this.rangeCount) {
+            var range = this.getRangeAt(0);
+            this.collapse(range.startContainer, range.startOffset);
+        } else {
+            throw new DOMException("INVALID_STATE_ERR");
+        }
+    };
 
-    if (util.isHostMethod(testSelection, "collapseToEnd")) {
-        selProto.collapseToEnd = function() {
-            this.nativeSelection.collapseToEnd();
-            updateAnchorAndFocusFromNativeSelection(this);
-            this.rangeCount = 1;
-            this.isCollapsed = true;
-        };
-    } else {
-        selProto.collapseToEnd = function() {
-            if (this.rangeCount) {
-                var range = this.getRangeAt(this.rangeCount - 1);
-                range.collapse(false);
-                this.removeAllRanges();
-                this.addRange(range);
-                this.isCollapsed = true;
-            } else {
-                throw new DOMException("INVALID_STATE_ERR");
-            }
-        };
-    }
+    selProto.collapseToEnd = function() {
+        if (this.rangeCount) {
+            var range = this.getRangeAt(this.rangeCount - 1);
+            this.collapse(range.endContainer, range.endOffset);
+        } else {
+            throw new DOMException("INVALID_STATE_ERR");
+        }
+    };
 
     // The HTML 5 spec is very specific on how selectAllChildren should be implemented so the native implementation is
     // never used by Rangy.
@@ -440,25 +457,18 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.addRange(range);
     };
 
-    if (util.isHostMethod(testSelection, "deleteFromDocument")) {
-        selProto.deleteFromDocument = function() {
-            this.nativeSelection.deleteFromDocument();
-            updateAnchorAndFocusFromNativeSelection(this);
-            this.rangeCount = 1;
-        };
-    } else {
-        selProto.deleteFromDocument = function() {
-            if (this.rangeCount) {
-                var ranges = this.getAllRanges();
-                this.removeAllRanges();
-                for (var i = 0, len = ranges.length; i < len; ++i) {
-                    ranges[i].deleteContents();
-                }
-                // Firefox moves the selection to where the final selected range was, so we emulate that
-                this.addRange(ranges[len - 1]);
+    selProto.deleteFromDocument = function() {
+        if (this.rangeCount) {
+            var ranges = this.getAllRanges();
+            this.removeAllRanges();
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                ranges[i].deleteContents();
             }
-        };
-    }
+            // The HTML5 spec says nothing about what the selection should contain after calling deleteContents on each
+            // range. Firefox moves the selection to where the final selected range was, so we emulate that
+            this.addRange(ranges[len - 1]);
+        }
+    };
 
     // The following are non-standard extensions
 
@@ -467,11 +477,14 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // Thes two are mine, added for convenience
     selProto.getAllRanges = function() {
         log.warn("getAllRanges called, rangecount: " + this.rangeCount);
+/*
         var ranges = [];
         for (var i = 0; i < this.rangeCount; ++i) {
             ranges[i] = this.getRangeAt(i);
         }
         return ranges;
+*/
+        return this._ranges.slice(0);
     };
 
     selProto.setRanges = function(ranges) {
