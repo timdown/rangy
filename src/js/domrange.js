@@ -476,6 +476,12 @@ rangy.createModule("DomRange", function(api, module) {
             }
         }
 
+        function setRangeStartAndEnd(range, node, offset) {
+            if (node !== range.startContainer || offset !== this.startOffset || node !== range.endContainer || offset !== this.endOffset) {
+                boundaryUpdater(range, node, offset, node, offset);
+            }
+        }
+
         function createRangeContentRemover(remover) {
             return function() {
                 assertNotDetached(this);
@@ -739,6 +745,7 @@ rangy.createModule("DomRange", function(api, module) {
                 return frag;
             },
 
+            // This follows the WebKit model whereby a node that borders a range is considered to intersect with it
             intersectsNode: function(node) {
                 assertNotDetached(this);
                 assertNode(node, "NOT_FOUND_ERR");
@@ -778,16 +785,12 @@ rangy.createModule("DomRange", function(api, module) {
                        dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset) > 0;
             },
 
-            containsNode: function(node) {
-                var parent = node.parentNode;
-                var nodeIndex = dom.getNodeIndex(node);
-
-                if (!parent) {
-                    throw new DOMException("NOT_FOUND_ERR");
+            containsNode: function(node, allowPartial) {
+                if (allowPartial) {
+                    return this.intersectsNode(node);
+                } else {
+                    return this.compareNode(node) == n_i;
                 }
-                //console.log("start: " + this.comparePoint(parent, nodeIndex) + ", end: " + this.comparePoint(parent, nodeIndex + 1));
-
-                return this.comparePoint(parent, nodeIndex) >= 0 && this.comparePoint(parent, nodeIndex + 1) <= 0;
             },
 
             containsNodeContents: function(node) {
@@ -857,6 +860,14 @@ rangy.createModule("DomRange", function(api, module) {
 
             getNodes: function(nodeTypes, filter) {
                 return getNodesInRange(this, nodeTypes, filter);
+            },
+
+            collapseToPoint: function(node, offset) {
+                assertNotDetached(this);
+                assertNoDocTypeNotationEntityAncestor(node, true);
+                assertValidOffset(node, offset);
+
+                setRangeStartAndEnd(this, node, offset);
             }
         };
 

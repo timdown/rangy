@@ -82,6 +82,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     }
 
+    function assertNode(node, codeName) {
+        if (!node) {
+            throw new DOMException(codeName);
+        }
+    }
+
     function updateAnchorAndFocusFromRange(sel, range, backwards) {
         var anchorPrefix = backwards ? "end" : "start", focusPrefix = backwards ? "start" : "end";
         sel.anchorNode = range[anchorPrefix + "Container"];
@@ -289,7 +295,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
         selProto.refresh = function() {
-            var doc, range, sel = this.nativeSelection, backwards = false;
+            var range, sel = this.nativeSelection;
             if (sel.anchorNode) {
                 range = getSelectionRangeAt(sel, 0);
                 this._ranges = [range];
@@ -472,18 +478,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // The following are non-standard extensions
 
-    // TODO: Investigate Mozilla extensions containsNode, extend, [not modify - too hard], selectionLanguageChange
-
-    // Thes two are mine, added for convenience
+    // These two are mine, added for convenience
     selProto.getAllRanges = function() {
         log.warn("getAllRanges called, rangecount: " + this.rangeCount);
-/*
-        var ranges = [];
-        for (var i = 0; i < this.rangeCount; ++i) {
-            ranges[i] = this.getRangeAt(i);
-        }
-        return ranges;
-*/
         return this._ranges.slice(0);
     };
 
@@ -492,5 +489,35 @@ rangy.createModule("WrappedSelection", function(api, module) {
         for (var i = 0, len = ranges.length; i < len; ++i) {
             this.addRange(ranges[i]);
         }
+    };
+
+    selProto.containsNode = function(node, allowPartial) {
+        for (var i = 0, len = this._ranges.length; i < len; ++i) {
+            if (this._ranges[i].containsNode(node, allowPartial)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // TODO: Think about how this works and improve when backwards
+    selProto.extend = function(node, offset) {
+        assertNode(node, "NOT_FOUND_ERR");
+        var sc, so, ec, eo;
+        var range = api.createRange(dom.getDocument(node));
+        if (this.anchorNode) {
+            sc = this.anchorNode;
+            so = this.anchorOffset;
+            if (dom.comparePoints(this.anchorNode, this.anchorOffset, node, offset) <= 0) {
+                range.setStart(this.anchorNode, this.anchorOffset);
+                range.setEnd(node, offset);
+            } else {
+                range.setStart(node, offset);
+                range.setEnd(this.anchorNode, this.anchorOffset);
+            }
+        } else {
+            range.collapseToPoint(node, offset);
+        }
+        this.setRanges([range]);
     };
 });

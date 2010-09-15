@@ -313,6 +313,58 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquals(rangeText, "onetwothree");
             t.assertEquals(selText, "onetwothree");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
+
+        var testSelection = selectionCreator(window);
+        var testRange = rangeCreator(document);
+
+        if (testSelection.containsNode && testRange.containsNode) {
+            s.test("containsNode test", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.plainText, 2);
+                sel.addRange(range);
+                t.assertFalse(sel.containsNode(t.nodes.plainText, false));
+                t.assertTrue(sel.containsNode(t.nodes.plainText, true));
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+        }
+
+        if (testSelection.extend) {
+            s.test("extend test", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.plainText, 2);
+                sel.addRange(range);
+                sel.extend(t.nodes.boldText, 1);
+                t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(sel.anchorNode, t.nodes.plainText);
+                t.assertEquals(sel.anchorOffset, 1);
+                t.assertEquivalent(sel.focusNode, t.nodes.boldText);
+                t.assertEquals(sel.focusOffset, 1);
+                t.assertEquivalent(sel.isCollapsed, false);
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+
+            s.test("extend backwards test", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 2);
+                range.setEnd(t.nodes.plainText, 3);
+                sel.addRange(range);
+                sel.extend(t.nodes.plainText, 1);
+                t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(sel.anchorNode, t.nodes.plainText);
+                t.assertEquals(sel.anchorOffset, 2);
+                t.assertEquivalent(sel.focusNode, t.nodes.plainText);
+                t.assertEquals(sel.focusOffset, 1);
+                t.assertEquivalent(sel.isCollapsed, false);
+                t.assertEquivalent(sel.toString(), "l");
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+        }
+
     }, false);
 }
 
