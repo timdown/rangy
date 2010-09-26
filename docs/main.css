@@ -274,7 +274,9 @@ td.nosupport {
 	background-color: lightcoral;
 }
 
-p.editions {
+p.doclinks, p.propertyattribute {
+/*
 	text-align: right;
+*/
 	font-style: italic;
 }

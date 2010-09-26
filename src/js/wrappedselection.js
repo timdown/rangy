@@ -499,25 +499,4 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
         return false;
     };
-
-    // TODO: Think about how this works and improve when backwards
-    selProto.extend = function(node, offset) {
-        assertNode(node, "NOT_FOUND_ERR");
-        var sc, so, ec, eo;
-        var range = api.createRange(dom.getDocument(node));
-        if (this.anchorNode) {
-            sc = this.anchorNode;
-            so = this.anchorOffset;
-            if (dom.comparePoints(this.anchorNode, this.anchorOffset, node, offset) <= 0) {
-                range.setStart(this.anchorNode, this.anchorOffset);
-                range.setEnd(node, offset);
-            } else {
-                range.setStart(node, offset);
-                range.setEnd(this.anchorNode, this.anchorOffset);
-            }
-        } else {
-            range.collapseToPoint(node, offset);
-        }
-        this.setRanges([range]);
-    };
 });
