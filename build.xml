@@ -10,7 +10,7 @@
 		<delete dir="${working.dir}"/>
 		<delete dir="${output.dir}"/>
 	    <delete includeemptydirs="true">
-		  <fileset dir="${build.dir}" includes="**/*"/>
+		  	<fileset dir="${build.dir}" includes="**/*"/>
 		</delete>
 
 		<mkdir dir="${build.dir}"/>
@@ -37,7 +37,7 @@
 			 classpath="${googlecompressor.jar.path}"/>
 
 	<target name="compress.js" depends="svncheckout">
-	    <filelist id="files.js" dir="${svn.checkout.js.dir}">
+	    <filelist id="files.js" dir="${svn.checkout.js.core.dir}">
 			<file name="core.js" />
 			<file name="dom.js" />
 			<file name="domrange.js" />

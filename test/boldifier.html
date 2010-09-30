@@ -3,7 +3,7 @@
 <html>
 <head>
     <title>Boldifier</title>
-    <script type="text/javascript" src="../src/js/log4javascript.js"></script>
+    <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript">
         var appender = new log4javascript.InPageAppender();
         log4javascript.getRootLogger().addAppender(appender);
@@ -13,13 +13,13 @@
 <!--
     <script type="text/javascript" src="../src/js/rangy.js"></script>
 -->
-    <script type="text/javascript" src="../src/js/core.js"></script>
-    <script type="text/javascript" src="../src/js/dom.js"></script>
-    <script type="text/javascript" src="../src/js/domrange.js"></script>
-    <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
-    <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/textmutation.js"></script>
-    <script type="text/javascript" src="../src/js/boldifier.js"></script>
+    <script type="text/javascript" src="../src/js/core/core.js"></script>
+    <script type="text/javascript" src="../src/js/core/dom.js"></script>
+    <script type="text/javascript" src="../src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/js/modules/textmutation.js"></script>
+    <script type="text/javascript" src="../src/js/modules/boldifier.js"></script>
     <script type="text/javascript">
 
         var cssClassMutator1, cssClassMutator2, boldifier;
