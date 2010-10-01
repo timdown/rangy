@@ -14,23 +14,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    /**
-     * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
-     * TODO: Look into making this a proper iterator, not requiring preloading everything first
-     * @constructor
-     */
-    function BoundaryResult(position, cleanUpFunc, alteredDom) {
-        this.position = position;
-        this.cleanUpFunc = cleanUpFunc;
-        this.alteredDom = alteredDom;
-    }
-
-    BoundaryResult.prototype.cleanUp = function() {
-        if (this.cleanUpFunc) {
-            this.cleanUpFunc();
-        }
-    };
-
     // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an improved
     // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/), fixing problems that
     // library has with line breaks in preformatted text, optimizations and other bugs
@@ -54,14 +37,12 @@ rangy.createModule("WrappedRange", function(api, module) {
         // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
         // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
         if (!containerElement.canHaveHTML) {
-            return new BoundaryResult(
-                    new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement)), null, false);
+            return new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
         }
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
-        var previousNode, nextNode, boundaryPosition, boundaryNode, tempRange, normalizedRangeText, cleanUpFunc = null;
-        var alteredDom = false;
+        var previousNode, nextNode, boundaryPosition, boundaryNode;
 
         // Move the working range through the container's children, starting at
         // the end and working backwards, until the working range reaches or goes
@@ -75,7 +56,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         // We've now reached or gone past the boundary of the text range we're interested in
         // so have identified the node we want
         boundaryNode = workingNode.nextSibling;
-        //log.info("boundaryNode: " + boundaryNode.nodeName + ":" + boundaryNode.nodeValue);
+        log.info("boundaryNode: " + boundaryNode.nodeName + ":" + boundaryNode.nodeValue + ", comparison: " + comparison);
 
         if (comparison == -1 && boundaryNode) {
             // This must be a data node (text, comment, cdata) since we've overshot. The working range is collapsed at
@@ -87,30 +68,18 @@ rangy.createModule("WrappedRange", function(api, module) {
             // Ensure offsets are relative to the character data node's text. To do this, and to ensure trailing line
             // breaks are handled correctly, we use the text property of the TextRange to insert a character and split
             // the node in two after the inserted character. This is only
-            normalizedRangeText = workingRange.text;
+            var offset = workingRange.text.length;
 
             if (/[\r\n]/.test(boundaryNode.data)) {
-                // TODO: Try and stop this clobbering the selection
-                // Insert a character. This is a little destructive but we can restore the node afterwards
-                tempRange = workingRange.duplicate();
-                tempRange.collapse(false);
+                var normalizedData = boundaryNode.data.replace(/\r\n/g, "\n");
+                var tempRange = workingRange.duplicate();
+                var startOffset = -tempRange.moveStart("character", -1e8);
+                var endOffset = -tempRange.moveEnd("character", -1e8);
 
-                // The following line splits the character data node in two and appends a space to the end of the first
-                // node. We can use this to our advantage to obtain the text we need to get an offset within the node
-                tempRange.text = " ";
-                normalizedRangeText = boundaryNode.data.slice(0, -1);
-                alteredDom = true;
-
-                // Now we create a function to be called later that glues the text nodes back together and removes the
-                // inserted space character
-                cleanUpFunc = function() {
-                    nextNode = boundaryNode.nextSibling;
-                    boundaryNode.data = boundaryNode.data.slice(0, -1) + nextNode.data;
-                    nextNode.parentNode.removeChild(nextNode);
-                    textRange.collapse();
-                };
+                offset = endOffset - startOffset;
+                offset += normalizedData.slice(0, offset).split("\n").length - 1;
             }
-            boundaryPosition = new DomPosition(boundaryNode, normalizedRangeText.length);
+            boundaryPosition = new DomPosition(boundaryNode, offset);
         } else {
             // We've hit the boundary exactly, so this must be an element
             log.debug("Hit boundary exactly");
@@ -133,7 +102,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         log.info("textrange text: " + textRange.text);
 
-        return new BoundaryResult(boundaryPosition, cleanUpFunc, alteredDom);
+        return boundaryPosition;
     }
 
     // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
@@ -488,19 +457,14 @@ rangy.createModule("WrappedRange", function(api, module) {
             var start, end;
             if (textRange.text) {
                 log.warn("Creating Range from TextRange. parent element: " + textRange.parentElement().nodeName);
-                end = getTextRangeBoundaryPosition(textRange, false);
                 start = getTextRangeBoundaryPosition(textRange, true);
-                start.cleanUp();
-                end.cleanUp();
-                this.alteredDom = start.alteredDom || end.alteredDom;
+                end = getTextRangeBoundaryPosition(textRange, false);
             } else {
                 end = start = getTextRangeBoundaryPosition(textRange, true);
-                start.cleanUp();
-                this.alteredDom = start.alteredDom;
             }
 
-            this.setStart(start.position.node, start.position.offset);
-            this.setEnd(end.position.node, end.position.offset);
+            this.setStart(start.node, start.offset);
+            this.setEnd(end.node, end.offset);
         };
 
         WrappedRange.prototype = new DomRange(document);

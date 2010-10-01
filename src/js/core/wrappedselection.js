@@ -317,14 +317,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 wrappedRange = new WrappedRange(range);
                 this._ranges = [wrappedRange];
 
-                // Next line is to work round a problem with the TextRange-to-DOM Range code in the case where a
-                // range boundary falls within a preformatted text node containing line breaks: the original
-                // TextRange is altered in the process, so if it was selected, the selection changes and we need to
-                // create a new TextRange and select it
-                if (wrappedRange.alteredDom) {
-                    WrappedRange.rangeToTextRange(wrappedRange).select();
-                }
-
                 updateAnchorAndFocusFromRange(this, wrappedRange, false);
                 this.rangeCount = 1;
                 this.isCollapsed = wrappedRange.collapsed;
