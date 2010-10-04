@@ -54,6 +54,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         testSelection.addRange(testRange2);
         testSelection.addRange(testRange3);
         selectionSupportsMultipleRanges = (testSelection.rangeCount == 2);
+        testSelection.removeAllRanges();
     }
 
     api.features.selectionSupportsMultipleRanges = selectionSupportsMultipleRanges;
@@ -429,7 +430,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.collapseToStart = function() {
         if (this.rangeCount) {
-            var range = this.getRangeAt(0);
+            var range = this._ranges[0];
             this.collapse(range.startContainer, range.startOffset);
         } else {
             throw new DOMException("INVALID_STATE_ERR");
@@ -438,7 +439,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.collapseToEnd = function() {
         if (this.rangeCount) {
-            var range = this.getRangeAt(this.rangeCount - 1);
+            var range = this._ranges[this.rangeCount - 1];
             this.collapse(range.endContainer, range.endOffset);
         } else {
             throw new DOMException("INVALID_STATE_ERR");

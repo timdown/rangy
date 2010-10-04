@@ -56,7 +56,6 @@ rangy.createModule("WrappedRange", function(api, module) {
         // We've now reached or gone past the boundary of the text range we're interested in
         // so have identified the node we want
         boundaryNode = workingNode.nextSibling;
-        log.info("boundaryNode: " + boundaryNode.nodeName + ":" + boundaryNode.nodeValue + ", comparison: " + comparison);
 
         if (comparison == -1 && boundaryNode) {
             // This must be a data node (text, comment, cdata) since we've overshot. The working range is collapsed at

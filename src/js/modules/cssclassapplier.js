@@ -56,7 +56,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return getSortedClassName(el1) == getSortedClassName(el2);
     }
 
-
     var uniqueCssClassRegex = /rangy_[\d]+/;
     var nextUniqueCssId = 0;
 
@@ -71,20 +70,20 @@ rangy.createModule("CssClassApplier", function(api, module) {
     function makeTextNodeOnlyChild(textNode) {
         var doc = dom.getDocument(textNode);
         var parent = textNode.parentNode, previous = textNode.previousSibling, next = textNode.nextSibling;
-        var span, n;
+        var el, n;
         if (next) {
-            span = doc.createElement("span");
-            span.className = parent.className;
+            el = doc.createElement(tagName);
+            el.className = parent.className;
             for (n = next; n; n = textNode.nextSibling) {
-                span.appendChild(n);
+                el.appendChild(n);
             }
-            dom.insertAfter(span, parent);
+            dom.insertAfter(el, parent);
         }
         if (previous) {
-            span = doc.createElement("span");
-            span.className = parent.className;
-            span.appendChild(textNode);
-            dom.insertAfter(span, parent);
+            el = doc.createElement(tagName);
+            el.className = parent.className;
+            el.appendChild(textNode);
+            dom.insertAfter(el, parent);
         }
     }
 
@@ -153,11 +152,24 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     };
 
+    var anyCreated = false;
+
+    function setTagName(tagNameParam) {
+        if (anyCreated) {
+            throw new Error("Too late to set tag name: CssClassAppliers already exist")
+        } else {
+            tagName = tagNameParam;
+        }
+    }
+
     function CssClassApplier(cssClass, normalize) {
         this.cssClass = cssClass;
         this.normalize = normalize;
         this.uniqueCssClass = generateUniqueCssClass();
+        anyCreated = true;
     }
+
+    CssClassApplier.setTagName = setTagName;
 
     CssClassApplier.prototype = {
         isAppliedToTextNode: function(textNode) {
@@ -256,9 +268,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 addClass(parent, this.cssClass);
                 addClass(parent, this.uniqueCssClass);
             } else {
-                var span = this.createContainer(dom.getDocument(textNode));
-                textNode.parentNode.insertBefore(span, textNode);
-                span.appendChild(textNode);
+                var el = this.createContainer(dom.getDocument(textNode));
+                textNode.parentNode.insertBefore(el, textNode);
+                el.appendChild(textNode);
             }
             log.groupEnd();
         },
@@ -271,11 +283,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
             var parent = el.parentNode;
             log.group("Undo, text node is " + textNode.data, el.className);
             if (nextNode && previousNode) {
-                // In this case we need to create a new span for the subsequent text node
-                var span = this.createContainer(dom.getDocument(textNode));
-                span.appendChild(nextNode);
-                dom.insertAfter(span, el);
-                span.parentNode.insertBefore(textNode, span);
+                // In this case we need to create a new container element for the subsequent text node
+                var containerEl = this.createContainer(dom.getDocument(textNode));
+                containerEl.appendChild(nextNode);
+                dom.insertAfter(containerEl, el);
+                containerEl.parentNode.insertBefore(textNode, containerEl);
             } else if (nextNode) {
                 parent.insertBefore(textNode, el);
             } else if (previousNode) {
@@ -375,7 +387,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isAppliedToRange: function(range) {
-            log.info(range)
             range.splitBoundaries();
             var textNodes = range.getNodes( [3] );
             log.info("textNodes", textNodes);
@@ -415,8 +426,29 @@ rangy.createModule("CssClassApplier", function(api, module) {
             } else {
                 this.applyToSelection(win);
             }
+        },
+
+        detach: function(doc) {
+            doc = doc || document;
+            var els = doc.getElementsByTagName(tagName), i = els.length, el;
+            var elsWithUniqueCssClass = [];
+            while (i--) {
+                if (hasClass(els[i], this.uniqueCssClass)) {
+                    elsWithUniqueCssClass.push(els[i]);
+                }
+            }
+
+            i = elsWithUniqueCssClass.length;
+            while (i--) {
+                removeClass(elsWithUniqueCssClass[i], this.uniqueCssClass);
+            }
         }
     };
 
+    function createCssClassApplier(cssClass, normalize) {
+        return new CssClassApplier(cssClass, normalize);
+    }
+
     api.CssClassApplier = CssClassApplier;
+    api.createCssClassApplier = createCssClassApplier;
 });
