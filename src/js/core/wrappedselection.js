@@ -286,7 +286,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             this._ranges.length = this.rangeCount = this.nativeSelection.rangeCount;
             if (this.rangeCount) {
                 for (var i = 0, len = this.rangeCount; i < len; ++i) {
-                    this._ranges[i] = this.nativeSelection.getRangeAt(i);
+                    this._ranges[i] = new api.WrappedRange(this.nativeSelection.getRangeAt(i));
                 }
                 updateAnchorAndFocusFromRange(this, this._ranges[this.rangeCount - 1], selectionIsBackwards(this.nativeSelection));
             } else {

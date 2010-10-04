@@ -7,16 +7,35 @@ rangy.createModule("TextMutation", function(api, module) {
 
     // TODO: Investigate best way to implement these
     function hasClass(el, cssClass) {
-        if (el.className) {
-            var classNames = el.className.split(" ");
-            return dom.arrayContains(classNames, cssClass);
-        }
-        return false;
+        return el.className && new RegExp("(^|\\s)" + cssClass + "(\\s|$)").test(el.className);
     }
+
+    function addClass(el, cssClass) {
+        if (el.className) {
+            if (!hasClass(el, cssClass)) {
+                el.className += " " + cssClass;
+            }
+        } else {
+            el.className = cssClass;
+        }
+    }
+
+    var removeClass = (function() {
+        function replacer(matched, whitespaceBefore, whitespaceAfter) {
+            return (whitespaceBefore && whitespaceAfter) ? " " : "";
+        }
+
+        return function(el, cssClass) {
+            if (el.className) {
+                el.className = el.className.replace(new RegExp("(^|\\s)" + cssClass + "(\\s|$)"), replacer);
+            }
+        };
+    })();
+    
 
     function hasMatchingClass(el, cssClassRegex) {
         if (el.className) {
-            var classNames = el.className.split(" ");
+            var classNames = el.className.split(/\s+/);
             var i = classNames.length;
             while (i--) {
                 if (cssClassRegex.test(classNames[i])) {
@@ -27,32 +46,8 @@ rangy.createModule("TextMutation", function(api, module) {
         return false;
     }
 
-    function addClass(el, cssClass) {
-        if (!hasClass(el, cssClass)) {
-            if (el.className) {
-                el.className += " " + cssClass;
-            } else {
-                el.className = cssClass;
-            }
-        }
-    }
-
-    function removeClass(el, cssClass) {
-        if (hasClass(el, cssClass)) {
-            // Rebuild the className property
-            var existingClasses = el.className.split(" ");
-            var newClasses = [];
-            for (var i = 0, len = existingClasses.length; i < len; i++) {
-                if (existingClasses[i] != cssClass) {
-                    newClasses[newClasses.length] = existingClasses[i];
-                }
-            }
-            el.className = newClasses.join(" ");
-        }
-    }
-
     function getSortedClassName(el) {
-        return el.className.split(" ").sort().join(" ");
+        return el.className.split(/\s+/).sort().join(" ");
     }
 
     function hasSameClasses(el1, el2) {

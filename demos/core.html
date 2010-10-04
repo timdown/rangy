@@ -3,15 +3,15 @@
 <head>
     <title>Rangy Core Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
-    <script type="text/javascript" src="../build/rangy-core-src.js"></script>
-<!--
+    <!--build:dist<script type="text/javascript" src="../build/rangy-core.js"></script>--build:dist_end-->
+    <!--build:dev-->
     <script type="text/javascript" src="../src/js/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core.js"></script>
     <script type="text/javascript" src="../src/js/dom.js"></script>
     <script type="text/javascript" src="../src/js/domrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/wrappedselection.js"></script>
--->
+    <!--build:dev_end-->
 
     <script type="text/javascript">
         function reportSelection() {
@@ -65,7 +65,6 @@
             var range = getFirstRange();
             if (range) {
                 range.deleteContents();
-                //showContent(null);
             }
         }
 
@@ -79,7 +78,6 @@
                 } catch(ex) {
                     alert("Unable to surround range: " + ex);
                 }
-                //showContent(null);
             }
         }
 
@@ -91,13 +89,10 @@
                 el.style.color = "red";
                 el.style.fontWeight = "bold";
                 el.appendChild(document.createTextNode("**INSERTED NODE**"));
-                //alert(window.getSelection().getRangeAt(0))
-                //window.getSelection().getRangeAt(0).insertNode(el);
                 range.insertNode(el);
                 var sel = rangy.getSelection();
                 sel.removeAllRanges();
                 sel.addRange(range);
-                //alert(range);
             }
         }
 

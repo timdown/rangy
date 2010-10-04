@@ -36,7 +36,7 @@
     <taskdef name="jscomp" classname="com.google.javascript.jscomp.ant.CompileTask"
 			 classpath="${googlecompressor.jar.path}"/>
 
-	<target name="compress.js" depends="svncheckout">
+	<target name="compress.core.js" depends="svncheckout">
 	    <filelist id="files.js" dir="${svn.checkout.js.core.dir}">
 			<file name="core.js" />
 			<file name="dom.js" />
@@ -72,7 +72,7 @@
 	</target>
 
   <target name="build.textinputs.jquery" depends="svncheckout">
-	<copy file="${svn.checkout.js.dir}/textinputs_jquery.js" tofile="${build.textinputs.jquery.js.file}"/>
+	<copy file="${svn.checkout.js.modules.dir}/textinputs_jquery.js" tofile="${build.textinputs.jquery.js.file}"/>
 
 	<!-- Replace version number -->
 	<replace file="${build.textinputs.jquery.js.file}" token="%%build:version%%" value="${build.version}"/>
@@ -96,5 +96,5 @@
 
   </target>
 
-	<target name="build" description="Full build" depends="compress.js, build.textinputs.jquery"/>
+	<target name="build" description="Full build" depends="compress.core.js, build.textinputs.jquery"/>
 </project>
