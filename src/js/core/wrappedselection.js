@@ -6,7 +6,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.checkSelectionRanges = true;
 
-    var BOOLEAN = "boolean";
+    var BOOLEAN = "boolean", windowPropertyName = "_rangySelection";
     var dom = api.dom;
     var util = api.util;
     var DomRange = api.DomRange;
@@ -32,6 +32,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     api.getNativeSelection = getSelection;
+
+    // Test whether
 
     var testSelection = getSelection();
     var testRange = api.createNativeRange(document);
@@ -200,7 +202,15 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     api.getSelection = function(win) {
-        return new WrappedSelection(getSelection(win));
+        win = win || window;
+        var sel = win[windowPropertyName];
+        if (sel) {
+            sel.refresh();
+        } else {
+            sel = new WrappedSelection(getSelection(win));
+            win[windowPropertyName] = sel;
+        }
+        return sel;
     };
 
     var selProto = WrappedSelection.prototype;
@@ -492,4 +502,53 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
         return false;
     };
+
+    selProto.detach = function() {
+        if (this.anchorNode) {
+            dom.getWindow(this.anchorNode)[windowPropertyName] = null;
+        }
+    };
+
+/*
+    (function() {
+        function createDetachedMethod(methodName) {
+            return function() {
+                throw new Error("WrappedSelection." + methodName + ": selection is detached.");
+            };
+        }
+
+        var methodNames = ["containsNode", "setRanges", "getAllRanges", "deleteFromDocument", "selectAllChildren",
+            "collapseToEnd", "collapseToStart", "collapse", "toString", "isBackwards", "removeRange", "removeAllRanges",
+            "refresh", "getRangeAt", "addRange"];
+
+        var propertyNames = ["anchorNode", "anchorOffset", "focusNode", "focusOffset", "_ranges", "rangeCount",
+            "isCollapsed"];
+
+        var detachedMethods = {};
+        var i = methodNames.length, methodName;
+        while (i--) {
+            methodName = methodNames[i];
+            detachedMethods[methodName] = createDetachedMethod(methodName);
+        }
+
+        selProto.detach = function() {
+            if (this.anchorNode) {
+                dom.getWindow(this.anchorNode)[windowPropertyName] = null;
+            }
+
+            // Replace all methods with error generating functions
+            var i = methodNames.length, methodName;
+            while (i--) {
+                methodName = methodNames[i];
+                this[methodName] = detachedMethods[methodName];
+            }
+
+            // Set all properties to null
+            i = propertyNames.length;
+            while (i--) {
+                this[propertyNames[i]] = null;
+            }
+        };
+    })();
+*/
 });

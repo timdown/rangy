@@ -428,7 +428,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         },
 
-        detach: function(doc) {
+        removeUniqueClass: function(doc) {
             doc = doc || document;
             var els = doc.getElementsByTagName(tagName), i = els.length, el;
             var elsWithUniqueCssClass = [];
@@ -442,6 +442,10 @@ rangy.createModule("CssClassApplier", function(api, module) {
             while (i--) {
                 removeClass(elsWithUniqueCssClass[i], this.uniqueCssClass);
             }
+        },
+
+        detach: function(doc) {
+            this.removeUniqueClass(doc);
         }
     };
 

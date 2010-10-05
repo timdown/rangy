@@ -1,5 +1,6 @@
 rangy.createModule("DomUtil", function(api, module) {
     var log = log4javascript.getLogger("rangy.dom");
+    var UNDEF = "undefined";
 
     // Perform feature tests
     if (!api.util.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
@@ -117,14 +118,25 @@ rangy.createModule("DomUtil", function(api, module) {
     function getDocument(node) {
         if (node.nodeType == 9) {
             return node;
-        } else if (typeof node.ownerDocument != "undefined") {
+        } else if (typeof node.ownerDocument != UNDEF) {
             return node.ownerDocument;
-        } else if (typeof node.document != "undefined") {
+        } else if (typeof node.document != UNDEF) {
             return node.document;
         } else if (node.parentNode) {
             return getDocument(node.parentNode);
         } else {
             throw new Error("getDocument: no document found for node");
+        }
+    }
+
+    function getWindow(node) {
+        var doc = getDocument(node);
+        if (typeof doc.defaultView != UNDEF) {
+            return doc.defaultView;
+        } else if (typeof doc.parentWindow != UNDEF) {
+            return doc.parentWindow;
+        } else {
+            throw new Error("Cannot get a window object for node");
         }
     }
 
@@ -267,6 +279,7 @@ rangy.createModule("DomUtil", function(api, module) {
         insertAfter: insertAfter,
         splitDataNode: splitDataNode,
         getDocument: getDocument,
+        getWindow: getWindow,
         comparePoints: comparePoints,
         createIterator: createIterator,
         DomPosition: DomPosition,
