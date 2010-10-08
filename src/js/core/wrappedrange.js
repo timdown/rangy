@@ -1,5 +1,5 @@
 rangy.createModule("WrappedRange", function(api, module) {
-    api.requireModules( ["DomRange"] );
+    api.requireModules( ["DomUtil", "DomRange"] );
 
     /**
      * @constructor
@@ -65,18 +65,22 @@ rangy.createModule("WrappedRange", function(api, module) {
             log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
 
             // Ensure offsets are relative to the character data node's text. To do this, and to ensure trailing line
-            // breaks are handled correctly, we use the text property of the TextRange to insert a character and split
-            // the node in two after the inserted character. This is only
-            var offset = workingRange.text.length;
+            // breaks are handled correctly, we use the values returned by the range's moveStart method.
+
+            //var offset = workingRange.text.length;
 
             if (/[\r\n]/.test(boundaryNode.data)) {
-                var normalizedData = boundaryNode.data.replace(/\r\n/g, "\n");
+                // The "move by negative gazillion" method is very very slow when the range is towards the end of a
+                // large/complicated document, and the following is much quicker and less affected by document size and
+                // the range's location within the document
                 var tempRange = workingRange.duplicate();
-                var startOffset = -tempRange.moveStart("character", -1e8);
-                var endOffset = -tempRange.moveEnd("character", -1e8);
-
-                offset = endOffset - startOffset;
-                offset += normalizedData.slice(0, offset).split("\n").length - 1;
+                var rangeLength = tempRange.text.replace(/\r\n/g, "\n").length;
+                var offset = tempRange.moveStart("character", rangeLength);
+                while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
+                    offset++;
+                    tempRange.moveStart("character", 1);
+                }
+                offset += boundaryNode.data.replace(/\r\n/g, "\n").slice(0, offset).split("\n").length - 1;
             }
             boundaryPosition = new DomPosition(boundaryNode, offset);
         } else {
@@ -285,7 +289,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             // Create test range and node for deature detection
 
             var testTextNode = document.createTextNode("test");
-            document.body.appendChild(testTextNode);
+            dom.getBody(document).appendChild(testTextNode);
             var range = document.createRange();
 
             /*--------------------------------------------------------------------------------------------------------*/
@@ -295,7 +299,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             // by using DomRange's insertNode implementation
 
 /*
-            var span = document.body.insertBefore(document.createElement("span"), testTextNode);
+            var span = dom.getBody(document).insertBefore(document.createElement("span"), testTextNode);
             var spanText = span.appendChild(document.createTextNode("span"));
             range.setEnd(testTextNode, 2);
             range.setStart(spanText, 2);
@@ -443,7 +447,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             /*--------------------------------------------------------------------------------------------------------*/
 
             // Clean up
-            document.body.removeChild(testTextNode);
+            dom.getBody(document).removeChild(testTextNode);
             range.detach();
             range2.detach();
         })();

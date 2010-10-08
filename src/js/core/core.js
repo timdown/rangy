@@ -104,8 +104,10 @@ var rangy = (function() {
             testRange.detach();
         }
 
-        if (isHostObject(document, "body") && isHostMethod(document.body, "createTextRange")) {
-            testRange = document.body.createTextRange();
+        var body = isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+
+        if (body && isHostMethod(body, "createTextRange")) {
+            testRange = body.createTextRange();
             if (areHostMethods(testRange, textRangeMethods) && areHostProperties(testRange, textRangeProperties)) {
                 implementsTextRange = true;
             }
@@ -138,8 +140,13 @@ var rangy = (function() {
     var initListeners = [];
     var moduleInitializers = [];
 
+    // Execute listener immediately if already initialized
     api.addInitListener = function(listener) {
-        initListeners.push(listener);
+        if (api.initialized) {
+            listener(api);
+        } else {
+            initListeners.push(listener);
+        }
     };
 
     /**

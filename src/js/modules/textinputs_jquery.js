@@ -12,6 +12,7 @@
  * Build date: %%build:date%%
  */
 (function($) {
+    var UNDEF = "undefined";
     var getSelection, setSelection, deleteSelectedText, deleteText, insertText;
     var replaceSelectedText, surroundSelectedText, extractSelectedText, collapseSelection;
 
@@ -23,7 +24,7 @@
     }
 
     function isHostProperty(object, property) {
-        return typeof(object[property]) != "undefined";
+        return typeof(object[property]) != UNDEF;
     }
 
     function isHostObject(object, property) {
@@ -40,7 +41,7 @@
         if (start < 0) {
             start += el.value.length;
         }
-        if (typeof end == "undefined") {
+        if (typeof end == UNDEF) {
             end = start;
         }
         if (end < 0) {
@@ -58,9 +59,14 @@
         };
     }
 
+    function getBody() {
+        return isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+    }
+
     $(document).ready(function() {
         var testTextArea = document.createElement("textarea");
-        document.body.appendChild(testTextArea);
+
+        getBody().appendChild(testTextArea);
 
         if (isHostProperty(testTextArea, "selectionStart") && isHostProperty(testTextArea, "selectionEnd")) {
             getSelection = function(el) {
@@ -141,13 +147,13 @@
                 range.select();
             };
         } else {
-            document.body.removeChild(testTextArea);
+            getBody().removeChild(testTextArea);
             fail("No means of finding text input caret position");
             return;
         }
 
         // Clean up
-        document.body.removeChild(testTextArea);
+        getBody().removeChild(testTextArea);
 
         deleteText = function(el, start, end, moveSelection) {
             var val;

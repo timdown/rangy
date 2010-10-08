@@ -442,7 +442,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         removeUniqueClass: function(doc) {
             doc = doc || document;
-            var els = doc.getElementsByTagName(tagName), i = els.length, el;
+            var els = doc.getElementsByTagName(tagName), i = els.length;
             var elsWithUniqueCssClass = [];
             while (i--) {
                 if (hasClass(els[i], this.uniqueCssClass)) {

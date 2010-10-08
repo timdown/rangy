@@ -1,22 +1,27 @@
 rangy.createModule("DomUtil", function(api, module) {
     var log = log4javascript.getLogger("rangy.dom");
     var UNDEF = "undefined";
+    var util = api.util;
 
     // Perform feature tests
-    if (!api.util.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
+    if (!util.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
         module.fail("document missing a Node creation method");
     }
 
+    if (!util.isHostMethod(document, "getElementsByTagName")) {
+        module.fail("document getElementsByTagName method");
+    }
+
     var el = document.createElement("div");
-    if (!api.util.areHostMethods(el, ["insertBefore", "appendChild", "cloneNode"] ||
-            !api.util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]))) {
+    if (!util.areHostMethods(el, ["insertBefore", "appendChild", "cloneNode"] ||
+            !util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]))) {
         module.fail("Incomplete Element implementation");
     }
 
     var textNode = document.createTextNode("test");
-    if (!api.util.areHostMethods(textNode, ["splitText", "deleteData", "insertData", "appendData", "cloneNode"] ||
-            !api.util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]) ||
-            !api.util.areHostProperties(textNode, ["data"]))) {
+    if (!util.areHostMethods(textNode, ["splitText", "deleteData", "insertData", "appendData", "cloneNode"] ||
+            !util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]) ||
+            !util.areHostProperties(textNode, ["data"]))) {
         module.fail("Incomplete Text Node implementation");
     }
 
@@ -138,6 +143,10 @@ rangy.createModule("DomUtil", function(api, module) {
         } else {
             throw new Error("Cannot get a window object for node");
         }
+    }
+
+    function getBody(doc) {
+        return util.isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
     }
 
     function comparePoints(nodeA, offsetA, nodeB, offsetB) {
@@ -280,6 +289,7 @@ rangy.createModule("DomUtil", function(api, module) {
         splitDataNode: splitDataNode,
         getDocument: getDocument,
         getWindow: getWindow,
+        getBody: getBody,
         comparePoints: comparePoints,
         createIterator: createIterator,
         DomPosition: DomPosition,

@@ -1,4 +1,4 @@
-<project name="Widgit Symbol Editor" default="build" basedir="">
+<project name="Rangy" default="build" basedir="">
     <property file="${basedir}/build.properties"/>
 
     <tstamp>

@@ -18,6 +18,8 @@
             msgs.push("Text node length is " + textNode.data.length);
             msgs.push("Range text is " + convertCrLf(r.text));
             msgs.push("Range text length is " + r.text.length);
+            msgs.push("Pre innerText is " + convertCrLf(pre.innerText));
+            msgs.push("Pre innerText length is " + pre.innerText.length);
 
 
 
@@ -29,7 +31,7 @@
             while ( (comparison = r2.compareEndPoints("StartToEnd", r2)) == -1) {
                 charCount++;
                 r2.moveEnd("character", -1);
-                msgs.push("Comparison is " + comparison + ", range text is " + convertCrLf(r2.text));
+                msgs.push("Comparison is " + comparison + ", range text is " + convertCrLf(r2.text) + ", range htmlText is " + convertCrLf(r2.htmlText) + ", range bounding dimensions are " + r2.boundingWidth + ", " + r2.boundingHeight);
             }
             msgs.push("moveEnd with -1 chars called " + charCount + " times, comparison: " + comparison);
 
@@ -38,12 +40,11 @@
 
 
             function testLongText() {
-                var longString = new Array(1e4).join("\r\n");
+                var longString = new Array(1e2).join("Some text\r\n");
                 pre.firstChild.data = longString;
                 var start, end;
                 r.moveToElementText(pre);
 
-/*
                 r2 = r.duplicate();
                 start = new Date();
                 charCount = 0;
@@ -53,7 +54,53 @@
                 }
                 end = new Date();
                 msgs.push("Char count with lots of -1: " + charCount + ", time: " + (end - start));
-*/
+
+                r2 = r.duplicate();
+                start = new Date();
+                charCount = 0;
+                while ( (comparison = r2.compareEndPoints("StartToEnd", r2)) == -1) {
+                    charCount++;
+                    r2.moveStart("character", 1);
+                }
+                end = new Date();
+                msgs.push("Char count with lots of +1: " + charCount + ", time: " + (end - start));
+
+                r2 = r.duplicate();
+                start = new Date();
+                var rangeLength = r2.text.replace(/\r\n/g, "\r").length;
+                charCount = r2.moveStart("character", rangeLength);
+                msgs.push("Char count after moving range length of " + rangeLength + ": " + charCount);
+
+                while ( (comparison = r2.compareEndPoints("StartToEnd", r2)) == -1) {
+                    charCount++;
+                    r2.moveStart("character", 1);
+                }
+                end = new Date();
+                msgs.push("Char count with initial range text length then some +1: " + charCount + ", time: " + (end - start));
+
+
+                r2 = r.duplicate();
+                start = new Date();
+                var r3 = r2.duplicate();
+                r3.collapse(false);
+                charCount = 0;
+                while (!r2.isEqual(r3)) {
+                    charCount++;
+                    r2.moveStart("character", 1);
+                }
+                end = new Date();
+                msgs.push("Char count with lots of +1 and isEqual: " + charCount + ", time: " + (end - start));
+
+                r2 = r.duplicate();
+                start = new Date();
+                r3.collapse(false);
+                charCount = 0;
+                while (r2.boundingWidth) {
+                    charCount++;
+                    r2.moveStart("character", 1);
+                }
+                end = new Date();
+                msgs.push("Char count with lots of +1 boundingWidth: " + charCount + ", time: " + (end - start));
 
                 r2 = r.duplicate();
                 start = new Date();
@@ -74,7 +121,7 @@
             testLongText();
 
             var bigEl = document.createElement("div");
-            bigEl.innerHTML = new Array(1e3).join("<b>bum <i>poo</i></b>");
+            bigEl.innerHTML = new Array(3e3).join("<b>bum <i>poo</i></b>");
             msgs.push("bigEl.innerHTML length: " + bigEl.innerHTML.length);
             document.body.insertBefore(bigEl, pre);
 

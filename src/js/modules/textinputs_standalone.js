@@ -61,9 +61,13 @@ var rangyTextInputs;
         };
     }
 
+    function getBody() {
+        return isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+    }
+
     function init() {
         var testTextArea = document.createElement("textarea");
-        document.body.appendChild(testTextArea);
+        getBody().appendChild(testTextArea);
 
         if (isHostProperty(testTextArea, "selectionStart") && isHostProperty(testTextArea, "selectionEnd")) {
             getSelection = function(el) {
@@ -144,13 +148,13 @@ var rangyTextInputs;
                 range.select();
             };
         } else {
-            document.body.removeChild(testTextArea);
+            getBody().removeChild(testTextArea);
             fail("No means of finding text input caret position");
             return;
         }
 
         // Clean up
-        document.body.removeChild(testTextArea);
+        getBody().removeChild(testTextArea);
 
         deleteText = function(el, start, end, moveSelection) {
             var val;

@@ -40,7 +40,6 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
         var win, doc;
         var DomRange = rangy.DomRange;
         var DOMException = rangy.dom.DOMException;
-        var RangeException = DomRange.RangeException;
 
         s.setUp = function(t) {
             win = wins[0];

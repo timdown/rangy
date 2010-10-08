@@ -2,7 +2,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // This will create a selection object wrapper that follows the HTML5 draft spec selections section
     // (http://dev.w3.org/html5/spec/editing.html#selection) and adds convenience extensions
 
-    api.requireModules( ["DomRange", "WrappedRange"] );
+    api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
 
     api.checkSelectionRanges = true;
 
@@ -49,9 +49,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
         var testRange2 = api.createNativeRange(document);
-        testRange2.selectNodeContents(document.body);
+        testRange2.selectNodeContents(dom.getBody(document));
         var testRange3 = api.createNativeRange(document);
-        testRange3.selectNodeContents(document.body.firstChild);
+        testRange3.selectNodeContents(dom.getBody(document).firstChild);
         testSelection.removeAllRanges();
         testSelection.addRange(testRange2);
         testSelection.addRange(testRange3);
@@ -65,8 +65,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var selectionHasType = util.isHostProperty(testSelection, "type");
     var implementsControlRange = false, testControlRange;
 
-    if (util.isHostObject(document, "body") && util.isHostMethod(document.body, "createControlRange")) {
-        testControlRange = document.body.createControlRange();
+    var body = dom.getBody(document);
+    if (body && util.isHostMethod(body, "createControlRange")) {
+        testControlRange = body.createControlRange();
         if (util.areHostProperties(testControlRange, ["item", "add"])) {
             implementsControlRange = true;
         }
