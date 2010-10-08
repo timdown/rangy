@@ -1,131 +1,108 @@
 <project name="Widgit Symbol Editor" default="build" basedir="">
-	<property file="${basedir}/build.properties"/>
+    <property file="${basedir}/build.properties"/>
 
-	<tstamp>
-	  	<format property="TODAY" pattern="d MMMM yyyy" locale="en,UK"/>
-	</tstamp>
+    <tstamp>
+          <format property="TODAY" pattern="d MMMM yyyy" locale="en,UK"/>
+    </tstamp>
 
-	<target name="init">
-		<!--<delete dir="${svn.checkout.dir}"/>-->
-		<delete dir="${working.dir}"/>
-		<delete dir="${output.dir}"/>
-	    <delete includeemptydirs="true">
-		  	<fileset dir="${build.dir}" includes="**/*"/>
-		</delete>
+    <target name="init">
+        <delete dir="${svn.checkout.dir}"/>
+        <delete dir="${working.dir}"/>
+        <delete dir="${output.dir}"/>
+        <delete includeemptydirs="true">
+              <fileset dir="${build.dir}" includes="**/*"/>
+        </delete>
 
-		<mkdir dir="${build.dir}"/>
-		<mkdir dir="${svn.checkout.dir}"/>
-	</target>
-
-	<!--
-	Note: this task requires SvnAnt to be installed on your machine, and the
-	jar files in SvanAnt's lib dir being copied to Ant's lib directory.
-	See http://subclipse.tigris.org/svnant.html
-	-->
-    <taskdef name="svn" classname="org.tigris.subversion.svnant.SvnTask"/>
-
-	<target name="svncheckout" depends="init" description="Checks out code from Subversion">
-		<svn>
-			<checkout url="${svn.url}" destPath="${svn.checkout.dir}" />
-			<wcVersion path="${svn.checkout.dir}" prefix="svncheckout." />
-		</svn>
-		<property name="build.version" value="${version.base}.${svncheckout.revision.max}"/>
-		<echo message="Set build version to ${build.version}" />
-	</target>
-
-    <taskdef name="jscomp" classname="com.google.javascript.jscomp.ant.CompileTask"
-			 classpath="${googlecompressor.jar.path}"/>
-
-  	<target name="build.js.file">
-		<!-- Params: js.file, uncompressed.dir, compressed.dir-->
-
-	  	<!-- Replace version number -->
-	  	<replace file="${uncompressed.dir}/${js.file}" token="%%build:version%%" value="${build.version}"/>
-
-	  	<!-- Replace build date -->
-	  	<replace file="${uncompressed.dir}/${js.file}" token="%%build:date%%" value="${TODAY}"/>
-
-	  	<!-- Remove all logging calls -->
-	  	<replaceregexp file="${uncompressed.dir}/${js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
-	  	<replaceregexp file="${uncompressed.dir}/${js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
-
-		<!-- Compress -->
-	  	<jscomp compilationLevel="simple" debug="false" output="${compressed.dir}/${js.file}">
-			<sources dir="${uncompressed.dir}">
-		  		<file name="${js.file}"/>
-			</sources>
-	  	</jscomp>
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${svn.checkout.dir}"/>
     </target>
 
-	<target name="build.core.js" depends="svncheckout">
-	    <filelist id="files.js" dir="${svn.checkout.js.core.dir}">
-			<file name="core.js" />
-			<file name="dom.js" />
-			<file name="domrange.js" />
-			<file name="wrappedrange.js" />
-			<file name="wrappedselection.js" />
-	    </filelist>
+    <!--
+    Note: this task requires SvnAnt to be installed on your machine, and the
+    jar files in SvanAnt's lib dir being copied to Ant's lib directory.
+    See http://subclipse.tigris.org/svnant.html
+    -->
+    <taskdef name="svn" classname="org.tigris.subversion.svnant.SvnTask"/>
 
-		<concat destfile="${build.uncompressed.js.dir}/${build.core.js.file}" >
+    <target name="svncheckout" depends="init" description="Checks out code from Subversion">
+        <svn>
+            <checkout url="${svn.url}" destPath="${svn.checkout.dir}" />
+            <wcVersion path="${svn.checkout.dir}" prefix="svncheckout." />
+        </svn>
+        <property name="build.version" value="${version.base}.${svncheckout.revision.max}"/>
+        <echo message="Set build version to ${build.version}" />
+    </target>
+
+    <taskdef name="jscomp" classname="com.google.javascript.jscomp.ant.CompileTask"
+             classpath="${googlecompressor.jar.path}"/>
+
+    <target name="build.js.file">
+        <!-- Params: js.file, uncompressed.dir, compressed.dir-->
+
+        <!-- Replace version number -->
+        <replace file="${uncompressed.dir}/${js.file}" token="%%build:version%%" value="${build.version}"/>
+
+        <!-- Replace build date -->
+        <replace file="${uncompressed.dir}/${js.file}" token="%%build:date%%" value="${TODAY}"/>
+
+        <!-- Remove all logging calls -->
+        <replaceregexp file="${uncompressed.dir}/${js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
+        <replaceregexp file="${uncompressed.dir}/${js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
+
+        <!-- Compress -->
+        <jscomp compilationLevel="simple" debug="false" output="${compressed.dir}/${js.file}">
+            <sources dir="${uncompressed.dir}">
+                <file name="${js.file}"/>
+            </sources>
+        </jscomp>
+    </target>
+
+    <target name="build.core.js" depends="svncheckout">
+        <filelist id="files.js" dir="${svn.checkout.js.core.dir}">
+            <file name="core.js" />
+            <file name="dom.js" />
+            <file name="domrange.js" />
+            <file name="wrappedrange.js" />
+            <file name="wrappedselection.js" />
+        </filelist>
+
+        <concat destfile="${build.uncompressed.js.dir}/${build.core.js.file}" >
             <filelist refid="files.js"/>
-		</concat>
+        </concat>
 
-		<antcall target="build.js.file" inheritall="true">
-			<param name="js.file" value="${build.core.js.file}"/>
-		  	<param name="uncompressed.dir" value="${build.uncompressed.js.dir}"/>
-		  	<param name="compressed.dir" value="${build.compressed.js.dir}"/>
-		</antcall>
-	</target>
+        <antcall target="build.js.file" inheritall="true">
+            <param name="js.file" value="${build.core.js.file}"/>
+            <param name="uncompressed.dir" value="${build.uncompressed.js.dir}"/>
+            <param name="compressed.dir" value="${build.compressed.js.dir}"/>
+        </antcall>
+    </target>
 
-  	<target name="build.module.js">
-		<!-- Params: module.js.file -->
+      <target name="build.module.js">
+        <!-- Params: module.js.file -->
 
-		<copy file="${svn.checkout.js.modules.dir}/${module.js.file}" todir="${build.uncompressed.js.dir}"/>
+        <copy file="${svn.checkout.js.modules.dir}/${module.js.file}" todir="${build.uncompressed.js.dir}"/>
 
-		<antcall target="build.js.file" inheritall="true">
-			<param name="js.file" value="${module.js.file}"/>
-		  	<param name="uncompressed.dir" value="${build.uncompressed.js.dir}"/>
-		  	<param name="compressed.dir" value="${build.compressed.js.dir}"/>
-		</antcall>
-	</target>
+        <antcall target="build.js.file" inheritall="true">
+            <param name="js.file" value="${module.js.file}"/>
+            <param name="uncompressed.dir" value="${build.uncompressed.js.dir}"/>
+            <param name="compressed.dir" value="${build.compressed.js.dir}"/>
+        </antcall>
+    </target>
 
     <target name="build.modules">
-	  	<antcall target="build.module.js" inheritall="true">
-		  	<param name="module.js.file" value="cssclassapplier.js"/>
-	  	</antcall>
-	  	<antcall target="build.module.js" inheritall="true">
-		  	<param name="module.js.file" value="selectionsaverestore.js"/>
-	  	</antcall>
-	</target>
+        <antcall target="build.module.js" inheritall="true">
+            <param name="module.js.file" value="cssclassapplier.js"/>
+        </antcall>
+        <antcall target="build.module.js" inheritall="true">
+            <param name="module.js.file" value="selectionsaverestore.js"/>
+        </antcall>
+        <antcall target="build.module.js" inheritall="true">
+            <param name="module.js.file" value="textinputs_jquery.js"/>
+        </antcall>
+        <antcall target="build.module.js" inheritall="true">
+            <param name="module.js.file" value="textinputs_standalone.js"/>
+        </antcall>
+    </target>
 
-
-
-<!--
-  <target name="build.textinputs.jquery" depends="svncheckout">
-	<copy file="${svn.checkout.js.modules.dir}/textinputs_jquery.js" tofile="${build.textinputs.jquery.js.file}"/>
-
-	&lt;!&ndash; Replace version number &ndash;&gt;
-	<replace file="${build.textinputs.jquery.js.file}" token="%%build:version%%" value="${build.version}"/>
-
-	&lt;!&ndash; Replace build date &ndash;&gt;
-	<replace file="${build.textinputs.jquery.js.file}" token="%%build:date%%" value="${TODAY}"/>
-
-	&lt;!&ndash; Remove all logging calls &ndash;&gt;
-	<replaceregexp file="${build.textinputs.jquery.js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
-	<replaceregexp file="${build.textinputs.jquery.js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
-
-	  &lt;!&ndash; Compress &ndash;&gt;
-	<jscomp compilationLevel="simple"
-			debug="false" output="${build.textinputs.jquery.compressed.js.file}">
-
-	  <sources dir="${build.dir}">
-		<file name="rangy-textinputs-jquery-src.js"/>
-	  </sources>
-
-	</jscomp>
-
-  </target>
--->
-
-	<target name="build" description="Full build" depends="build.core.js, build.modules"/>
+    <target name="build" description="Full build" depends="build.core.js, build.modules"/>
 </project>

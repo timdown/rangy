@@ -1,6 +1,5 @@
 /**
- * @license
- * CSS Class Applier module for Rangy.
+ * @license CSS Class Applier module for Rangy.
  * Adds, removes and toggles CSS classes on Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
