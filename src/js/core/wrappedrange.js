@@ -7,7 +7,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     var WrappedRange;
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
-    var DomRange = rangy.DomRange;
+    var DomRange = api.DomRange;
     var rangeUtil = DomRange.util;
 
     var log = log4javascript.getLogger("rangy.WrappedRange");
@@ -490,9 +490,9 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     api.createNativeRange = function(doc) {
         doc = doc || document;
-        if (rangy.features.implementsDomRange) {
+        if (api.features.implementsDomRange) {
             return doc.createRange();
-        } else if (rangy.features.implementsTextRange) {
+        } else if (api.features.implementsTextRange) {
             return doc.body.createTextRange();
         }
     };

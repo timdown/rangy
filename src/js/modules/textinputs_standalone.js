@@ -1,14 +1,18 @@
 /**
- * @license Rangy Text Inputs, a cross-browser textarea and text input library
+ * @license
+ * Rangy Text Inputs, a cross-browser textarea and text input library
+
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
+ *
+ * This file is standalone.
  *
  * Copyright 2010, Tim Down
  * Licensed under the MIT license.
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-var rangy;
+var rangyTextInputs;
 (function() {
     var UNDEF = "undefined";
     var getSelection, setSelection, deleteSelectedText, deleteText, insertText;
@@ -200,7 +204,7 @@ var rangy;
             setSelection(el, startIndex, endIndex);
         };
 
-        rangy = {
+        rangyTextInputs = {
             getSelection: getSelection,
             setSelection: setSelection,
             collapseSelection: collapseSelection,

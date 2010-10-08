@@ -1,14 +1,18 @@
 /**
- * @license Rangy Text Inputs, a cross-browser textarea and text input library plug-in for jQuery.
+ * @license
+ * Rangy Text Inputs, a cross-browser textarea and text input library plug-in for jQuery.
+ *
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
+ *
+ * Depends on jQuery 1.0 or later.
  *
  * Copyright 2010, Tim Down
  * Licensed under the MIT license.
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-(function() {
+(function($) {
     var getSelection, setSelection, deleteSelectedText, deleteText, insertText;
     var replaceSelectedText, surroundSelectedText, extractSelectedText, collapseSelection;
 
@@ -55,7 +59,7 @@
         };
     }
 
-    jQuery(document).ready(function() {
+    $(document).ready(function() {
         var testTextArea = document.createElement("textarea");
         document.body.appendChild(testTextArea);
 
@@ -215,7 +219,7 @@
             };
         }
 
-        jQuery.fn.extend({
+        $.fn.rangy = {
             getSelection: jQuerify(getSelection, false),
             setSelection: jQuerify(setSelection, true),
             collapseSelection: jQuerify(collapseSelection, true),
@@ -225,6 +229,6 @@
             insertText: jQuerify(insertText, true),
             replaceSelectedText: jQuerify(replaceSelectedText, true),
             surroundSelectedText: jQuerify(surroundSelectedText, true)
-        });
+        };
     });
-})();
+})(jQuery);

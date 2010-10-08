@@ -1,3 +1,18 @@
+/**
+ * @license
+ * Selection save and restore module for Rangy.
+ * Saves and restores user selections using marker invisible elements in the DOM.
+ *
+ * Part of Rangy, a cross-browser JavaScript range and selection library
+ * http://code.google.com/p/rangy/
+ *
+ * Depends on Rangy core.
+ *
+ * Copyright 2010, Tim Down
+ * Licensed under the MIT license.
+ * Version: %%build:version%%
+ * Build date: %%build:date%%
+ */
 rangy.createModule("SaveRestore", function(api, module) {
     api.requireModules( ["DomRange", "WrappedRange"] );
 

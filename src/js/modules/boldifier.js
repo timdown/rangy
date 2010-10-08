@@ -32,7 +32,7 @@ rangy.createModule("Boldifier", function(api, module) {
     function createBoldifier(win) {
         win = win || window;
 
-        return rangy.createSimpleSurrounder("strong", true);
+        return api.createSimpleSurrounder("strong", true);
     }
 
     api.createBoldifier = createBoldifier;

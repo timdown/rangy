@@ -88,6 +88,9 @@ var rangy = (function() {
 
     // Initialization
     function init() {
+        if (api.initialized) {
+            return;
+        }
         var testRange;
         var implementsDomRange = false, implementsTextRange = false;
 
@@ -118,10 +121,11 @@ var rangy = (function() {
             implementsTextRange: implementsTextRange
         };
 
-        // Notify listeners
-        for (var i = 0, len = initListeners.length; i < len; ++i) {
+        // Initialize modules and call init listeners
+        var allListeners = moduleInitializers.concat(initListeners);
+        for (var i = 0, len = allListeners.length; i < len; ++i) {
             try {
-                initListeners[i](api);
+                allListeners[i](api);
             } catch (ex) {
                 log.error("Init listener threw an exception. Continuing.", ex);
             }
@@ -132,6 +136,8 @@ var rangy = (function() {
     api.init = init;
 
     var initListeners = [];
+    var moduleInitializers = [];
+
     api.addInitListener = function(listener) {
         initListeners.push(listener);
     };
@@ -156,7 +162,7 @@ var rangy = (function() {
         var module = new Module(name);
         api.modules[name] = module;
 
-        initListeners.push(function(api) {
+        moduleInitializers.push(function(api) {
             initFunc(api, module);
             module.initialized = true;
             module.supported = true;

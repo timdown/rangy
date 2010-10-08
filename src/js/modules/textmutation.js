@@ -31,7 +31,7 @@ rangy.createModule("TextMutation", function(api, module) {
             }
         };
     })();
-    
+
 
     function hasMatchingClass(el, cssClassRegex) {
         if (el.className) {

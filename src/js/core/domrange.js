@@ -983,5 +983,5 @@ rangy.createModule("DomRange", function(api, module) {
         }
     };
 
-    rangy.DomRange = Range;
+    api.DomRange = Range;
 });
