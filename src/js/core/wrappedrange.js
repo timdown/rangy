@@ -44,9 +44,8 @@ rangy.createModule("WrappedRange", function(api, module) {
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var previousNode, nextNode, boundaryPosition, boundaryNode;
 
-        // Move the working range through the container's children, starting at
-        // the end and working backwards, until the working range reaches or goes
-        // past the boundary we're interested in
+        // Move the working range through the container's children, starting at the end and working backwards, until the
+        // working range reaches or goes past the boundary we're interested in
         do {
             containerElement.insertBefore(workingNode, workingNode.previousSibling);
             workingRange.moveToElementText(workingNode);
@@ -64,23 +63,46 @@ rangy.createModule("WrappedRange", function(api, module) {
             workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
             log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
 
-            // Ensure offsets are relative to the character data node's text. To do this, and to ensure trailing line
-            // breaks are handled correctly, we use the values returned by the range's moveStart method.
-
-            //var offset = workingRange.text.length;
-
             if (/[\r\n]/.test(boundaryNode.data)) {
-                // The "move by negative gazillion" method is very very slow when the range is towards the end of a
-                // large/complicated document, and the following is much quicker and less affected by document size and
-                // the range's location within the document
+                /*
+                For the particular case of a boundary within a text node containing line breaks (within a <pre> element,
+                for example), we need a slightly complicated approach to get the boundary's offset in IE. The facts:
+
+                - Each line break is represented as \r in the text node's data/nodeValue properties
+                - Each line break is represented as \r\n in the range's text property
+                - The text property of the TextRange strips trailing line breaks
+
+                To get round the problem presented by the final fact above, we can use the fact that TextRange's
+                moveStart and moveEnd properties return the actual number of characters moved, which is not necessarily
+                the same as the number of characters it was instructed to move. The simplest approach is to use this to
+                store the characters moved when moving both the start and end of the range to the start of the document
+                body and subtracting the start offset from the end offset (the "move-negative-gazillion" method).
+                However, this is extremely slow when the document is large and the range is near the end of it. Clearly
+                doing the mirror image (i.e. moving the range boundaries to the end of the document) has the same
+                problem.
+
+                Another approach that works is to use moveStart to move the start boundary of the range up to the end
+                one character at a time and incrementing a counter with the result of the moveStart call. However, the
+                check for whether the start boundary has reached the end boundary is expensive, so this method is slow
+                (although unlike "move-negative-gazillion" is unaffected by the location of the range within the
+                document).
+
+                The method below uses the fact that once each \r\n in the range's text property has been converted to a
+                single \r character (as it is in the text node), we know the offset is at least as long as the range
+                text's length, so the start of the range is moved that length initially and then a character at a time
+                to make up for any line breaks that the range text property has stripped. This seems to have good
+                performance in most situations compared to the previous two methods.
+                */
                 var tempRange = workingRange.duplicate();
-                var rangeLength = tempRange.text.replace(/\r\n/g, "\n").length;
+                var rangeLength = tempRange.text.replace(/\r\n/g, "\r").length;
+
                 var offset = tempRange.moveStart("character", rangeLength);
                 while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
                     offset++;
                     tempRange.moveStart("character", 1);
                 }
-                offset += boundaryNode.data.replace(/\r\n/g, "\n").slice(0, offset).split("\n").length - 1;
+            } else {
+                offset = workingRange.text.length;
             }
             boundaryPosition = new DomPosition(boundaryNode, offset);
         } else {
