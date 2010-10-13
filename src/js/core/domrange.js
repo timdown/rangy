@@ -794,7 +794,7 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             splitBoundaries: function() {
-                log.debug("splitBoundaries called");
+                log.debug("splitBoundaries called " + this.inspect());
                 var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
                 var startEndSame = (sc === ec);
                 assertNotDetached(this);

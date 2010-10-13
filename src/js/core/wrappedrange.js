@@ -304,6 +304,10 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return new WrappedRange(this.nativeRange.cloneRange());
             };
 
+            rangeProto.refresh = function() {
+                updateRangeProperties(this);
+            };
+
             rangeProto.toString = function() {
                 return this.nativeRange.toString();
             };
@@ -479,20 +483,25 @@ rangy.createModule("WrappedRange", function(api, module) {
         // prototype
 
         WrappedRange = function(textRange) {
+            this.textRange = textRange;
+            this.refresh();
+        };
+
+        WrappedRange.prototype = new DomRange(document);
+
+        WrappedRange.prototype.refresh = function() {
             var start, end;
-            if (textRange.text) {
-                log.warn("Creating Range from TextRange. parent element: " + textRange.parentElement().nodeName);
-                start = getTextRangeBoundaryPosition(textRange, true);
-                end = getTextRangeBoundaryPosition(textRange, false);
+            if (this.textRange.text) {
+                log.warn("Refreshing Range from TextRange. parent element: " + this.textRange.parentElement().nodeName);
+                start = getTextRangeBoundaryPosition(this.textRange, true);
+                end = getTextRangeBoundaryPosition(this.textRange, false);
             } else {
-                end = start = getTextRangeBoundaryPosition(textRange, true);
+                end = start = getTextRangeBoundaryPosition(this.textRange, true);
             }
 
             this.setStart(start.node, start.offset);
             this.setEnd(end.node, end.offset);
         };
-
-        WrappedRange.prototype = new DomRange(document);
 
         WrappedRange.rangeToTextRange = function(range) {
             var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
