@@ -97,6 +97,9 @@
             <param name="module.js.file" value="selectionsaverestore.js"/>
         </antcall>
         <antcall target="build.module.js" inheritall="true">
+            <param name="module.js.file" value="serializer.js"/>
+        </antcall>
+        <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="textinputs_jquery.js"/>
         </antcall>
         <antcall target="build.module.js" inheritall="true">

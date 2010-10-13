@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Serializer Test</title>
+    <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript" src="../src/js/core/core.js"></script>
+    <script type="text/javascript" src="../src/js/core/dom.js"></script>
+    <script type="text/javascript" src="../src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/js/modules/serializer.js"></script>
+    <script type="text/javascript">
+        function setCookie(name, value, days, path) {
+            var expires;
+            path = path ? "; path=" + path : "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toGMTString();
+            } else {
+                expires = "";
+            }
+            document.cookie = encodeURIComponent(name) + "=" + encodeURIComponent(value) + expires + path;
+        }
+
+        function getCookie(name) {
+            var nameEquals = encodeURIComponent(name) + "=";
+            var ca = document.cookie.split(";");
+            for (var i = 0, len = ca.length; i < len; i++) {
+                var c = ca[i];
+                while (c.charAt(0) === " ") {
+                    c = c.substring(1, c.length);
+                }
+                if (c.indexOf(nameEquals) === 0) {
+                    return decodeURIComponent(c.substring(nameEquals.length, c.length));
+                }
+            }
+            return null;
+        }
+
+        var cookieName = "rangySelection";
+
+        function restoreSelection() {
+            rangy.init();
+            var serializedSelection = getCookie(cookieName);
+            if (serializedSelection) {
+                alert("Reloaded, restoring serialized selection " + serializedSelection);
+                rangy.deserializeSelection(serializedSelection);
+            }
+        }
+
+        function saveSelection() {
+            alert(rangy.getSelection().inspect());
+            setCookie(cookieName, rangy.serializeSelection( rangy.getSelection() ));
+        }
+
+        window.onload = restoreSelection;
+        window.onbeforeunload = saveSelection;
+    </script>
+</head>
+<body>
+<h1>Serializer Test</h1>
+<p>Below is some editable content:</p>
+<p id="editable" contenteditable="true" style="border: solid green 1px; background-color: lightgoldenrodyellow;">
+    The <b>cabbage</b> is a popular <a href="#" title="Cultivar">cultivar</a> of a the species
+    <i><a href="#" title="Brassica oleracea">Brassica oleracea</a> Linne</i> (Capitata Group)
+    of the Family <a href="#" title="Brassicaceae">Brassicaceae</a> (or Cruciferae), and is used as
+    a leafy green <a href="#" title="Leaf vegetable">vegetable</a>. It is a
+    <a href="#" title="Herbaceous" class="mw-redirect">herbaceous</a>,
+    <a href="#t" title="Biennial plant">biennial</a>,
+    <a href="#" title="Dicot" class="mw-redirect">dicotyledonous</a>
+
+    <a href="#" title="Flowering plant">flowering plant</a> distinguished by a short stem upon
+    which is crowded a mass of leaves, usually green but in some varieties red or purplish, which while immature
+    form a characteristic compact, globular cluster (<i>cabbagehead</i>).
+</p>
+<p>
+    Press the button to refresh this page and restore the current selection from the cookie:
+    <input type="button" value="show" onmousedown="alert(rangy.serializeSelection(rangy.getSelection()));">
+    <input type="button" value="refresh" onmousedown="window.location.reload()">
+</p>
+
+</body>
+</html>

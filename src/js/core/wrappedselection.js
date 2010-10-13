@@ -48,15 +48,19 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
+        var textNode1 = dom.getBody(document).appendChild(document.createTextNode("One"));
+        var textNode2 = dom.getBody(document).appendChild(document.createTextNode("Two"));
         var testRange2 = api.createNativeRange(document);
-        testRange2.selectNodeContents(dom.getBody(document));
+        testRange2.selectNodeContents(textNode1);
         var testRange3 = api.createNativeRange(document);
-        testRange3.selectNodeContents(dom.getBody(document).firstChild);
+        testRange3.selectNodeContents(textNode2);
         testSelection.removeAllRanges();
         testSelection.addRange(testRange2);
         testSelection.addRange(testRange3);
         selectionSupportsMultipleRanges = (testSelection.rangeCount == 2);
         testSelection.removeAllRanges();
+        textNode1.parentNode.removeChild(textNode1);
+        textNode2.parentNode.removeChild(textNode2);
     }
 
     api.features.selectionSupportsMultipleRanges = selectionSupportsMultipleRanges;
@@ -84,12 +88,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         selectionIsCollapsed = function(sel) {
             return sel.rangeCount ? sel.getRangeAt(sel.rangeCount - 1).collapsed : false;
         };
-    }
-
-    function assertNode(node, codeName) {
-        if (!node) {
-            throw new DOMException(codeName);
-        }
     }
 
     function updateAnchorAndFocusFromRange(sel, range, backwards) {
@@ -484,7 +482,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // These two are mine, added for convenience
     selProto.getAllRanges = function() {
-        log.warn("getAllRanges called, rangecount: " + this.rangeCount);
         return this._ranges.slice(0);
     };
 
@@ -502,6 +499,14 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         }
         return false;
+    };
+
+    selProto.inspect = function() {
+        var rangeInspects = [];
+        for (var i = 0, len = this.rangeCount; i < len; ++i) {
+            rangeInspects[i] = this._ranges[i].inspect();
+        }
+        return "[WrappedSelection(" + rangeInspects.join(", ") + ")]";
     };
 
     selProto.detach = function() {

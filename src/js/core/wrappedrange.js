@@ -512,6 +512,10 @@ rangy.createModule("WrappedRange", function(api, module) {
         }
     }
 
+    WrappedRange.prototype.getName = function() {
+        return "WrappedRange";
+    };
+
     api.WrappedRange = WrappedRange;
 
     api.createNativeRange = function(doc) {

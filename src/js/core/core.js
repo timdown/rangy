@@ -75,7 +75,10 @@ var rangy = (function() {
 
         features: {},
 
-        modules: {}
+        modules: {},
+        config: {
+            alertOnWarn: false
+        }
     };
 
     function fail(reason) {
@@ -85,6 +88,17 @@ var rangy = (function() {
     }
 
     api.fail = fail;
+
+    function warn(reason) {
+        var warningMessage = "Rangy warning: " + reason;
+        if (api.config.alertOnWarn) {
+            alert(warningMessage);
+        } else if (typeof window.console != UNDEFINED && typeof window.console.log != UNDEFINED) {
+            window.console.log(warningMessage);
+        }
+    }
+
+    api.warn = warn;
 
     // Initialization
     function init() {

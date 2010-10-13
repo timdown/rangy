@@ -190,6 +190,18 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
+    function nodeToString(node) {
+        if (!node) { return "[No node]"; }
+        if (isCharacterDataNode(node)) {
+            return '"' + node.data + '"';
+        } else if (node.nodeType == 1) {
+            var idAttr = node.id ? ' id="' + node.id + '"' : "";
+            return "<" + node.nodeName + idAttr + ">";
+        } else {
+            return node.nodeName;
+        }
+    }
+
     /**
      * @constructor
      */
@@ -245,6 +257,10 @@ rangy.createModule("DomUtil", function(api, module) {
     DomPosition.prototype = {
         equals: function(pos) {
             return this.node === pos.node & this.offset == pos.offset;
+        },
+
+        inspect: function() {
+            return "[DomPosition(" + nodeToString(this.node) + ":" + this.offset + ")]";
         }/*,
 
         isStartOfElementContent: function() {
@@ -291,6 +307,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getWindow: getWindow,
         getBody: getBody,
         comparePoints: comparePoints,
+        nodeToString: nodeToString,
         createIterator: createIterator,
         DomPosition: DomPosition,
         DOMException: DOMException

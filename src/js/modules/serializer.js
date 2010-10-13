@@ -1,7 +1,7 @@
 /**
  * @license Serializer module for Rangy.
  * Serializes Ranges and Selections. An example use would be to store a user's selection on a particular page in a
- * cookie or local storage and restore it ion the user's next visit to the same page.
+ * cookie or local storage and restore it on the user's next visit to the same page.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
@@ -16,7 +16,75 @@
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
-    var crc32 = (function() {
+    var dom = api.dom;
+
+    function serializePosition(node, offset) {
+        var pathBits = [], n = node;
+        var docElement = dom.getDocument(node).documentElement;
+        while (n && n != docElement) {
+            pathBits.push(dom.getNodeIndex(n));
+            n = n.parentNode;
+        }
+        return pathBits.join("/") + ":" + offset;
+    }
+
+    function deserializePosition(serialized, doc) {
+        doc = doc || document;
+        var bits = serialized.split(":");
+        var node = doc.documentElement;
+        var nodeIndices = bits[0].split("/"), i = nodeIndices.length;
+
+        while (i--) {
+            node = node.childNodes[ parseInt(nodeIndices[i], 10) ];
+        }
+
+        return new dom.DomPosition(node, parseInt(bits[1], 10));
+    }
+
+    function serializeRange(range) {
+        return serializePosition(range.startContainer, range.startOffset) + "," +
+            serializePosition(range.endContainer, range.endOffset);
+    }
+
+    function deserializeRange(serialized, doc) {
+        doc = doc || document;
+        var bits = serialized.split(",");
+        var start = deserializePosition(bits[0], doc), end = deserializePosition(bits[1], doc);
+        var range = api.createRange(doc);
+        range.setStart(start.node, start.offset);
+        range.setEnd(end.node, end.offset);
+        return range;
+    }
+
+    function serializeSelection(selection) {
+        selection = selection || rangy.getSelection();
+        var ranges = selection.getAllRanges(), serializedRanges = [];
+        for (var i = 0, len = ranges.length; i < len; ++i) {
+            serializedRanges[i] = serializeRange(ranges[i]);
+        }
+        return serializedRanges.join("|");
+    }
+
+    function deserializeSelection(serialized, doc) {
+        doc = doc || document;
+        var win = dom.getWindow(doc);
+        var serializedRanges = serialized.split("|");
+        var sel = api.getSelection(win);
+        var ranges = [];
+
+        try {
+            for (var i = 0, len = serializedRanges.length; i < len; ++i) {
+                ranges[i] = deserializeRange(serializedRanges[i], doc);
+            }
+            sel.setRanges(ranges);
+        } catch (ex) {
+            api.warn("deserializeSelection failed: " + (ex.message || ex.description));
+        }
+
+        return sel;
+    }
+    
+/*    var crc32 = (function() {
         function utf8encode(str) {
             var utf8Str = "";
 
@@ -51,5 +119,14 @@ rangy.createModule("Serializer", function(api, module) {
             }
             return crc ^ (-1);
         };
-    })();
+    })();*/
+
+    api.serializePosition = serializePosition;
+    api.deserializePosition = deserializePosition;
+
+    api.serializeRange = serializeRange;
+    api.deserializeRange = deserializeRange;
+
+    api.serializeSelection = serializeSelection;
+    api.deserializeSelection = deserializeSelection;
 });
