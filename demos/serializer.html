@@ -14,64 +14,15 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/js/modules/serializer.js"></script>
     <!--build:dev_end-->
     <script type="text/javascript">
-        function setCookie(name, value, days, path) {
-            var expires;
-            path = path ? "; path=" + path : "";
-            if (days) {
-                var date = new Date();
-                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-                expires = "; expires=" + date.toGMTString();
-            } else {
-                expires = "";
-            }
-            document.cookie = encodeURIComponent(name) + "=" + encodeURIComponent(value) + expires + path;
-        }
-
-        function getCookie(name) {
-            var nameEquals = encodeURIComponent(name) + "=";
-            var ca = document.cookie.split(";");
-            for (var i = 0, len = ca.length; i < len; i++) {
-                var c = ca[i];
-                while (c.charAt(0) === " ") {
-                    c = c.substring(1, c.length);
-                }
-                if (c.indexOf(nameEquals) === 0) {
-                    return decodeURIComponent(c.substring(nameEquals.length, c.length));
-                }
-            }
-            return null;
-        }
-
-        var cookieName = "rangySelection";
-
-        function restoreSelection() {
-            rangy.init();
-            var serializedSelection = getCookie(cookieName);
-            if (serializedSelection) {
-                alert("Reloaded, restoring serialized selection");
-                rangy.deserializeSelection(serializedSelection);
-            }
-        }
-
-        function saveSelection() {
-            setCookie(cookieName, rangy.serializeSelection());
-        }
-
         function gEBI(id) {
             return document.getElementById(id);
         }
-
-        window.onload = restoreSelection;
-        window.onbeforeunload = saveSelection;
-
-
-
     </script>
 </head>
-<body>
+<body onload="document.execCommand('MultipleSelection', null, true)">
     <h1>Rangy Serializer Module Demo</h1>
 
     <p id="intro">

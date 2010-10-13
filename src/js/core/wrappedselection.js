@@ -244,6 +244,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
             this.isCollapsed = selectionIsCollapsed(this);
             //console.log("Native: " + this.nativeSelection.isCollapsed, this.nativeSelection.rangeCount, "" + this.nativeSelection.getRangeAt(0), this.nativeSelection.anchorOffset, this.nativeSelection.focusOffset);
         };
+
+        selProto.setRanges = function(ranges) {
+            this.removeAllRanges();
+            for (var i = 0; i < rangeCount; ++i) {
+                this.addRange(ranges[i]);
+            }
+        };
     } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select") &&
                selectionHasType && implementsControlRange) {
 
@@ -275,6 +282,25 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 this.rangeCount = 1;
                 this.isCollapsed = this._ranges[0].collapsed;
                 updateAnchorAndFocusFromRange(this, range, false);
+            }
+        };
+
+        selProto.setRanges = function(ranges) {
+            this.removeAllRanges();
+            var rangeCount = ranges.length;
+            if (rangeCount > 1) {
+                // Ensure that the selection becomes of type "Control"
+                var doc = dom.getDocument(ranges[0].startContainer);
+                var controlRange = doc.body.createControlRange();
+                for (var i = 0; i < rangeCount; ++i) {
+                    controlRange.add(getSingleElementFromRange(ranges[i]));
+                }
+                controlRange.select();
+
+                // Update the wrapped selection based on what's now in the native selection
+                updateFromControlRange(this);
+            } else if (rangeCount) {
+                this.addRange(ranges[0]);
             }
         };
     } else {
@@ -483,13 +509,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // These two are mine, added for convenience
     selProto.getAllRanges = function() {
         return this._ranges.slice(0);
-    };
-
-    selProto.setRanges = function(ranges) {
-        this.removeAllRanges();
-        for (var i = 0, len = ranges.length; i < len; ++i) {
-            this.addRange(ranges[i]);
-        }
     };
 
     selProto.containsNode = function(node, allowPartial) {
