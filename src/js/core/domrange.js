@@ -182,6 +182,7 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function insertNodeAtPosition(node, n, o) {
+        var firstNodeInserted = node.nodeType == 11 ? node.firstChild : node;
         if (dom.isCharacterDataNode(n)) {
             if (o == n.length) {
                 n.parentNode.appendChild(node);
@@ -193,7 +194,7 @@ rangy.createModule("DomRange", function(api, module) {
         } else {
             n.insertBefore(node, n.childNodes[o]);
         }
-        return node;
+        return firstNodeInserted;
     }
 
     function cloneSubtree(iterator) {
@@ -377,7 +378,6 @@ rangy.createModule("DomRange", function(api, module) {
             throw new DOMException("INVALID_STATE_ERR");
         }
     }
-
 
     function assertValidNodeType(node, invalidTypes) {
         if (!dom.arrayContains(invalidTypes, node.nodeType)) {
@@ -592,8 +592,8 @@ rangy.createModule("DomRange", function(api, module) {
                 // children of the type of node: the browser's DOM implementation should do this for us when we attempt
                 // to add the node
 
-                insertNodeAtPosition(node, this.startContainer, this.startOffset);
-                this.setStartBefore(node);
+                var firstNodeInserted = insertNodeAtPosition(node, this.startContainer, this.startOffset);
+                this.setStartBefore(firstNodeInserted);
             },
 
             cloneContents: function() {
@@ -628,8 +628,8 @@ rangy.createModule("DomRange", function(api, module) {
                 assertNodeNotReadOnly(this.endContainer);
                 assertValidNodeType(node, surroundNodeTypes);
 
-                // Check if the contents can be surrounded. Specifically, this means whether the range partially selects no
-                // non-text nodes.
+                // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
+                // no non-text nodes.
                 var iterator = new RangeIterator(this, true);
                 var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
                         (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
