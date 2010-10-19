@@ -224,7 +224,7 @@
             };
         }
 
-        $.fn.rangy = {
+        $.fn.extend({
             getSelection: jQuerify(getSelection, false),
             setSelection: jQuerify(setSelection, true),
             collapseSelection: jQuerify(collapseSelection, true),
@@ -234,6 +234,6 @@
             insertText: jQuerify(insertText, true),
             replaceSelectedText: jQuerify(replaceSelectedText, true),
             surroundSelectedText: jQuerify(surroundSelectedText, true)
-        };
+        });
     });
 })(jQuery);
