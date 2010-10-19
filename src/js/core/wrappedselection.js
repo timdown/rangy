@@ -37,6 +37,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var testSelection = getSelection();
     var testRange = api.createNativeRange(document);
+    var body = dom.getBody(document);
 
     // Obtaining a range from a selection
     var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"] &&
@@ -48,8 +49,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
-        var textNode1 = dom.getBody(document).appendChild(document.createTextNode("One"));
-        var textNode2 = dom.getBody(document).appendChild(document.createTextNode("Two"));
+        var textNode1 = body.appendChild(document.createTextNode("One"));
+        var textNode2 = body.appendChild(document.createTextNode("Two"));
         var testRange2 = api.createNativeRange(document);
         testRange2.selectNodeContents(textNode1);
         var testRange3 = api.createNativeRange(document);
@@ -69,7 +70,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var selectionHasType = util.isHostProperty(testSelection, "type");
     var implementsControlRange = false, testControlRange;
 
-    var body = dom.getBody(document);
     if (body && util.isHostMethod(body, "createControlRange")) {
         testControlRange = body.createControlRange();
         if (util.areHostProperties(testControlRange, ["item", "add"])) {
@@ -267,7 +267,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 // Create a new ControlRange containing all the elements in the selected ControlRange plus the element
                 // contained by the supplied range
                 var doc = dom.getDocument(controlRange.item(0));
-                var newControlRange = doc.body.createControlRange();
+                var newControlRange = dom.getBody(doc).createControlRange();
                 for (var i = 0, len = controlRange.length; i < len; ++i) {
                     newControlRange.add(controlRange.item(i));
                 }
@@ -291,7 +291,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (rangeCount > 1) {
                 // Ensure that the selection becomes of type "Control"
                 var doc = dom.getDocument(ranges[0].startContainer);
-                var controlRange = doc.body.createControlRange();
+                var controlRange = dom.getBody(doc).createControlRange();
                 for (var i = 0; i < rangeCount; ++i) {
                     controlRange.add(getSingleElementFromRange(ranges[i]));
                 }
@@ -318,13 +318,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         selProto.refresh = function() {
-            this.isCollapsed = selectionIsCollapsed(this);
             this._ranges.length = this.rangeCount = this.nativeSelection.rangeCount;
             if (this.rangeCount) {
                 for (var i = 0, len = this.rangeCount; i < len; ++i) {
                     this._ranges[i] = new api.WrappedRange(this.nativeSelection.getRangeAt(i));
                 }
                 updateAnchorAndFocusFromRange(this, this._ranges[this.rangeCount - 1], selectionIsBackwards(this.nativeSelection));
+                this.isCollapsed = selectionIsCollapsed(this);
             } else {
                 updateEmptySelection(this);
             }
@@ -337,6 +337,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 this._ranges = [range];
                 this.rangeCount = 1;
                 updateAnchorAndFocusFromNativeSelection(this);
+                this.isCollapsed = selectionIsCollapsed(this);
             } else {
                 updateEmptySelection(this);
             }
@@ -395,7 +396,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 // Create a new ControlRange containing all the elements in the selected ControlRange minus the
                 // element contained by the supplied range
                 var doc = dom.getDocument(controlRange.item(0));
-                var newControlRange = doc.body.createControlRange();
+                var newControlRange = dom.getBody(doc).createControlRange();
                 var el, removed = false;
                 for (var i = 0, len = controlRange.length; i < len; ++i) {
                     el = controlRange.item(i);
