@@ -17,7 +17,7 @@ rangy.createModule("DomRange", function(api, module) {
         this.range = range;
         this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
 
-        log.info("New RangeIterator ", dom.nodeToString(range.startContainer), range.startOffset, dom.nodeToString(range.endContainer), range.endOffset);
+        log.info("New RangeIterator ", dom.inspectNode(range.startContainer), range.startOffset, dom.inspectNode(range.endContainer), range.endOffset);
 
         if (!range.collapsed) {
             this.sc = range.startContainer;
@@ -35,7 +35,7 @@ rangy.createModule("DomRange", function(api, module) {
                 this._last = (this.ec === root && !dom.isCharacterDataNode(this.ec)) ?
                     this.ec.childNodes[this.eo - 1] : dom.getClosestAncestorIn(this.ec, root, true);
             }
-            log.info("RangeIterator first and last", dom.nodeToString(this._first), dom.nodeToString(this._last));
+            log.info("RangeIterator first and last", dom.inspectNode(this._first), dom.inspectNode(this._last));
         }
     }
 
@@ -201,7 +201,7 @@ rangy.createModule("DomRange", function(api, module) {
         var partiallySelected;
         for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
             partiallySelected = iterator.isPartiallySelectedSubtree();
-            log.debug("cloneSubtree got node " + dom.nodeToString(node) + " from iterator. partiallySelected: " + partiallySelected);
+            log.debug("cloneSubtree got node " + dom.inspectNode(node) + " from iterator. partiallySelected: " + partiallySelected);
             node = node.cloneNode(!partiallySelected);
             if (partiallySelected) {
                 subIterator = iterator.getSubtreeIterator();
@@ -266,7 +266,7 @@ rangy.createModule("DomRange", function(api, module) {
     function extractSubtree(iterator) {
         log.debug("extract on iterator", iterator);
         for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
-            log.debug("extractSubtree got node " + dom.nodeToString(node) + " from iterator. partiallySelected: " + iterator.isPartiallySelectedSubtree());
+            log.debug("extractSubtree got node " + dom.inspectNode(node) + " from iterator. partiallySelected: " + iterator.isPartiallySelectedSubtree());
 
             if (iterator.isPartiallySelectedSubtree()) {
                 node = node.cloneNode(false);
@@ -677,10 +677,10 @@ rangy.createModule("DomRange", function(api, module) {
                     return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
                 } else {
                     var textBits = [], iterator = new RangeIterator(this, true);
-                    log.info("toString iterator: " + dom.nodeToString(iterator._first) + ", " + dom.nodeToString(iterator._last));
+                    log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
                     iterateSubtree(iterator, function(node) {
                         // Accept only text or CDATA nodes, not comments
-                        log.info("toString: got node", dom.nodeToString(node));
+                        log.info("toString: got node", dom.inspectNode(node));
                         if (node.nodeType == 3 || node.nodeType == 4) {
                             textBits.push(node.data);
                         }
@@ -801,7 +801,7 @@ rangy.createModule("DomRange", function(api, module) {
 
                 if (dom.isCharacterDataNode(ec) && eo < ec.length) {
                     dom.splitDataNode(ec, eo);
-                    log.debug("Split end", dom.nodeToString(ec), eo);
+                    log.debug("Split end", dom.inspectNode(ec), eo);
                 }
 
                 if (dom.isCharacterDataNode(sc) && so > 0) {
@@ -811,7 +811,7 @@ rangy.createModule("DomRange", function(api, module) {
                         ec = sc;
                     }
                     so = 0;
-                    log.debug("Split start", dom.nodeToString(sc), so);
+                    log.debug("Split start", dom.inspectNode(sc), so);
                 }
                 boundaryUpdater(this, sc, so, ec, eo);
             },
@@ -866,13 +866,23 @@ rangy.createModule("DomRange", function(api, module) {
                 setRangeStartAndEnd(this, node, offset);
             },
 
+            collapseBefore: function(node) {
+                this.setEndBefore(node);
+                this.collapse(false);
+            },
+
+            collapseAfter: function(node) {
+                this.setStartAfter(node);
+                this.collapse(true);
+            },
+
             getName: function() {
                 return "DomRange";
             },
 
             inspect: function() {
-                return "[" + this.getName() + "(" + dom.nodeToString(this.startContainer) + ":" + this.startOffset +
-                       ", " + dom.nodeToString(this.endContainer) + ":" + this.endOffset + ")]";
+                return "[" + this.getName() + "(" + dom.inspectNode(this.startContainer) + ":" + this.startOffset +
+                       ", " + dom.inspectNode(this.endContainer) + ":" + this.endOffset + ")]";
             }
         };
 

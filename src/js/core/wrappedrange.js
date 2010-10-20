@@ -14,25 +14,53 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method is an improved
-    // version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/), fixing problems that
-    // library has with line breaks in preformatted text, optimizations and other bugs
-    function getTextRangeBoundaryPosition(textRange, isStart) {
+    /*
+    This is a workaround for a bug where IE returns the wrong container element from the TextRange's parentElement()
+    method. For example, in the following (where pipes denote the selection boundaries):
+
+    <ul id="ul"><li id="a">| a </li><li id="b"> b |</li></ul>
+
+    var range = document.selection.createRange();
+    alert(range.parentElement().id); // Should alert "ul" but alerts "b"
+     */
+    function getTextRangeContainerElement(textRange) {
+        var range = textRange.duplicate();
+        var bookmark = range.getBookmark()
+        range.collapse(true);
+        var startEl = range.parentElement();
+
+        range.moveToBookmark(bookmark);
+        range.collapse(false);
+        var endEl = range.parentElement();
+
+        return startEl == endEl ? startEl : dom.getCommonAncestor(startEl, endEl);
+    }
+
+    function textRangeIsCollapsed(textRange) {
+        return textRange.compareEndPoints("StartToEnd", textRange) == 0;
+    }
+
+    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method started out as
+    // an improved version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/) but has
+    // grown, fixing problems with line breaks in preformatted text, adding workaround for IE TextRange bugs, handling
+    // for inputs and images, plus optimizations.
+    function getTextRangeBoundaryPosition(textRange, wholeRangeContainerElement, isStart, isCollapsed) {
         var workingRange = textRange.duplicate();
-        //log.debug("getTextRangeBoundaryPosition. Uncollapsed textrange parent is " + workingRange.parentElement().nodeName);
-        var wholeRangeContainerElement = workingRange.parentElement();
+
+        //log.debug("getTextRangeBoundaryPosition, start is " + isStart + ". Uncollapsed textrange parent is " + dom.inspectNode(wholeRangeContainerElement));
         workingRange.collapse(isStart);
-        //log.debug("getTextRangeBoundaryPosition. Collapsed textrange parent is " + workingRange.parentElement().nodeName);
+        //log.debug("Collapsed textrange parent is " + dom.inspectNode(workingRange.parentElement()));
         var containerElement = workingRange.parentElement();
 
         // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
         // check for that
+        // TODO: Find out when. Workaround for wholeRangeContainerElement may break this
         if (!dom.isAncestorOf(wholeRangeContainerElement, containerElement, true)) {
             containerElement = wholeRangeContainerElement;
-            log.debug("Collapse has moved TextRange outside its original container, so correcting");
+            log.warn("Collapse has moved TextRange outside its original container, so correcting", dom.inspectNode(containerElement));
         }
 
-        log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + containerElement.nodeName);
+        log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + dom.inspectNode(containerElement));
 
         // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
         // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
@@ -111,8 +139,11 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             // If the boundary immediately follows a character data node and this is the end boundary, we should favour
             // a position within that, and likewise for a start boundary preceding a character data node
-            previousNode = !isStart && workingNode.previousSibling;
-            nextNode = isStart && workingNode.nextSibling;
+            previousNode = (isCollapsed || !isStart) && workingNode.previousSibling;
+            nextNode = (isCollapsed || isStart) && workingNode.nextSibling;
+            log.info("workingNode: " + dom.inspectNode(workingNode));
+            log.info("previousNode: " + dom.inspectNode(previousNode));
+            log.info("nextNode: " + dom.inspectNode(nextNode));
             if (nextNode && dom.isCharacterDataNode(nextNode)) {
                 boundaryPosition = new DomPosition(nextNode, 0);
             } else if (previousNode && dom.isCharacterDataNode(previousNode)) {
@@ -124,8 +155,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Clean up
         workingNode.parentNode.removeChild(workingNode);
-
-        log.info("textrange text: " + textRange.text);
 
         return boundaryPosition;
     }
@@ -491,12 +520,17 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         WrappedRange.prototype.refresh = function() {
             var start, end;
-            if (this.textRange.text) {
-                log.warn("Refreshing Range from TextRange. parent element: " + this.textRange.parentElement().nodeName);
-                start = getTextRangeBoundaryPosition(this.textRange, true);
-                end = getTextRangeBoundaryPosition(this.textRange, false);
+
+            // TextRange's parentElement() method cannot be trusted. getTextRangeContainerElement() works around that.
+            // We do that here to avoid doing it twice unnecessarily.
+            var rangeContainerElement = getTextRangeContainerElement(this.textRange);
+
+            if (textRangeIsCollapsed(this.textRange)) {
+                end = start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, true);
             } else {
-                end = start = getTextRangeBoundaryPosition(this.textRange, true);
+                log.warn("Refreshing Range from TextRange. parent element: " + dom.inspectNode(rangeContainerElement));
+                start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, false);
+                end = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, false, false);
             }
 
             this.setStart(start.node, start.offset);

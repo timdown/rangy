@@ -190,7 +190,7 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
-    function nodeToString(node) {
+    function inspectNode(node) {
         if (!node) { return "[No node]"; }
         if (isCharacterDataNode(node)) {
             return '"' + node.data + '"';
@@ -260,7 +260,7 @@ rangy.createModule("DomUtil", function(api, module) {
         },
 
         inspect: function() {
-            return "[DomPosition(" + nodeToString(this.node) + ":" + this.offset + ")]";
+            return "[DomPosition(" + inspectNode(this.node) + ":" + this.offset + ")]";
         }/*,
 
         isStartOfElementContent: function() {
@@ -307,7 +307,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getWindow: getWindow,
         getBody: getBody,
         comparePoints: comparePoints,
-        nodeToString: nodeToString,
+        inspectNode: inspectNode,
         createIterator: createIterator,
         DomPosition: DomPosition,
         DOMException: DOMException

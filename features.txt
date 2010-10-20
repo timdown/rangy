@@ -10,7 +10,6 @@
   select range, empty range, insert node at range boundary, insert HTML at range boundary
 - Extended selection (and Range?) objects
 
-
 Features
 --------
 
@@ -35,6 +34,8 @@ Features
 - Get element text
 
 - Test empty selections?
+
+- Return range/selection objects from suitable methods to allow chaining?
 
 
 References:

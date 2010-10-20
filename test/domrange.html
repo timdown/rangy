@@ -31,12 +31,7 @@
         }
 
         function logSel() {
-            var ranges = rangy.getSelection().getAllRanges();
-            var util = rangy.DomRange.util;
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                log.warn("Selected range " + i + ":", util.nodeToString(ranges[i].startContainer), ranges[i].startOffset,
-                        util.nodeToString(ranges[i].endContainer), ranges[i].endOffset);
-            }
+            log.warn(rangy.getSelection().inspect());
         }
 
         function g(id) {
@@ -59,14 +54,14 @@
     </script>
 </head>
 <body>
-<input type="button" value="log selection" onclick="logSel();">
-<input type="button" value="reselect" onclick="reselect(); g('ed').focus()">
-<input type="button" value="get text" onclick="log.warn('Selected text: |' + rangy.getSelection() + '|');">
-<input type="button" value="delete" onclick="r().deleteContents()">
-<input type="button" value="extract" onclick="try { showFragment(r().extractContents()) } catch (ex) {alert(ex);}">
-<input type="button" value="clone" onclick="try { showFragment(r().cloneContents()) } catch (ex) {alert(ex);}">
-<input type="button" value="surround" onclick="var n = document.createElement('span'); n.style.backgroundColor = 'pink'; try { r().surroundContents(n) } catch (ex) {alert(ex);}">
-<input type="button" value="delete selection" onclick="rangy.getSelection().deleteFromDocument(); g('ed').focus()">
+<input type="button" value="log selection" onmousedown="logSel();">
+<input type="button" value="reselect" onmousedown="reselect(); g('ed').focus()">
+<input type="button" value="get text" onmousedown="log.warn('Selected text: |' + rangy.getSelection() + '|');">
+<input type="button" value="delete" onmousedown="r().deleteContents()">
+<input type="button" value="extract" onmousedown="try { showFragment(r().extractContents()) } catch (ex) {alert(ex);}">
+<input type="button" value="clone" onmousedown="try { showFragment(r().cloneContents()) } catch (ex) {alert(ex);}">
+<input type="button" value="surround" onmousedown="var n = document.createElement('span'); n.style.backgroundColor = 'pink'; try { r().surroundContents(n) } catch (ex) {alert(ex);}">
+<input type="button" value="delete selection" onmousedown="rangy.getSelection().deleteFromDocument(); g('ed').focus()">
 <br>
 
 <div style="border: solid green 1px; padding: 2px">
@@ -76,6 +71,10 @@
         A paragraph with <b>bold text</b> with <i>italic</i> words
         <img src="claridge.jpg" alt="claridge" width="30" height="40">
         plus <b>some using <i>both</i></b>.</p>
+    <ul id="ul">
+        <li id="li_a"> a </li>
+        <li id="li_b"> b </li>
+    </ul>
 
 </div>
 

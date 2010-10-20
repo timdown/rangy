@@ -247,7 +247,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
         selProto.setRanges = function(ranges) {
             this.removeAllRanges();
-            for (var i = 0; i < rangeCount; ++i) {
+            for (var i = 0, len = ranges.length; i < len; ++i) {
                 this.addRange(ranges[i]);
             }
         };
@@ -507,9 +507,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // The following are non-standard extensions
 
-    // These two are mine, added for convenience
+    // The rest are mine, added for convenience
     selProto.getAllRanges = function() {
         return this._ranges.slice(0);
+    };
+
+    selProto.setSingleRange = function(range) {
+        this.setRanges( [range] );
     };
 
     selProto.containsNode = function(node, allowPartial) {
