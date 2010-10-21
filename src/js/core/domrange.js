@@ -185,7 +185,7 @@ rangy.createModule("DomRange", function(api, module) {
         var firstNodeInserted = node.nodeType == 11 ? node.firstChild : node;
         if (dom.isCharacterDataNode(n)) {
             if (o == n.length) {
-                n.parentNode.appendChild(node);
+                dom.insertAfter(node, n);
             } else {
                 n.parentNode.insertBefore(node, o == 0 ? n : dom.splitDataNode(n, o));
             }
@@ -881,8 +881,9 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             inspect: function() {
-                return "[" + this.getName() + "(" + dom.inspectNode(this.startContainer) + ":" + this.startOffset +
-                       ", " + dom.inspectNode(this.endContainer) + ":" + this.endOffset + ")]";
+                var name = this.getName ? this.getName() : "Range";
+                return "[" + name + "(" + dom.inspectNode(this.startContainer) + ":" + this.startOffset + ", " +
+                        dom.inspectNode(this.endContainer) + ":" + this.endOffset + ")]";
             }
         };
 
