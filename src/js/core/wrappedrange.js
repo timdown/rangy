@@ -25,7 +25,7 @@ rangy.createModule("WrappedRange", function(api, module) {
      */
     function getTextRangeContainerElement(textRange) {
         var range = textRange.duplicate();
-        var bookmark = range.getBookmark()
+        var bookmark = range.getBookmark();
         range.collapse(true);
         var startEl = range.parentElement();
 
@@ -91,6 +91,8 @@ rangy.createModule("WrappedRange", function(api, module) {
             workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
             log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
 
+            var offset;
+
             if (/[\r\n]/.test(boundaryNode.data)) {
                 /*
                 For the particular case of a boundary within a text node containing line breaks (within a <pre> element,
@@ -124,7 +126,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 var tempRange = workingRange.duplicate();
                 var rangeLength = tempRange.text.replace(/\r\n/g, "\r").length;
 
-                var offset = tempRange.moveStart("character", rangeLength);
+                offset = tempRange.moveStart("character", rangeLength);
                 while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
                     offset++;
                     tempRange.moveStart("character", 1);

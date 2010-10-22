@@ -82,7 +82,7 @@ var rangy = (function() {
     };
 
     function fail(reason) {
-        alert("Rangy not supported in your browser. Reason: " + reason);
+        window.alert("Rangy not supported in your browser. Reason: " + reason);
         api.initialized = true;
         api.supported = false;
     }
@@ -92,7 +92,7 @@ var rangy = (function() {
     function warn(reason) {
         var warningMessage = "Rangy warning: " + reason;
         if (api.config.alertOnWarn) {
-            alert(warningMessage);
+            window.alert(warningMessage);
         } else if (typeof window.console != UNDEFINED && typeof window.console.log != UNDEFINED) {
             window.console.log(warningMessage);
         }
