@@ -13,7 +13,7 @@
  * Build date: %%build:date%%
  */
 rangy.createModule("SaveRestore", function(api, module) {
-    api.requireModules( ["DomRange", "WrappedRange"] );
+    api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
 
     var dom = api.dom;
 

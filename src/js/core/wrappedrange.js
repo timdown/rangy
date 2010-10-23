@@ -40,7 +40,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         return textRange.compareEndPoints("StartToEnd", textRange) == 0;
     }
 
-    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This method started out as
+    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This function started out as
     // an improved version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/) but has
     // grown, fixing problems with line breaks in preformatted text, adding workaround for IE TextRange bugs, handling
     // for inputs and images, plus optimizations.
@@ -162,7 +162,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     }
 
     // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
-    // This method is an optimized version of code found in Tim Cameron Ryan's IERange
+    // This function started out as an optimized version of code found in Tim Cameron Ryan's IERange
     // (http://code.google.com/p/ierange/)
     function createBoundaryTextRange(boundaryPosition, isStart) {
         var boundaryNode, boundaryParent, boundaryOffset = boundaryPosition.offset;
@@ -178,7 +178,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             boundaryNode = boundaryPosition.node;
             boundaryParent = boundaryNode.parentNode;
 
-            // Check if the boundary is at the start of end of the contents of an element
+            // Check if the boundary is at the start or end of the contents of an element
             if (boundaryParent.nodeType == 1) {
                 if (boundaryOffset == 0 && !boundaryNode.previousSibling) {
                     isAtStartOfElementContent = true;
@@ -210,6 +210,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         } else {
             // Position the range immediately before the node containing the boundary
             workingNode = doc.createElement("span");
+            workingNode.innerHTML = "&#ffef;";
 
             // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
             // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
@@ -218,8 +219,9 @@ rangy.createModule("WrappedRange", function(api, module) {
             } else {
                 boundaryParent.appendChild(workingNode);
             }
-
+ 
             workingRange.moveToElementText(workingNode);
+            workingRange.collapse(!isStart);
 
             // Clean up
             boundaryParent.removeChild(workingNode);
@@ -530,7 +532,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             if (textRangeIsCollapsed(this.textRange)) {
                 end = start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, true);
             } else {
-                log.warn("Refreshing Range from TextRange. parent element: " + dom.inspectNode(rangeContainerElement));
+                log.warn("Refreshing Range from TextRange. parent element: " + dom.inspectNode(rangeContainerElement) + ", parentElement(): " + dom.inspectNode(this.textRange.parentElement()));
                 start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, false);
                 end = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, false, false);
             }
@@ -540,12 +542,16 @@ rangy.createModule("WrappedRange", function(api, module) {
         };
 
         WrappedRange.rangeToTextRange = function(range) {
-            var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
-            var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
-            var textRange = dom.getDocument(range.startContainer).body.createTextRange();
-            textRange.setEndPoint("StartToStart", startRange);
-            textRange.setEndPoint("EndToEnd", endRange);
-            return textRange;
+            if (range.collapsed) {
+                return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true, true);
+            } else {
+                var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true, false);
+                var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false, false);
+                var textRange = dom.getDocument(range.startContainer).body.createTextRange();
+                textRange.setEndPoint("StartToStart", startRange);
+                textRange.setEndPoint("EndToEnd", endRange);
+                return textRange;
+            }
         };
 
         DomRange.copyComparisonConstants(WrappedRange);
