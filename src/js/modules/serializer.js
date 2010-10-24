@@ -25,9 +25,10 @@ rangy.createModule("Serializer", function(api, module) {
 
     function serializePosition(node, offset) {
         var pathBits = [], n = node;
-        var docElement = dom.getDocument(node).documentElement;
-        while (n && n != docElement) {
-            pathBits.push(dom.getNodeIndex(n));
+        //var docElement = dom.getDocument(node).documentElement;
+        var body = dom.getBody(dom.getDocument(node));
+        while (n && n != body) {
+            pathBits.push(dom.getNodeIndex(n, true));
             n = n.parentNode;
         }
         return pathBits.join("/") + ":" + offset;
@@ -36,11 +37,12 @@ rangy.createModule("Serializer", function(api, module) {
     function deserializePosition(serialized, doc) {
         doc = doc || document;
         var bits = serialized.split(":");
-        var node = doc.documentElement;
+        //var node = doc.documentElement;
+        var node = dom.getBody(doc);
         var nodeIndices = bits[0].split("/"), i = nodeIndices.length;
 
         while (i--) {
-            node = node.childNodes[ parseInt(nodeIndices[i], 10) ];
+            node = dom.getNodeAtIndex(node, parseInt(nodeIndices[i], 10), true);
         }
 
         return new dom.DomPosition(node, parseInt(bits[1], 10));

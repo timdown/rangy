@@ -45,12 +45,39 @@ rangy.createModule("DomUtil", function(api, module) {
             return false;
         };
 
-    function getNodeIndex(node) {
+    var whitespaceRegex = /^\s*$/;
+
+    function isWhitespaceNode(node) {
+        return whitespaceRegex.test(node.data);
+    }
+
+    function getNodeIndex(node, excludeWhitespaceTextNodes) {
         var i = 0;
         while( (node = node.previousSibling) ) {
-            i++;
+            if (!excludeWhitespaceTextNodes || node.nodeType != 3 || !isWhitespaceNode(node)) {
+                i++;
+            }
         }
         return i;
+    }
+
+    function getNodeAtIndex(node, index, excludeWhitespaceTextNodes) {
+        if (!excludeWhitespaceTextNodes) {
+            return node.childNodes[index];
+        } else {
+            //alert(inspectNode(node) + ", " + index);
+            var nonWhitespaceCount = 0, child = node.firstChild;
+            while (child) {
+                if (!isWhitespaceNode(child)) {
+                    if (nonWhitespaceCount == index) {
+                        return child;
+                    }
+                    nonWhitespaceCount++;
+                }
+                child = child.nextSibling;
+            }
+            return null;
+        }
     }
 
     function getCommonAncestor(node1, node2) {
@@ -297,6 +324,7 @@ rangy.createModule("DomUtil", function(api, module) {
     api.dom = {
         arrayContains: arrayContains,
         getNodeIndex: getNodeIndex,
+        getNodeAtIndex: getNodeAtIndex,
         getCommonAncestor: getCommonAncestor,
         isAncestorOf: isAncestorOf,
         getClosestAncestorIn: getClosestAncestorIn,
