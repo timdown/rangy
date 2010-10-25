@@ -62,7 +62,7 @@ var rangy = (function() {
 
     var api = {
         initialized: false,
-        supported: false,
+        supported: true,
 
         util: {
             isHostMethod: isHostMethod,

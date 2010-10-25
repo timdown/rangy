@@ -4,7 +4,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
 
-    api.checkSelectionRanges = true;
+    api.config.checkSelectionRanges = true;
 
     var BOOLEAN = "boolean", windowPropertyName = "_rangySelection";
     var dom = api.dom;
@@ -232,7 +232,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
             // Check whether the range that we added to the selection is reflected in the last range extracted from
             // the selection
-            if (api.checkSelectionRanges) {
+            if (api.config.checkSelectionRanges) {
                 var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
                 if (nativeRange && !DomRange.util.rangesEqual(nativeRange, range)) {
                     // Happens in WebKit with, for example, a selection placed at the start of a text node

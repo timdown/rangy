@@ -74,13 +74,13 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
         };
 
         function setUp_noRangeCheck(t) {
-            t.initialCheckSelectionRanges = rangy.checkSelectionRanges;
-            rangy.checkSelectionRanges = false;
+            t.initialCheckSelectionRanges = rangy.config.checkSelectionRanges;
+            rangy.config.checkSelectionRanges = false;
         }
 
         function tearDown_noRangeCheck(t) {
-            rangy.checkSelectionRanges = t.initialCheckSelectionRanges;
-        }
+            rangy.config.checkSelectionRanges = t.initialCheckSelectionRanges;
+        }rangy.config.checkSelectionRanges
 
         s.test("removeAllRanges test", function(t) {
             var sel = selectionCreator(win);
@@ -174,7 +174,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         } else {
             s.test("Adding mutiple ranges where only one is supported", function(t) {
-                rangy.checkSelectionRanges = false;
+                rangy.config.checkSelectionRanges = false;
                 var sel = selectionCreator(win);
                 sel.removeAllRanges();
                 var range1 = rangeCreator(doc);
@@ -190,7 +190,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.rangeCount, 1);
                 sel.removeRange(range2);
                 t.assertEquals(sel.rangeCount, 0);
-                rangy.checkSelectionRanges = false;
+                rangy.config.checkSelectionRanges = false;
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         }
 
