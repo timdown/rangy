@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript" src="lib/log4javascript.js"></script>
+    <script type="text/javascript">
+        var appender = new log4javascript.InPageAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+        var log = log4javascript.getRootLogger();
+        log4javascript.setShowStackTraces(true);
+    </script>
+<!--
+    <script type="text/javascript" src="../src/js/rangy.js"></script>
+-->
+    <script type="text/javascript" src="src/js/core/core.js"></script>
+    <script type="text/javascript" src="src/js/core/dom.js"></script>
+    <script type="text/javascript" src="src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="src/js/modules/selectionsaverestore.js"></script>
+
+    <script type="text/javascript">
+        function createLink(matchedTextNode) {
+            var el = document.createElement("a");
+            el.style.backgroundColor = "yellow";
+            el.style.padding = "2px";
+            var matchedName = matchedTextNode.data.slice(1); // Remove the leading @
+            el.href = "http://www.example.com/?name=" + matchedName;
+            matchedTextNode.data = matchedName;
+            el.appendChild(matchedTextNode);
+            return el;
+        }
+
+        function shouldLinkifyContents(el) {
+            return el.tagName != "A";
+        }
+
+        function surroundInElement(el, regex, surrounderCreateFunc, shouldSurroundFunc) {
+            var child = el.lastChild;
+            while (child) {
+                if (child.nodeType == 1 && shouldSurroundFunc(el)) {
+                    surroundInElement(child, regex, createLink, shouldSurroundFunc);
+                } else if (child.nodeType == 3) {
+                    surroundMatchingText(child, regex, surrounderCreateFunc);
+                }
+                child = child.previousSibling;
+            }
+        }
+
+        function surroundMatchingText(textNode, regex, surrounderCreateFunc) {
+            var parent = textNode.parentNode;
+            var result, surroundingNode, matchedTextNode, matchLength, matchedText;
+            while ( textNode && (result = regex.exec(textNode.data)) ) {
+                matchedTextNode = textNode.splitText(result.index);
+                matchedText = result[0];
+                matchLength = matchedText.length;
+                textNode = (matchedTextNode.length > matchLength) ?
+                    matchedTextNode.splitText(matchLength) : null;
+                parent.removeChild(matchedTextNode);
+                surroundingNode = surrounderCreateFunc(matchedTextNode);
+                parent.insertBefore(surroundingNode, textNode);
+            }
+        }
+
+        function updateLinks() {
+            var el = document.getElementById("e");
+            var savedSelection = rangy.saveRestore.saveSelection();
+            surroundInElement(el, /@\w+/, createLink, shouldLinkifyContents);
+            rangy.saveRestore.restoreSelection(savedSelection);
+        }
+
+        var keyTimer = null, keyDelay = 1000;
+
+        function keyUpLinkifyHandler() {
+            if (keyTimer) {
+                window.clearTimeout(keyTimer);
+            }
+            keyTimer = window.setTimeout(updateLinks, keyDelay);
+        }
+    </script>
+
+</head>
+<body>
+    <p>Some stuff</p>
+    <p contenteditable="true" id="e" onkeyup="keyUpLinkifyHandler()">Some editable content for @someone and </p>
+    <p>More stuff</p>
+</body>
+</html>
