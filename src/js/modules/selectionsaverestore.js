@@ -49,18 +49,29 @@ rangy.createModule("SaveRestore", function(api, module) {
         var sel = api.getSelection(win);
         var ranges = sel.getAllRanges();
         var rangeInfos = [], startEl, endEl;
-        for (var i = 0, len = ranges.length; i < len; ++i) {
-            endEl = insertRangeBoundaryMarker(ranges[i], false);
-            startEl = insertRangeBoundaryMarker(ranges[i], true);
+        for (var i = 0, len = ranges.length, range; i < len; ++i) {
+            range = ranges[i];
+            if (range.collapsed) {
+                endEl = insertRangeBoundaryMarker(range, false);
+                rangeInfos.push({
+                    markerId: endEl.id,
+                    collapsed: true
+                });
+                range.collapseBefore(endEl);
+            } else {
+                endEl = insertRangeBoundaryMarker(range, false);
+                startEl = insertRangeBoundaryMarker(range, true);
 
-            // Update the range after potential changes to ensure it stays selected
-            ranges[i].setEndBefore(endEl);
-            ranges[i].setStartAfter(startEl);
+                // Update the range after potential changes to ensure it stays selected
+                range.setEndBefore(endEl);
+                range.setStartAfter(startEl);
 
-            rangeInfos.push({
-                startMarkerId: startEl.id,
-                endMarkerId: endEl.id
-            });
+                rangeInfos.push({
+                    startMarkerId: startEl.id,
+                    endMarkerId: endEl.id,
+                    collapsed: false
+                });
+            }
         }
 
         // Ensure current selection is unaffected
@@ -81,8 +92,14 @@ rangy.createModule("SaveRestore", function(api, module) {
             for (var i = 0, len = rangeInfos.length, rangeInfo, range; i < len; ++i) {
                 rangeInfo = rangeInfos[i];
                 range = api.createRange(savedSelection.doc);
-                setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
-                setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
+                if (rangeInfo.collapsed) {
+                    var markerEl = savedSelection.doc.getElementById(rangeInfo.markerId);
+                    range.collapseBefore(markerEl);
+                    markerEl.parentNode.removeChild(markerEl);
+                } else {
+                    setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
+                    setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
+                }
                 range.normalizeBoundaries();
                 sel.addRange(range);
             }
@@ -110,4 +127,9 @@ rangy.createModule("SaveRestore", function(api, module) {
         removeMarkerElement: removeMarkerElement,
         removeMarkers: removeMarkers
     };
+
+    api.saveSelection = saveSelection;
+    api.restoreSelection = restoreSelection;
+    api.removeMarkerElement = removeMarkerElement;
+    api.removeMarkers = removeMarkers;
 });

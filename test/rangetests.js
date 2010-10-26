@@ -403,6 +403,150 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
 
+        if (testRange.normalizeBoundaries) {
+            s.test("normalizeBoundaries 'one|two' element container", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.collapseToPoint(b, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwo", b.childNodes[0].data);
+                t.assertEquals(text1, b.childNodes[0]);
+                t.assertEquals(text1, range.startContainer);
+                t.assertEquals(text1, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assert(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one|two' one", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.collapseToPoint(text1, 3);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwo", b.childNodes[0].data);
+                t.assertEquals(text1, b.childNodes[0]);
+                t.assertEquals(text1, range.startContainer);
+                t.assertEquals(text1, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assert(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one|two' two", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.collapseToPoint(text2, 0);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwo", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assert(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one|two|three' 1", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(b, 1);
+                range.setEnd(b, 2);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwothree", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(6, range.endOffset);
+                t.assertEquals("two", range.toString());
+                t.assertFalse(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one|two|three' 2", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(b, 1);
+                range.setEnd(text2, 3);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwothree", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(6, range.endOffset);
+                t.assertEquals("two", range.toString());
+                t.assertFalse(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one|two|three' 3", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(text2, 0);
+                range.setEnd(b, 2);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwothree", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(6, range.endOffset);
+                t.assertEquals("two", range.toString());
+                t.assertFalse(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one|two|three' 4", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(text2, 0);
+                range.setEnd(text2, 3);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onetwothree", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(6, range.endOffset);
+                t.assertEquals("two", range.toString());
+                t.assertFalse(range.collapsed);
+            });
+        }
+
         testRange.detach();
     }, false);
 }

@@ -57,9 +57,9 @@
                 matchLength = matchedText.length;
                 textNode = (matchedTextNode.length > matchLength) ?
                     matchedTextNode.splitText(matchLength) : null;
+                surroundingNode = surrounderCreateFunc(matchedTextNode.cloneNode(true));
+                parent.insertBefore(surroundingNode, matchedTextNode);
                 parent.removeChild(matchedTextNode);
-                surroundingNode = surrounderCreateFunc(matchedTextNode);
-                parent.insertBefore(surroundingNode, textNode);
             }
         }
 
@@ -76,7 +76,10 @@
             if (keyTimer) {
                 window.clearTimeout(keyTimer);
             }
-            keyTimer = window.setTimeout(updateLinks, keyDelay);
+            keyTimer = window.setTimeout(function() {
+                updateLinks();
+                keyTimer = null;
+            }, keyDelay);
         }
     </script>
 

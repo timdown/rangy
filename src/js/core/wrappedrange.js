@@ -219,7 +219,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             } else {
                 boundaryParent.appendChild(workingNode);
             }
- 
+
             workingRange.moveToElementText(workingNode);
             workingRange.collapse(!isStart);
 
@@ -403,7 +403,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                     updateRangeProperties(this);
                 };
 
-                createBeforeAfterNodeSetter = function(name, oppositeName) {
+                createBeforeAfterNodeSetter = function(name) {
                     return function(node) {
                         this.nativeRange[name](node);
                         updateRangeProperties(this);

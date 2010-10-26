@@ -817,36 +817,64 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             normalizeBoundaries: function() {
-                var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
-                var sibling, startEndSame = (sc === ec);
                 assertNotDetached(this);
+                var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+                var startEndSame = (sc === ec);
 
-                var startNode = dom.isCharacterDataNode(sc) ? sc : sc.childNodes[so];
-                var endNode = dom.isCharacterDataNode(ec) ? ec : (eo ? ec.childNodes[eo - 1] : null);
-
-                if (endNode && dom.isCharacterDataNode(endNode)) {
-                    sibling = endNode.nextSibling;
-                    if (sibling && dom.isCharacterDataNode(sibling)) {
-                        ec = endNode;
-                        eo = endNode.length;
-                        ec.appendData(sibling.data);
+                var mergeForward = function(node) {
+                    var sibling = node.nextSibling;
+                    if (sibling && sibling.nodeType == node.nodeType) {
+                        ec = node;
+                        eo = node.length;
+                        node.appendData(sibling.data);
                         sibling.parentNode.removeChild(sibling);
                     }
-                }
+                };
 
-                if (startNode && dom.isCharacterDataNode(startNode)) {
-                    sibling = startNode.previousSibling;
-                    if (sibling && dom.isCharacterDataNode(sibling)) {
-                        sc = startNode;
-                        sc.insertData(0, sibling.data);
+                var mergeBackward = function(node) {
+                    var sibling = node.previousSibling;
+                    if (sibling && sibling.nodeType == node.nodeType) {
+                        sc = node;
                         so = sibling.length;
+                        node.insertData(0, sibling.data);
                         sibling.parentNode.removeChild(sibling);
-                        if (startEndSame) {
+                        if (sc == ec) {
                             eo += so;
                             ec = sc;
                         }
                     }
+                };
+
+                var normalizeStart = true;
+
+                if (dom.isCharacterDataNode(ec)) {
+                    if (ec.length == eo) {
+                        mergeForward(ec);
+                    }
+                } else {
+                    var endNode = ec.childNodes[eo - 1];
+                    if (endNode && dom.isCharacterDataNode(endNode)) {
+                        mergeForward(endNode);
+                    }
+                    normalizeStart = !this.collapsed;
                 }
+
+                if (normalizeStart) {
+                    if (dom.isCharacterDataNode(sc)) {
+                        if (so == 0) {
+                            mergeBackward(sc);
+                        }
+                    } else {
+                        var startNode = sc.childNodes[so];
+                        if (startNode && dom.isCharacterDataNode(startNode)) {
+                            mergeBackward(startNode);
+                        }
+                    }
+                } else {
+                    sc = ec;
+                    so = eo;
+                }
+
                 boundaryUpdater(this, sc, so, ec, eo);
             },
 
