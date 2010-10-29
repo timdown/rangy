@@ -545,6 +545,164 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assertEquals("two", range.toString());
                 t.assertFalse(range.collapsed);
             });
+
+            s.test("normalizeBoundaries 'one||three' 1", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(text2, 0);
+                range.setEnd(text2, 0);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onethree", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one||three' 2", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(b, 1);
+                range.setEnd(b, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(2, b.childNodes.length);
+                t.assertEquals("one", b.childNodes[0].data);
+                t.assertEquals("three", b.childNodes[1].data);
+                t.assertEquals(text1, b.childNodes[0]);
+                t.assertEquals(text3, b.childNodes[1]);
+                t.assertEquals(text1, range.startContainer);
+                t.assertEquals(text1, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one||three' 3", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(b, 2);
+                range.setEnd(b, 2);
+                range.normalizeBoundaries();
+                t.assertEquals(2, b.childNodes.length);
+                t.assertEquals("one", b.childNodes[0].data);
+                t.assertEquals("three", b.childNodes[1].data);
+                t.assertEquals(text1, b.childNodes[0]);
+                t.assertEquals(text2, b.childNodes[1]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(0, range.startOffset);
+                t.assertEquals(0, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries 'one||three' 4", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.setStart(b, 1);
+                range.setEnd(b, 2);
+                range.normalizeBoundaries();
+                t.assertEquals(1, b.childNodes.length);
+                t.assertEquals("onethree", b.childNodes[0].data);
+                t.assertEquals(text2, b.childNodes[0]);
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries collapsed at start of element first child", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+
+                range.collapseToPoint(b, 0);
+                range.normalizeBoundaries();
+                t.assertEquals(b, range.startContainer);
+                t.assertEquals(b, range.endContainer);
+                t.assertEquals(0, range.startOffset);
+                t.assertEquals(0, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries collapsed at start of element text node", function(t) {
+                var range = rangeCreator(doc);
+                var boldText = t.nodes.boldText;
+
+                range.collapseToPoint(boldText, 0);
+                range.normalizeBoundaries();
+                t.assertEquals(boldText, range.startContainer);
+                t.assertEquals(boldText, range.endContainer);
+                t.assertEquals(0, range.startOffset);
+                t.assertEquals(0, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries collapsed at end of element last child", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var i = b.appendChild( doc.createElement("i") );
+                var text2 = i.appendChild( doc.createTextNode("two") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.collapseToPoint(i, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(i, range.startContainer);
+                t.assertEquals(i, range.endContainer);
+                t.assertEquals(1, range.startOffset);
+                t.assertEquals(1, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries collapsed at end of element text node", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var i = b.appendChild( doc.createElement("i") );
+                var text2 = i.appendChild( doc.createTextNode("two") );
+                var text3 = b.appendChild( doc.createTextNode("three") );
+
+                range.collapseToPoint(text2, 3);
+                range.normalizeBoundaries();
+                t.assertEquals(text2, range.startContainer);
+                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(3, range.endOffset);
+                t.assertEquals("", range.toString());
+                t.assertTrue(range.collapsed);
+            });
         }
 
         testRange.detach();
