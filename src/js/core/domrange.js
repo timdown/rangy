@@ -852,9 +852,11 @@ rangy.createModule("DomRange", function(api, module) {
                         mergeForward(ec);
                     }
                 } else {
-                    var endNode = ec.childNodes[eo - 1];
-                    if (endNode && dom.isCharacterDataNode(endNode)) {
-                        mergeForward(endNode);
+                    if (eo > 0) {
+                        var endNode = ec.childNodes[eo - 1];
+                        if (endNode && dom.isCharacterDataNode(endNode)) {
+                            mergeForward(endNode);
+                        }
                     }
                     normalizeStart = !this.collapsed;
                 }
@@ -865,9 +867,11 @@ rangy.createModule("DomRange", function(api, module) {
                             mergeBackward(sc);
                         }
                     } else {
-                        var startNode = sc.childNodes[so];
-                        if (startNode && dom.isCharacterDataNode(startNode)) {
-                            mergeBackward(startNode);
+                        if (so < sc.childNodes.length) {
+                            var startNode = sc.childNodes[so];
+                            if (startNode && dom.isCharacterDataNode(startNode)) {
+                                mergeBackward(startNode);
+                            }
                         }
                     }
                 } else {
