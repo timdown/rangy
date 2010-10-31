@@ -146,6 +146,9 @@ var rangy = (function() {
             try {
                 allListeners[i](api);
             } catch (ex) {
+                if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
+                    console.log("Init listener threw an exception. Continuing.", ex);
+                }
                 log.error("Init listener threw an exception. Continuing.", ex);
             }
         }
@@ -180,6 +183,10 @@ var rangy = (function() {
         this.supported = false;
         log.error("Module '" + this.name + "' failed to load: " + reason);
         throw new Error("Module '" + this.name + "' failed to load: " + reason);
+    };
+
+    Module.prototype.createError = function(msg) {
+        return new Error("Error in Rangy " + this.name + " module: " + msg);
     };
 
     api.createModule = function(name, initFunc) {

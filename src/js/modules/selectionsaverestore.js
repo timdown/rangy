@@ -121,13 +121,6 @@ rangy.createModule("SaveRestore", function(api, module) {
         }
     }
 
-    api.saveRestore = {
-        saveSelection: saveSelection,
-        restoreSelection: restoreSelection,
-        removeMarkerElement: removeMarkerElement,
-        removeMarkers: removeMarkers
-    };
-
     api.saveSelection = saveSelection;
     api.restoreSelection = restoreSelection;
     api.removeMarkerElement = removeMarkerElement;

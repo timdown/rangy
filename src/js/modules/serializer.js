@@ -25,9 +25,8 @@ rangy.createModule("Serializer", function(api, module) {
 
     function serializePosition(node, offset) {
         var pathBits = [], n = node;
-        //var docElement = dom.getDocument(node).documentElement;
-        var body = dom.getBody(dom.getDocument(node));
-        while (n && n != body) {
+        var docElement = dom.getDocument(node).documentElement;
+        while (n && n != docElement) {
             pathBits.push(dom.getNodeIndex(n, true));
             n = n.parentNode;
         }
@@ -37,12 +36,17 @@ rangy.createModule("Serializer", function(api, module) {
     function deserializePosition(serialized, doc) {
         doc = doc || document;
         var bits = serialized.split(":");
-        //var node = doc.documentElement;
-        var node = dom.getBody(doc);
-        var nodeIndices = bits[0].split("/"), i = nodeIndices.length;
+        var node = doc.documentElement;
+        var nodeIndices = bits[0].split("/"), i = nodeIndices.length, nodeIndex;
 
         while (i--) {
-            node = dom.getNodeAtIndex(node, parseInt(nodeIndices[i], 10), true);
+            nodeIndex = parseInt(nodeIndices[i], 10);
+            if (nodeIndex < node.childNodes.length) {
+                node = node.childNodes[parseInt(nodeIndices[i], 10)];
+            } else {
+                throw module.createError("deserializePosition failed: node " + dom.inspectNode(node) +
+                        " has no child with index " + nodeIndex);
+            }
         }
 
         return new dom.DomPosition(node, parseInt(bits[1], 10));

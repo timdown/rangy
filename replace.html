@@ -25,6 +25,7 @@
             var el = document.createElement("a");
             el.style.backgroundColor = "yellow";
             el.style.padding = "2px";
+            el.contentEditable = false;
             var matchedName = matchedTextNode.data.slice(1); // Remove the leading @
             el.href = "http://www.example.com/?name=" + matchedName;
             matchedTextNode.data = matchedName;
@@ -64,10 +65,10 @@
         }
 
         function updateLinks() {
-            var el = document.getElementById("e");
-            var savedSelection = rangy.saveRestore.saveSelection();
+            var el = document.getElementById("editable");
+            var savedSelection = rangy.saveSelection();
             surroundInElement(el, /@\w+/, createLink, shouldLinkifyContents);
-            rangy.saveRestore.restoreSelection(savedSelection);
+            rangy.restoreSelection(savedSelection);
         }
 
         var keyTimer = null, keyDelay = 1000;
@@ -86,7 +87,9 @@
 </head>
 <body>
     <p>Some stuff</p>
-    <p contenteditable="true" id="e" onkeyup="keyUpLinkifyHandler()">Some editable content for @someone and </p>
+    <p contenteditable="true" id="editable" onkeyup="keyUpLinkifyHandler()">
+        Some editable content for @someone or other
+    </p>
     <p>More stuff</p>
 </body>
 </html>
