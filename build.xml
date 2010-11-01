@@ -99,13 +99,31 @@
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="serializer.js"/>
         </antcall>
+<!--
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="textinputs_jquery.js"/>
         </antcall>
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="textinputs_standalone.js"/>
         </antcall>
+-->
     </target>
 
-    <target name="build" description="Full build" depends="build.core.js, build.modules"/>
+    <!-- Creates zip version of the distribution -->
+    <target name="build.zip">
+        <zip destfile="${build.dir}/rangy-${build.version}.zip">
+            <zipfileset dir="${build.rangy.dir}" prefix="rangy-${build.version}/"/>
+        </zip>
+    </target>
+
+    <!-- Creates tarball version of the distribution -->
+    <target name="build.tar.gz">
+        <tar tarfile="${build.dir}/rangy-${build.version}.tar">
+            <tarfileset dir="${build.rangy.dir}" prefix="rangy-${build.version}/"/>
+        </tar>
+        <gzip zipfile="${build.dir}/rangy-${build.version}.tar.gz" src="${build.dir}/rangy-${build.version}.tar"/>
+        <delete file="${build.dir}/rangy-${build.version}.tar"/>
+    </target>
+
+    <target name="build" description="Full build" depends="build.core.js, build.modules, build.zip, build.tar.gz"/>
 </project>
