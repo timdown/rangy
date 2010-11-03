@@ -8,7 +8,6 @@ rangy.createModule("WrappedRange", function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var DomRange = api.DomRange;
-    var rangeUtil = DomRange.util;
 
     var log = log4javascript.getLogger("rangy.WrappedRange");
 
@@ -467,7 +466,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             } else {
                 rangeProto.selectNodeContents = function(node) {
                     this.setStart(node, 0);
-                    this.setEnd(node, rangeUtil.getEndOffset(node));
+                    this.setEnd(node, DomRange.getEndOffset(node));
                 };
             }
 

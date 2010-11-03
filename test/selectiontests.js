@@ -166,10 +166,10 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 sel.addRange(r2);
 
                 if (sel.rangeCount == 2) {
-                    t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
-                    t.assert(DomRange.util.rangesEqual(r2, sel.getRangeAt(1)));
+                    t.assert(DomRange.rangesEqual(range, sel.getRangeAt(0)));
+                    t.assert(DomRange.rangesEqual(r2, sel.getRangeAt(1)));
                 } else if (sel.rangeCount == 1) {
-                    t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
+                    t.assert(DomRange.rangesEqual(range, sel.getRangeAt(0)));
                 }
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         } else {
@@ -200,7 +200,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             var range = rangeCreator(doc);
             range.selectNodeContents(t.nodes.plainText);
             sel.addRange(range);
-            t.assert(DomRange.util.rangesEqual(range, sel.getRangeAt(0)));
+            t.assert(DomRange.rangesEqual(range, sel.getRangeAt(0)));
             t.assertEquivalent(range, sel.getRangeAt(0));
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 

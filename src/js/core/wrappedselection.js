@@ -12,6 +12,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var DomRange = api.DomRange;
     var WrappedRange = api.WrappedRange;
     var DOMException = dom.DOMException;
+    var DomPosition = dom.DomPosition;
+
 
     var getSelection, selectionIsCollapsed;
 
@@ -43,6 +45,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"] &&
                                      util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]));
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
+
+    // Test if rangeCount exists
+    var selectionHasRangeCount = util.isHostProperty(testSelection, "rangeCount");
+    api.features.selectionHasRangeCount = selectionHasRangeCount;
 
     // Test whether the native selection is capable of supporting multiple ranges
     var selectionSupportsMultipleRanges = false;
@@ -174,7 +180,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         };
     } else if (selectionHasAnchorAndFocus) {
-        getSelectionRangeAt = function(sel, index) {
+        getSelectionRangeAt = function(sel) {
             var doc = dom.getDocument(sel.anchorNode);
             var range = api.createRange(doc);
             range.setStart(sel.anchorNode, sel.anchorOffset);
@@ -222,27 +228,48 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
 
         selProto.addRange = function(range) {
+            var previousRangeCount;
             if (selectionSupportsMultipleRanges) {
-                this.rangeCount++;
+                previousRangeCount = this.rangeCount;
             } else {
                 this.removeAllRanges();
-                this.rangeCount = 1;
+                previousRangeCount = 0;
             }
             this.nativeSelection.addRange(getNativeRange(range));
 
-            // Check whether the range that we added to the selection is reflected in the last range extracted from
-            // the selection
-            if (api.config.checkSelectionRanges) {
-                var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
-                if (nativeRange && !DomRange.util.rangesEqual(nativeRange, range)) {
-                    // Happens in WebKit with, for example, a selection placed at the start of a text node
-                    range = nativeRange;
-                }
+            // Check whether adding the range was successful
+            var rangeAdded, selectionEmptied;
+
+            if (selectionHasRangeCount) {
+                this.rangeCount = this.nativeSelection.rangeCount;
+                rangeAdded = (this.rangeCount == previousRangeCount + 1);
+                selectionEmptied = (this.rangeCount == 0);
+            } else {
+                selectionEmptied = !this.nativeSelection.anchorNode;
+                rangeAdded = !selectionEmptied;
+                this.rangeCount = rangeAdded ? previousRangeCount : 0;
             }
-            this._ranges[this.rangeCount - 1] = range;
-            updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
-            this.isCollapsed = selectionIsCollapsed(this);
-            //console.log("Native: " + this.nativeSelection.isCollapsed, this.nativeSelection.rangeCount, "" + this.nativeSelection.getRangeAt(0), this.nativeSelection.anchorOffset, this.nativeSelection.focusOffset);
+
+            if (rangeAdded) {
+                // The range was added successfully
+
+                // Check whether the range that we added to the selection is reflected in the last range extracted from
+                // the selection
+                if (api.config.checkSelectionRanges) {
+                    var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
+                    if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
+                        // Happens in WebKit with, for example, a selection placed at the start of a text node
+                        range = nativeRange;
+                    }
+                }
+                this._ranges[this.rangeCount - 1] = range;
+                updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
+                this.isCollapsed = selectionIsCollapsed(this);
+                //console.log("Native: " + this.nativeSelection.isCollapsed, this.nativeSelection.rangeCount, "" + this.nativeSelection.getRangeAt(0), this.nativeSelection.anchorOffset, this.nativeSelection.focusOffset);
+            } else if (selectionEmptied) {
+                this._ranges.length = 0;
+                updateEmptySelection(this);
+            }
         };
 
         selProto.setRanges = function(ranges) {
@@ -525,12 +552,28 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return false;
     };
 
-    selProto.inspect = function() {
+    function inspect(sel) {
         var rangeInspects = [];
-        for (var i = 0, len = this.rangeCount; i < len; ++i) {
-            rangeInspects[i] = this._ranges[i].inspect();
+        var anchor = new DomPosition(sel.anchorNode, sel.anchorOffset);
+        var focus = new DomPosition(sel.focusNode, sel.focusOffset);
+        var name = (typeof sel.getName == "function") ? sel.getName() : "Selection";
+
+        if (typeof sel.rangeCount != "undefined") {
+            for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                rangeInspects[i] = DomRange.inspect(sel.getRangeAt(i));
+            }
         }
-        return "[WrappedSelection(" + rangeInspects.join(", ") + ")]";
+        return "[" + name + "(Ranges: " + rangeInspects.join(", ") +
+                ")(anchor: " + anchor.inspect() + ", focus: " + focus.inspect() + "]";
+
+    }
+
+    selProto.getName = function() {
+        return "WrappedSelection";
+    };
+
+    selProto.inspect = function() {
+        return inspect(this);
     };
 
     selProto.detach = function() {
@@ -538,6 +581,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
             dom.getWindow(this.anchorNode)[windowPropertyName] = null;
         }
     };
+
+    WrappedSelection.inspect = inspect;
+
+    api.Selection = WrappedSelection;
 
 /*
     (function() {

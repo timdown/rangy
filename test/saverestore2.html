@@ -2160,7 +2160,7 @@ var rangy = (function() {
             var ranges = this.getAllRanges(), removed = false;
             this.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
-                if (removed || !DomRange.util.rangesEqual(ranges[i], range)) {
+                if (removed || !DomRange.rangesEqual(ranges[i], range)) {
                     this.addRange(ranges[i]);
                 } else {
                     // According to the HTML 5 spec, the same range may be added to the selection multiple times.

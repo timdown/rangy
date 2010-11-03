@@ -301,6 +301,12 @@ rangy.createModule("DomRange", function(api, module) {
         return nodes;
     }
 
+    function inspect(range) {
+        var name = (typeof range.getName == "undefined") ? "Range" : range.getName();
+        return "[" + name + "(" + dom.inspectNode(range.startContainer) + ":" + range.startOffset + ", " +
+                dom.inspectNode(range.endContainer) + ":" + range.endOffset + ")]";
+    }
+
     /**
      * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
      * TODO: Look into making this a proper iterator, not requiring preloading everything first
@@ -913,9 +919,7 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             inspect: function() {
-                var name = this.getName ? this.getName() : "Range";
-                return "[" + name + "(" + dom.inspectNode(this.startContainer) + ":" + this.startOffset + ", " +
-                        dom.inspectNode(this.endContainer) + ":" + this.endOffset + ")]";
+                return inspect(this);
             }
         };
 
@@ -1014,17 +1018,15 @@ rangy.createModule("DomRange", function(api, module) {
     Range.RangeException = RangeException;
     Range.copyComparisonConstants = copyComparisonConstants;
     Range.createPrototypeRange = createPrototypeRange;
-
-    Range.util = {
-        getRangeDocument: getRangeDocument,
-        getEndOffset: getEndOffset,
-        rangesEqual: function(r1, r2) {
-            return r1.startContainer === r2.startContainer &&
-                   r1.startOffset === r2.startOffset &&
-                   r1.endContainer === r2.endContainer &&
-                   r1.endOffset === r2.endOffset;
-        }
+    Range.inspect = inspect;
+    Range.getRangeDocument = getRangeDocument;
+    Range.rangesEqual = function(r1, r2) {
+        return r1.startContainer === r2.startContainer &&
+               r1.startOffset === r2.startOffset &&
+               r1.endContainer === r2.endContainer &&
+               r1.endOffset === r2.endOffset;
     };
+    Range.getEndOffset = getEndOffset;
 
     api.DomRange = Range;
 });
