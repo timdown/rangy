@@ -80,7 +80,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
 
         function tearDown_noRangeCheck(t) {
             rangy.config.checkSelectionRanges = t.initialCheckSelectionRanges;
-        }rangy.config.checkSelectionRanges
+        }
 
         s.test("removeAllRanges test", function(t) {
             var sel = selectionCreator(win);
@@ -204,7 +204,80 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(range, sel.getRangeAt(0));
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
-        s.test("Collapse same document test", function(t) {
+        if (rangy.features.collapsedNonEditableSelectionsSupported) {
+            s.test("Collapse same document test (non-editable)", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                sel.addRange(range);
+                sel.collapse(t.nodes.plainText, 1);
+                t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(sel.anchorNode, t.nodes.plainText);
+                t.assertEquals(sel.anchorOffset, 1);
+                t.assertEquivalent(sel.focusNode, t.nodes.plainText);
+                t.assertEquals(sel.focusOffset, 1);
+                t.assertEquivalent(sel.isCollapsed, true);
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+
+            s.test("Collapse other document test (non-editable)", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                sel.addRange(range);
+                sel.collapse(t.nodes.b, 1);
+                var otherDoc = getOtherDocument();
+                testExceptionCode(t, function() {
+                    sel.collapse(otherDoc.body, 0);
+                }, DOMException.prototype.WRONG_DOCUMENT_ERR);
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+
+            s.test("collapseToStart test (non-editable)", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.boldText, 1);
+                range.setEnd(t.nodes.boldText, 2);
+                sel.addRange(range);
+                sel.collapseToStart();
+                t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(sel.anchorNode, t.nodes.boldText);
+                t.assertEquals(sel.anchorOffset, 1);
+                t.assertEquivalent(sel.focusNode, t.nodes.boldText);
+                t.assertEquals(sel.focusOffset, 1);
+                t.assertEquivalent(sel.isCollapsed, true);
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+
+            s.test("collapseToEnd test (non-editable)", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.boldText, 1);
+                range.setEnd(t.nodes.boldText, 2);
+                sel.addRange(range);
+                sel.collapseToEnd();
+                t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(sel.anchorNode, t.nodes.boldText);
+                t.assertEquals(sel.anchorOffset, 2);
+                t.assertEquivalent(sel.focusNode, t.nodes.boldText);
+                t.assertEquals(sel.focusOffset, 2);
+                t.assertEquivalent(sel.isCollapsed, true);
+            });
+        } else {
+            s.test("Test collapsed selections cannot exist in non-editable elements", function(t) {
+                var sel = selectionCreator(win);
+                sel.removeAllRanges();
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                sel.addRange(range);
+                sel.collapse(t.nodes.plainText, 1);
+                t.assertEquals(sel.rangeCount, 0);
+            }, setUp_noRangeCheck, tearDown_noRangeCheck);
+        }
+
+        s.test("Collapse same document test (editable)", function(t) {
+            t.nodes.div.contentEditable = true;
             var sel = selectionCreator(win);
             sel.removeAllRanges();
             var range = rangeCreator(doc);
@@ -219,7 +292,8 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, true);
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
-        s.test("Collapse other document test", function(t) {
+        s.test("Collapse other document test (editable)", function(t) {
+            t.nodes.div.contentEditable = true;
             var sel = selectionCreator(win);
             sel.removeAllRanges();
             var range = rangeCreator(doc);
@@ -232,7 +306,8 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             }, DOMException.prototype.WRONG_DOCUMENT_ERR);
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
-        s.test("collapseToStart test", function(t) {
+        s.test("collapseToStart test (editable)", function(t) {
+            t.nodes.div.contentEditable = true;
             var sel = selectionCreator(win);
             sel.removeAllRanges();
             var range = rangeCreator(doc);
@@ -248,7 +323,8 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, true);
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
-        s.test("collapseToEnd test", function(t) {
+        s.test("collapseToEnd test (editable)", function(t) {
+            t.nodes.div.contentEditable = true;
             var sel = selectionCreator(win);
             sel.removeAllRanges();
             var range = rangeCreator(doc);
@@ -271,12 +347,12 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             range.setStart(t.nodes.plainText, 1);
             range.setEnd(t.nodes.plainText, 2);
             sel.addRange(range);
-            sel.selectAllChildren(doc.body);
+            sel.selectAllChildren(t.nodes.div);
             t.assertEquals(sel.rangeCount, 1);
-            t.assertEquivalent(sel.anchorNode, doc.body);
+            t.assertEquivalent(sel.anchorNode, t.nodes.div);
             t.assertEquals(sel.anchorOffset, 0);
-            t.assertEquivalent(sel.focusNode, doc.body);
-            t.assertEquals(sel.focusOffset, doc.body.childNodes.length);
+            t.assertEquivalent(sel.focusNode, t.nodes.div);
+            t.assertEquals(sel.focusOffset, t.nodes.div.childNodes.length);
             t.assertEquivalent(sel.isCollapsed, false);
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 

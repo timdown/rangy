@@ -35,8 +35,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.getNativeSelection = getSelection;
 
-    // Test whether
-
     var testSelection = getSelection();
     var testRange = api.createNativeRange(document);
     var body = dom.getBody(document);
@@ -47,30 +45,46 @@ rangy.createModule("WrappedSelection", function(api, module) {
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test if rangeCount exists
-    var selectionHasRangeCount = util.isHostProperty(testSelection, "rangeCount");
+    var selectionHasRangeCount = (typeof testSelection.rangeCount == "number");
     api.features.selectionHasRangeCount = selectionHasRangeCount;
 
-    // Test whether the native selection is capable of supporting multiple ranges
     var selectionSupportsMultipleRanges = false;
+    var collapsedNonEditableSelectionsSupported = true;
+
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
-        var textNode1 = body.appendChild(document.createTextNode("One"));
-        var textNode2 = body.appendChild(document.createTextNode("Two"));
-        var testRange2 = api.createNativeRange(document);
-        testRange2.selectNodeContents(textNode1);
-        var testRange3 = api.createNativeRange(document);
-        testRange3.selectNodeContents(textNode2);
-        testSelection.removeAllRanges();
-        testSelection.addRange(testRange2);
-        testSelection.addRange(testRange3);
-        selectionSupportsMultipleRanges = (testSelection.rangeCount == 2);
-        testSelection.removeAllRanges();
-        textNode1.parentNode.removeChild(textNode1);
-        textNode2.parentNode.removeChild(textNode2);
+        // Test whether the native selection is capable of supporting multiple ranges
+        (function() {
+            var textNode1 = body.appendChild(document.createTextNode("One"));
+            var textNode2 = body.appendChild(document.createTextNode("Two"));
+            var testRange2 = api.createNativeRange(document);
+            testRange2.selectNodeContents(textNode1);
+            var testRange3 = api.createNativeRange(document);
+            testRange3.selectNodeContents(textNode2);
+            testSelection.removeAllRanges();
+            testSelection.addRange(testRange2);
+            testSelection.addRange(testRange3);
+            selectionSupportsMultipleRanges = (testSelection.rangeCount == 2);
+            testSelection.removeAllRanges();
+            textNode1.parentNode.removeChild(textNode1);
+            textNode2.parentNode.removeChild(textNode2);
+
+            // Test whether the native selection will allow a collapsed selection within a non-editable element
+            var el = document.createElement("p");
+            el.contentEditable = false;
+            var textNode3 = el.appendChild(document.createTextNode("test"));
+            body.appendChild(el);
+            var testRange4 = api.createRange();
+            testRange4.collapseToPoint(textNode3, 1);
+            testSelection.addRange(testRange4.nativeRange);
+            collapsedNonEditableSelectionsSupported = (testSelection.rangeCount == 1);
+            testSelection.removeAllRanges();
+        })();
     }
 
     api.features.selectionSupportsMultipleRanges = selectionSupportsMultipleRanges;
+    api.features.collapsedNonEditableSelectionsSupported = collapsedNonEditableSelectionsSupported;
 
     // ControlRanges
     var selectionHasType = util.isHostProperty(testSelection, "type");
@@ -227,50 +241,46 @@ rangy.createModule("WrappedSelection", function(api, module) {
             updateEmptySelection(this);
         };
 
-        selProto.addRange = function(range) {
-            var previousRangeCount;
-            if (selectionSupportsMultipleRanges) {
-                previousRangeCount = this.rangeCount;
-            } else {
-                this.removeAllRanges();
-                previousRangeCount = 0;
-            }
-            this.nativeSelection.addRange(getNativeRange(range));
-
-            // Check whether adding the range was successful
-            var rangeAdded, selectionEmptied;
-
-            if (selectionHasRangeCount) {
-                this.rangeCount = this.nativeSelection.rangeCount;
-                rangeAdded = (this.rangeCount == previousRangeCount + 1);
-                selectionEmptied = (this.rangeCount == 0);
-            } else {
-                selectionEmptied = !this.nativeSelection.anchorNode;
-                rangeAdded = !selectionEmptied;
-                this.rangeCount = rangeAdded ? previousRangeCount : 0;
-            }
-
-            if (rangeAdded) {
-                // The range was added successfully
-
-                // Check whether the range that we added to the selection is reflected in the last range extracted from
-                // the selection
-                if (api.config.checkSelectionRanges) {
-                    var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
-                    if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
-                        // Happens in WebKit with, for example, a selection placed at the start of a text node
-                        range = nativeRange;
-                    }
+        if (selectionHasRangeCount) {
+            selProto.addRange = function(range) {
+                var previousRangeCount;
+                if (selectionSupportsMultipleRanges) {
+                    previousRangeCount = this.rangeCount;
+                } else {
+                    this.removeAllRanges();
+                    previousRangeCount = 0;
                 }
-                this._ranges[this.rangeCount - 1] = range;
-                updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
-                this.isCollapsed = selectionIsCollapsed(this);
-                //console.log("Native: " + this.nativeSelection.isCollapsed, this.nativeSelection.rangeCount, "" + this.nativeSelection.getRangeAt(0), this.nativeSelection.anchorOffset, this.nativeSelection.focusOffset);
-            } else if (selectionEmptied) {
-                this._ranges.length = 0;
-                updateEmptySelection(this);
-            }
-        };
+                this.nativeSelection.addRange(getNativeRange(range));
+
+                // Check whether adding the range was successful
+                this.rangeCount = this.nativeSelection.rangeCount;
+
+                if (this.rangeCount == previousRangeCount + 1) {
+                    // The range was added successfully
+
+                    // Check whether the range that we added to the selection is reflected in the last range extracted from
+                    // the selection
+                    if (api.config.checkSelectionRanges) {
+                        var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
+                        if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
+                            // Happens in WebKit with, for example, a selection placed at the start of a text node
+                            range = nativeRange;
+                        }
+                    }
+                    this._ranges[this.rangeCount - 1] = range;
+                    updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
+                    this.isCollapsed = selectionIsCollapsed(this);
+                } else {
+                    // The range was not added successfully. The simplest thing is to refresh
+                    this.refresh();
+                }
+            };
+        } else {
+            selProto.addRange = function(range) {
+                this.nativeSelection.addRange(getNativeRange(range));
+                this.refresh();
+            };
+        }
 
         selProto.setRanges = function(ranges) {
             this.removeAllRanges();
@@ -478,14 +488,17 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return rangeTexts.join("");
     };
 
-    // No current browsers conform fully to the HTML 5 draft spec for this method, so Rangy's own method is always used
-    selProto.collapse = function(node, offset) {
-        if (this.anchorNode && (dom.getDocument(this.anchorNode) !== dom.getDocument(node))) {
+    function assertNodeInSameDocument(sel, node) {
+        if (sel.anchorNode && (dom.getDocument(sel.anchorNode) !== dom.getDocument(node))) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
+    }
+
+    // No current browsers conform fully to the HTML 5 draft spec for this method, so Rangy's own method is always used
+    selProto.collapse = function(node, offset) {
+        assertNodeInSameDocument(this, node);
         var range = api.createRange(dom.getDocument(node));
-        range.setStart(node, offset);
-        range.collapse(true);
+        range.collapseToPoint(node, offset);
         this.removeAllRanges();
         this.addRange(range);
         this.isCollapsed = true;
@@ -512,8 +525,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // The HTML 5 spec is very specific on how selectAllChildren should be implemented so the native implementation is
     // never used by Rangy.
     selProto.selectAllChildren = function(node) {
-        this.collapse(node, 0);
-        var range = this.getRangeAt(0);
+        assertNodeInSameDocument(this, node);
+        var range = api.createRange(dom.getDocument(node));
         range.selectNodeContents(node);
         this.removeAllRanges();
         this.addRange(range);

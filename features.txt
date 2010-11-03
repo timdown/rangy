@@ -37,6 +37,19 @@ Features
 
 - Return range/selection objects from suitable methods to allow chaining?
 
+Core features
+-------------
+
+- DomRange: setBoundaries(startNode, startOffset, endNode, endOffset) ?
+
+
+
+Utility module features
+-----------------------
+
+- insertHtml?
+- getElementText?
+
 
 References:
 
