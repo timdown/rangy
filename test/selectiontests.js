@@ -50,6 +50,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             var boldText = b.appendChild(doc.createTextNode("bold"));
             var i = b.appendChild(doc.createElement("i"));
             var boldAndItalicText = i.appendChild(doc.createTextNode("bold and italic"));
+            var boldText2 = b.appendChild(doc.createTextNode("more bold"));
             doc.body.appendChild(div);
             var div2 = doc.createElement("div");
             var div2Text = div2.appendChild(doc.createTextNode("Second div"));
@@ -62,6 +63,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 boldText: boldText,
                 i: i,
                 boldAndItalicText: boldAndItalicText,
+                boldText2: boldText2,
                 div2: div2,
                 div2Text: div2Text
             };
@@ -439,6 +441,90 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquivalent(sel.toString(), "l");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         }
+
+        function testRefresh(name, testRangeCreator) {
+            s.test("Refresh test: " + name, function(t) {
+                var sel = selectionCreator(win);
+                var range = testRangeCreator(t);
+                sel.removeAllRanges();
+                sel.addRange(range);
+                sel.refresh();
+                t.assertEquals(sel.rangeCount, 1);
+                var selRange = sel.getRangeAt(0);
+                t.assert(DomRange.rangesEqual(range, selRange), "Ranges not equal. Original: " + DomRange.inspect(range) + ", refreshed selection range: " + DomRange.inspect(selRange));
+            });
+        }
+
+        testRefresh("uncollapsed selection mid text node", function(t) {
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.plainText, 1);
+            range.setEnd(t.nodes.plainText, 2);
+            return range;
+        });
+
+        testRefresh("uncollapsed selection start of text node", function(t) {
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.boldAndItalicText, 0);
+            range.setEnd(t.nodes.boldAndItalicText, 1);
+            return range;
+        });
+
+        testRefresh("uncollapsed selection end of text node", function(t) {
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.boldAndItalicText, t.nodes.boldAndItalicText.length - 1);
+            range.setEnd(t.nodes.boldAndItalicText, t.nodes.boldAndItalicText.length);
+            return range;
+        });
+
+        testRefresh("collapsed selection mid text node", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.collapseToPoint(t.nodes.boldAndItalicText, 1);
+            return range;
+        });
+
+        testRefresh("collapsed selection start of text node", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.collapseToPoint(t.nodes.boldAndItalicText, 0);
+            return range;
+        });
+
+        testRefresh("collapsed selection end of text node", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.collapseToPoint(t.nodes.boldAndItalicText, t.nodes.boldAndItalicText.length);
+            return range;
+        });
+
+        testRefresh("collapsed selection immediately prior to element", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.collapseToPoint(t.nodes.b, 1);
+            return range;
+        });
+
+        testRefresh("collapsed selection immediately after element", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.collapseToPoint(t.nodes.b, 2);
+            return range;
+        });
+
+        testRefresh("collapsed selection at offset 0 in element", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.collapseToPoint(t.nodes.b, 0);
+            return range;
+        });
+
+        testRefresh("collapsed selection encompassing element", function(t) {
+            var range = rangeCreator(doc);
+            t.nodes.div.contentEditable = true;
+            range.setStart(t.nodes.b, 1);
+            range.setEnd(t.nodes.b, 2);
+            return range;
+        });
 
     }, false);
 }
