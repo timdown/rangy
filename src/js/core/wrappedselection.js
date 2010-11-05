@@ -80,6 +80,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             testSelection.addRange(testRange4.nativeRange);
             collapsedNonEditableSelectionsSupported = (testSelection.rangeCount == 1);
             testSelection.removeAllRanges();
+            body.removeChild(el);
         })();
     }
 

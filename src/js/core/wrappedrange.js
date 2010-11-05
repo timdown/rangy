@@ -326,7 +326,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return this.nativeRange.toString();
             };
 
-            // Create test range and node for deature detection
+            // Create test range and node for feature detection
 
             var testTextNode = document.createTextNode("test");
             dom.getBody(document).appendChild(testTextNode);
