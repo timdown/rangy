@@ -30,15 +30,15 @@
 
             saveSelection = function() {
                 if (savedSelection) {
-                    rangy.saveRestore.removeMarkers(savedSelection);
+                    rangy.removeMarkers(savedSelection);
                 }
-                savedSelection = rangy.saveRestore.saveSelection();
+                savedSelection = rangy.saveSelection();
                 document.getElementById("restoreButton").disabled = false;
             };
 
             restoreSelection = function() {
                 if (savedSelection) {
-                    rangy.saveRestore.restoreSelection(savedSelection);
+                    rangy.restoreSelection(savedSelection);
                     savedSelection = null;
                     document.getElementById("restoreButton").disabled = true;
                     document.getElementById("editable").focus();

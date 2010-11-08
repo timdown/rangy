@@ -69,7 +69,8 @@ rangy.createModule("SaveRestore", function(api, module) {
                 rangeInfos.push({
                     startMarkerId: startEl.id,
                     endMarkerId: endEl.id,
-                    collapsed: false
+                    collapsed: false,
+                    backwards: len == 1 && sel.isBackwards()
                 });
             }
         }
@@ -84,7 +85,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         };
     }
 
-    function restoreSelection(savedSelection) {
+    function restoreSelection(savedSelection, preserveDirection) {
         if (!savedSelection.restored) {
             var rangeInfos = savedSelection.rangeInfos;
             var sel = api.getSelection(savedSelection.win);
@@ -94,14 +95,23 @@ rangy.createModule("SaveRestore", function(api, module) {
                 range = api.createRange(savedSelection.doc);
                 if (rangeInfo.collapsed) {
                     var markerEl = savedSelection.doc.getElementById(rangeInfo.markerId);
-                    range.collapseBefore(markerEl);
-                    markerEl.parentNode.removeChild(markerEl);
+                    var previousNode = markerEl.previousSibling;
+
+                    // Workaround for issue 17
+                    if (previousNode && previousNode.nodeType == 3) {
+                        markerEl.parentNode.removeChild(markerEl);
+                        range.collapseToPoint(previousNode, previousNode.length);
+                    } else {
+                        range.collapseBefore(markerEl);
+                        markerEl.parentNode.removeChild(markerEl);
+                    }
                 } else {
                     setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
                     setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
                 }
                 range.normalizeBoundaries();
-                sel.addRange(range);
+                var backwards = preserveDirection && rangeInfo.backwards && api.features.selectionHasExtend;
+                sel.addRange(range, backwards);
             }
             savedSelection.restored = true;
         }

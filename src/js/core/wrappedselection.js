@@ -44,6 +44,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                                      util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]));
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
+    // Test for existence of native selection extend() method
+    var selectionHasExtend = util.isHostMethod(testSelection, "extend");
+    api.features.selectionHasExtend = selectionHasExtend;
+
     // Test if rangeCount exists
     var selectionHasRangeCount = (typeof testSelection.rangeCount == "number");
     api.features.selectionHasRangeCount = selectionHasRangeCount;
@@ -98,7 +102,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     }
     api.features.implementsControlRange = implementsControlRange;
-
 
     // Selection collapsedness
     if (selectionHasAnchorAndFocus) {
@@ -242,44 +245,61 @@ rangy.createModule("WrappedSelection", function(api, module) {
             updateEmptySelection(this);
         };
 
+        var addRangeBackwards = function(sel, range) {
+            var doc = DomRange.getRangeDocument(range);
+            var endRange = api.createRange(doc);
+            endRange.collapseToPoint(range.endContainer, range.endOffset);
+            sel.nativeSelection.addRange(getNativeRange(endRange));
+            sel.nativeSelection.extend(range.startContainer, range.startOffset);
+            sel.refresh();
+        };
+
         if (selectionHasRangeCount) {
-            selProto.addRange = function(range) {
-                var previousRangeCount;
-                if (selectionSupportsMultipleRanges) {
-                    previousRangeCount = this.rangeCount;
+            selProto.addRange = function(range, backwards) {
+                if (backwards && selectionHasExtend) {
+                    addRangeBackwards(this, range);
                 } else {
-                    this.removeAllRanges();
-                    previousRangeCount = 0;
-                }
-                this.nativeSelection.addRange(getNativeRange(range));
-
-                // Check whether adding the range was successful
-                this.rangeCount = this.nativeSelection.rangeCount;
-
-                if (this.rangeCount == previousRangeCount + 1) {
-                    // The range was added successfully
-
-                    // Check whether the range that we added to the selection is reflected in the last range extracted from
-                    // the selection
-                    if (api.config.checkSelectionRanges) {
-                        var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
-                        if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
-                            // Happens in WebKit with, for example, a selection placed at the start of a text node
-                            range = nativeRange;
-                        }
+                    var previousRangeCount;
+                    if (selectionSupportsMultipleRanges) {
+                        previousRangeCount = this.rangeCount;
+                    } else {
+                        this.removeAllRanges();
+                        previousRangeCount = 0;
                     }
-                    this._ranges[this.rangeCount - 1] = range;
-                    updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
-                    this.isCollapsed = selectionIsCollapsed(this);
-                } else {
-                    // The range was not added successfully. The simplest thing is to refresh
-                    this.refresh();
+                    this.nativeSelection.addRange(getNativeRange(range));
+
+                    // Check whether adding the range was successful
+                    this.rangeCount = this.nativeSelection.rangeCount;
+
+                    if (this.rangeCount == previousRangeCount + 1) {
+                        // The range was added successfully
+
+                        // Check whether the range that we added to the selection is reflected in the last range extracted from
+                        // the selection
+                        if (api.config.checkSelectionRanges) {
+                            var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
+                            if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
+                                // Happens in WebKit with, for example, a selection placed at the start of a text node
+                                range = nativeRange;
+                            }
+                        }
+                        this._ranges[this.rangeCount - 1] = range;
+                        updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
+                        this.isCollapsed = selectionIsCollapsed(this);
+                    } else {
+                        // The range was not added successfully. The simplest thing is to refresh
+                        this.refresh();
+                    }
                 }
             };
         } else {
-            selProto.addRange = function(range) {
-                this.nativeSelection.addRange(getNativeRange(range));
-                this.refresh();
+            selProto.addRange = function(range, backwards) {
+                if (backwards && selectionHasExtend) {
+                    addRangeBackwards(this, range);
+                } else {
+                    this.nativeSelection.addRange(getNativeRange(range));
+                    this.refresh();
+                }
             };
         }
 
