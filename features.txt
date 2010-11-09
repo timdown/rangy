@@ -49,6 +49,7 @@ Utility module features
 
 - insertHtml?
 - getElementText?
+- get range/selection coordinates: http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495
 
 
 References:

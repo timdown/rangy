@@ -15,7 +15,7 @@
  */
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
-    var UNDEF = "undefined"
+    var UNDEF = "undefined";
 
     // encodeURIComponent and decodeURIComponent are required for cookie handling
     if (typeof encodeURIComponent == UNDEF || typeof decodeURIComponent == UNDEF) {
@@ -78,8 +78,46 @@ rangy.createModule("Serializer", function(api, module) {
 
     var dom = api.dom;
 
+    function escapeTextForHtml(str) {
+        return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function nodeToInfoString(node, infoParts) {
+        infoParts = infoParts || [];
+        var nodeType = node.nodeType, children = node.childNodes, childCount = children.length;
+        var nodeInfo = [nodeType, node.nodeName, childCount].join(":");
+        var start = "", end = "";
+        switch (nodeType) {
+            case 3: // Text node
+                start = escapeTextForHtml(node.nodeValue);
+                break;
+            case 8: // Comment
+                start = "<!--" + escapeTextForHtml(node.nodeValue) + "-->";
+                break;
+            default:
+                start = "<" + nodeInfo + ">";
+                end = "</>";
+                break;
+        }
+        if (start) {
+            infoParts.push(start);
+        }
+        for (var i = 0; i < childCount; ++i) {
+            nodeToInfoString(children[i], infoParts);
+        }
+        if (end) {
+            infoParts.push(end);
+        }
+        return infoParts;
+    }
+
+    // Creates a string representation of the specified element's contents that is similar to innerHTML but omits all
+    // attributes and comments and includes child node counts. This is done instead of using innerHTML to work around
+    // IE <= 8's policy of including element properties in attributes, which ruins things by changing an element's
+    // innerHTML whenever the user changes an input within the element.
     function getElementChecksum(el) {
-        return crc32(el.innerHTML).toString(16);
+        var info = nodeToInfoString(el).join("");
+        return crc32(info).toString(16);
     }
 
     function serializePosition(node, offset, rootNode) {
@@ -116,13 +154,17 @@ rangy.createModule("Serializer", function(api, module) {
         return new dom.DomPosition(node, parseInt(bits[1], 10));
     }
 
-    function serializeRange(range, rootNode) {
+    function serializeRange(range, omitChecksum, rootNode) {
         rootNode = rootNode || api.DomRange.getRangeDocument(range).documentElement;
         if (!dom.isAncestorOf(rootNode, range.commonAncestorContainer, true)) {
             throw new Error("serializeRange: range is not wholly contained within specified root node");
         }
-        return serializePosition(range.startContainer, range.startOffset, rootNode) + "," +
-            serializePosition(range.endContainer, range.endOffset, rootNode) + "{" + getElementChecksum(rootNode) + "}";
+        var serialized = serializePosition(range.startContainer, range.startOffset, rootNode) + "," +
+            serializePosition(range.endContainer, range.endOffset, rootNode);
+        if (!omitChecksum) {
+            serialized += "{" + getElementChecksum(rootNode) + "}";
+        }
+        return serialized;
     }
 
     function deserializeRange(serialized, rootNode, doc) {
@@ -132,9 +174,9 @@ rangy.createModule("Serializer", function(api, module) {
             doc = doc || document;
             rootNode = doc.documentElement;
         }
-        var result = /^([^,]+),([^,]+){([^}]+)}$/.exec(serialized);
+        var result = /^([^,]+),([^,]+)({([^}]+)})?$/.exec(serialized);
         var checksum = result[3];
-        if (checksum !== getElementChecksum(rootNode)) {
+        if (checksum && checksum !== getElementChecksum(rootNode)) {
             throw new Error("deserializeRange: checksums of serialized range root node and target root node do not match");
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
@@ -144,11 +186,11 @@ rangy.createModule("Serializer", function(api, module) {
         return range;
     }
 
-    function serializeSelection(selection, rootNode) {
+    function serializeSelection(selection, omitChecksum, rootNode) {
         selection = selection || rangy.getSelection();
         var ranges = selection.getAllRanges(), serializedRanges = [];
         for (var i = 0, len = ranges.length; i < len; ++i) {
-            serializedRanges[i] = serializeRange(ranges[i], rootNode);
+            serializedRanges[i] = serializeRange(ranges[i], omitChecksum, rootNode);
         }
         return serializedRanges.join("|");
     }
