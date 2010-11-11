@@ -91,13 +91,13 @@
 
     <target name="build.modules">
         <antcall target="build.module.js" inheritall="true">
-            <param name="module.js.file" value="cssclassapplier.js"/>
+            <param name="module.js.file" value="rangy-cssclassapplier.js"/>
         </antcall>
         <antcall target="build.module.js" inheritall="true">
-            <param name="module.js.file" value="selectionsaverestore.js"/>
+            <param name="module.js.file" value="rangy-selectionsaverestore.js"/>
         </antcall>
         <antcall target="build.module.js" inheritall="true">
-            <param name="module.js.file" value="serializer.js"/>
+            <param name="module.js.file" value="rangy-serializer.js"/>
         </antcall>
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="textinputs_jquery.js"/>

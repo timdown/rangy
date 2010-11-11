@@ -1,17 +1,5 @@
-- Implement subset of IERange: conversion to and from startContainer/offset and endContainer/offset and TextRange
-- Obtain all text nodes within a selection, splitting at the boundaries if necessary
-- Create range command object with undo method
-- Method to test if all the text nodes in a range have a particular characteristic, including built-ins such as
-  being contained within a span of a particular class
-- input and textarea selection boundary positions, get and set
-- Save/restore selection when DOM may change
-- Everything must work in iframes: window parameter
-- Methods to get selections ranges, get first selection range, create range, get selection (plus is backwards),
-  select range, empty range, insert node at range boundary, insert HTML at range boundary
-- Extended selection (and Range?) objects
-
-Features
---------
+Outstanding Features
+--------------------
 
 - Surround all text nodes with span with class, remove class, test for class. Generalise to any action on text nodes
   within a selection.
@@ -23,11 +11,6 @@ Features
 
 - Insert node/HTML (with ability to select or place caret before or after inserted node)
   Question: http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514
-
-- Text area/text input selectionStart/End, get and set
-  Question: http://stackoverflow.com/questions/3053542/how-to-get-the-start-and-end-points-of-selection-in-text-area/3053640#3053640
-
-- Save/restore selection. See selections demo.
 
 - Get range start/end container element
 

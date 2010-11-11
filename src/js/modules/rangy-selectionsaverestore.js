@@ -119,15 +119,21 @@ rangy.createModule("SaveRestore", function(api, module) {
 
     function removeMarkerElement(doc, markerId) {
         var markerEl = doc.getElementById(markerId);
-        markerEl.parentNode.removeChild(markerEl);
+        if (markerEl) {
+            markerEl.parentNode.removeChild(markerEl);
+        }
     }
 
     function removeMarkers(savedSelection) {
         var rangeInfos = savedSelection.rangeInfos;
         for (var i = 0, len = rangeInfos.length, rangeInfo; i < len; ++i) {
             rangeInfo = rangeInfos[i];
-            removeMarkerElement(savedSelection.doc, rangeInfo.startMarkerId);
-            removeMarkerElement(savedSelection.doc, rangeInfo.endMarkerId);
+            if (savedSelection.collapsed) {
+                removeMarkerElement(savedSelection.doc, rangeInfo.markerId);
+            } else {
+                removeMarkerElement(savedSelection.doc, rangeInfo.startMarkerId);
+                removeMarkerElement(savedSelection.doc, rangeInfo.endMarkerId);
+            }
         }
     }
 

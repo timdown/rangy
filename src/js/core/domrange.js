@@ -458,7 +458,6 @@ rangy.createModule("DomRange", function(api, module) {
         function createBeforeAfterNodeSetter(isBefore, isStart) {
             return function(node) {
                 assertNotDetached(this);
-                assertRangeValid(this);
                 assertValidNodeType(node, beforeAfterNodeTypes);
                 assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
 
@@ -540,7 +539,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             setStart: function(node, offset) {
                 assertNotDetached(this);
-                assertRangeValid(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
 
@@ -549,7 +547,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             setEnd: function(node, offset) {
                 assertNotDetached(this);
-                assertRangeValid(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
 
@@ -576,7 +573,6 @@ rangy.createModule("DomRange", function(api, module) {
                 // could be taken to mean only its children. However, browsers implement this the same as selectNode for
                 // text nodes, so I shall do likewise
                 assertNotDetached(this);
-                assertRangeValid(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
 
                 boundaryUpdater(this, node, 0, node, getEndOffset(node));
@@ -584,7 +580,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             selectNode: function(node) {
                 assertNotDetached(this);
-                assertRangeValid(this);
                 assertNoDocTypeNotationEntityAncestor(node, false);
                 assertValidNodeType(node, beforeAfterNodeTypes);
 
@@ -749,6 +744,7 @@ rangy.createModule("DomRange", function(api, module) {
 
             comparePoint: function(node, offset) {
                 assertNotDetached(this);
+                assertRangeValid(this);
                 assertNode(node, "HIERARCHY_REQUEST_ERR");
                 assertSameDocumentOrFragment(node, this.startContainer);
 
@@ -762,7 +758,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             createContextualFragment: function(html) {
                 assertNotDetached(this);
-                assertRangeValid(this);
                 var doc = getRangeDocument(this);
                 var container = doc.createElement("div");
 
@@ -950,7 +945,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             collapseBefore: function(node) {
                 assertNotDetached(this);
-                assertRangeValid(this);
 
                 this.setEndBefore(node);
                 this.collapse(false);
@@ -958,7 +952,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             collapseAfter: function(node) {
                 assertNotDetached(this);
-                assertRangeValid(this);
 
                 this.setStartAfter(node);
                 this.collapse(true);

@@ -348,6 +348,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             //log.group("applyToSelection");
             win = win || window;
             var sel = api.getSelection(win);
+            log.info("applyToSelection " + sel.inspect());
             var range, ranges = sel.getAllRanges();
             sel.removeAllRanges();
             var i = ranges.length;
