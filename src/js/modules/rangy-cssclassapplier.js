@@ -7,7 +7,7 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2010, Tim Down
+ * Copyright %%build:year%%, Tim Down
  * Licensed under the MIT license.
  * Version: %%build:version%%
  * Build date: %%build:date%%

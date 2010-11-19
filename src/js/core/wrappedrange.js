@@ -568,4 +568,14 @@ rangy.createModule("WrappedRange", function(api, module) {
         doc = doc || document;
         return new DomRange(doc);
     };
+
+    api.addCreateMissingNativeApiListener(function(win) {
+        var doc = win.document;
+        if (typeof doc.createRange == "undefined") {
+            doc.createRange = function() {
+                return api.createRange(this);
+            };
+        }
+        doc = win = null;
+    });
 });

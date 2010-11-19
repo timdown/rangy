@@ -8,7 +8,7 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2010, Tim Down
+ * Copyright %%build:year%%, Tim Down
  * Licensed under the MIT license.
  * Version: %%build:version%%
  * Build date: %%build:date%%
@@ -186,6 +186,18 @@ rangy.createModule("Serializer", function(api, module) {
         return range;
     }
 
+    function canDeserializeRange(serialized, rootNode, doc) {
+        if (rootNode) {
+            doc = doc || dom.getDocument(rootNode);
+        } else {
+            doc = doc || document;
+            rootNode = doc.documentElement;
+        }
+        var result = /^([^,]+),([^,]+)({([^}]+)})?$/.exec(serialized);
+        var checksum = result[3];
+        return !checksum || checksum === getElementChecksum(rootNode);
+    }
+
     function serializeSelection(selection, omitChecksum, rootNode) {
         selection = selection || rangy.getSelection();
         var ranges = selection.getAllRanges(), serializedRanges = [];
@@ -213,6 +225,26 @@ rangy.createModule("Serializer", function(api, module) {
 
         return sel;
     }
+
+    function canDeserializeSelection(serialized, rootNode, win) {
+        var doc;
+        if (rootNode) {
+            doc = win ? win.document : dom.getDocument(rootNode);
+        } else {
+            win = win || window;
+            rootNode = win.document.documentElement;
+        }
+        var serializedRanges = serialized.split("|");
+
+        for (var i = 0, len = serializedRanges.length; i < len; ++i) {
+            if (!canDeserializeRange(serializedRanges[i], rootNode, doc)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     var cookieName = "rangySerializedSelection";
 
@@ -254,9 +286,11 @@ rangy.createModule("Serializer", function(api, module) {
 
     api.serializeRange = serializeRange;
     api.deserializeRange = deserializeRange;
+    api.canDeserializeRange = canDeserializeRange;
 
     api.serializeSelection = serializeSelection;
     api.deserializeSelection = deserializeSelection;
+    api.canDeserializeSelection = canDeserializeSelection;
 
     api.restoreSelectionFromCookie = restoreSelectionFromCookie;
     api.saveSelectionCookie = saveSelectionCookie;

@@ -2,7 +2,8 @@
     <property file="${basedir}/build.properties"/>
 
     <tstamp>
-          <format property="TODAY" pattern="d MMMM yyyy" locale="en,UK"/>
+        <format property="TODAY" pattern="d MMMM yyyy" locale="en,UK"/>
+        <format property="YEAR" pattern="yyyy" locale="en,UK"/>
     </tstamp>
 
     <target name="init">
@@ -29,7 +30,8 @@
             <checkout url="${svn.url}" destPath="${svn.checkout.dir}" />
             <wcVersion path="${svn.checkout.dir}" prefix="svncheckout." />
         </svn>
-        <property name="build.version" value="${version.base}.${svncheckout.revision.max}"/>
+        <property name="build.version" value="${version.base}"/>
+        <property name="build.svn.version" value="${svncheckout.revision.max}"/>
         <echo message="Set build version to ${build.version}" />
     </target>
 
@@ -44,6 +46,7 @@
 
         <!-- Replace build date -->
         <replace file="${uncompressed.dir}/${js.file}" token="%%build:date%%" value="${TODAY}"/>
+        <replace file="${uncompressed.dir}/${js.file}" token="%%build:year%%" value="${YEAR}"/>
 
         <!-- Remove all logging calls -->
         <replaceregexp file="${uncompressed.dir}/${js.file}" byline="true" match="^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd).*$" replace=""/>
@@ -99,10 +102,10 @@
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="rangy-serializer.js"/>
         </antcall>
+        <!--
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="textinputs_jquery.js"/>
         </antcall>
-        <!--
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="textinputs_standalone.js"/>
         </antcall>

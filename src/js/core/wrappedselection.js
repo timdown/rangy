@@ -620,6 +620,15 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.Selection = WrappedSelection;
 
+    api.addCreateMissingNativeApiListener(function(win) {
+        if (typeof win.getSelection == "undefined") {
+            win.getSelection = function() {
+                return api.getSelection(this);
+            };
+        }
+        win = null;
+    });
+
 /*
     (function() {
         function createDetachedMethod(methodName) {

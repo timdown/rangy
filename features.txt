@@ -34,6 +34,28 @@ Utility module features
 - getElementText?
 - get range/selection coordinates: http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495
 
+Beta 2 changes:
+---------------
+
+- Serializer: canDeserializeRange and canDeserializeSelection added
+- Added createMissingNativeApi()
+
+
+Stuff to do before 1.0
+----------------------
+
+- Documentation:
+
+  - Complete HowRangyDiffersFromNativeApis
+  - Add page on rangy object: features, getSelection etc
+  - Add page on DOM helper methods
+  - Document extra param in selection addRange()
+  - Document extra param in restoreSelection()
+  - Document createMissingNativeApi()
+
+- Create new beta with createMissingNativeApi(), save direction in restoreSelection()
+
+
 
 References:
 
