@@ -228,6 +228,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         win = win || window;
         var sel = win[windowPropertyName];
         if (sel) {
+            sel.nativeSelection = getSelection(win);
             sel.refresh();
         } else {
             sel = new WrappedSelection(getSelection(win));

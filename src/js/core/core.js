@@ -70,10 +70,7 @@ var rangy = (function() {
             isHostProperty: isHostProperty,
             areHostMethods: areHostMethods,
             areHostObjects: areHostObjects,
-            areHostProperties: areHostProperties,
-            randomString: function(prefix) {
-                return prefix + (+new Date()) + "_" + ("" + Math.random()).substr(2);
-            }
+            areHostProperties: areHostProperties
         },
 
         features: {},

@@ -9,7 +9,7 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
     if (!util.isHostMethod(document, "getElementsByTagName")) {
-        module.fail("document getElementsByTagName method");
+        module.fail("document missing getElementsByTagName method");
     }
 
     var el = document.createElement("div");
@@ -44,8 +44,6 @@ rangy.createModule("DomUtil", function(api, module) {
             }
             return false;
         };
-
-    var whitespaceRegex = /^\s*$/;
 
     function getNodeIndex(node) {
         var i = 0;
@@ -193,7 +191,9 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
     function inspectNode(node) {
-        if (!node) { return "[No node]"; }
+        if (!node) {
+            return "[No node]";
+        }
         if (isCharacterDataNode(node)) {
             return '"' + node.data + '"';
         } else if (node.nodeType == 1) {
@@ -242,11 +242,9 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     };
 
-
     function createIterator(root) {
         return new NodeIterator(root);
     }
-
 
     /**
      * @constructor

@@ -293,7 +293,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return this.nativeRange.cloneContents();
             };
 
-            // Until I can find a way to prgrammatically trigger the Firefox bug (apparently long-standing, still
+            // TODO: Until I can find a way to programmatically trigger the Firefox bug (apparently long-standing, still
             // present in 3.6.8) that throws "Index or size is negative or greater than the allowed amount" for
             // insertNode in some circumstances, all browsers will have to use the Rangy's own implementation of
             // insertNode, which works but is almost certainly slower than the native implementation.

@@ -8,7 +8,7 @@ rangy.createModule("DomRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // RangeIterator code indebted to IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
+    // RangeIterator code borrows from IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
 
     /**
      * @constructor
@@ -424,7 +424,9 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function assertRangeValid(range) {
-        if (isOrphan(range.startContainer) || isOrphan(range.endContainer) || !isValidOffset(range.startContainer, range.startOffset) ||  !isValidOffset(range.endContainer, range.endOffset)) {
+        if (isOrphan(range.startContainer) || isOrphan(range.endContainer)
+                || !isValidOffset(range.startContainer, range.startOffset)
+                || !isValidOffset(range.endContainer, range.endOffset)) {
             throw new Error("Range Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
         }
     }
@@ -858,7 +860,6 @@ rangy.createModule("DomRange", function(api, module) {
                 assertRangeValid(this);
 
                 var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
-                var startEndSame = (sc === ec);
 
                 var mergeForward = function(node) {
                     var sibling = node.nextSibling;
