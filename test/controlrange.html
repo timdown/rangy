@@ -17,7 +17,7 @@
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript">
-        document.selection.empty();
+        //document.selection.empty();
 
         function addImage(id) {
             var sel = rangy.getSelection();
@@ -35,14 +35,34 @@
             range.selectNode(im);
             sel.removeRange(range);
         }
+
+        window.onload = function() {
+            document.execCommand('MultipleSelection', true, true);
+            rangy.init();
+            if (rangy.features.implementsControlRange) {
+                var im1 = document.getElementById("im1");
+                var controlRange = document.body.createControlRange();
+                //controlRange.add(im1);
+                //controlRange.select();
+            }
+var im2 = document.getElementById("span1");
+var sel = rangy.getSelection();
+var range = rangy.createRange();
+range.selectNode(im2);
+            var im1 = document.getElementById("im1");
+            var range2 = rangy.createRange();
+            range2.selectNode(im1);
+sel.setRanges([range, range2]);
+        }
     </script>
 </head>
-<body onload="document.execCommand('MultipleSelection', true, true);">
+<body>
     <div contenteditable="true" id="editor">
         Pictures of Steve Claridge:
         <img src="claridge.jpg" alt="claridge" width="30" height="40" id="im1">
         <img src="claridge.jpg" alt="claridge" width="30" height="40" id="im2">
         <img src="claridge.jpg" alt="claridge" width="30" height="40" id="im3">
+        <span id="span1" style="xzoom: 1">span</span>
     </div>
     <input type="button" onclick="addImage('im2')" value="Add image 2">
     <input type="button" onclick="addImage('im3')" value="Add image 3">

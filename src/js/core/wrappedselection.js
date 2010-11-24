@@ -345,7 +345,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 try {
                     newControlRange.add(rangeElement);
                 } catch (ex) {
-                    throw new Error("addRange(): Range element could not be added to control selection (does it have layout?)")
+                    throw new Error("addRange(): Element within the specified Range could not be added to control selection (does it have layout?)")
                 }
                 newControlRange.select();
 
@@ -368,7 +368,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 var doc = dom.getDocument(ranges[0].startContainer);
                 var controlRange = dom.getBody(doc).createControlRange();
                 for (var i = 0; i < rangeCount; ++i) {
-                    controlRange.add(getSingleElementFromRange(ranges[i]));
+                    try {
+                        controlRange.add(getSingleElementFromRange(ranges[i]));
+                    } catch (ex) {
+                        throw new Error("setRanges(): Element within the one of the specified Ranges could not be added to control selection (does it have layout?)")
+                    }
                 }
                 controlRange.select();
 
