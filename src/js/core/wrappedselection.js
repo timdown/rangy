@@ -160,9 +160,21 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return nativeRange;
     }
 
+    function rangeContainsSingleElement(rangeNodes) {
+        if (rangeNodes[0].nodeType != 1) {
+            return false;
+        }
+        for (var i = 1, len = rangeNodes.length; i < len; ++i) {
+            if (!dom.isAncestorOf(rangeNodes[0], rangeNodes[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function getSingleElementFromRange(range) {
         var nodes = range.getNodes();
-        if (nodes.length != 1 || nodes[0].nodeType != 1) {
+        if (!rangeContainsSingleElement(nodes)) {
             throw new Error("getSingleElementFromRange: range did not consist of a single element");
         }
         return nodes[0];
@@ -330,7 +342,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 for (var i = 0, len = controlRange.length; i < len; ++i) {
                     newControlRange.add(controlRange.item(i));
                 }
-                newControlRange.add(rangeElement);
+                try {
+                    newControlRange.add(rangeElement);
+                } catch (ex) {
+                    throw new Error("addRange(): Range element could not be added to control selection (does it have layout?)")
+                }
                 newControlRange.select();
 
                 // Update the wrapped selection based on what's now in the native selection
