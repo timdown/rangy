@@ -395,55 +395,76 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     };
 
+    function rangesArraysEqual(ranges1, ranges2) {
+        var i = ranges1.length;
+        if (i != ranges2.length) {
+            return false;
+        }
+        while (i--) {
+            if (!DomRange.rangesEqual(ranges1[i], ranges2[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    var refreshSelection;
+
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
-        selProto.refresh = function() {
-            this._ranges.length = this.rangeCount = this.nativeSelection.rangeCount;
-            if (this.rangeCount) {
-                for (var i = 0, len = this.rangeCount; i < len; ++i) {
-                    this._ranges[i] = new api.WrappedRange(this.nativeSelection.getRangeAt(i));
+        refreshSelection = function(sel) {
+            sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
+            if (sel.rangeCount) {
+                for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                    sel._ranges[i] = new api.WrappedRange(sel.nativeSelection.getRangeAt(i));
                 }
-                updateAnchorAndFocusFromRange(this, this._ranges[this.rangeCount - 1], selectionIsBackwards(this.nativeSelection));
-                this.isCollapsed = selectionIsCollapsed(this);
+                updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackwards(sel.nativeSelection));
+                sel.isCollapsed = selectionIsCollapsed(sel);
             } else {
-                updateEmptySelection(this);
+                updateEmptySelection(sel);
             }
         };
     } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
-        selProto.refresh = function() {
-            var range, sel = this.nativeSelection;
-            if (sel.anchorNode) {
-                range = getSelectionRangeAt(sel, 0);
-                this._ranges = [range];
-                this.rangeCount = 1;
-                updateAnchorAndFocusFromNativeSelection(this);
-                this.isCollapsed = selectionIsCollapsed(this);
+        refreshSelection = function(sel) {
+            var range, nativeSel = sel.nativeSelection;
+            if (nativeSel.anchorNode) {
+                range = getSelectionRangeAt(nativeSel, 0);
+                sel._ranges = [range];
+                sel.rangeCount = 1;
+                updateAnchorAndFocusFromNativeSelection(sel);
+                sel.isCollapsed = selectionIsCollapsed(sel);
             } else {
-                updateEmptySelection(this);
+                updateEmptySelection(sel);
             }
         };
     } else if (util.isHostMethod(testSelection, "createRange") && api.features.implementsTextRange) {
-        selProto.refresh = function() {
-            var range = this.nativeSelection.createRange(), wrappedRange;
-            log.warn("selection refresh called, selection type: " + this.nativeSelection.type);
+        refreshSelection = function(sel) {
+            var range = sel.nativeSelection.createRange(), wrappedRange;
+            log.warn("selection refresh called, selection type: " + sel.nativeSelection.type);
 
-            if (this.nativeSelection.type == "Control") {
-                updateFromControlRange(this);
+            if (sel.nativeSelection.type == "Control") {
+                updateFromControlRange(sel);
             } else if (range && typeof range.text != "undefined") {
                 // Create a Range from the selected TextRange
                 wrappedRange = new WrappedRange(range);
-                this._ranges = [wrappedRange];
+                sel._ranges = [wrappedRange];
 
-                updateAnchorAndFocusFromRange(this, wrappedRange, false);
-                this.rangeCount = 1;
-                this.isCollapsed = wrappedRange.collapsed;
+                updateAnchorAndFocusFromRange(sel, wrappedRange, false);
+                sel.rangeCount = 1;
+                sel.isCollapsed = wrappedRange.collapsed;
             } else {
-                updateEmptySelection(this);
+                updateEmptySelection(sel);
             }
         };
     } else {
         module.fail("No means of obtaining a Range or TextRange from the user's selection was found");
         return false;
     }
+
+    selProto.refresh = function(checkForChanges) {
+        var oldRanges = checkForChanges ? this._ranges.slice(0) : null;
+        refreshSelection(this);
+        return checkForChanges ? !rangesArraysEqual(oldRanges, this._ranges) : null;
+    };
 
     // Removal of a single range
     var removeRangeManually = function(sel, range) {
