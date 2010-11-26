@@ -395,19 +395,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     };
 
-    function rangesArraysEqual(ranges1, ranges2) {
-        var i = ranges1.length;
-        if (i != ranges2.length) {
-            return false;
-        }
-        while (i--) {
-            if (!DomRange.rangesEqual(ranges1[i], ranges2[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     var refreshSelection;
 
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
@@ -463,7 +450,18 @@ rangy.createModule("WrappedSelection", function(api, module) {
     selProto.refresh = function(checkForChanges) {
         var oldRanges = checkForChanges ? this._ranges.slice(0) : null;
         refreshSelection(this);
-        return checkForChanges ? !rangesArraysEqual(oldRanges, this._ranges) : null;
+        if (checkForChanges) {
+            var i = oldRanges.length;
+            if (i != this._ranges.length) {
+                return false;
+            }
+            while (i--) {
+                if (!DomRange.rangesEqual(oldRanges[i], this._ranges[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
     };
 
     // Removal of a single range

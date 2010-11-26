@@ -24,7 +24,7 @@ Core features
 -------------
 
 - DomRange: setBoundaries(startNode, startOffset, endNode, endOffset) ?
-
+- DomRange: implement getBoundingClientRect? (https://developer.mozilla.org/en/DOM/range.getBoundingClientRect)
 
 
 Utility module features
