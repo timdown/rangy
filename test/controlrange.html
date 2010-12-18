@@ -53,6 +53,11 @@ range.selectNode(im2);
             var range2 = rangy.createRange();
             range2.selectNode(im1);
 sel.setRanges([range, range2]);
+            var r = sel.nativeSelection.createRange();
+            r.remove(im1);
+            r.select();
+
+            alert(sel.refresh(true))
         }
     </script>
 </head>
@@ -62,7 +67,7 @@ sel.setRanges([range, range2]);
         <img src="claridge.jpg" alt="claridge" width="30" height="40" id="im1">
         <img src="claridge.jpg" alt="claridge" width="30" height="40" id="im2">
         <img src="claridge.jpg" alt="claridge" width="30" height="40" id="im3">
-        <span id="span1" style="xzoom: 1">span</span>
+        <span id="span1" style="zoom: 1">span</span>
     </div>
     <input type="button" onclick="addImage('im2')" value="Add image 2">
     <input type="button" onclick="addImage('im3')" value="Add image 3">

@@ -1,15 +1,8 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-        "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-    <title>Selection save/restore test</title>
+    <title>Rangy Selection save/restore module demo</title>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
-    <script type="text/javascript">
-        var appender = new log4javascript.InPageAppender();
-        log4javascript.getRootLogger().addAppender(appender);
-        var log = log4javascript.getRootLogger();
-        log4javascript.setShowStackTraces(true);
-    </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
@@ -17,37 +10,41 @@
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-selectionsaverestore.js"></script>
     <script type="text/javascript">
-        var saveSelection = function() {
-            alert("Your browser does not support the required features")
-        };
 
-        var restoreSelection = function() {
-            alert("Your browser does not support the required features")
-        };
+        window.onload = function() {
+            rangy.init();
 
-        function init() {
-            var savedSelection;
+            var saveRestoreModule = rangy.modules.SaveRestore;
+            if (saveRestoreModule && saveRestoreModule.supported) {
+                var saveButton = document.getElementById("saveButton");
+                var savedSelection;
 
-            saveSelection = function() {
-                if (savedSelection) {
-                    rangy.saveRestore.removeMarkers(savedSelection);
-                }
-                savedSelection = rangy.saveRestore.saveSelection();
-                document.getElementById("restoreButton").disabled = false;
-            };
+                saveButton.onclick = function() {
+                    if (savedSelection) {
+                        rangy.removeMarkers(savedSelection);
+                    }
+                    savedSelection = rangy.saveSelection();
+                    document.getElementById("restoreButton").disabled = false;
+                };
 
-            restoreSelection = function() {
-                if (savedSelection) {
-                    rangy.saveRestore.restoreSelection(savedSelection);
-                    savedSelection = null;
-                    document.getElementById("restoreButton").disabled = true;
-                    document.getElementById("editable").focus();
-                }
-            };
+                saveButton.disabled = false;
+
+                var restoreButton = document.getElementById("restoreButton");
+                restoreButton.onclick = function() {
+                    if (savedSelection) {
+                        rangy.restoreSelection(savedSelection);
+                        savedSelection = null;
+                        document.getElementById("restoreButton").disabled = true;
+                        document.getElementById("editable").focus();
+                    }
+                };
+
+                saveButton = restoreButton = null;
+            }
         }
     </script>
 </head>
-<body onload="init()">
+<body>
     <h1>Selection save/restore test</h1>
 
     <p>Below is some editable content:</p>
@@ -64,8 +61,8 @@
         which is crowded a mass of leaves, usually green but in some varieties red or purplish, which while immature
         form a characteristic compact, globular cluster (<i>cabbagehead</i>).
     </p>
-    <input type="button" onmousedown="saveSelection();" value="Save selection">
-    <input id="restoreButton" type="button" onclick="restoreSelection();" disabled value="Restore selection">
+    <input id="saveButton" type="button" disabled value="Save selection">
+    <input id="restoreButton" type="button" disabled value="Restore selection">
     <p>
     	Select something in the editable area above. Click on the "Save selection" button. Now click somewhere on the
     	page to destroy the selection, and then press "Restore selection".

@@ -21,11 +21,11 @@ pre {
     padding: 3px;
 }
 #content {
-    margin-right: 330px;
+    margin-left: 330px;
 }
 
 #buttons {
-    float: right;
+    float: left;
     border: solid black 1px;
     background-color: lightgoldenrodyellow;
 /*

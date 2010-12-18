@@ -11,7 +11,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var util = api.util;
     var DomRange = api.DomRange;
     var WrappedRange = api.WrappedRange;
-    var DOMException = dom.DOMException;
+    var DOMException = api.DOMException;
     var DomPosition = dom.DomPosition;
 
 
@@ -326,7 +326,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                selectionHasType && implementsControlRange) {
 
         selProto.removeAllRanges = function() {
-            this.nativeSelection.empty();
+            // Added try/catch as fix for issue #21
+            try {
+                this.nativeSelection.empty();
+            } catch(ex) {}
             updateEmptySelection(this);
         };
 

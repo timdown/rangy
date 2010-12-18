@@ -47,14 +47,6 @@ Stuff to do before 1.0
 - Documentation:
 
   - Complete HowRangyDiffersFromNativeApis
-  - Add page on rangy object: features, getSelection etc
-  - Add page on DOM helper methods
-  - Document extra param in selection addRange()
-  - Document extra param in restoreSelection()
-  - Document createMissingNativeApi()
-
-- Create new beta with createMissingNativeApi(), save direction in restoreSelection()
-
 
 
 References:

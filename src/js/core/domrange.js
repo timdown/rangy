@@ -4,7 +4,7 @@ rangy.createModule("DomRange", function(api, module) {
     var log = log4javascript.getLogger("rangy.DomRange");
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
-    var DOMException = dom.DOMException;
+    var DOMException = api.DOMException;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -1058,8 +1058,6 @@ rangy.createModule("DomRange", function(api, module) {
 
     Range.rangeProperties = rangeProperties;
     Range.RangeIterator = RangeIterator;
-    Range.DOMException = DOMException;
-    Range.RangeException = RangeException;
     Range.copyComparisonConstants = copyComparisonConstants;
     Range.createPrototypeRange = createPrototypeRange;
     Range.inspect = inspect;
@@ -1073,4 +1071,5 @@ rangy.createModule("DomRange", function(api, module) {
     Range.getEndOffset = getEndOffset;
 
     api.DomRange = Range;
+    api.RangeException = RangeException;
 });

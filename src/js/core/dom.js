@@ -309,7 +309,8 @@ rangy.createModule("DomUtil", function(api, module) {
         comparePoints: comparePoints,
         inspectNode: inspectNode,
         createIterator: createIterator,
-        DomPosition: DomPosition,
-        DOMException: DOMException
+        DomPosition: DomPosition
     };
+
+    api.DOMException = DOMException;
 });

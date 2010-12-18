@@ -3,19 +3,20 @@
 <head>
     <title>Rangy Core Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
-    <!--build:dist<script type="text/javascript" src="../build/rangy-core.js"></script>--build:dist_end-->
-    <!--build:dev-->
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <!--build:dev_end-->
 
     <script type="text/javascript">
-        function reportSelection() {
+        function reportSelectionText() {
             alert(rangy.getSelection().getRangeAt(0));
+        }
+
+        function inspectSelection() {
+            alert(rangy.getSelection().inspect());
         }
 
         function deleteSelection() {
@@ -47,6 +48,13 @@
             codeEl.value = displayEl.innerHTML;
         }
 
+        function inspectRange() {
+            var range = getFirstRange();
+            if (range) {
+                alert(range.inspect());
+            }
+        }
+
         function extractRange() {
             var range = getFirstRange();
             if (range) {
@@ -76,7 +84,11 @@
                 try {
                     range.surroundContents(el);
                 } catch(ex) {
-                    alert("Unable to surround range: " + ex);
+                    if ((ex instanceof rangy.RangeException || ex instanceof RangeException) && ex.code == 1) {
+                        alert("Unable to surround range because range partially selects a non-text node. See DOM Level 2 Range spec for more information. Error: " + ex);
+                    } else {
+                        alert("Unexpected errror: " + ex);
+                    }
                 }
             }
         }
@@ -90,41 +102,56 @@
                 el.style.fontWeight = "bold";
                 el.appendChild(document.createTextNode("**INSERTED NODE**"));
                 range.insertNode(el);
-                var sel = rangy.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
+                rangy.getSelection().setSingleRange(range);
             }
         }
 
-        try {
-            document.execCommand("MultipleSelection", true, true);
-        } catch (ex) {}
+        function createButton(parentNode, clickHandler, value) {
+            var button = document.createElement("input");
+            button.type = "button";
+            button.unselectable = true;
+            button.className = "unselectable";
+            button.onclick = clickHandler;
+            button.value = value;
+            parentNode.appendChild(button);
+        }
+
+        window.onload = function() {
+            rangy.init();
+
+            // Enable multiple selections in IE
+            try {
+                document.execCommand("MultipleSelection", true, true);
+            } catch (ex) {}
+
+            // Create selection buttons
+            var selectionButtonsContainer = document.getElementById("selectionButtons");
+            createButton(selectionButtonsContainer, reportSelectionText, "Get selection text");
+            createButton(selectionButtonsContainer, inspectSelection, "Inspect selection");
+            createButton(selectionButtonsContainer, deleteSelection, "Delete selection");
+            createButton(selectionButtonsContainer, collapseSelectionToStart, "Collapse to start");
+            createButton(selectionButtonsContainer, collapseSelectionToEnd, "Collapse to end");
+
+            // Create Range buttons
+            var rangeButtonsContainer = document.getElementById("rangeButtons");
+            createButton(rangeButtonsContainer, inspectRange, "Inspect");
+            createButton(rangeButtonsContainer, extractRange, "Extract");
+            createButton(rangeButtonsContainer, cloneRange, "Clone");
+            createButton(rangeButtonsContainer, deleteRange, "Delete");
+            createButton(rangeButtonsContainer, surroundRange, "Surround (where possible)");
+            createButton(rangeButtonsContainer, insertNodeAtRange, "Insert node");
+        };
     </script>
 </head>
 <body>
-    <h1>Rangy Core Demo</h1>
-
-    <p id="intro">
-        Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
-        the right hand size to manipulate the selection.
-    </p>
-
-
     <div id="buttons">
         <h3>Selection methods</h3>
         <p>The following buttons act on the whole selection:</p>
-        <input type="button" onclick="reportSelection();" value="Get selection" unselectable="on" class="unselectable">
-        <input type="button" onclick="deleteSelection();" value="Delete selection" unselectable="on" class="unselectable">
-        <input type="button" onclick="collapseSelectionToStart();" value="Collapse to start" unselectable="on" class="unselectable">
-        <input type="button" onclick="collapseSelectionToEnd();" value="Collapse to end" unselectable="on" class="unselectable">
+        <div id="selectionButtons"></div>
 
         <h3>Range methods</h3>
         <p>The following buttons act on the first range in the current selection:</p>
-        <input type="button" onclick="extractRange();" value="Extract" unselectable="on" class="unselectable">
-        <input type="button" onclick="cloneRange();" value="Clone" unselectable="on" class="unselectable">
-        <input type="button" onclick="deleteRange();" value="Delete" unselectable="on" class="unselectable">
-        <input type="button" onclick="surroundRange();" value="Surround" unselectable="on" class="unselectable">
-        <input type="button" onclick="insertNodeAtRange();" value="Insert node" unselectable="on" class="unselectable">
+        <div id="rangeButtons"></div>
 
         <h4>Selection/Range HTML</h4>
         <textarea rows="10" cols="10" id="code"></textarea>
@@ -134,6 +161,13 @@
 
     </div>
     <div id="content">
+    <h1>Rangy Core Demo</h1>
+
+    <p id="intro">
+        Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
+        the right hand size to manipulate the selection.
+    </p>
+
     <p>
         <b>Association football</b> is a sport played between two teams. It is usually called <b>football</b>, but in
         some countries, such as the United States, it is called <b>soccer</b>. In
@@ -163,14 +197,11 @@ It is played by both males and females.
 
 
 </pre>
-</div>
-
     <p class="small">
         Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
         Association Football</a>, licensed under the
         <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
             Commons Attribution/Share-Alike License</a>.
-    </p>
-<!--build:analytics-->
+    </p></div>
 </body>
 </html>

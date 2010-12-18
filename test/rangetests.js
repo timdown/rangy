@@ -30,8 +30,8 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
     xn.test.suite(rangeCreatorName + " in " + docName + " document", function(s) {
         var doc;
         var DomRange = rangy.DomRange;
-        var DOMException = rangy.dom.DOMException;
-        var RangeException = DomRange.RangeException;
+        var DOMException = rangy.DOMException;
+        var RangeException = rangy.RangeException;
         var testRange = rangeCreator(document);
 
         s.setUp = function(t) {
