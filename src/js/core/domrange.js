@@ -424,9 +424,9 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function assertRangeValid(range) {
-        if (isOrphan(range.startContainer) || isOrphan(range.endContainer)
-                || !isValidOffset(range.startContainer, range.startOffset)
-                || !isValidOffset(range.endContainer, range.endOffset)) {
+        if (isOrphan(range.startContainer) || isOrphan(range.endContainer) ||
+                !isValidOffset(range.startContainer, range.startOffset) ||
+                !isValidOffset(range.endContainer, range.endOffset)) {
             throw new Error("Range Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
         }
     }
