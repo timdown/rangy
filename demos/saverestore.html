@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Rangy Selection save/restore module demo</title>
+    <link href="demo.css" rel="stylesheet" type="text/css">
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
@@ -10,36 +11,57 @@
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-selectionsaverestore.js"></script>
     <script type="text/javascript">
+        function gEBI(id) {
+            return document.getElementById(id);
+        }
+
+        var savedSel = null;
+
+        function saveSelection() {
+            // Remove markers for previously saved selection
+            if (savedSel) {
+                rangy.removeMarkers(savedSel);
+            }
+            savedSel = rangy.saveSelection();
+            gEBI("restoreButton").disabled = false;
+        }
+
+        function restoreSelection() {
+            if (savedSel) {
+                rangy.restoreSelection(savedSel, true);
+                savedSel = null;
+                gEBI("restoreButton").disabled = true;
+            }
+        }
 
         window.onload = function() {
+            // Turn multiple selections on in IE
+            try {
+                document.execCommand("MultipleSelection", null, true);
+            } catch(ex) {}
+
             rangy.init();
 
+            // Enable buttons
             var saveRestoreModule = rangy.modules.SaveRestore;
-            if (saveRestoreModule && saveRestoreModule.supported) {
-                var saveButton = document.getElementById("saveButton");
-                var savedSelection;
-
-                saveButton.onclick = function() {
-                    if (savedSelection) {
-                        rangy.removeMarkers(savedSelection);
-                    }
-                    savedSelection = rangy.saveSelection();
-                    document.getElementById("restoreButton").disabled = false;
-                };
-
+            if (rangy.supported && saveRestoreModule && saveRestoreModule.supported) {
+                var saveButton = gEBI("saveButton");
                 saveButton.disabled = false;
-
-                var restoreButton = document.getElementById("restoreButton");
-                restoreButton.onclick = function() {
-                    if (savedSelection) {
-                        rangy.restoreSelection(savedSelection);
-                        savedSelection = null;
-                        document.getElementById("restoreButton").disabled = true;
-                        document.getElementById("editable").focus();
-                    }
+                saveButton.onmousedown = function() {
+                    saveSelection();
+                    return false;
                 };
 
-                saveButton = restoreButton = null;
+                var restoreButton = gEBI("restoreButton");
+                restoreButton.onmousedown = function() {
+                    restoreSelection();
+                    return false;
+                };
+
+                // Display the control range element in IE
+                if (rangy.features.implementsControlRange) {
+                    gEBI("controlRange").style.display = "block";
+                }
             }
         }
     </script>
@@ -47,25 +69,64 @@
 <body>
     <h1>Selection save/restore test</h1>
 
-    <p>Below is some editable content:</p>
-    <p id="editable" contenteditable="true" style="border: solid green 1px; background-color: lightgoldenrodyellow;">
-        The <b>cabbage</b> is a popular <a href="#" title="Cultivar">cultivar</a> of a the species
-        <i><a href="#" title="Brassica oleracea">Brassica oleracea</a> Linne</i> (Capitata Group)
-        of the Family <a href="#" title="Brassicaceae">Brassicaceae</a> (or Cruciferae), and is used as
-        a leafy green <a href="#" title="Leaf vegetable">vegetable</a>. It is a
-        <a href="#" title="Herbaceous" class="mw-redirect">herbaceous</a>,
-        <a href="#t" title="Biennial plant">biennial</a>,
-        <a href="#" title="Dicot" class="mw-redirect">dicotyledonous</a>
+    <div id="buttons">
+        <h3>Save and restore selection</h3>
+        Select something in the main page area to the right. Click on the "Save selection" button. Now click somewhere
+        on the page to destroy the selection, and then press "Restore selection".
+        <input id="saveButton" disabled type="button" value="Save selection" unselectable="on" class="unselectable">
+        <input id="restoreButton" disabled type="button" value="Restore selection" unselectable="on" class="unselectable">
+    </div>
 
-        <a href="#" title="Flowering plant">flowering plant</a> distinguished by a short stem upon
-        which is crowded a mass of leaves, usually green but in some varieties red or purplish, which while immature
-        form a characteristic compact, globular cluster (<i>cabbagehead</i>).
+    <div id="content">
+        <h1>Rangy Save / Restore Selection Module Demo</h1>
+
+        <!-- A comment -->
+
+        <p id="intro">
+            Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons
+            on the left hand size to save and restore the selection.
+        </p>
+
+        <p>
+            <b>Association football</b> is a sport played between two teams. It is usually called <b>football</b>, but in
+            some countries, such as the United States, it is called <b>soccer</b>. In
+            <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
+            Republic of Ireland, both words are commonly used.
+        </p>
+        <p>
+            Each team has 11 players on the field. One of these players is the <i>goalkeeper</i>, and the other ten are
+            known as <i>"outfield players."</i> The game is played by <b>kicking a ball into the opponent's goal</b>. A
+            match has 90 minutes of play, with a break of 15 minutes in the middle. The break in the middle is called
+            half-time.
+        </p>
+        <h2>Competitions <span class="smaller">(this section is editable)</span></h2>
+        <p contenteditable="true">
+            There are many competitions for football, for both football clubs and countries. Football clubs usually play
+            other teams in their own country, with a few exceptions. <b>Cardiff City F.C.</b> from Wales for example, play
+            in the English leagues and in the English FA Cup.
+        </p>
+        <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
+        <pre contenteditable="true">
+Football is the world's most popular sport. It is played in more
+countries than any other game. In fact, FIFA (the Federation
+Internationale de Football Association) has more members than the
+United Nations.
+
+It is played by both males and females.
+
+
+</pre>
+        <p id="controlRange" style="display: none" contenteditable="true">
+            Some controls to put in a ControlRange: <input> and <input> and <input>
+        </p>
+    </div>
+
+    <p class="small">
+        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
+        Association Football</a>, licensed under the
+        <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
+            Commons Attribution/Share-Alike License</a>.
     </p>
-    <input id="saveButton" type="button" disabled value="Save selection">
-    <input id="restoreButton" type="button" disabled value="Restore selection">
-    <p>
-    	Select something in the editable area above. Click on the "Save selection" button. Now click somewhere on the
-    	page to destroy the selection, and then press "Restore selection".
-    </p>
+
 </body>
 </html>

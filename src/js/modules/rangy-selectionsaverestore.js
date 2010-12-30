@@ -19,6 +19,10 @@ rangy.createModule("SaveRestore", function(api, module) {
 
     var markerTextChar = "\ufeff";
 
+    function gEBI(id, doc) {
+        return (doc || document).getElementById(id);
+    }
+
     function insertRangeBoundaryMarker(range, atStart) {
         var markerId = "selectionBoundary_" + (+new Date()) + "_" + ("" + Math.random()).substr(2);
         var markerEl;
@@ -40,17 +44,26 @@ rangy.createModule("SaveRestore", function(api, module) {
     }
 
     function setRangeBoundary(doc, range, markerId, atStart) {
-        var markerEl = doc.getElementById(markerId);
+        var markerEl = gEBI(markerId, doc);
         range[atStart ? "setStartBefore" : "setEndBefore"](markerEl);
         markerEl.parentNode.removeChild(markerEl);
     }
 
+    function compareRanges(r1, r2) {
+        return r2.compareBoundaryPoints(r1.START_TO_START, r1);
+    }
+
     function saveSelection(win) {
         win = win || window;
+        var doc = win.document;
         var sel = api.getSelection(win);
         var ranges = sel.getAllRanges();
-        var rangeInfos = [], startEl, endEl;
-        for (var i = 0, len = ranges.length, range; i < len; ++i) {
+        var rangeInfos = [], startEl, endEl, range;
+
+        // Order the ranges by position within the DOM, latest first
+        ranges.sort(compareRanges);
+
+        for (var i = 0, len = ranges.length; i < len; ++i) {
             range = ranges[i];
             if (range.collapsed) {
                 endEl = insertRangeBoundaryMarker(range, false);
@@ -67,20 +80,28 @@ rangy.createModule("SaveRestore", function(api, module) {
                 range.setEndBefore(endEl);
                 range.setStartAfter(startEl);
 
-                rangeInfos.push({
+                rangeInfos[i] = {
                     startMarkerId: startEl.id,
                     endMarkerId: endEl.id,
                     collapsed: false,
-                    backwards: len == 1 && sel.isBackwards()
-                });
+                    backwards: ranges.length == 1 && sel.isBackwards()
+                };
             }
+        }
+
+        // Now that all the markers are in place and DOM manipulation over, adjust each range's boundaries to lie
+        // between its markers
+        for (i = len - 1; i >= 0; --i) {
+            range = ranges[i];
+            range.setEndBefore(gEBI(rangeInfos[i].endMarkerId, doc));
+            range.setStartAfter(gEBI(rangeInfos[i].startMarkerId, doc));
         }
 
         // Ensure current selection is unaffected
         sel.setRanges(ranges);
         return {
             win: win,
-            doc: win.document,
+            doc: doc,
             rangeInfos: rangeInfos,
             restored: false
         };
@@ -90,12 +111,15 @@ rangy.createModule("SaveRestore", function(api, module) {
         if (!savedSelection.restored) {
             var rangeInfos = savedSelection.rangeInfos;
             var sel = api.getSelection(savedSelection.win);
-            sel.removeAllRanges();
-            for (var i = 0, len = rangeInfos.length, rangeInfo, range; i < len; ++i) {
+            var ranges = [];
+
+            // Ranges are in reverse order of appearance in the DOM. We want to restore earliest first to avoid
+            // normalization affecting previously restored ranges.
+            for (var len = rangeInfos.length, i = len - 1, rangeInfo, range; i >= 0; --i) {
                 rangeInfo = rangeInfos[i];
                 range = api.createRange(savedSelection.doc);
                 if (rangeInfo.collapsed) {
-                    var markerEl = savedSelection.doc.getElementById(rangeInfo.markerId);
+                    var markerEl = gEBI(rangeInfo.markerId, savedSelection.doc);
                     var previousNode = markerEl.previousSibling;
 
                     // Workaround for issue 17
@@ -110,16 +134,28 @@ rangy.createModule("SaveRestore", function(api, module) {
                     setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
                     setRangeBoundary(savedSelection.doc, range, rangeInfo.endMarkerId, false);
                 }
-                range.normalizeBoundaries();
-                var backwards = preserveDirection && rangeInfo.backwards && api.features.selectionHasExtend;
-                sel.addRange(range, backwards);
+
+                // Normalizing range boundaries is only viable if the selection contains only one range. For example,
+                // if the selection contained two ranges that were both contained within the same single text node,
+                // both would alter the same text node when restoring and break the other range.
+                if (len == 1) {
+                    range.normalizeBoundaries();
+                }
+                ranges[i] = range;
             }
+            if (len == 1 && preserveDirection && api.features.selectionHasExtend && rangeInfos[0].backwards) {
+                sel.removeAllRanges();
+                sel.addRange(ranges[0], true);
+            } else {
+                sel.setRanges(ranges);
+            }
+
             savedSelection.restored = true;
         }
     }
 
     function removeMarkerElement(doc, markerId) {
-        var markerEl = doc.getElementById(markerId);
+        var markerEl = gEBI(markerId, doc);
         if (markerEl) {
             markerEl.parentNode.removeChild(markerEl);
         }

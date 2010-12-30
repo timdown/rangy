@@ -11,6 +11,10 @@
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
 
     <script type="text/javascript">
+        function gEBI(id) {
+            return document.getElementById(id);
+        }
+
         function reportSelectionText() {
             alert(rangy.getSelection().getRangeAt(0));
         }
@@ -37,8 +41,8 @@
         }
 
         function showContent(frag) {
-            var displayEl = document.getElementById("selectioncontent");
-            var codeEl = document.getElementById("code");
+            var displayEl = gEBI("selectioncontent");
+            var codeEl = gEBI("code");
             while (displayEl.firstChild) {
                 displayEl.removeChild(displayEl.firstChild);
             }
@@ -84,8 +88,8 @@
                 try {
                     range.surroundContents(el);
                 } catch(ex) {
-                    if ((ex instanceof rangy.RangeException || ex instanceof RangeException) && ex.code == 1) {
-                        alert("Unable to surround range because range partially selects a non-text node. See DOM Level 2 Range spec for more information. Error: " + ex);
+                    if ((ex instanceof rangy.RangeException || Object.prototype.toString.call(ex) == "[object RangeException]") && ex.code == 1) {
+                        alert("Unable to surround range because range partially selects a non-text node. See DOM Level 2 Range spec for more information.\n\n" + ex);
                     } else {
                         alert("Unexpected errror: " + ex);
                     }
@@ -111,9 +115,13 @@
             button.type = "button";
             button.unselectable = true;
             button.className = "unselectable";
-            button.onclick = clickHandler;
+            button.onmousedown = function() {
+                clickHandler();
+                return false;
+            }
             button.value = value;
             parentNode.appendChild(button);
+            button = null;
         }
 
         window.onload = function() {
@@ -125,7 +133,7 @@
             } catch (ex) {}
 
             // Create selection buttons
-            var selectionButtonsContainer = document.getElementById("selectionButtons");
+            var selectionButtonsContainer = gEBI("selectionButtons");
             createButton(selectionButtonsContainer, reportSelectionText, "Get selection text");
             createButton(selectionButtonsContainer, inspectSelection, "Inspect selection");
             createButton(selectionButtonsContainer, deleteSelection, "Delete selection");
@@ -133,13 +141,18 @@
             createButton(selectionButtonsContainer, collapseSelectionToEnd, "Collapse to end");
 
             // Create Range buttons
-            var rangeButtonsContainer = document.getElementById("rangeButtons");
+            var rangeButtonsContainer = gEBI("rangeButtons");
             createButton(rangeButtonsContainer, inspectRange, "Inspect");
             createButton(rangeButtonsContainer, extractRange, "Extract");
             createButton(rangeButtonsContainer, cloneRange, "Clone");
             createButton(rangeButtonsContainer, deleteRange, "Delete");
             createButton(rangeButtonsContainer, surroundRange, "Surround (where possible)");
             createButton(rangeButtonsContainer, insertNodeAtRange, "Insert node");
+
+            // Display the control range element in IE
+            if (rangy.features.implementsControlRange) {
+                gEBI("controlRange").style.display = "block";
+            }
         };
     </script>
 </head>
@@ -197,6 +210,10 @@ It is played by both males and females.
 
 
 </pre>
+    <p id="controlRange" style="display: none" contenteditable="true">
+        Some controls to put in a ControlRange in IE: <input> and <input> and <input>
+    </p>
+
     <p class="small">
         Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
         Association Football</a>, licensed under the

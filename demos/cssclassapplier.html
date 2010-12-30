@@ -3,100 +3,87 @@
 <head>
     <title>Rangy Serializer Module Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
+    <style type="text/css">
+        *.italicYellowBg {
+            font-style: italic;
+            background-color: yellow;
+        }
+
+        *.boldRed {
+            font-weight: bold;
+            color: red;
+        }
+    </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-serializer.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
     <script type="text/javascript">
         function gEBI(id) {
             return document.getElementById(id);
         }
 
-        function serializeSelection() {
-            var input = gEBI("serializedSelection");
-            input.value = rangy.serializeSelection();
-            input.focus();
-            input.select();
+        var italicYellowBgApplier, boldRedApplier;
+
+        function toggleItalicYellowBg() {
+            italicYellowBgApplier.toggleSelection();
         }
 
-        function deserializeSelection() {
-            rangy.deserializeSelection(gEBI("selectionToDeserialize").value);
-        }
-
-        function restoreSelection() {
-            rangy.restoreSelectionFromCookie();
-        }
-
-        function saveSelection() {
-            rangy.saveSelectionCookie();
+        function toggleBoldRed() {
+            boldRedApplier.toggleSelection();
         }
 
         window.onload = function() {
-            // Turn multiple selections on in IE
-            try {
-                document.execCommand("MultipleSelection", null, true);
-            } catch(ex) {}
-
             rangy.init();
 
             // Enable buttons
-            var serializerModule = rangy.modules.Serializer;
-            if (rangy.supported && serializerModule && serializerModule.supported) {
-                gEBI("serializedSelection").disabled = false;
-                var serializeButton = gEBI("serializeButton");
-                serializeButton.disabled = false;
-                serializeButton.onclick = serializeSelection;
+            var cssClassApplierModule = rangy.modules.CssClassApplier;
+            if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
+                boldRedApplier = rangy.createCssClassApplier("boldRed", true);
+                italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", true);
 
-                gEBI("selectionToDeserialize").disabled = false;
-                var deserializeButton = gEBI("deserializeButton");
-                deserializeButton.disabled = false;
-                deserializeButton.onclick = deserializeSelection;
+                var toggleBoldRedButton = gEBI("toggleBoldRedButton");
+                toggleBoldRedButton.disabled = false;
+                toggleBoldRedButton.onmousedown = function() {
+                    toggleBoldRed();
+                    return false;
+                };
 
-                // Display the control range element in IE
-                if (rangy.features.implementsControlRange) {
-                    gEBI("controlRange").style.display = "block";
-                }
-
-                // Restore the selection from a previous visit to this page
-                restoreSelection();
+                var toggleItalicYellowBgButton = gEBI("toggleItalicYellowBgButton");
+                toggleItalicYellowBgButton.disabled = false;
+                toggleItalicYellowBgButton.onmousedown = function() {
+                    toggleItalicYellowBg();
+                    return false;
+                };
             }
         };
 
-        window.onbeforeunload = saveSelection;
-        
     </script>
 </head>
 <body>
     <div id="buttons">
-        <h3>Serialize selection</h3>
-        Click the button to serialize the selection. The serialized selection will appear in the text box.
-        <input type="text" disabled readonly id="serializedSelection" size="30">
-        <input type="button" disabled id="serializeButton" value="Serialize selection" unselectable="on" class="unselectable">
+        <h3>Add / remove CSS classes to / from selection</h3>
+        Make a selection in the document on the right and use the buttons below to toggle CSS classes on the selection:
 
-        <h3>Deserialize selection</h3>
-        Paste a serialized selection into the text box below and click the button to restore the serialized selection.
-        <input type="text" disabled id="selectionToDeserialize" size="30">
-        <input type="button" disabled id="deserializeButton" value="Restore selection" unselectable="on" class="unselectable">
-
-        <h3>Preserving the selection between page requests</h3>
-        The selection on this page will be preserved between page requests. Press the following button or your browser's
-        refresh button to refresh the page
         <br>
-        <input type="button" value="refresh" onclick="window.location.reload();">
+        <input type="button" disabled id="toggleBoldRedButton" value="Toggle bold and red" unselectable="on"
+               class="unselectable">
+        <br>
+        <input type="button" disabled id="toggleItalicYellowBgButton" value="Toggle italic and yellow bg"
+               unselectable="on" class="unselectable">
     </div>
 
     <div id="content">
-        <h1>Rangy Serializer Module Demo</h1>
+        <h1>Rangy CSS Class Applier Module Demo</h1>
 
         <!-- A comment -->
 
         <p id="intro">
             Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
-            the left hand size to serialize and deserialize the selection. Also, the selection will be preserved when you
-            refresh the page.
+            the left hand size to toggle CSS classes applied to text content within the selection.
         </p>
 
         <p>
@@ -128,9 +115,6 @@ It is played by both males and females.
 
 
 </pre>
-        <p id="controlRange" style="display: none" contenteditable="true">
-            Some controls to put in a ControlRange: <input> and <input> and <input>
-        </p>
     </div>
 
     <p class="small">

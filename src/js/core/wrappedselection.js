@@ -175,7 +175,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     function getSingleElementFromRange(range) {
         var nodes = range.getNodes();
         if (!rangeContainsSingleElement(nodes)) {
-            throw new Error("getSingleElementFromRange: range did not consist of a single element");
+            throw new Error("getSingleElementFromRange: range " + range.inspect() + " did not consist of a single element");
         }
         return nodes[0];
     }
@@ -370,9 +370,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 // Ensure that the selection becomes of type "Control"
                 var doc = dom.getDocument(ranges[0].startContainer);
                 var controlRange = dom.getBody(doc).createControlRange();
-                for (var i = 0; i < rangeCount; ++i) {
+                for (var i = 0, el; i < rangeCount; ++i) {
+                    el = getSingleElementFromRange(ranges[i]);
                     try {
-                        controlRange.add(getSingleElementFromRange(ranges[i]));
+                        controlRange.add(el);
                     } catch (ex) {
                         throw new Error("setRanges(): Element within the one of the specified Ranges could not be added to control selection (does it have layout?)")
                     }
@@ -610,8 +611,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     // The following are non-standard extensions
-
-    // The rest are mine, added for convenience
     selProto.getAllRanges = function() {
         return this._ranges.slice(0);
     };
@@ -671,47 +670,4 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
         win = null;
     });
-
-/*
-    (function() {
-        function createDetachedMethod(methodName) {
-            return function() {
-                throw new Error("WrappedSelection." + methodName + ": selection is detached.");
-            };
-        }
-
-        var methodNames = ["containsNode", "setRanges", "getAllRanges", "deleteFromDocument", "selectAllChildren",
-            "collapseToEnd", "collapseToStart", "collapse", "toString", "isBackwards", "removeRange", "removeAllRanges",
-            "refresh", "getRangeAt", "addRange"];
-
-        var propertyNames = ["anchorNode", "anchorOffset", "focusNode", "focusOffset", "_ranges", "rangeCount",
-            "isCollapsed"];
-
-        var detachedMethods = {};
-        var i = methodNames.length, methodName;
-        while (i--) {
-            methodName = methodNames[i];
-            detachedMethods[methodName] = createDetachedMethod(methodName);
-        }
-
-        selProto.detach = function() {
-            if (this.anchorNode) {
-                dom.getWindow(this.anchorNode)[windowPropertyName] = null;
-            }
-
-            // Replace all methods with error generating functions
-            var i = methodNames.length, methodName;
-            while (i--) {
-                methodName = methodNames[i];
-                this[methodName] = detachedMethods[methodName];
-            }
-
-            // Set all properties to null
-            i = propertyNames.length;
-            while (i--) {
-                this[propertyNames[i]] = null;
-            }
-        };
-    })();
-*/
 });

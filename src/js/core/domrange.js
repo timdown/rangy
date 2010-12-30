@@ -649,12 +649,11 @@ rangy.createModule("DomRange", function(api, module) {
 
             deleteContents: createRangeContentRemover(deleteSubtree),
 
-            surroundContents: function(node) {
+            canSurroundContents: function() {
                 assertNotDetached(this);
                 assertRangeValid(this);
                 assertNodeNotReadOnly(this.startContainer);
                 assertNodeNotReadOnly(this.endContainer);
-                assertValidNodeType(node, surroundNodeTypes);
 
                 // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
                 // no non-text nodes.
@@ -662,7 +661,13 @@ rangy.createModule("DomRange", function(api, module) {
                 var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
                         (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
                 iterator.detach();
-                if (boundariesInvalid) {
+                return !boundariesInvalid;
+            },
+
+            surroundContents: function(node) {
+                assertValidNodeType(node, surroundNodeTypes);
+
+                if (!this.canSurroundContents()) {
                     throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
                 }
 
@@ -1016,39 +1021,6 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     createPrototypeRange(Range, updateBoundaries, detach);
-
-/*
-    function() {
-        function createGetter(propName) {
-            return function() {
-                if (!this.startContainer) {
-                    throw new DOMException("INVALID_STATE_ERR");
-                }
-                return this["_" + propName];
-            }
-        }
-
-        function setter() {
-            throw new Error("This property is read-only");
-        }
-
-
-        var i = rangeProperties.length;
-        if (typeof Object.defineProperty == "function") {
-            // ECMAScript 5
-            while (i--) {
-                Object.defineProperty(Range.prototype, rangeProperties[i], {
-                    get: createGetter(rangeProperties[i])
-                });
-            }
-        } else if (Range.prototype.__defineGetter__ && Range.prototype.__defineSetter__) {
-            while (i--) {
-                Range.prototype.__defineGetter__(rangeProperties[i], createGetter(rangeProperties[i]));
-                Range.prototype.__defineSetter__(rangeProperties[i], setter);
-            }
-        }
-    }
-*/
 
     Range.fromRange = function(r) {
         var range = new Range(getRangeDocument(r));
