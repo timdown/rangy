@@ -39,7 +39,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
     xn.test.suite(selectionCreatorName + " in " + winName + " window with range creator " + rangeCreatorName, function(s) {
         var win, doc;
         var DomRange = rangy.DomRange;
-        var DOMException = rangy.dom.DOMException;
+        var DOMException = rangy.DOMException;
 
         s.setUp = function(t) {
             win = wins[0];

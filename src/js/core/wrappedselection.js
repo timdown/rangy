@@ -161,7 +161,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     function rangeContainsSingleElement(rangeNodes) {
-        if (rangeNodes[0].nodeType != 1) {
+        if (!rangeNodes.length || rangeNodes[0].nodeType != 1) {
             return false;
         }
         for (var i = 1, len = rangeNodes.length; i < len; ++i) {
