@@ -329,6 +329,26 @@ rangy.createModule("WrappedSelection", function(api, module) {
             // Added try/catch as fix for issue #21
             try {
                 this.nativeSelection.empty();
+
+                // Check for empty() not working (issue 24)
+                if (this.nativeSelection.type != "None") {
+                    // Work around failure to empty a control selection by instead selecting a TextRange and then
+                    // calling empty()
+                    var doc;
+                    if (this.anchorNode) {
+                        doc = dom.getDocument(this.anchorNode)
+                    } else if (this.nativeSelection.type == "Control") {
+                        var controlRange = this.nativeSelection.createRange();
+                        if (controlRange.length) {
+                            doc = dom.getDocument(controlRange.item(0)).body.createTextRange();
+                        }
+                    }
+                    if (doc) {
+                        var textRange = doc.body.createTextRange();
+                        textRange.select();
+                        this.nativeSelection.empty();
+                    }
+                }
             } catch(ex) {}
             updateEmptySelection(this);
         };
