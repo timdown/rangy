@@ -89,7 +89,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         // so have identified the node we want
         boundaryNode = workingNode.nextSibling;
 
-        if (comparison == -1 && boundaryNode) {
+        if (comparison == -1 && boundaryNode && dom.isCharacterDataNode(boundaryNode)) {
             // This must be a data node (text, comment, cdata) since we've overshot. The working range is collapsed at
             // the start of the node containing the text range's boundary, so we move the end of the working range to
             // the boundary point and measure the length of its text to get the boundary's offset within the node
@@ -141,8 +141,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             }
             boundaryPosition = new DomPosition(boundaryNode, offset);
         } else {
-            // We've hit the boundary exactly, so this must be an element
-            log.debug("Hit boundary exactly");
+            log.debug("Range boundary is between is at node boundary");
 
             // If the boundary immediately follows a character data node and this is the end boundary, we should favour
             // a position within that, and likewise for a start boundary preceding a character data node
