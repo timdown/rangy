@@ -293,7 +293,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                             var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
                             if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
                                 // Happens in WebKit with, for example, a selection placed at the start of a text node
-                                range = nativeRange;
+                                range = new WrappedRange(nativeRange);
                             }
                         }
                         this._ranges[this.rangeCount - 1] = range;
