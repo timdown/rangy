@@ -16,6 +16,7 @@
         }
 
         var savedSel = null;
+        var savedSelActiveElement = null;
 
         function saveSelection() {
             // Remove markers for previously saved selection
@@ -23,6 +24,7 @@
                 rangy.removeMarkers(savedSel);
             }
             savedSel = rangy.saveSelection();
+            savedSelActiveElement = document.activeElement;
             gEBI("restoreButton").disabled = false;
         }
 
@@ -31,6 +33,11 @@
                 rangy.restoreSelection(savedSel, true);
                 savedSel = null;
                 gEBI("restoreButton").disabled = true;
+                window.setTimeout(function() {
+                    if (savedSelActiveElement && typeof savedSelActiveElement.focus != "undefined") {
+                        savedSelActiveElement.focus();
+                    }
+                }, 1);
             }
         }
 
@@ -106,7 +113,7 @@
             in the English leagues and in the English FA Cup.
         </p>
         <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
-        <pre contenteditable="true">
+        <pre contenteditable="true" id="bum">
 Football is the world's most popular sport. It is played in more
 countries than any other game. In fact, FIFA (the Federation
 Internationale de Football Association) has more members than the

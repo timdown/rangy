@@ -71,14 +71,9 @@ rangy.createModule("SaveRestore", function(api, module) {
                     markerId: endEl.id,
                     collapsed: true
                 });
-                range.collapseBefore(endEl);
             } else {
                 endEl = insertRangeBoundaryMarker(range, false);
                 startEl = insertRangeBoundaryMarker(range, true);
-
-                // Update the range after potential changes to ensure it stays selected
-                range.setEndBefore(endEl);
-                range.setStartAfter(startEl);
 
                 rangeInfos[i] = {
                     startMarkerId: startEl.id,
@@ -93,8 +88,12 @@ rangy.createModule("SaveRestore", function(api, module) {
         // between its markers
         for (i = len - 1; i >= 0; --i) {
             range = ranges[i];
-            range.setEndBefore(gEBI(rangeInfos[i].endMarkerId, doc));
-            range.setStartAfter(gEBI(rangeInfos[i].startMarkerId, doc));
+            if (range.collapsed) {
+                range.collapseBefore(gEBI(rangeInfos[i].markerId, doc));
+            } else {
+                range.setEndBefore(gEBI(rangeInfos[i].endMarkerId, doc));
+                range.setStartAfter(gEBI(rangeInfos[i].startMarkerId, doc));
+            }
         }
 
         // Ensure current selection is unaffected

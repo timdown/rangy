@@ -519,6 +519,28 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             this.setStart(start.node, start.offset);
             this.setEnd(end.node, end.offset);
+
+/*
+            if (!textRangeIsCollapsed(this.textRange)){
+                var clone = this.cloneRange();
+                var startNode = rangy.dom.getClosestAncestorIn(start.node, rangeContainerElement, true);
+                var startIndex = rangy.dom.getNodeIndex(startNode);
+
+                var endNode = rangy.dom.getClosestAncestorIn(end.node, rangeContainerElement, true);
+                var endIndex = rangy.dom.getNodeIndex(endNode) + 1;
+
+                clone.setStart(rangeContainerElement, startIndex);
+                clone.setEnd(rangeContainerElement, endIndex);
+
+                var htmlText = this.textRange.htmlText;
+                var textRangeResult = WrappedRange.rangeToTextRange(clone);
+                alert(htmlText + ", " + textRangeResult.htmlText)
+                if (htmlText == textRangeResult.htmlText){
+                    this.setStart(rangeContainerElement, startIndex);
+                    this.setEnd(rangeContainerElement, endIndex);
+                }
+            }
+*/
         };
 
         WrappedRange.rangeToTextRange = function(range) {
