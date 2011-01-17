@@ -31,11 +31,9 @@ rangy.createModule("WrappedRange", function(api, module) {
         var parentEl = textRange.parentElement();
         log.info("getTextRangeContainerElement parentEl is " + dom.inspectNode(parentEl));
         var range = textRange.duplicate();
-        var bookmark = range.getBookmark();
         range.collapse(true);
         var startEl = range.parentElement();
-
-        range.moveToBookmark(bookmark);
+        range = textRange.duplicate();
         range.collapse(false);
         var endEl = range.parentElement();
         var startEndContainer = (startEl == endEl) ? startEl : dom.getCommonAncestor(startEl, endEl);
