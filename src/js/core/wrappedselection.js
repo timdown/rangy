@@ -249,6 +249,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return sel;
     };
 
+    api.getIframeSelection = function(iframeEl) {
+        return api.getSelection(dom.getIframeWindow(iframeEl));
+    };
+
     var selProto = WrappedSelection.prototype;
 
     // Selecting a range

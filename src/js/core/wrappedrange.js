@@ -566,6 +566,14 @@ rangy.createModule("WrappedRange", function(api, module) {
         return new DomRange(doc);
     };
 
+    api.createIframeRange = function(iframeEl) {
+        return api.createRange(dom.getIframeDocument(iframeEl));
+    };
+
+    api.createIframeRangyRange = function(iframeEl) {
+        return api.createRangyRange(dom.getIframeDocument(iframeEl));
+    };
+
     api.addCreateMissingNativeApiListener(function(win) {
         var doc = win.document;
         if (typeof doc.createRange == "undefined") {

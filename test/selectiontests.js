@@ -564,6 +564,7 @@ if (hasNativeDomRange) {
 }
 
 
+
 /*
 testRangeCreator(createRangyRange, "Rangy Range");
 testRangeCreator(createWrappedNativeDomRange, "Wrapped native Range");
@@ -573,6 +574,21 @@ if (hasNativeDomRange) {
 }
 */
 
+var iframe;
+
+xn.test.suite("getIframeSelection test", function(s) {
+    xn.addEventListener(window, "load", function() {
+        s.test("getIframeSelection test", function(t) {
+            rangy.init();
+            var sel = rangy.getIframeSelection(iframe);
+            var range = rangy.createIframeRange(iframe);
+            range.selectNodeContents(range.commonAncestorContainer.body);
+            sel.setSingleRange(range);
+            t.assertEquals(sel.toString(), "content");
+        });
+    });
+});
+
 xn.addEventListener(window, "load", function() {
     // Do it in an iframe
     var iframe = document.body.appendChild(document.createElement("iframe"));
@@ -581,5 +597,6 @@ xn.addEventListener(window, "load", function() {
     doc.open();
     doc.write("<html><head><title>Rangy Selection Test</title></head><body>Content</body></html>");
     doc.close();
+
     iframeWin[0] = win;
 });
