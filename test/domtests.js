@@ -34,7 +34,7 @@ xn.test.suite("Range", function(s) {
     });
 
 
-    var arrayContains =         function(arr, val) {
+    var arrayContains = function(arr, val) {
             var i = arr.length;
             while (i--) {
                 if (arr[i] === val) {
@@ -70,6 +70,27 @@ xn.test.suite("Range", function(s) {
     s.test("Check results", function(t) {
         t.assertArraysEquivalent(isValid1, isValid2);
     });
+
+    s.test("comparePoints 1", function(t) {
+        var div = document.createElement("div");
+        var text1 = div.appendChild(document.createTextNode("One"));
+        var b = div.appendChild(document.createElement("b"));
+        var text2 = b.appendChild(document.createTextNode("Two"));
+        document.body.appendChild(div);
+
+        t.assertEquals(dom.comparePoints(text1, 1, text1, 2), -1);
+        t.assertEquals(dom.comparePoints(text1, 2, text1, 2), 0);
+        t.assertEquals(dom.comparePoints(text1, 3, text1, 2), 1);
+        t.assertEquals(dom.comparePoints(div, 0, text1, 2), -1);
+        t.assertEquals(dom.comparePoints(div, 1, text1, 2), 1);
+
+/*
+        var range = rangy.createRange();
+        range.setStart(text1, 2);
+        range.setEnd(text2, 2);
+*/
+    });
+
 
 
 }, false);

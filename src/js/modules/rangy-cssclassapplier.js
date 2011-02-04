@@ -399,12 +399,25 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         },
 
+        getTextSelectedByRange: function(textNode, range) {
+            var testRange = range.cloneRange();
+            testRange.selectNodeContents(textNode);
+
+            if (range.startContainer == textNode) {
+                testRange.setStart(range.startContainer, range.startOffset);
+            }
+            if (range.endContainer == textNode) {
+                testRange.setEnd(range.endContainer, range.endOffset);
+            }
+
+            return testRange.toString();
+        },
+
         isAppliedToRange: function(range) {
-            range.splitBoundaries();
             var textNodes = range.getNodes( [3] );
-            log.info("textNodes", textNodes);
-            for (var i = 0, len = textNodes.length; i < len; ++i) {
-                if (!this.isAppliedToTextNode(textNodes[i])) {
+            for (var i = 0, len = textNodes.length, selectedText; i < len; ++i) {
+                selectedText = this.getTextSelectedByRange(textNodes[i], range);
+                if (selectedText != "" && !this.isAppliedToTextNode(textNodes[i])) {
                     return false;
                 }
             }

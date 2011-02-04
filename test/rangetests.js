@@ -389,7 +389,8 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 var range = rangeCreator(doc);
                 range.setStartBefore(t.nodes.b);
                 range.collapse(true);
-                t.assert(range.intersectsNode(t.nodes.b));
+                t.assert(range.intersectsNode(t.nodes.b, true));
+                t.assertFalse(range.intersectsNode(t.nodes.b, false));
             });
 
             s.test("intersectsNode 3", function(t) {
@@ -397,6 +398,15 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 range.setStart(t.nodes.plainText, t.nodes.plainText.length);
                 range.collapse(true);
                 t.assertFalse(range.intersectsNode(t.nodes.b));
+            });
+
+            s.test("intersectsNode 4", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.boldText, 1);
+                t.assert(range.intersectsNode(t.nodes.plainText));
+                t.assert(range.intersectsNode(t.nodes.boldText));
+                t.assertFalse(range.intersectsNode(t.nodes.boldAndItalicText));
             });
         }
 

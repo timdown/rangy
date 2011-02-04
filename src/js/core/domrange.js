@@ -780,8 +780,8 @@ rangy.createModule("DomRange", function(api, module) {
                 return frag;
             },
 
-            // This follows the WebKit model whereby a node that borders a range is considered to intersect with it
-            intersectsNode: function(node) {
+            // This follows the Mozilla model whereby a node that borders a range is not considered to intersect with it
+            intersectsNode: function(node, touchingIsIntersecting) {
                 assertNotDetached(this);
                 assertRangeValid(this);
                 assertNode(node, "NOT_FOUND_ERR");
@@ -792,10 +792,10 @@ rangy.createModule("DomRange", function(api, module) {
                 var parent = node.parentNode, offset = dom.getNodeIndex(node);
                 assertNode(parent, "NOT_FOUND_ERR");
 
-                var startComparison = dom.comparePoints(parent, offset, this.startContainer, this.startOffset),
-                    endComparison = dom.comparePoints(parent, offset + 1, this.endContainer, this.endOffset);
+                var startComparison = dom.comparePoints(parent, offset, this.endContainer, this.endOffset),
+                    endComparison = dom.comparePoints(parent, offset + 1, this.startContainer, this.startOffset);
 
-                return !((startComparison < 0 && endComparison < 0) || (startComparison > 0 && endComparison > 0));
+                return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
             },
 
             isPointInRange: function(node, offset) {
