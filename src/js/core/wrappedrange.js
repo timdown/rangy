@@ -189,7 +189,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Having a non-empty element persuades IE to consider the TextRange boundary to be within an element
         // rather than immediately before or after it, which is what we want
-        workingNode.innerHTML = "&#ffef;";
+        workingNode.innerHTML = "&#feff;";
 
         // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
         // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
