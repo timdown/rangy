@@ -67,6 +67,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         parent.removeChild(el);
     }
 
+/*
     function normalize(node) {
         var child = node.firstChild, nextChild;
         while (child) {
@@ -81,6 +82,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             child = child.nextSibling;
         }
     }
+*/
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
         if (el1.attributes.length != el2.attributes.length) return false;
@@ -172,12 +174,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
         return null;
     }
-
-/*
-    function shouldSplitTextNodeContainer(el) {
-        return el.nodeType == 1 && el.tagName.toLowerCase() == tagName && el.childNodes.length > 1;
-    }
-*/
 
     function Merge(firstNode) {
         this.isElementMerge = (firstNode.nodeType == 1);
@@ -361,35 +357,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
             } else {
                 removeClass(ancestorWithClass, this.cssClass);
             }
-
-/*
-            var el = textNode.parentNode;
-
-            // Check whether the text node has siblings
-            var nextNode = textNode.nextSibling, previousNode = textNode.previousSibling;
-            var parent = el.parentNode;
-            log.group("Undo, text node is " + textNode.data, el.className);
-            if (nextNode && previousNode) {
-                // In this case we need to create a new container element for the subsequent text node
-                var containerEl = this.createContainer(dom.getDocument(textNode));
-                containerEl.appendChild(nextNode);
-                dom.insertAfter(containerEl, el);
-                containerEl.parentNode.insertBefore(textNode, containerEl);
-            } else if (nextNode) {
-                parent.insertBefore(textNode, el);
-            } else if (previousNode) {
-                dom.insertAfter(textNode, el);
-            } else {
-                removeClass(el, this.cssClass);
-                log.info("Removed classes. class now: " + el.className);
-                log.debug("element contents: " + el.innerHTML);
-                if (/^\s*$/.test(el.className) && !elementHasNonClassAttributes(el)) {
-                    parent.insertBefore(textNode, el);
-                    parent.removeChild(el);
-                }
-            }
-            log.groupEnd();
-*/
         },
 
         applyToRange: function(range) {
@@ -418,7 +385,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         applyToSelection: function(win) {
-            //log.group("applyToSelection");
+            log.group("applyToSelection");
             win = win || window;
             var sel = api.getSelection(win);
             log.info("applyToSelection " + sel.inspect());
@@ -430,7 +397,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 this.applyToRange(range);
                 sel.addRange(range);
             }
-            //log.groupEnd();
+            log.groupEnd();
         },
 
         undoToRange: function(range) {
@@ -473,8 +440,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         getTextSelectedByRange: function(textNode, range) {
             var textRange = range.cloneRange();
             textRange.selectNodeContents(textNode);
-
-            log.info("getTextSelectedByRange " + range.inspect() + ", textnode: " + textNode.data);
 
             var intersectionRange = textRange.intersection(range);
             var text = intersectionRange ? intersectionRange.toString() : "";
@@ -538,7 +503,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
         addClass: addClass,
         removeClass: removeClass,
         hasSameClasses: hasSameClasses,
+/*
         normalize: normalize,
+*/
         replaceWithOwnChildren: replaceWithOwnChildren,
         elementsHaveSameNonClassAttributes: elementsHaveSameNonClassAttributes,
         elementHasNonClassAttributes: elementHasNonClassAttributes,
