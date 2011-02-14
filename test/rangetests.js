@@ -410,6 +410,28 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             });
         }
 
+        if (testRange.intersection) {
+            s.test("intersection 1", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.boldText, 1);
+                var plainTextRange = range.cloneRange();
+                plainTextRange.selectNodeContents(t.nodes.plainText);
+                var intersectionRange1 = range.intersection(plainTextRange);
+                var intersectionRange2 = plainTextRange.intersection(range);
+
+                t.assertNotNull(intersectionRange1);
+                t.assertNotNull(intersectionRange2);
+                t.assert(rangy.DomRange.rangesEqual(intersectionRange1, intersectionRange2));
+
+                t.assertEquals(intersectionRange1.startContainer, t.nodes.plainText);
+                t.assertEquals(intersectionRange1.startOffset, 1);
+                t.assertEquals(intersectionRange1.endContainer, t.nodes.plainText);
+                t.assertEquals(intersectionRange1.endOffset, t.nodes.plainText.length);
+            });
+        }
+
+
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
 

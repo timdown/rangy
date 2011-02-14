@@ -64,9 +64,11 @@ rangy.createModule("DomRange", function(api, module) {
                 // Check for partially selected text nodes
                 if (dom.isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
                     if (current === this.ec) {
+                        log.info("*** CLONING END");
                         (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
                     }
                     if (this._current === this.sc) {
+                        log.info("*** CLONING START");
                         (current = current.cloneNode(true)).deleteData(0, this.so);
                     }
                 }
@@ -823,9 +825,27 @@ rangy.createModule("DomRange", function(api, module) {
                        dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset) > 0;
             },
 
+            intersection: function(range) {
+                if (this.intersectsRange(range)) {
+                    var startComparison = dom.comparePoints(this.startContainer, this.startOffset, range.startContainer, range.startOffset),
+                        endComparison = dom.comparePoints(this.endContainer, this.endOffset, range.endContainer, range.endOffset);
+                
+                    var intersectionRange = this.cloneRange();
+                    log.info("intersection", this.inspect(), range.inspect(), startComparison, endComparison);
+                    if (startComparison == -1) {
+                        intersectionRange.setStart(range.startContainer, range.startOffset);
+                    }
+                    if (endComparison == 1) {
+                        intersectionRange.setEnd(range.endContainer, range.endOffset);
+                    }
+                    return intersectionRange;
+                }
+                return null;
+            },
+
             containsNode: function(node, allowPartial) {
                 if (allowPartial) {
-                    return this.intersectsNode(node);
+                    return this.intersectsNode(node, false);
                 } else {
                     return this.compareNode(node) == n_i;
                 }
@@ -849,6 +869,7 @@ rangy.createModule("DomRange", function(api, module) {
                 }
 
                 if (dom.isCharacterDataNode(sc) && so > 0) {
+                    log.debug("Splitting start", dom.inspectNode(sc), so);
                     sc = dom.splitDataNode(sc, so);
                     if (startEndSame) {
                         eo -= so;
@@ -965,6 +986,10 @@ rangy.createModule("DomRange", function(api, module) {
 
             getName: function() {
                 return "DomRange";
+            },
+
+            equals: function(range) {
+                return Range.rangesEqual(this, range);
             },
 
             inspect: function() {

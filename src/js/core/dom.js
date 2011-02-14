@@ -218,7 +218,7 @@ rangy.createModule("DomUtil", function(api, module) {
             return '"' + node.data + '"';
         } else if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
-            return "<" + node.nodeName + idAttr + ">";
+            return "<" + node.nodeName + idAttr + ">[" + node.childNodes.length + "]";
         } else {
             return node.nodeName;
         }

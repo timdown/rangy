@@ -12,10 +12,6 @@ Outstanding Features
 - Insert node/HTML (with ability to select or place caret before or after inserted node)
   Question: http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514
 
-- Get range start/end container element
-
-- Get element text
-
 - Test empty selections?
 
 - Return range/selection objects from suitable methods to allow chaining?
@@ -33,20 +29,14 @@ Utility module features
 - insertHtml?
 - getElementText?
 - get range/selection coordinates: http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495
+- Get range start/end container element
 
-Beta 2 changes:
----------------
+Potential Modules
+-----------------
 
-- Serializer: canDeserializeRange and canDeserializeSelection added
-- Added createMissingNativeApi()
-
-
-Stuff to do before 1.0
-----------------------
-
-- Documentation:
-
-  - Complete HowRangyDiffersFromNativeApis
+- select event simulation
+- Generic command applier
+- Utils
 
 
 References:
