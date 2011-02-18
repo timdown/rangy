@@ -164,7 +164,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         var rangeInfos = savedSelection.rangeInfos;
         for (var i = 0, len = rangeInfos.length, rangeInfo; i < len; ++i) {
             rangeInfo = rangeInfos[i];
-            if (savedSelection.collapsed) {
+            if (rangeInfo.collapsed) {
                 removeMarkerElement(savedSelection.doc, rangeInfo.markerId);
             } else {
                 removeMarkerElement(savedSelection.doc, rangeInfo.startMarkerId);
