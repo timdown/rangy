@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-    <title>Rangy CSS Class Applier Module Demo</title>
+    <title>Rangy Bold Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
     <style type="text/css">
         *.italicYellowBg {
@@ -20,42 +20,23 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-textcommands.js"></script>
     <script type="text/javascript">
         function gEBI(id) {
             return document.getElementById(id);
-        }
-
-        var italicYellowBgApplier, boldRedApplier;
-
-        function toggleItalicYellowBg() {
-            italicYellowBgApplier.toggleSelection();
-        }
-
-        function toggleBoldRed() {
-            boldRedApplier.toggleSelection();
         }
 
         window.onload = function() {
             rangy.init();
 
             // Enable buttons
-            var cssClassApplierModule = rangy.modules.CssClassApplier;
-            if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
-                boldRedApplier = rangy.createCssClassApplier("boldRed", true);
-                italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", true);
-
-                var toggleBoldRedButton = gEBI("toggleBoldRedButton");
-                toggleBoldRedButton.disabled = false;
-                toggleBoldRedButton.onmousedown = function() {
-                    toggleBoldRed();
-                    return false;
-                };
-
-                var toggleItalicYellowBgButton = gEBI("toggleItalicYellowBgButton");
-                toggleItalicYellowBgButton.disabled = false;
-                toggleItalicYellowBgButton.onmousedown = function() {
-                    toggleItalicYellowBg();
+            var textCommandsModule = rangy.modules.TextCommands;
+            if (rangy.supported && textCommandsModule && textCommandsModule.supported) {
+                var toggleBoldButton = gEBI("toggleBoldButton");
+                toggleBoldButton.disabled = false;
+                toggleBoldButton.onmousedown = function() {
+                    //alert(rangy.querySelectionCommandValue("bold"));
+                    rangy.execSelectionCommand("bold");
                     return false;
                 };
             }
@@ -69,15 +50,12 @@
         Make a selection in the document on the right and use the buttons below to toggle CSS classes on the selection:
 
         <br>
-        <input type="button" disabled id="toggleBoldRedButton" value="Toggle bold and red" unselectable="on"
+        <input type="button" disabled id="toggleBoldButton" value="Toggle bold" unselectable="on"
                class="unselectable">
-        <br>
-        <input type="button" disabled id="toggleItalicYellowBgButton" value="Toggle italic and yellow bg"
-               unselectable="on" class="unselectable">
     </div>
 
     <div id="content">
-        <h1>Rangy CSS Class Applier Module Demo</h1>
+        <h1>Rangy Text Commands Module Demo</h1>
 
         <!-- A comment -->
 
