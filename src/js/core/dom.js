@@ -27,9 +27,9 @@ rangy.createModule("DomUtil", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // Removed use of indexOf because of a bizarre bug in Opera that is thrown in one of the Acid3 tests. Haven't been
-    // able to replicate it outside of the test. The bug is that indexOf return -1 when called on an Array that contains
-    // just the document as a single element and the value searched for is the document.
+    // Removed use of indexOf because of a bizarre bug in Opera that is thrown in one of the Acid3 tests. I haven't been
+    // able to replicate it outside of the test. The bug is that indexOf returns -1 when called on an Array that
+    // contains just the document as a single element and the value searched for is the document.
     var arrayContains = /*Array.prototype.indexOf ?
         function(arr, val) {
             return arr.indexOf(val) > -1;

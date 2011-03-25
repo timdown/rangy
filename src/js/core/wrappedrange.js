@@ -88,9 +88,9 @@ rangy.createModule("WrappedRange", function(api, module) {
         boundaryNode = workingNode.nextSibling;
 
         if (comparison == -1 && boundaryNode && dom.isCharacterDataNode(boundaryNode)) {
-            // This must be a data node (text, comment, cdata) since we've overshot. The working range is collapsed at
-            // the start of the node containing the text range's boundary, so we move the end of the working range to
-            // the boundary point and measure the length of its text to get the boundary's offset within the node
+            // This is a character data node (text, comment, cdata). The working range is collapsed at the start of the
+            // node containing the text range's boundary, so we move the end of the working range to the boundary point
+            // and measure the length of its text to get the boundary's offset within the node.
             workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
             log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
 
@@ -102,11 +102,11 @@ rangy.createModule("WrappedRange", function(api, module) {
                 for example), we need a slightly complicated approach to get the boundary's offset in IE. The facts:
 
                 - Each line break is represented as \r in the text node's data/nodeValue properties
-                - Each line break is represented as \r\n in the range's text property
-                - The text property of the TextRange strips trailing line breaks
+                - Each line break is represented as \r\n in the TextRange's 'text' property
+                - The 'text' property of the TextRange does not contain trailing line breaks
 
                 To get round the problem presented by the final fact above, we can use the fact that TextRange's
-                moveStart and moveEnd properties return the actual number of characters moved, which is not necessarily
+                moveStart() and moveEnd() methods return the actual number of characters moved, which is not necessarily
                 the same as the number of characters it was instructed to move. The simplest approach is to use this to
                 store the characters moved when moving both the start and end of the range to the start of the document
                 body and subtracting the start offset from the end offset (the "move-negative-gazillion" method).
@@ -114,16 +114,16 @@ rangy.createModule("WrappedRange", function(api, module) {
                 doing the mirror image (i.e. moving the range boundaries to the end of the document) has the same
                 problem.
 
-                Another approach that works is to use moveStart to move the start boundary of the range up to the end
-                one character at a time and incrementing a counter with the result of the moveStart call. However, the
-                check for whether the start boundary has reached the end boundary is expensive, so this method is slow
-                (although unlike "move-negative-gazillion" is unaffected by the location of the range within the
-                document).
+                Another approach that works is to use moveStart() to move the start boundary of the range up to the end
+                boundary one character at a time and incrementing a counter with the value returned by the moveStart()
+                call. However, the check for whether the start boundary has reached the end boundary is expensive, so
+                this method is slow (although unlike "move-negative-gazillion" is largely unaffected by the location of
+                the range within the document).
 
-                The method below uses the fact that once each \r\n in the range's text property has been converted to a
-                single \r character (as it is in the text node), we know the offset is at least as long as the range
-                text's length, so the start of the range is moved that length initially and then a character at a time
-                to make up for any line breaks that the range text property has stripped. This seems to have good
+                The method below is a hybrid of the two methods above. It uses the fact that a string containing the
+                TextRange's 'text' property with each \r\n converted to a single \r character cannot be longer than the
+                text of the TextRange, so the start of the range is moved that length initially and then a character at
+                a time to make up for any trailing line breaks not contained in the 'text' property. This has good
                 performance in most situations compared to the previous two methods.
                 */
                 var tempRange = workingRange.duplicate();
@@ -172,9 +172,6 @@ rangy.createModule("WrappedRange", function(api, module) {
         var workingNode, childNodes, workingRange = doc.body.createTextRange();
         var nodeIsDataNode = dom.isCharacterDataNode(boundaryPosition.node);
 
-        // There is a shortcut we can take that prevents the need to insert anything into the DOM if the boundary is at
-        // either end of the contents of an element, which is to use TextRange's moveToElementText method
-
         if (nodeIsDataNode) {
             boundaryNode = boundaryPosition.node;
             boundaryParent = boundaryNode.parentNode;
@@ -187,8 +184,8 @@ rangy.createModule("WrappedRange", function(api, module) {
         // Position the range immediately before the node containing the boundary
         workingNode = doc.createElement("span");
 
-        // Having a non-empty element persuades IE to consider the TextRange boundary to be within an element
-        // rather than immediately before or after it, which is what we want
+        // Making the working element non-empty element persuades IE to consider the TextRange boundary to be within the
+        // element rather than immediately before or after it, which is what we want
         workingNode.innerHTML = "&#feff;";
 
         // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
@@ -331,36 +328,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // Test for Firefox bug (apparently long-standing, still present in 3.6.8) that throws "Index or size is
-            // negative or greater than the allowed amount" for insertNode in some circumstances, and correct for it
-            // by using DomRange's insertNode implementation
-
-/*
-            var span = dom.getBody(document).insertBefore(document.createElement("span"), testTextNode);
-            var spanText = span.appendChild(document.createTextNode("span"));
-            range.setEnd(testTextNode, 2);
-            range.setStart(spanText, 2);
-            var nodeToInsert = document.createElement("span");
-            nodeToInsert.innerHTML = "OIDUIIU"
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            range = sel.getRangeAt(0);
-            //alert(range)
-            range.insertNode(nodeToInsert);
-
-            nodeToInsert.parentNode.removeChild(nodeToInsert);
-            range.setEnd(testTextNode, 2);
-            range.setStart(spanText, 2);
-            nodeToInsert = document.createElement("span");
-            nodeToInsert.innerHTML = "werw"
-            range.insertNode(nodeToInsert);
-            alert(range)
-*/
-
-
-            /*--------------------------------------------------------------------------------------------------------*/
-
             // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
             // correct for it
 
@@ -462,7 +429,8 @@ rangy.createModule("WrappedRange", function(api, module) {
             range2.setEnd(testTextNode, 4);
             range2.setStart(testTextNode, 2);
 
-            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 && range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
+            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &
+                    range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
                 // This is the wrong way round, so correct for it
                 log.info("START_TO_END and END_TO_START wrong way round. Correcting in wrapper.");
 
@@ -504,7 +472,6 @@ rangy.createModule("WrappedRange", function(api, module) {
             var start, end;
 
             // TextRange's parentElement() method cannot be trusted. getTextRangeContainerElement() works around that.
-            // We do that here to avoid doing it twice unnecessarily.
             var rangeContainerElement = getTextRangeContainerElement(this.textRange);
 
             if (textRangeIsCollapsed(this.textRange)) {

@@ -521,7 +521,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // Removal of a single range
     var removeRangeManually = function(sel, range) {
         var ranges = sel.getAllRanges(), removed = false;
-        //console.log("removeRangeManually with " + ranges.length + " ranges (rangeCount " + sel.rangeCount);
         sel.removeAllRanges();
         for (var i = 0, len = ranges.length; i < len; ++i) {
             if (removed || range !== ranges[i]) {
@@ -536,7 +535,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         if (!sel.rangeCount) {
             updateEmptySelection(sel);
         }
-        //console.log("removeRangeManually finished with rangeCount " + sel.rangeCount);
     };
 
     if (implementsControlRange) {
