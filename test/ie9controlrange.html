@@ -5,12 +5,16 @@
     <title></title>
     <script type="text/javascript">
         window.onload = function() {
-            var input = document.getElementById("i");
+            document.execCommand("MultipleSelection", true, true);
+            var input1 = document.getElementById("i1"), input2 = document.getElementById("i2");
             var controlRange = document.body.createControlRange();
-            controlRange.addElement(input);
+            controlRange.addElement(input1);
+            controlRange.addElement(input2);
             controlRange.select();
-            controlRange.remove(input);
-            input.parentNode.removeChild(input);
+            controlRange.remove(input1);
+            input1.parentNode.removeChild(input1);
+            controlRange.remove(input2);
+            input1.parentNode.removeChild(input2);
             alert("Type before creating range: " + document.selection.type);
             var range = document.selection.createRange();
             var rangeType = (typeof range.text == "undefined") ? "ControlRange" : "TextRange";
@@ -19,7 +23,7 @@
     </script>
 </head>
 <body>
-<input id="i">
+<input id="i2"><input id="i2">
 
 </body>
 </html>
