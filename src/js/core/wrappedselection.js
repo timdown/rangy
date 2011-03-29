@@ -187,22 +187,43 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return nodes[0];
     }
 
-    function updateFromControlRange(sel) {
+    function isTextRange(range) {
+        return !!range && typeof range.text != "undefined";
+    }
+
+    function updateFromTextRange(sel, range) {
+        // Create a Range from the selected TextRange
+        var wrappedRange = new WrappedRange(range);
+        sel._ranges = [wrappedRange];
+
+        updateAnchorAndFocusFromRange(sel, wrappedRange, false);
+        sel.rangeCount = 1;
+        sel.isCollapsed = wrappedRange.collapsed;
+    }
+
+    function updateControlSelection(sel) {
         // Update the wrapped selection based on what's now in the native selection
         sel._ranges.length = 0;
         if (sel.docSelection.type == "None") {
             updateEmptySelection(sel);
         } else {
             var controlRange = sel.docSelection.createRange();
-            sel.rangeCount = controlRange.length;
-            var range, doc = dom.getDocument(controlRange.item(0));
-            for (var i = 0; i < sel.rangeCount; ++i) {
-                range = api.createRange(doc);
-                range.selectNode(controlRange.item(i));
-                sel._ranges.push(range);
+            if (isTextRange(range)) {
+                // This case (where the selection type is "Control" and calling createRange() on the selection returns
+                // a TextRange) can happen in IE 9. It happens, for example, when all elements in the selected
+                // ControlRange have been removed from the ControlRange and removed from the document.
+                updateFromTextRange(sel, range);
+            } else {
+                sel.rangeCount = controlRange.length;
+                var range, doc = dom.getDocument(controlRange.item(0));
+                for (var i = 0; i < sel.rangeCount; ++i) {
+                    range = api.createRange(doc);
+                    range.selectNode(controlRange.item(i));
+                    sel._ranges.push(range);
+                }
+                sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
+                updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], false);
             }
-            sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
-            updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], false);
         }
     }
 
@@ -225,7 +246,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         newControlRange.select();
 
         // Update the wrapped selection based on what's now in the native selection
-        updateFromControlRange(sel);
+        updateControlSelection(sel);
     }
 
     var getSelectionRangeAt;
@@ -302,7 +323,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         controlRange.select();
 
         // Update the wrapped selection based on what's now in the native selection
-        updateFromControlRange(sel);
+        updateControlSelection(sel);
     }
 
     // Selecting a range
@@ -454,7 +475,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         refreshSelection = function(sel) {
             if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
-                updateFromControlRange(sel);
+                updateControlSelection(sel);
             } else {
                 sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
                 if (sel.rangeCount) {
@@ -483,19 +504,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else if (util.isHostMethod(testSelection, "createRange") && implementsDocSelection) {
         refreshSelection = function(sel) {
-            var range = sel.docSelection.createRange(), wrappedRange;
+            var range = sel.docSelection.createRange();
             log.warn("selection refresh called, selection type: " + sel.docSelection.type);
 
             if (sel.docSelection.type == CONTROL) {
-                updateFromControlRange(sel);
-            } else if (range && typeof range.text != "undefined") {
-                // Create a Range from the selected TextRange
-                wrappedRange = new WrappedRange(range);
-                sel._ranges = [wrappedRange];
-
-                updateAnchorAndFocusFromRange(sel, wrappedRange, false);
-                sel.rangeCount = 1;
-                sel.isCollapsed = wrappedRange.collapsed;
+                updateControlSelection(sel);
+            } else if (isTextRange(range)) {
+                updateFromTextRange(sel, range);
             } else {
                 updateEmptySelection(sel);
             }
@@ -563,7 +578,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 newControlRange.select();
 
                 // Update the wrapped selection based on what's now in the native selection
-                updateFromControlRange(this);
+                updateControlSelection(this);
             } else {
                 removeRangeManually(this, range);
             }
