@@ -14,7 +14,7 @@
             controlRange.remove(input1);
             input1.parentNode.removeChild(input1);
             controlRange.remove(input2);
-            input1.parentNode.removeChild(input2);
+            input2.parentNode.removeChild(input2);
             alert("Type before creating range: " + document.selection.type);
             var range = document.selection.createRange();
             var rangeType = (typeof range.text == "undefined") ? "ControlRange" : "TextRange";
