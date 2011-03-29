@@ -10,6 +10,7 @@
             controlRange.addElement(input);
             controlRange.select();
             controlRange.remove(input);
+            input.parentNode.removeChild(input);
             alert("Type before creating range: " + document.selection.type);
             var range = document.selection.createRange();
             var rangeType = (typeof range.text == "undefined") ? "ControlRange" : "TextRange";
