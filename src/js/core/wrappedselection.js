@@ -453,15 +453,19 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         refreshSelection = function(sel) {
-            sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
-            if (sel.rangeCount) {
-                for (var i = 0, len = sel.rangeCount; i < len; ++i) {
-                    sel._ranges[i] = new api.WrappedRange(sel.nativeSelection.getRangeAt(i));
-                }
-                updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackwards(sel.nativeSelection));
-                sel.isCollapsed = selectionIsCollapsed(sel);
+            if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+                updateFromControlRange(sel);
             } else {
-                updateEmptySelection(sel);
+                sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
+                if (sel.rangeCount) {
+                    for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                        sel._ranges[i] = new api.WrappedRange(sel.nativeSelection.getRangeAt(i));
+                    }
+                    updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackwards(sel.nativeSelection));
+                    sel.isCollapsed = selectionIsCollapsed(sel);
+                } else {
+                    updateEmptySelection(sel);
+                }
             }
         };
     } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
@@ -646,7 +650,17 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     selProto.deleteFromDocument = function() {
-        if (this.rangeCount) {
+        // Sepcial behaviour required for Control selections
+        if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+            var controlRange = this.docSelection.createRange();
+            var element;
+            while (controlRange.length) {
+                element = controlRange.item(0);
+                controlRange.remove(element);
+                element.parentNode.removeChild(element);
+            }
+            this.refresh();
+        } else if (this.rangeCount) {
             var ranges = this.getAllRanges();
             this.removeAllRanges();
             for (var i = 0, len = ranges.length; i < len; ++i) {
