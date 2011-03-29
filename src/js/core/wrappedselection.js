@@ -208,11 +208,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
             updateEmptySelection(sel);
         } else {
             var controlRange = sel.docSelection.createRange();
-            if (isTextRange(range)) {
+            if (isTextRange(controlRange)) {
                 // This case (where the selection type is "Control" and calling createRange() on the selection returns
                 // a TextRange) can happen in IE 9. It happens, for example, when all elements in the selected
                 // ControlRange have been removed from the ControlRange and removed from the document.
-                updateFromTextRange(sel, range);
+                updateFromTextRange(sel, controlRange);
             } else {
                 sel.rangeCount = controlRange.length;
                 var range, doc = dom.getDocument(controlRange.item(0));

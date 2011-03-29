@@ -16,14 +16,17 @@
             controlRange.remove(input2);
             input2.parentNode.removeChild(input2);
             alert("Type before creating range: " + document.selection.type);
+            var sel = document.selection;
             var range = document.selection.createRange();
+            var sel2 = document.selection;
+            var selChanged = (sel != sel2);
             var rangeType = (typeof range.text == "undefined") ? "ControlRange" : "TextRange";
-            alert("Type after creating range: " + document.selection.type + ". Range type: " + rangeType);
+            alert("Type after creating range: " + document.selection.type + ". Range type: " + rangeType + ", selChanged: " + selChanged);
         };
     </script>
 </head>
 <body>
-<input id="i1"><input id="i2">
+<input id="i1"> and <input id="i2">
 
 </body>
 </html>
