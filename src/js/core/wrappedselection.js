@@ -453,7 +453,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         refreshSelection = function(sel) {
-            if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+            if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
                 updateFromControlRange(sel);
             } else {
                 sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
