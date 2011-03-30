@@ -24,7 +24,7 @@ rangy.createModule("SaveRestore", function(api, module) {
     }
 
     function insertRangeBoundaryMarker(range, atStart) {
-        var markerId = "selectionBoundary_" + (+new Date()) + "_" + ("" + Math.random()).substr(2);
+        var markerId = "selectionBoundary_" + (+new Date()) + "_" + ("" + Math.random()).slice(2);
         var markerEl;
         var doc = dom.getDocument(range.startContainer);
 
