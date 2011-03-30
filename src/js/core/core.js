@@ -89,8 +89,8 @@ var rangy = (function() {
 
     api.fail = fail;
 
-    function warn(reason) {
-        var warningMessage = "Rangy warning: " + reason;
+    function warn(msg) {
+        var warningMessage = "Rangy warning: " + msg;
         if (api.config.alertOnWarn) {
             window.alert(warningMessage);
         } else if (typeof window.console != UNDEFINED && typeof window.console.log != UNDEFINED) {
@@ -198,6 +198,10 @@ var rangy = (function() {
         this.supported = false;
         log.error("Module '" + this.name + "' failed to load: " + reason);
         throw new Error("Module '" + this.name + "' failed to load: " + reason);
+    };
+
+    Module.prototype.warn = function(msg) {
+        api.warn("Module " + this.name + ": " + msg);
     };
 
     Module.prototype.createError = function(msg) {

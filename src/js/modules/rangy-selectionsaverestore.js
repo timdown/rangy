@@ -36,6 +36,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         markerEl = doc.createElement("span");
         markerEl.id = markerId;
         markerEl.style.lineHeight = "0";
+        markerEl.style.display = "none";
         markerEl.appendChild(doc.createTextNode(markerTextChar));
 
         boundaryRange.insertNode(markerEl);
@@ -45,8 +46,12 @@ rangy.createModule("SaveRestore", function(api, module) {
 
     function setRangeBoundary(doc, range, markerId, atStart) {
         var markerEl = gEBI(markerId, doc);
-        range[atStart ? "setStartBefore" : "setEndBefore"](markerEl);
-        markerEl.parentNode.removeChild(markerEl);
+        if (markerEl) {
+            range[atStart ? "setStartBefore" : "setEndBefore"](markerEl);
+            markerEl.parentNode.removeChild(markerEl);
+        } else {
+            module.warn("Marker element has been removed. Cannot restore selection.");
+        }
     }
 
     function compareRanges(r1, r2) {
@@ -119,15 +124,20 @@ rangy.createModule("SaveRestore", function(api, module) {
                 range = api.createRange(savedSelection.doc);
                 if (rangeInfo.collapsed) {
                     var markerEl = gEBI(rangeInfo.markerId, savedSelection.doc);
-                    var previousNode = markerEl.previousSibling;
+                    if (markerEl) {
+                        markerEl.style.display = "inline";
+                        var previousNode = markerEl.previousSibling;
 
-                    // Workaround for issue 17
-                    if (previousNode && previousNode.nodeType == 3) {
-                        markerEl.parentNode.removeChild(markerEl);
-                        range.collapseToPoint(previousNode, previousNode.length);
+                        // Workaround for issue 17
+                        if (previousNode && previousNode.nodeType == 3) {
+                            markerEl.parentNode.removeChild(markerEl);
+                            range.collapseToPoint(previousNode, previousNode.length);
+                        } else {
+                            range.collapseBefore(markerEl);
+                            markerEl.parentNode.removeChild(markerEl);
+                        }
                     } else {
-                        range.collapseBefore(markerEl);
-                        markerEl.parentNode.removeChild(markerEl);
+                        module.warn("Marker element has been removed. Cannot restore selection.");
                     }
                 } else {
                     setRangeBoundary(savedSelection.doc, range, rangeInfo.startMarkerId, true);
