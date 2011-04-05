@@ -1,17 +1,7 @@
 xn.test.suite("CSS Class Applier module tests", function(s) {
-
-
-/*
-    s.test("One", function(t) {
-        var testEl = document.getElementById("test");
-        testEl.innerHTML = '<span id="one" class="one">One <span id="two" class="two">Two <span id="three" class="three">Three</span> two</span> one</span>';
-        var oneEl = document.getElementById("one");
-        var threeEl = document.getElementById("three");
-
-        rangy.CssClassApplier.util.splitNodeAt(oneEl, threeEl.firstChild, 2);
-
-    });
-*/
+    s.tearDown = function() {
+        document.getElementById("test").innerHTML = "";
+    };
 
     s.test("isAppliedToRange tests", function(t) {
         var applier = rangy.createCssClassApplier("test");
@@ -156,9 +146,112 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         //t.assertEquals(testEl.innerHTML, 'Before <span id="one" class="test">O</span>n<span class="test">e</span> after');
     });
 
+    function iterateNodes(node, func, includeSelf) {
+        if (includeSelf) {
+            func(node);
+        }
+        for (var i = 0, children = node.childNodes, len = children.length; i < len; ++i) {
+            iterateNodes(children[i], func, true);
+        }
+    }
 
-    s.tearDown = function() {
-        document.getElementById("test").innerHTML = "";
-    };
+    function createRangeInHtml(containerEl, html) {
+        containerEl.innerHTML = html;
+        var range = rangy.createRange(), foundStart = false;
+        iterateNodes(containerEl, function(node) {
+            if (node.nodeType == 3) {
+                var openBraceIndex = node.data.indexOf("{");
+                if (openBraceIndex != -1) {
+                    node.data = node.data.slice(0, openBraceIndex) + node.data.slice(openBraceIndex + 1);
+                    range.setStart(node, openBraceIndex);
+                    foundStart = true;
+                }
+                var closeBraceIndex = node.data.indexOf("}");
+                if (closeBraceIndex != -1) {
+                    node.data = node.data.slice(0, closeBraceIndex) + node.data.slice(closeBraceIndex + 1);
+                    range.setEnd(node, closeBraceIndex);
+                }
+                var pipeIndex = node.data.indexOf("|");
+                if (pipeIndex == 0) {
+                    node.data = node.data.slice(1);
+                    range[foundStart ? "setEnd" : "setStart"](node.parentNode, rangy.dom.getNodeIndex(node));
+                    foundStart = true;
+                } else if (pipeIndex == node.length) {
+                    node.data = node.data.slice(0, -1);
+                    range[foundStart ? "setEnd" : "setStart"](node.parentNode, rangy.dom.getNodeIndex(node) + 1);
+                    foundStart = true;
+                }
+
+                pipeIndex = node.data.indexOf("|");
+                if (pipeIndex == 0) {
+                    node.data = node.data.slice(1);
+                    range.setEnd(node.parentNode, rangy.dom.getNodeIndex(node));
+                } else if (pipeIndex == node.length) {
+                    node.data = node.data.slice(0, -1);
+                    range.setEnd(node.parentNode, rangy.dom.getNodeIndex(node) + 1);
+                }
+
+                // Clear empty text node
+                if (node.data.length == 0) {
+                    node.parentNode.removeChild(node);
+                }
+            }
+        }, false);
+        return range;
+    }
+
+    function getSortedClassName(el) {
+        return el.className.split(/\s+/).sort().join(" ");
+    }
+
+    function htmlAndRangeToString(containerEl, range) {
+        function insertRangeBoundary(node, offset, isStart) {
+            if (node.nodeType == 3) {
+                var str = isStart ? "{" : "}";
+                node.data = node.data.slice(0, offset) + str + node.data.slice(offset);
+            } else if (node.nodeType == 1) {
+                var textNode = document.createTextNode("|");
+                if (offset == node.childNodes.length) {
+                    node.appendChild(textNode);
+                } else {
+                    node.insertBefore(textNode, node.childNodes[offset]);
+                }
+            }
+        }
+
+        function getHtml(node, includeSelf) {
+            var html = "";
+            if (node.nodeType == 1) {
+                html = "<" + node.tagName.toLowerCase();
+                if (node.id) {
+                    html += ' id="' + node.id + '"';
+                }
+                if (node.className) {
+                    html += ' class="' + getSortedClassName(node) + '"';
+                }
+                html += ">";
+
+                for (var i = 0, children = node.childNodes, len = children.length; i < len; ++i) {
+                    html += getHtml(children[i], true);
+                }
+                html += "</" + node.tagName.toLowerCase() + ">";
+            } else if (node.nodeType == 3) {
+                html += node.data;
+            }
+            return html;
+        }
+
+        insertRangeBoundary(range.endContainer, range.endOffset, false);
+        insertRangeBoundary(range.startContainer, range.startOffset, true);
+
+        return getHtml(containerEl, false);
+    }
+
+    s.test("Blah", function(t) {
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'Before <span id="one" class="test">{One}</span> after');
+        alert(range.inspect());
+        alert(htmlAndRangeToString(testEl, range));
+    });
 
 }, false);
