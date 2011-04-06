@@ -863,12 +863,12 @@ rangy.createModule("DomRange", function(api, module) {
                 var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
                 var startEndSame = (sc === ec);
 
-                if (dom.isCharacterDataNode(ec) && eo < ec.length) {
+                if (dom.isCharacterDataNode(ec) && eo > 0 && eo < ec.length) {
                     dom.splitDataNode(ec, eo);
                     log.debug("Split end", dom.inspectNode(ec), eo);
                 }
 
-                if (dom.isCharacterDataNode(sc) && so > 0) {
+                if (dom.isCharacterDataNode(sc) && so > 0 && so < sc.length) {
                     log.debug("Splitting start", dom.inspectNode(sc), so);
                     sc = dom.splitDataNode(sc, so);
                     if (startEndSame) {
