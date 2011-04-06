@@ -184,7 +184,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
                     rangeInfo.setStart(node, openBracketIndex);
                     foundStart = true;
                 }
-                
+
                 var pipeIndex = node.data.indexOf("|");
                 if (pipeIndex == 0) {
                     node.data = node.data.slice(1);
@@ -230,18 +230,9 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
     }
 
     function htmlAndRangeToString(containerEl, range) {
-        function insertRangeBoundary(node, offset, isStart) {
-            if (node.nodeType == 3) {
-                var str = isStart ? "[" : "]";
-                node.data = node.data.slice(0, offset) + str + node.data.slice(offset);
-            } else if (node.nodeType == 1) {
-                var textNode = document.createTextNode("|");
-                if (offset == node.childNodes.length) {
-                    node.appendChild(textNode);
-                } else {
-                    node.insertBefore(textNode, node.childNodes[offset]);
-                }
-            }
+        function isElementRangeBoundary(el, offset, range, isStart) {
+            var prefix = isStart ? "start" : "end";
+            return (el == range[prefix + "Container"] && offset == range[prefix + "Offset"]);
         }
 
         function getHtml(node, includeSelf) {
@@ -258,21 +249,34 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
                     html += ">";
                 }
 
-                for (var i = 0, children = node.childNodes, len = children.length; i < len; ++i) {
-                    html += getHtml(children[i], true);
+                for (var i = 0, children = node.childNodes, len = children.length; i <= len; ++i) {
+                    if (isElementRangeBoundary(node, i, range, true)) {
+                        html += "|";
+                    }
+                    if (isElementRangeBoundary(node, i, range, false)) {
+                        html += "|";
+                    }
+                    if (i != len) {
+                        html += getHtml(children[i], true);
+                    }
                 }
 
                 if (includeSelf) {
                     html += "</" + node.tagName.toLowerCase() + ">";
                 }
             } else if (includeSelf && node.nodeType == 3) {
-                html += node.data;
+                var text = node.data;
+                if (node == range.endContainer) {
+                    text = text.slice(0, range.endOffset) + "]" + text.slice(range.endOffset);
+                }
+                if (node == range.startContainer) {
+                    text = text.slice(0, range.startOffset) + "[" + text.slice(range.startOffset);
+                }
+
+                html += text;
             }
             return html;
         }
-
-        insertRangeBoundary(range.endContainer, range.endOffset, false);
-        insertRangeBoundary(range.startContainer, range.startOffset, true);
 
         return getHtml(containerEl, false);
     }
@@ -284,7 +288,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals(html, newHtml);
     }
 
-    
+
     s.test("Test the Range/HTML test functions", function(t) {
         var testEl = document.getElementById("test");
         testRangeHtml(testEl, 'Before <span class="test">[One]</span> after', t);
@@ -308,11 +312,28 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         var range = createRangeInHtml(testEl, "1[234]5");
 
         applier1.applyToRange(range);
+        t.assertEquals('1<span class="c1">[234]</span>5', htmlAndRangeToString(testEl, range));
+
         range.setStart(range.startContainer, range.startOffset + 1);
         range.setEnd(range.endContainer, range.endOffset - 1);
         applier2.applyToRange(range);
         t.assertEquals('1<span class="c1">2</span><span class="c1 c2">[3]</span><span class="c1">4</span>5', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test multiple classes", function(t) {
+        var applier1 = rangy.createCssClassApplier1("c1"),
+            applier2 = rangy.createCssClassApplier1("c2");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, "1[234]5");
+
+        applier1.applyToRange(range);
+        t.assertEquals('1<span class="c1 rangy_1">[234]</span>5', htmlAndRangeToString(testEl, range));
+
+        range.setStart(range.startContainer, range.startOffset + 1);
+        range.setEnd(range.endContainer, range.endOffset - 1);
+        applier2.applyToRange(range);
+        t.assertEquals('1<span class="c1 rangy_1">2</span><span class="c1 c2 rangy_1 rangy_2">[3]</span><span class="c1 rangy_1">4</span>5', htmlAndRangeToString(testEl, range));
+    });
 
 }, false);
