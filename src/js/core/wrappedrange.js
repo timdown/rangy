@@ -234,11 +234,9 @@ rangy.createModule("WrappedRange", function(api, module) {
                 var startMoved = (range.startContainer !== startContainer || range.startOffset != startOffset);
                 var endMoved = (range.endContainer !== endContainer || range.endOffset != endOffset);
 
-                if (endMoved) {
+                // Always set both boundaries for the benefit of IE9 (see issue 35)
+                if (startMoved || endMoved) {
                     range.setEnd(endContainer, endOffset);
-                }
-
-                if (startMoved) {
                     range.setStart(startContainer, startOffset);
                 }
             }

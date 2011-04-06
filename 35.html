@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IE 9 Range test</title>
+  <script>
+    window.onload = function() {
+	  var range = document.createRange();
+	  var div = document.getElementById("test");
+	  var endTextNode = div.lastChild;
+
+	  var startTextNode = div.firstChild.firstChild;
+	  range.setStart(startTextNode, 1);
+	  var endContainer = endTextNode, endOffset = 4;
+	  range.setEnd(endContainer, endOffset);
+
+	  alert(range.endContainer == endContainer && range.endOffset == endOffset);
+	  endTextNode.splitText(4);
+	  alert(range.endContainer == endContainer && range.endOffset == endOffset);
+	  var startContainer = startTextNode.splitText(1);
+	  alert(range.endContainer == endContainer && range.endOffset == endOffset);
+
+	  range.setStart(startContainer, 0);
+	  //range.setEnd(endContainer, endOffset);
+
+	  alert(range.endContainer == endContainer && range.endOffset == endOffset);
+	};
+  </script>
+</head>
+<body>
+<div id="test"><b>One</b> two three</div>
+</body>
+</html>

@@ -361,7 +361,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         applyToRange: function(range) {
             range.splitBoundaries();
-            log.info("applyToRange split boundaries ");
+            log.info("applyToRange split boundaries ", range.inspect());
             var textNodes = range.getNodes([3]);
             log.info("applyToRange got text nodes " + textNodes);
 
