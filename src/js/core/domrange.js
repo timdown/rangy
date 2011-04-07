@@ -325,7 +325,7 @@ rangy.createModule("DomRange", function(api, module) {
     function RangeNodeIterator(range, nodeTypes, filter) {
         this.nodes = getNodesInRange(range, nodeTypes, filter);
         this._next = this.nodes[0];
-        this._pointer = 0;
+        this._position = 0;
     }
 
     RangeNodeIterator.prototype = {
@@ -337,7 +337,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         next: function() {
             this._current = this._next;
-            this._next = this.nodes[ ++this._pointer ];
+            this._next = this.nodes[ ++this._position ];
             return this._current;
         },
 
