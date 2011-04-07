@@ -486,10 +486,10 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         WrappedRange.rangeToTextRange = function(range) {
             if (range.collapsed) {
-                return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true, true);
+                return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
             } else {
-                var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true, false);
-                var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false, false);
+                var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+                var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
                 var textRange = dom.getDocument(range.startContainer).body.createTextRange();
                 textRange.setEndPoint("StartToStart", startRange);
                 textRange.setEndPoint("EndToEnd", endRange);
