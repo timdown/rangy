@@ -8,155 +8,12 @@ rangy.createModule("DomRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // RangeIterator code borrows from IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
+    // Utility functions
 
-    /**
-     * @constructor
-     */
-    function RangeIterator(range, clonePartiallySelectedTextNodes) {
-        this.range = range;
-        this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
-
-        log.info("New RangeIterator ", dom.inspectNode(range.startContainer), range.startOffset, dom.inspectNode(range.endContainer), range.endOffset);
-
-        if (!range.collapsed) {
-            this.sc = range.startContainer;
-            this.so = range.startOffset;
-            this.ec = range.endContainer;
-            this.eo = range.endOffset;
-            var root = range.commonAncestorContainer;
-
-            if (this.sc === this.ec && dom.isCharacterDataNode(this.sc)) {
-                this.isSingleCharacterDataNode = true;
-                this._first = this._last = this._next = this.sc;
-            } else {
-                this._first = this._next = (this.sc === root && !dom.isCharacterDataNode(this.sc)) ?
-                    this.sc.childNodes[this.so] : dom.getClosestAncestorIn(this.sc, root, true);
-                this._last = (this.ec === root && !dom.isCharacterDataNode(this.ec)) ?
-                    this.ec.childNodes[this.eo - 1] : dom.getClosestAncestorIn(this.ec, root, true);
-            }
-            log.info("RangeIterator first and last", dom.inspectNode(this._first), dom.inspectNode(this._last));
-        }
+    function isNonTextPartiallySelected(node, range) {
+        return (node.nodeType != 3) &&
+               (dom.isAncestorOf(node, range.startContainer, true) || dom.isAncestorOf(node, range.endContainer, true));
     }
-
-    RangeIterator.prototype = {
-        _current: null,
-        _next: null,
-        _first: null,
-        _last: null,
-        isSingleCharacterDataNode: false,
-
-        reset: function() {
-            this._current = null;
-            this._next = this._first;
-        },
-
-        hasNext: function() {
-            return !!this._next;
-        },
-
-        next: function() {
-            // Move to next node
-            var current = this._current = this._next;
-            if (current) {
-                this._next = (current !== this._last) ? current.nextSibling : null;
-
-                // Check for partially selected text nodes
-                if (dom.isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
-                    if (current === this.ec) {
-                        log.info("*** CLONING END");
-                        (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
-                    }
-                    if (this._current === this.sc) {
-                        log.info("*** CLONING START");
-                        (current = current.cloneNode(true)).deleteData(0, this.so);
-                    }
-                }
-            }
-
-            return current;
-        },
-
-        remove: function() {
-            var current = this._current, start, end;
-
-            if (dom.isCharacterDataNode(current) && (current === this.sc || current === this.ec)) {
-                start = (current === this.sc) ? this.so : 0;
-                end = (current === this.ec) ? this.eo : current.length;
-                if (start != end) {
-                    current.deleteData(start, end - start);
-                }
-            } else {
-                if (current.parentNode) {
-                    current.parentNode.removeChild(current);
-                } else {
-                    log.warn("Node to be removed has no parent node. Is this the child of an attribute node in Firefox 2?");
-                }
-            }
-        },
-
-        // Checks if the current node is partially selected
-        isPartiallySelectedSubtree: function() {
-            var current = this._current;
-            return isNonTextPartiallySelected(current, this.range);
-        },
-
-        getSubtreeIterator: function() {
-            var subRange;
-            if (this.isSingleCharacterDataNode) {
-                subRange = this.range.cloneRange();
-                subRange.collapse();
-            } else {
-                subRange = new Range(getRangeDocument(this.range));
-                var current = this._current;
-                var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
-
-                if (dom.isAncestorOf(current, this.sc, true)) {
-                    startContainer = this.sc;
-                    startOffset = this.so;
-                }
-                if (dom.isAncestorOf(current, this.ec, true)) {
-                    endContainer = this.ec;
-                    endOffset = this.eo;
-                }
-
-                updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
-            }
-            return new RangeIterator(subRange, this.clonePartiallySelectedTextNodes);
-        },
-
-        detach: function(detachRange) {
-            if (detachRange) {
-                this.range.detach();
-            }
-            this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
-        }
-    };
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    // Exceptions
-
-    /**
-     * @constructor
-     */
-    function RangeException(codeName) {
-        this.code = this[codeName];
-        this.codeName = codeName;
-        this.message = "RangeException: " + this.codeName;
-    }
-
-    RangeException.prototype = {
-        BAD_BOUNDARYPOINTS_ERR: 1,
-        INVALID_NODE_TYPE_ERR: 2
-    };
-
-    RangeException.prototype.toString = function() {
-        return this.message;
-    };
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
 
     function getRangeDocument(range) {
         return dom.getDocument(range.startContainer);
@@ -309,6 +166,157 @@ rangy.createModule("DomRange", function(api, module) {
                 dom.inspectNode(range.endContainer) + ":" + range.endOffset + ")]";
     }
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // RangeIterator code borrows from IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
+
+    /**
+     * @constructor
+     */
+    function RangeIterator(range, clonePartiallySelectedTextNodes) {
+        this.range = range;
+        this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
+
+        log.info("New RangeIterator ", dom.inspectNode(range.startContainer), range.startOffset, dom.inspectNode(range.endContainer), range.endOffset);
+
+        if (!range.collapsed) {
+            this.sc = range.startContainer;
+            this.so = range.startOffset;
+            this.ec = range.endContainer;
+            this.eo = range.endOffset;
+            var root = range.commonAncestorContainer;
+
+            if (this.sc === this.ec && dom.isCharacterDataNode(this.sc)) {
+                this.isSingleCharacterDataNode = true;
+                this._first = this._last = this._next = this.sc;
+            } else {
+                this._first = this._next = (this.sc === root && !dom.isCharacterDataNode(this.sc)) ?
+                    this.sc.childNodes[this.so] : dom.getClosestAncestorIn(this.sc, root, true);
+                this._last = (this.ec === root && !dom.isCharacterDataNode(this.ec)) ?
+                    this.ec.childNodes[this.eo - 1] : dom.getClosestAncestorIn(this.ec, root, true);
+            }
+            log.info("RangeIterator first and last", dom.inspectNode(this._first), dom.inspectNode(this._last));
+        }
+    }
+
+    RangeIterator.prototype = {
+        _current: null,
+        _next: null,
+        _first: null,
+        _last: null,
+        isSingleCharacterDataNode: false,
+
+        reset: function() {
+            this._current = null;
+            this._next = this._first;
+        },
+
+        hasNext: function() {
+            return !!this._next;
+        },
+
+        next: function() {
+            // Move to next node
+            var current = this._current = this._next;
+            if (current) {
+                this._next = (current !== this._last) ? current.nextSibling : null;
+
+                // Check for partially selected text nodes
+                if (dom.isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
+                    if (current === this.ec) {
+                        log.info("*** CLONING END");
+                        (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
+                    }
+                    if (this._current === this.sc) {
+                        log.info("*** CLONING START");
+                        (current = current.cloneNode(true)).deleteData(0, this.so);
+                    }
+                }
+            }
+
+            return current;
+        },
+
+        remove: function() {
+            var current = this._current, start, end;
+
+            if (dom.isCharacterDataNode(current) && (current === this.sc || current === this.ec)) {
+                start = (current === this.sc) ? this.so : 0;
+                end = (current === this.ec) ? this.eo : current.length;
+                if (start != end) {
+                    current.deleteData(start, end - start);
+                }
+            } else {
+                if (current.parentNode) {
+                    current.parentNode.removeChild(current);
+                } else {
+                    log.warn("Node to be removed has no parent node. Is this the child of an attribute node in Firefox 2?");
+                }
+            }
+        },
+
+        // Checks if the current node is partially selected
+        isPartiallySelectedSubtree: function() {
+            var current = this._current;
+            return isNonTextPartiallySelected(current, this.range);
+        },
+
+        getSubtreeIterator: function() {
+            var subRange;
+            if (this.isSingleCharacterDataNode) {
+                subRange = this.range.cloneRange();
+                subRange.collapse();
+            } else {
+                subRange = new Range(getRangeDocument(this.range));
+                var current = this._current;
+                var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
+
+                if (dom.isAncestorOf(current, this.sc, true)) {
+                    startContainer = this.sc;
+                    startOffset = this.so;
+                }
+                if (dom.isAncestorOf(current, this.ec, true)) {
+                    endContainer = this.ec;
+                    endOffset = this.eo;
+                }
+
+                updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
+            }
+            return new RangeIterator(subRange, this.clonePartiallySelectedTextNodes);
+        },
+
+        detach: function(detachRange) {
+            if (detachRange) {
+                this.range.detach();
+            }
+            this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
+        }
+    };
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Exceptions
+
+    /**
+     * @constructor
+     */
+    function RangeException(codeName) {
+        this.code = this[codeName];
+        this.codeName = codeName;
+        this.message = "RangeException: " + this.codeName;
+    }
+
+    RangeException.prototype = {
+        BAD_BOUNDARYPOINTS_ERR: 1,
+        INVALID_NODE_TYPE_ERR: 2
+    };
+
+    RangeException.prototype.toString = function() {
+        return this.message;
+    };
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     /**
      * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
      * TODO: Look into making this a proper iterator, not requiring preloading everything first
@@ -337,11 +345,6 @@ rangy.createModule("DomRange", function(api, module) {
             this._current = this._next = this.nodes = null;
         }
     };
-
-    function isNonTextPartiallySelected(node, range) {
-        return (node.nodeType != 3) &&
-               (dom.isAncestorOf(node, range.startContainer, true) || dom.isAncestorOf(node, range.endContainer, true));
-    }
 
     var beforeAfterNodeTypes = [1, 3, 4, 5, 7, 8, 10];
     var rootContainerNodeTypes = [2, 9, 11];
@@ -829,7 +832,7 @@ rangy.createModule("DomRange", function(api, module) {
                 if (this.intersectsRange(range)) {
                     var startComparison = dom.comparePoints(this.startContainer, this.startOffset, range.startContainer, range.startOffset),
                         endComparison = dom.comparePoints(this.endContainer, this.endOffset, range.endContainer, range.endOffset);
-                
+
                     var intersectionRange = this.cloneRange();
                     log.info("intersection", this.inspect(), range.inspect(), startComparison, endComparison);
                     if (startComparison == -1) {

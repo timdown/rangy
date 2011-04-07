@@ -100,6 +100,9 @@ var rangy = (function() {
 
     api.warn = warn;
 
+    var initListeners = [];
+    var moduleInitializers = [];
+
     // Initialization
     function init() {
         if (api.initialized) {
@@ -153,9 +156,6 @@ var rangy = (function() {
 
     // Allow external scripts to initialize this library in case it's loaded after the document has loaded
     api.init = init;
-
-    var initListeners = [];
-    var moduleInitializers = [];
 
     // Execute listener immediately if already initialized
     api.addInitListener = function(listener) {
