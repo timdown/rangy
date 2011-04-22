@@ -43,7 +43,7 @@
             var cssClassApplierModule = rangy.modules.CssClassApplier;
             if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
                 boldRedApplier = rangy.createCssClassApplier("boldRed", true);
-                italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", true);
+                italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", true, ["span", "a", "b"]);
 
                 var toggleBoldRedButton = gEBI("toggleBoldRedButton");
                 toggleBoldRedButton.disabled = false;

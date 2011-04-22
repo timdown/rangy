@@ -223,18 +223,24 @@ rangy.createModule("CssClassApplier", function(api, module) {
         this.cssClass = cssClass;
         this.normalize = normalize;
         this.applyToAnyTagName = false;
-
-        switch (typeof tagNames) {
-            case "string":
-                if (tagNames == "*") {
+        var type = typeof tagNames;
+        if (type == "string") {
+            if (tagNames == "*") {
+                this.applyToAnyTagName = true;
+            } else {
+                this.tagNames = trim(tagNames.toLowerCase()).split(/\s*,\s*/);
+            }
+        } else if (type == "object" && typeof tagNames.length == "number") {
+            this.tagNames = [];
+            for (var i = 0, len = tagNames.length; i < len; ++i) {
+                if (tagNames[i] == "*") {
                     this.applyToAnyTagName = true;
                 } else {
-                    this.tagNames = trim(tagNames.toLowerCase()).split(/\s*,\s*/);
+                    this.tagNames.push(tagNames[i].toLowerCase());
                 }
-                break;
-            default:
-                this.tagNames = [tagName];
-                break;
+            }
+        } else {
+            this.tagNames = [tagName];
         }
     }
 
