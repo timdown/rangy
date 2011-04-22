@@ -174,10 +174,11 @@ rangy.createModule("Serializer", function(api, module) {
             doc = doc || document;
             rootNode = doc.documentElement;
         }
-        var result = /^([^,]+),([^,]+)({([^}]+)})?$/.exec(serialized);
-        var checksum = result[3];
+        var result = /^([^,]+),([^,\{]+)({([^}]+)})?$/.exec(serialized);
+        var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
         if (checksum && checksum !== getElementChecksum(rootNode)) {
-            throw new Error("deserializeRange: checksums of serialized range root node and target root node do not match");
+            throw new Error("deserializeRange: checksums of serialized range root node (" + checksum +
+                    ") and target root node (" + rootNodeChecksum + ") do not match");
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
         var range = api.createRange(doc);
