@@ -303,6 +303,20 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
     and http://aryeh.name/spec/editcommands/autoimplementation.html
      */
 
+
+    s.test("Test unapply to range spanning two blocks", function(t) {
+        var applier = rangy.createCssClassApplier("c1", true);
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<p>[One</p><div class="key">Two]</div>');
+
+        applier.applyToRange(range);
+        t.assertEquals('<p><span class="c1">[One</span></p><div class="key"><span class="c1">Two]</span></div>', htmlAndRangeToString(testEl, range));
+
+        applier.undoToRange(range);
+        t.assertEquals('<p>[One</p><div class="key">Two]</div>', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Test multiple classes", function(t) {
         var applier1 = rangy.createCssClassApplier("c1"),
             applier2 = rangy.createCssClassApplier("c2");
@@ -319,7 +333,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('1<span class="c1">2</span><span class="c1 c2">[3]</span><span class="c1">4</span>5', htmlAndRangeToString(testEl, range));
     });
 
-    s.test("Test multiple classes", function(t) {
+    s.test("Test multiple classes 2", function(t) {
         var applier1 = rangy.createCssClassApplier1("c1"),
             applier2 = rangy.createCssClassApplier1("c2");
 

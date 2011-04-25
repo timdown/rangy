@@ -67,23 +67,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         parent.removeChild(el);
     }
 
-/*
-    function normalize(node) {
-        var child = node.firstChild, nextChild;
-        while (child) {
-            if (child.nodeType == 3) {
-                while ((nextChild = child.nextSibling) && nextChild.nodeType == 3) {
-                    child.appendData(nextChild.data);
-                    node.removeChild(nextChild);
-                }
-            } else {
-                normalize(child);
-            }
-            child = child.nextSibling;
-        }
-    }
-*/
-
     function elementsHaveSameNonClassAttributes(el1, el2) {
         if (el1.attributes.length != el2.attributes.length) return false;
         for (var i = 0, len = el1.attributes.length, attr1, attr2, name; i < len; ++i) {
@@ -410,6 +393,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             log.info("undoToRange " + range.inspect());
             range.splitBoundaries();
             var textNodes = range.getNodes( [3] ), textNode, ancestorWithClass;
+            var lastTextNode = textNodes[textNodes.length - 1];
 
             if (textNodes.length) {
                 for (var i = 0, len = textNodes.length; i < len; ++i) {
@@ -418,12 +402,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     if (ancestorWithClass) {
                         this.undoToTextNode(textNode, range, ancestorWithClass);
                     }
-                }
 
-                range.setStart(textNodes[0], 0);
-                textNode = textNodes[textNodes.length - 1];
-                range.setEnd(textNode, textNode.length);
-                log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
+                    // Ensure the range is still valid
+                    range.setStart(textNodes[0], 0);
+                    range.setEnd(lastTextNode, lastTextNode.length);
+                }
 
                 if (this.normalize) {
                     this.postApply(textNodes, range);
