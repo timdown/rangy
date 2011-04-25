@@ -102,14 +102,9 @@
         <antcall target="build.module.js" inheritall="true">
             <param name="module.js.file" value="rangy-serializer.js"/>
         </antcall>
-        <!--
         <antcall target="build.module.js" inheritall="true">
-            <param name="module.js.file" value="textinputs_jquery.js"/>
+            <param name="module.js.file" value="rangy-highlighter.js"/>
         </antcall>
-        <antcall target="build.module.js" inheritall="true">
-            <param name="module.js.file" value="textinputs_standalone.js"/>
-        </antcall>
--->
     </target>
 
     <!-- Creates zip version of the distribution -->
