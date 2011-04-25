@@ -816,7 +816,7 @@ rangy.createModule("DomRange", function(api, module) {
             // The methods below are non-standard and invented by me.
 
             // Sharing a boundary start-to-end or end-to-start does not count as intersection.
-            intersectsRange: function(range) {
+            intersectsRange: function(range, touchingIsIntersecting) {
                 assertNotDetached(this);
                 assertRangeValid(this);
 
@@ -824,8 +824,10 @@ rangy.createModule("DomRange", function(api, module) {
                     throw new DOMException("WRONG_DOCUMENT_ERR");
                 }
 
-                return dom.comparePoints(this.startContainer, this.startOffset, range.endContainer, range.endOffset) < 0 &&
-                       dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset) > 0;
+                var startComparison = dom.comparePoints(this.startContainer, this.startOffset, range.endContainer, range.endOffset),
+                    endComparison = dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset);
+
+                return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
             },
 
             intersection: function(range) {
@@ -844,6 +846,21 @@ rangy.createModule("DomRange", function(api, module) {
                     return intersectionRange;
                 }
                 return null;
+            },
+
+            union: function(range) {
+                if (this.intersectsRange(range, true)) {
+                    var unionRange = this.cloneRange();
+                    if (dom.comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) == -1) {
+                        unionRange.setStart(range.startContainer, range.startOffset);
+                    }
+                    if (dom.comparePoints(range.endContainer, range.endOffset, this.endContainer, this.endOffset) == 1) {
+                        unionRange.setEnd(range.endContainer, range.endOffset);
+                    }
+                    return unionRange;
+                } else {
+                    throw new RangeException("Ranges do not intersect");
+                }
             },
 
             containsNode: function(node, allowPartial) {
