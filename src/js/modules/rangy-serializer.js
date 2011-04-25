@@ -157,7 +157,7 @@ rangy.createModule("Serializer", function(api, module) {
     function serializeRange(range, omitChecksum, rootNode) {
         rootNode = rootNode || api.DomRange.getRangeDocument(range).documentElement;
         if (!dom.isAncestorOf(rootNode, range.commonAncestorContainer, true)) {
-            throw new Error("serializeRange: range is not wholly contained within specified root node");
+            throw new Error("serializeRange: range " + range.inspect() + " is not wholly contained within specified root node " + dom.inspectNode(rootNode));
         }
         var serialized = serializePosition(range.startContainer, range.startOffset, rootNode) + "," +
             serializePosition(range.endContainer, range.endOffset, rootNode);
@@ -175,10 +175,9 @@ rangy.createModule("Serializer", function(api, module) {
             rootNode = doc.documentElement;
         }
         var result = /^([^,]+),([^,\{]+)({([^}]+)})?$/.exec(serialized);
-        var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
+        var checksum = result[4];
         if (checksum && checksum !== getElementChecksum(rootNode)) {
-            throw new Error("deserializeRange: checksums of serialized range root node (" + checksum +
-                    ") and target root node (" + rootNodeChecksum + ") do not match");
+            throw new Error("deserializeRange: checksums of serialized range root node and target root node do not match");
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
         var range = api.createRange(doc);
@@ -297,4 +296,5 @@ rangy.createModule("Serializer", function(api, module) {
     api.saveSelectionCookie = saveSelectionCookie;
 
     api.getElementChecksum = getElementChecksum;
+    api.nodeToInfoString = nodeToInfoString;
 });

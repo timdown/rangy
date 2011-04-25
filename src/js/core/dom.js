@@ -173,19 +173,19 @@ rangy.createModule("DomUtil", function(api, module) {
         // See http://www.w3.org/TR/DOM-Level-2-Traversal-Range/ranges.html#Level-2-Range-Comparing
         var nodeC, root, childA, childB, n;
         if (nodeA == nodeB) {
-            log.debug("case 1");
+            log.trace("case 1");
             // Case 1: nodes are the same
             return offsetA === offsetB ? 0 : (offsetA < offsetB) ? -1 : 1;
         } else if ( (nodeC = getClosestAncestorIn(nodeB, nodeA, true)) ) {
-            log.debug("case 2", inspectNode(nodeC), getNodeIndex(nodeC));
+            log.trace("case 2", inspectNode(nodeC), getNodeIndex(nodeC));
             // Case 2: node C (container B or an ancestor) is a child node of A
             return offsetA <= getNodeIndex(nodeC) ? -1 : 1;
         } else if ( (nodeC = getClosestAncestorIn(nodeA, nodeB, true)) ) {
-            log.debug("case 3");
+            log.trace("case 3");
             // Case 3: node C (container A or an ancestor) is a child node of B
             return getNodeIndex(nodeC) < offsetB  ? -1 : 1;
         } else {
-            log.debug("case 4");
+            log.trace("case 4");
             // Case 4: containers are siblings or descendants of siblings
             root = getCommonAncestor(nodeA, nodeB);
             childA = (nodeA === root) ? root : getClosestAncestorIn(nodeA, root, true);
