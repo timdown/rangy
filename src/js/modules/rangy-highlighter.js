@@ -151,7 +151,7 @@ rangy.createModule("Highlighter", function(api, module) {
         }
     };
 
-    api.createHighlighter = function(cssClass, normalize, tagNames) {
-        return new Highlighter(cssClass, normalize, tagNames);
+    api.createHighlighter = function(cssClass, tagNames) {
+        return new Highlighter(cssClass, tagNames);
     };
 });
