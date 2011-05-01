@@ -174,8 +174,6 @@ rangy.createModule("SaveRestore", function(api, module) {
             ranges[i] = restoreRange(rangeInfos[i], true);
         }
 
-        // All ranges are restored, so now we can normalize
-
         return ranges;
     }
 

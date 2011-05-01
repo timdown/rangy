@@ -16,7 +16,7 @@ rangy.createModule("Highlighter", function(api, module) {
 
     // Puts highlights in order, last in document first.
     function compareHighlights(h1, h2) {
-        return h1.range.compareBoundaryPoints(h1.range.START_TO_START, h2.range);
+        return h2.range.compareBoundaryPoints(h1.range.START_TO_START, h1.range);
     }
 
     function contains(arr, val) {
@@ -99,7 +99,6 @@ rangy.createModule("Highlighter", function(api, module) {
             // Temporarily restore each highlight range in turn and add the highlight class if not already applied.
             for (i = rangeInfos.length; i-- > 0; ) {
                 range = api.restoreRange(rangeInfos[i]);
-                log.info("Restored range ", "" + range, range.inspect());
                 var applierForRange = cssClassApplier;
 
                 for (var c in this.cssClassAppliers) {

@@ -883,6 +883,8 @@ rangy.createModule("DomRange", function(api, module) {
                     if (startEndSame) {
                         eo -= so;
                         ec = sc;
+                    } else if (ec == sc.parentNode && eo >= dom.getNodeIndex(sc)) {
+                        eo++;
                     }
                     so = 0;
                     log.debug("Split start", dom.inspectNode(sc), so);
@@ -907,15 +909,25 @@ rangy.createModule("DomRange", function(api, module) {
                 };
 
                 var mergeBackward = function(node) {
+                    log.info("mergeBackward  " + node.nodeValue);
                     var sibling = node.previousSibling;
                     if (sibling && sibling.nodeType == node.nodeType) {
                         sc = node;
+                        var nodeLength = node.length;
                         so = sibling.length;
                         node.insertData(0, sibling.data);
                         sibling.parentNode.removeChild(sibling);
                         if (sc == ec) {
                             eo += so;
                             ec = sc;
+                        } else if (ec == node.parentNode) {
+                            var nodeIndex = dom.getNodeIndex(node);
+                            if (eo == nodeIndex) {
+                                ec = node;
+                                eo = nodeLength;
+                            } else if (eo > nodeIndex) {
+                                eo--;
+                            }
                         }
                     }
                 };
