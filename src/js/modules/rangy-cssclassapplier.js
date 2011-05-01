@@ -149,7 +149,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        log.info("areElementsMergeable checking nodes ", dom.inspectNode(el1), dom.inspectNode(el2),  el1.tagName == el2.tagName, haveSameClasses(el1, el2), elementsHaveSameNonClassAttributes(el1, el2));
         return el1.tagName == el2.tagName && haveSameClasses(el1, el2) && elementsHaveSameNonClassAttributes(el1, el2);
     }
 
@@ -398,11 +397,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isRemovable: function(el) {
-            log.info("isRemovable", el.tagName.toLowerCase() == this.elementTagName,
-                    getSortedClassName(el) == this.elementSortedClassName,
-                    elementHasProps(el, this.elementProperties),
-                    !elementHasNonClassAttributes(el, this.attrExceptions));
-
             if (this.elementRemoveCallback) {
                 this.elementRemoveCallback(el);
             }
@@ -438,14 +432,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
             } else {
                 removeClass(ancestorWithClass, this.cssClass);
             }
-            log.debug("DONE undoToTextNode");
         },
 
         applyToRange: function(range) {
             range.splitBoundaries();
-            log.info("applyToRange split boundaries ", range.inspect());
             var textNodes = range.getNodes([3]);
-            log.info("applyToRange got text nodes " + textNodes);
 
             if (textNodes.length) {
                 var textNode;
@@ -459,11 +450,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 range.setStart(textNodes[0], 0);
                 textNode = textNodes[textNodes.length - 1];
                 range.setEnd(textNode, textNode.length);
-                log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
                 if (this.normalize) {
                     this.postApply(textNodes, range, false);
                 }
-                log.info("PostApply done")
             }
         },
 
