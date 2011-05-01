@@ -19,7 +19,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.cssclassapplier");
 
-    var tagName = "span";
+    var defaultTagName = "span";
 
     function trim(str) {
         return str.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
@@ -51,11 +51,15 @@ rangy.createModule("CssClassApplier", function(api, module) {
         };
     })();
 
-    function getSortedClassName(el) {
-        return el.className.split(/\s+/).sort().join(" ");
+    function sortClassName(className) {
+        return className.split(/\s+/).sort().join(" ");
     }
 
-    function hasSameClasses(el1, el2) {
+    function getSortedClassName(el) {
+        return sortClassName(el.className);
+    }
+
+    function haveSameClasses(el1, el2) {
         return getSortedClassName(el1) == getSortedClassName(el2);
     }
 
@@ -67,23 +71,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
         parent.removeChild(el);
     }
-
-/*
-    function normalize(node) {
-        var child = node.firstChild, nextChild;
-        while (child) {
-            if (child.nodeType == 3) {
-                while ((nextChild = child.nextSibling) && nextChild.nodeType == 3) {
-                    child.appendData(nextChild.data);
-                    node.removeChild(nextChild);
-                }
-            } else {
-                normalize(child);
-            }
-            child = child.nextSibling;
-        }
-    }
-*/
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
         if (el1.attributes.length != el2.attributes.length) return false;
@@ -99,13 +86,23 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return true;
     }
 
-    function elementHasNonClassAttributes(el) {
-        for (var i = 0, len = el.attributes.length; i < len; ++i) {
-            if (el.attributes[i].specified && el.attributes[i].name != "class") {
+    function elementHasNonClassAttributes(el, exceptions) {
+        for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
+            attrName = el.attributes[i].name;
+            if ( !(exceptions && dom.arrayContains(exceptions, attrName)) && el.attributes[i].specified && attrName != "class") {
                 return true;
             }
         }
         return false;
+    }
+
+    function elementHasProps(el, props) {
+        for (var p in props) {
+            if (props.hasOwnProperty(p) && el[p] !== props[p]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     function isSplitPoint(node, offset) {
@@ -152,29 +149,36 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName && hasSameClasses(el1, el2) && elementsHaveSameNonClassAttributes(el1, el2);
+        log.info("areElementsMergeable checking nodes ", dom.inspectNode(el1), dom.inspectNode(el2),  el1.tagName == el2.tagName, haveSameClasses(el1, el2), elementsHaveSameNonClassAttributes(el1, el2));
+        return el1.tagName == el2.tagName && haveSameClasses(el1, el2) && elementsHaveSameNonClassAttributes(el1, el2);
     }
 
-    function getAdjacentMergeableTextNode(node, forward) {
-        var isTextNode = (node.nodeType == 3);
-        var el = isTextNode ? node.parentNode : node;
-        var adjacentNode;
+    function createAdjacentMergeableTextNodeGetter(forward) {
         var propName = forward ? "nextSibling" : "previousSibling";
-        if (isTextNode) {
-            // Can merge if the node's previous/next sibling is a text node
-            adjacentNode = node[propName];
-            if (adjacentNode && adjacentNode.nodeType == 3) {
-                return adjacentNode;
+
+        return function(textNode, checkParentElement) {
+            var el = textNode.parentNode;
+            var adjacentNode = textNode[propName];
+            if (adjacentNode) {
+                // Can merge if the node's previous/next sibling is a text node
+                if (adjacentNode && adjacentNode.nodeType == 3) {
+                    return adjacentNode;
+                }
+            } else if (checkParentElement) {
+                // Compare text node parent element with its sibling
+                adjacentNode = el[propName];
+                log.info("adjacentNode: " + adjacentNode);
+                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)) {
+                    return adjacentNode[forward ? "firstChild" : "lastChild"];
+                }
             }
-        } else {
-            // Compare element with its sibling
-            adjacentNode = el[propName];
-            if (adjacentNode && areElementsMergeable(node, adjacentNode)) {
-                return adjacentNode[forward ? "firstChild" : "lastChild"];
-            }
+            return null;
         }
-        return null;
     }
+
+    var getPreviousMergeableTextNode = createAdjacentMergeableTextNodeGetter(false),
+        getNextMergeableTextNode = createAdjacentMergeableTextNodeGetter(true);
+
 
     function Merge(firstNode) {
         this.isElementMerge = (firstNode.nodeType == 1);
@@ -220,9 +224,50 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     };
 
-    function CssClassApplier(cssClass, normalize, tagNames) {
+    var optionProperties = ["elementTagName", "elementCreateCallback", "elementRemoveCallback", "elementShouldRemoveCallback"];
+
+    function CssClassApplier(cssClass, options, tagNames) {
         this.cssClass = cssClass;
-        this.normalize = normalize;
+        var normalize, i, len, propName;
+
+        var elementPropertiesFromOptions = null;
+
+        // Initialize from options object
+        if (typeof options == "object" && options !== null) {
+            tagNames = options.tagNames;
+            elementPropertiesFromOptions = options.elementProperties;
+
+            for (i = 0; propName = optionProperties[i++]; ) {
+                if (options[propName]) {
+                    this[propName] = options[propName];
+                }
+            }
+            normalize = options.normalize;
+        } else {
+            this.normalize = normalize;
+        }
+        this.normalize = (typeof normalize == "undefined") ? true : normalize;
+
+        // Initialize element properties and attribute exceptions
+        this.attrExceptions = [];
+        var el = document.createElement(this.elementTagName);
+        this.elementProperties = {};
+        for (var p in elementPropertiesFromOptions) {
+            if (elementPropertiesFromOptions.hasOwnProperty(p)) {
+                el[p] = elementPropertiesFromOptions[p];
+
+                // Copy the property back from the dummy element so that later comparisons to check whether elements
+                // may be removed are checking against the right value. For example, the href property of an element
+                // returns a fully qualified URL even if it was previously assigned a relative URL.
+                this.elementProperties[p] = el[p];
+                this.attrExceptions.push(p);
+            }
+        }
+
+        this.elementSortedClassName = this.elementProperties.hasOwnProperty("className") ?
+            sortClassName(this.elementProperties.className + " " + cssClass) : cssClass;
+
+        // Initialize tag names
         this.applyToAnyTagName = false;
         var type = typeof tagNames;
         if (type == "string") {
@@ -233,7 +278,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         } else if (type == "object" && typeof tagNames.length == "number") {
             this.tagNames = [];
-            for (var i = 0, len = tagNames.length; i < len; ++i) {
+            for (i = 0, len = tagNames.length; i < len; ++i) {
                 if (tagNames[i] == "*") {
                     this.applyToAnyTagName = true;
                 } else {
@@ -241,11 +286,17 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 }
             }
         } else {
-            this.tagNames = [tagName];
+            this.tagNames = [this.elementTagName];
         }
     }
 
     CssClassApplier.prototype = {
+        elementTagName: defaultTagName,
+        elementProperties: {},
+        elementCreateCallback: null,
+        elementRemoveCallback: null,
+        elementShouldRemoveCallback: null,
+
         getAncestorWithClass: function(textNode) {
             var node = textNode.parentNode;
             while (node) {
@@ -258,7 +309,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         // Normalizes nodes after applying a CSS class to a Range.
-        postApply: function(textNodes, range) {
+        postApply: function(textNodes, range, isUndo) {
             log.group("postApply");
             var firstNode = textNodes[0], lastNode = textNodes[textNodes.length - 1];
 
@@ -271,8 +322,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 textNode = textNodes[i];
-                precedingTextNode = getAdjacentMergeableTextNode(textNode, false);
-                log.debug("Checking for merge. text node: " + textNode.data + ", preceding: " + (precedingTextNode ? precedingTextNode.data : null));
+                precedingTextNode = getPreviousMergeableTextNode(textNode, !isUndo);
+                log.debug("Checking for merge. text node: " + textNode.data + ", parent: " + textNode.parentNode.nodeName + ", preceding: " + (precedingTextNode ? precedingTextNode.data : null));
                 if (precedingTextNode) {
                     if (!currentMerge) {
                         currentMerge = new Merge(precedingTextNode);
@@ -293,7 +344,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
 
             // Test whether the first node after the range needs merging
-            var nextTextNode = getAdjacentMergeableTextNode(lastNode, true);
+            var nextTextNode = getNextMergeableTextNode(lastNode, !isUndo);
 
             if (nextTextNode) {
                 if (!currentMerge) {
@@ -319,8 +370,16 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         createContainer: function(doc) {
-            var el = doc.createElement(tagName);
-            el.className = this.cssClass;
+            var el = doc.createElement(this.elementTagName);
+            for (var i in this.elementProperties) {
+                if (this.elementProperties.hasOwnProperty(i)) {
+                    el[i] = this.elementProperties[i];
+                }
+            }
+            addClass(el, this.cssClass);
+            if (this.elementCreateCallback) {
+                this.elementCreateCallback(el);
+            }
             return el;
         },
 
@@ -339,7 +398,22 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == tagName && trim(el.className) == this.cssClass && !elementHasNonClassAttributes(el);
+            log.info("isRemovable", el.tagName.toLowerCase() == this.elementTagName,
+                    getSortedClassName(el) == this.elementSortedClassName,
+                    elementHasProps(el, this.elementProperties),
+                    !elementHasNonClassAttributes(el, this.attrExceptions));
+
+            if (this.elementRemoveCallback) {
+                this.elementRemoveCallback(el);
+            }
+            if (this.elementShouldRemoveCallback) {
+                return this.elementShouldRemoveCallback(el);
+            }
+
+            return el.tagName.toLowerCase() == this.elementTagName
+                    && getSortedClassName(el) == this.elementSortedClassName
+                    && elementHasProps(el, this.elementProperties)
+                    && !elementHasNonClassAttributes(el, this.attrExceptions);
         },
 
         undoToTextNode: function(textNode, range, ancestorWithClass) {
@@ -387,7 +461,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 range.setEnd(textNode, textNode.length);
                 log.info("Apply set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
                 if (this.normalize) {
-                    this.postApply(textNodes, range);
+                    this.postApply(textNodes, range, false);
                 }
             }
         },
@@ -430,7 +504,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
 
                 if (this.normalize) {
-                    this.postApply(textNodes, range);
+                    this.postApply(textNodes, range, true);
                 }
             }
         },
@@ -511,10 +585,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         hasClass: hasClass,
         addClass: addClass,
         removeClass: removeClass,
-        hasSameClasses: hasSameClasses,
-/*
-        normalize: normalize,
-*/
+        hasSameClasses: haveSameClasses,
         replaceWithOwnChildren: replaceWithOwnChildren,
         elementsHaveSameNonClassAttributes: elementsHaveSameNonClassAttributes,
         elementHasNonClassAttributes: elementHasNonClassAttributes,

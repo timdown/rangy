@@ -36,10 +36,6 @@ rangy.createModule("DomRange", function(api, module) {
         return new DomPosition(node.parentNode, dom.getNodeIndex(node) + 1);
     }
 
-    function getEndOffset(node) {
-        return dom.isCharacterDataNode(node) ? node.length : (node.childNodes ? node.childNodes.length : 0);
-    }
-
     function insertNodeAtPosition(node, n, o) {
         var firstNodeInserted = node.nodeType == 11 ? node.firstChild : node;
         if (dom.isCharacterDataNode(n)) {
@@ -269,7 +265,7 @@ rangy.createModule("DomRange", function(api, module) {
             } else {
                 subRange = new Range(getRangeDocument(this.range));
                 var current = this._current;
-                var startContainer = current, startOffset = 0, endContainer = current, endOffset = getEndOffset(current);
+                var startContainer = current, startOffset = 0, endContainer = current, endOffset = dom.getNodeLength(current);
 
                 if (dom.isAncestorOf(current, this.sc, true)) {
                     startContainer = this.sc;
@@ -366,14 +362,7 @@ rangy.createModule("DomRange", function(api, module) {
         };
     }
 
-    function getRootContainer(node) {
-        var parent;
-        while ( (parent = node.parentNode) ) {
-            node = parent;
-        }
-        return node;
-    }
-
+    var getRootContainer = dom.getRootContainer;
     var getDocumentOrFragmentContainer = createAncestorFinder( [9, 11] );
     var getReadonlyAncestor = createAncestorFinder(readonlyNodeTypes);
     var getDocTypeNotationEntityAncestor = createAncestorFinder( [6, 10, 12] );
@@ -582,7 +571,7 @@ rangy.createModule("DomRange", function(api, module) {
                 assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
 
-                boundaryUpdater(this, node, 0, node, getEndOffset(node));
+                boundaryUpdater(this, node, 0, node, dom.getNodeLength(node));
             },
 
             selectNode: function(node) {
@@ -872,7 +861,7 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             containsNodeContents: function(node) {
-                return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, getEndOffset(node)) <= 0;
+                return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, dom.getNodeLength(node)) <= 0;
             },
 
             splitBoundaries: function() {
@@ -1085,7 +1074,6 @@ rangy.createModule("DomRange", function(api, module) {
                r1.endContainer === r2.endContainer &&
                r1.endOffset === r2.endOffset;
     };
-    Range.getEndOffset = getEndOffset;
 
     api.DomRange = Range;
     api.RangeException = RangeException;

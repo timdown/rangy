@@ -53,6 +53,16 @@ rangy.createModule("DomUtil", function(api, module) {
         return i;
     }
 
+    function isCharacterDataNode(node) {
+        var t = node.nodeType;
+        return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
+    }
+
+    function getNodeLength(node) {
+        var childNodes;
+        return isCharacterDataNode(node) ? node.length : ((childNodes = node.childNodes) ? childNodes.length : 0);
+    }
+
     function getCommonAncestor(node1, node2) {
         var ancestors = [], n;
         for (n = node1; n; n = n.parentNode) {
@@ -90,11 +100,6 @@ rangy.createModule("DomUtil", function(api, module) {
             n = p;
         }
         return null;
-    }
-
-    function isCharacterDataNode(node) {
-        var t = node.nodeType;
-        return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
     }
 
     function insertAfter(node, precedingNode) {
@@ -167,6 +172,14 @@ rangy.createModule("DomUtil", function(api, module) {
 
     function getBody(doc) {
         return util.isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
+    }
+
+    function getRootContainer(node) {
+        var parent;
+        while ( (parent = node.parentNode) ) {
+            node = parent;
+        }
+        return node;
     }
 
     function comparePoints(nodeA, offsetA, nodeB, offsetB) {
@@ -321,12 +334,14 @@ rangy.createModule("DomUtil", function(api, module) {
         isAncestorOf: isAncestorOf,
         getClosestAncestorIn: getClosestAncestorIn,
         isCharacterDataNode: isCharacterDataNode,
+        getNodeLength: getNodeLength,
         insertAfter: insertAfter,
         splitDataNode: splitDataNode,
         getDocument: getDocument,
         getWindow: getWindow,
         getIframeWindow: getIframeWindow,
         getIframeDocument: getIframeDocument,
+        getRootContainer: getRootContainer,
         getBody: getBody,
         comparePoints: comparePoints,
         inspectNode: inspectNode,

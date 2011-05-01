@@ -14,9 +14,9 @@ rangy.createModule("Highlighter", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.Highlighter");
 
-    // Puts ranges in last in document first.
-    function compareRanges(r1, r2) {
-        return r1.compareBoundaryPoints(r1.START_TO_START, r2);
+    // Puts highlights in order, last in document first.
+    function compareHighlights(h1, h2) {
+        return h1.range.compareBoundaryPoints(h1.range.START_TO_START, h2.range);
     }
 
     function contains(arr, val) {
@@ -29,124 +29,227 @@ rangy.createModule("Highlighter", function(api, module) {
         return false;
     }
 
-    function Highlighter(cssClass, tagNames) {
+    var nextHighlightId = 1;
+
+    function Highlight(range, cssClassApplier, id) {
+        if (id) {
+            this.id = id;
+            nextHighlightId = Math.max(nextHighlightId, id + 1);
+        } else {
+            this.id = nextHighlightId++;
+        }
+        this.range = range;
+        this.cssClassApplier = cssClassApplier;
+    }
+
+    Highlight.prototype = {
+        containsElement: function(el) {
+            return this.range.containsNodeContents(el.firstChild);
+        },
+
+        toString: function() {
+            return "[Highlight(ID: " + this.id + ", range: " + this.range.inspect() + ")]";
+        }
+    };
+
+    /*
+    - Highlight object with range, class applier and id
+    - Serialize range plus class and id
+     */
+
+    function Highlighter() {
         // CSS class applier must normalize so that it can restore the DOM exactly after removing highlights
-        this.cssClassApplier = api.createCssClassApplier(cssClass, true, tagNames);
-        this.ranges = [];
+        this.cssClassAppliers = {};
+        this.highlights = [];
     }
 
     Highlighter.prototype = {
-        highlightRanges: function(ranges) {
-            log.info("Current highlight ranges", this.ranges, "Adding new ranges", ranges);
-            this.ranges.push.apply(this.ranges, ranges);
-            var rangeInfos = api.saveRanges(this.ranges), range;
+        addCssClassApplier: function(cssClassApplier) {
+            this.cssClassAppliers[cssClassApplier.cssClass] = cssClassApplier;
+        },
+
+        getHighlightForElement: function(el) {
+            for (var i = 0, len = this.highlights.length; i < len; ++i) {
+                if (this.highlights[i].containsElement(el)) {
+                    return this.highlights[i];
+                }
+            }
+            return null;
+        },
+
+        highlightRanges: function(ranges, cssClassApplier) {
+            log.info("Current highlights ", this.highlights, "Adding new ranges", ranges);
+
+            var originalHighlights = this.highlights.slice(0);
+
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                this.highlights.push( new Highlight(ranges[i], cssClassApplier) );
+            }
+
+            this.highlights.sort(compareHighlights);
+
+            var highlightRanges = [];
+            for (i = 0, len = this.highlights.length; i < len; ++i) {
+                highlightRanges[i] = this.highlights[i].range;
+            }
+
+            var rangeInfos = api.saveRanges(highlightRanges), range;
             log.info(rangeInfos);
 
-            // Temporarily restore each range in turn and add the highlight class if not already applied.
-            for (var i = rangeInfos.length; i-- > 0; ) {
+            // Temporarily restore each highlight range in turn and add the highlight class if not already applied.
+            for (i = rangeInfos.length; i-- > 0; ) {
                 range = api.restoreRange(rangeInfos[i]);
-                log.info(range + "," + range.inspect() + this.cssClassApplier.isAppliedToRange(range));
-                if (!this.cssClassApplier.isAppliedToRange(range)) {
-                    this.cssClassApplier.undoToRange(range);
-                    this.cssClassApplier.applyToRange(range);
+                log.info("Restored range ", "" + range, range.inspect());
+                var applierForRange = cssClassApplier;
+
+                for (var c in this.cssClassAppliers) {
+                    if (this.cssClassAppliers.hasOwnProperty(c)) {
+                        if (this.cssClassAppliers[c].isAppliedToRange(range)) {
+                            applierForRange = this.cssClassAppliers[c];
+                        }
+                        this.cssClassAppliers[c].undoToRange(range);
+                    }
                 }
+                applierForRange.applyToRange(range);
                 rangeInfos[i] = api.saveRanges([range])[0];
             }
 
-            this.ranges = api.restoreRanges(rangeInfos);
-            log.info("Current highlight ranges", this.ranges, "rangeInfos", rangeInfos);
-        },
-
-        unhighlightRanges: function(ranges) {
-            this.ranges.sort(compareRanges);
-
-            var rangeInfos = [];
-
-            for (var i = 0, rangeCount = this.ranges.length; i < rangeCount; ++i) {
-                if (contains(ranges, this.ranges[i])) {
-                    this.cssClassApplier.undoToRange(this.ranges[i]);
-                } else {
-                    rangeInfos.push.apply(rangeInfos, api.saveRanges([this.ranges[i]]));
+            var restoredRanges = api.restoreRanges(rangeInfos), newHighlights = [], highlight;
+            for (i = 0, len = this.highlights.length; i < len; ++i) {
+                highlight = this.highlights[i];
+                highlight.range = restoredRanges[i];
+                if (!contains(originalHighlights, highlight)) {
+                    newHighlights.push(highlight);
                 }
             }
-            this.ranges = api.restoreRanges(rangeInfos);
+
+            return newHighlights;
         },
 
-        getIntersectingHighlightedRanges: function(ranges) {
+        removeHighlights: function(highlights) {
+            var ranges = [];
+            for (var i = 0, len = highlights.length; i < len; ++i) {
+                ranges[i] = highlights[i].range;
+            }
+
+            this.highlights.sort(compareHighlights);
+ 
+            var rangeInfos = [], highlightRange;
+
+            for (i = 0; i < this.highlights.length; ++i) {
+                highlightRange = this.highlights[i].range;
+                if (contains(ranges, highlightRange)) {
+                    for (var c in this.cssClassAppliers) {
+                        if (this.cssClassAppliers.hasOwnProperty(c)) {
+                            this.cssClassAppliers[c].undoToRange(highlightRange);
+                        }
+                    }
+                    this.highlights.splice(i--, 1);
+                } else {
+                    rangeInfos.push.apply(rangeInfos, api.saveRanges( [highlightRange] ));
+                }
+            }
+            var restoredRanges = api.restoreRanges(rangeInfos);
+            for (i = 0; i < this.highlights.length; ++i) {
+                this.highlights[i].range = restoredRanges[i];
+            }
+        },
+
+        getIntersectingHighlights: function(ranges) {
             // Test each range against each of the highlighted ranges to see whether they overlap
-            var intersectingHighlightRanges = [];
+            var intersectingHighlights = [];
             for (var i = 0, len = ranges.length, selRange, highlightRange; i < len; ++i) {
                 selRange = ranges[i];
-                for (var j = 0, jLen = this.ranges.length; j < jLen; ++j) {
-                    highlightRange = this.ranges[j];
-                    if (selRange.intersectsRange(highlightRange) && !contains(intersectingHighlightRanges, highlightRange)) {
-                        intersectingHighlightRanges.push(highlightRange);
+                for (var j = 0, jLen = this.highlights.length; j < jLen; ++j) {
+                    highlightRange = this.highlights[j].range;
+                    if (selRange.intersectsRange(highlightRange) && !contains(intersectingHighlights, highlightRange)) {
+                        intersectingHighlights.push(this.highlights[j]);
                     }
                 }
             }
-            return intersectingHighlightRanges;
+            return intersectingHighlights;
         },
 
-        highlightSelection: function(selection) {
+        highlightSelection: function(cssClass, selection) {
             selection = selection || rangy.getSelection();
+            var cssClassApplier = this.cssClassAppliers[cssClass];
+            if (!cssClassApplier) {
+                throw new Error("No CSS class applier found for class '" + cssClass + "'");
+            }
+
             var ranges = selection.getAllRanges();
             for (var i = 0, len = ranges.length, highlightRange; i < len; ++i) {
                 ranges[i] = ranges[i].cloneRange();
 
                 // Check for intersection with existing highlights. For each intersection, extend the existing highlight
                 // to be the union of the highlight range and the selected range
-                for (var j = 0; j < this.ranges.length; ++j) {
-                    highlightRange = this.ranges[j];
+                for (var j = 0; j < this.highlights.length; ++j) {
+                    highlightRange = this.highlights[j].range;
                     if (ranges[i].intersectsRange(highlightRange)) {
                         ranges[i] = ranges[i].union(highlightRange);
-                        this.ranges.splice(j--, 1);
+                        this.highlights.splice(j--, 1);
                     }
                 }
             }
 
             selection.removeAllRanges();
-            this.highlightRanges(ranges);
+            return this.highlightRanges(ranges, cssClassApplier);
         },
 
         unhighlightSelection: function(selection) {
             selection = selection || rangy.getSelection();
-            var ranges = selection.getAllRanges();
-            var intersectingHighlightRanges = this.getIntersectingHighlightedRanges(ranges);
+            var intersectingHighlights = this.getIntersectingHighlights(selection.getAllRanges());
 
             // Now unhighlight all the highlighted ranges that overlap with the selection
-            if (intersectingHighlightRanges.length > 0) {
-                this.unhighlightRanges(intersectingHighlightRanges);
+            if (intersectingHighlights.length > 0) {
+                this.removeHighlights(intersectingHighlights);
                 selection.removeAllRanges();
             }
         },
 
-        serialize: function() {
-            if (this.ranges.length > 0) {
-                // Remove all the highlights but preserve the ranges
-                var rangeInfos = api.saveRanges(this.ranges), serializedRanges = [];
+        selectionOverlapsHighlight: function(selection) {
+            selection = selection || rangy.getSelection();
+            return this.getIntersectingHighlights(selection.getAllRanges()) > 0;
+        },
 
-                // Restore each range in turn and remove the highlight class
-                for (var i = rangeInfos.length, range; i-- > 0; ) {
-                    range = api.restoreRange(rangeInfos[i]);
-                    log.info(range + ", " + range.inspect());
-                    this.cssClassApplier.undoToRange(range);
-                    serializedRanges.push( api.serializeRange(range, true) );
+        serialize: function() {
+            if (this.highlights.length > 0) {
+                this.highlights.sort(compareHighlights);
+
+                // Remove all the highlights but preserve the ranges
+                var highlightRanges = [];
+                for (var i = 0, len = this.highlights.length; i < len; ++i) {
+                    highlightRanges[i] = this.highlights[i].range;
                 }
 
-                return serializedRanges.join("|");
+                var rangeInfos = api.saveRanges(highlightRanges), serializedHighlights = [], highlight, range;
+
+                // Restore each range in turn and remove the highlight class
+                for (i = rangeInfos.length; i-- > 0; ) {
+                    range = api.restoreRange(rangeInfos[i]);
+                    highlight = this.highlights[i];
+                    log.info(range + ", " + range.inspect());
+                    highlight.cssClassApplier.undoToRange(range);
+                    serializedHighlights.push( highlight.id + "$" + highlight.cssClassApplier.cssClass
+                            + "$" + api.serializeRange(range, true) );
+                }
+
+                return serializedHighlights.join("|");
             } else {
                 return "";
             }
         },
 
         deserialize: function(serialized, rootNode, doc) {
-            var serializedRanges = serialized.split("|");
+            var serializedHighlights = serialized.split("|");
 
             // Deserialize in reverse document order
-            for (var i = serializedRanges.length, range; i-- > 0; ) {
-                range = api.deserializeRange(serializedRanges[i], rootNode, doc);
-                this.cssClassApplier.applyToRange(range);
-                this.ranges.push(range);
+            for (var i = serializedHighlights.length, range, parts, cssClassApplier; i-- > 0; ) {
+                parts = serializedHighlights[i].split("$");
+                range = api.deserializeRange(parts[2], rootNode, doc);
+                cssClassApplier = this.cssClassAppliers[parts[1]];
+                cssClassApplier.applyToRange(range);
+                this.highlights.push( new Highlight(range, cssClassApplier, parseInt(parts[0], 10)) );
             }
         }
     };

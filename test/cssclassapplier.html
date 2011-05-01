@@ -21,8 +21,15 @@
         var cssClassMutator1, cssClassMutator2;
 
         rangy.addInitListener(function(rangy) {
-            //rangy.CssClassApplier.setTagName("u");
-            cssClassMutator1 = rangy.createCssClassApplier("test1", true);
+            cssClassMutator1 = rangy.createCssClassApplier("test1", {
+                elementTagName: "a",
+                elementProps: {
+                    href: "http://www.google.com/",
+                    target: "_blank"
+                }
+            });
+
+            //cssClassMutator1 = rangy.createCssClassApplier("test1", true);
             cssClassMutator2 = rangy.createCssClassApplier("test2", true);
         });
 

@@ -410,7 +410,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             } else {
                 rangeProto.selectNodeContents = function(node) {
                     this.setStart(node, 0);
-                    this.setEnd(node, DomRange.getEndOffset(node));
+                    this.setEnd(node, dom.getEndOffset(node));
                 };
             }
 
