@@ -72,6 +72,24 @@ rangy.createModule("DomRange", function(api, module) {
         return frag;
     }
 
+    function decomposeSubtree(rangeIterator, nodes) {
+        var it, n;
+        nodes = nodes || [];
+        for (var node, subRangeIterator; node = rangeIterator.next(); ) {
+            if (rangeIterator.isPartiallySelectedSubtree()) {
+                // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of the
+                // node selected by the Range.
+                subRangeIterator = rangeIterator.getSubtreeIterator();
+                decomposeSubtree(subRangeIterator, nodes);
+                subRangeIterator.detach(true);
+            } else {
+                nodes.push(node);
+            }
+        }
+        return nodes;
+    }
+
+
     function iterateSubtree(rangeIterator, func, iteratorState) {
         var it, n;
         iteratorState = iteratorState || { stop: false };
@@ -418,6 +436,7 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function assertRangeValid(range) {
+        assertNotDetached(range);
         if (isOrphan(range.startContainer) || isOrphan(range.endContainer) ||
                 !isValidOffset(range.startContainer, range.startOffset) ||
                 !isValidOffset(range.endContainer, range.endOffset)) {
@@ -496,7 +515,6 @@ rangy.createModule("DomRange", function(api, module) {
 
         function createRangeContentRemover(remover) {
             return function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 var sc = this.startContainer, so = this.startOffset, root = this.commonAncestorContainer;
@@ -555,7 +573,6 @@ rangy.createModule("DomRange", function(api, module) {
             setEndAfter: createBeforeAfterNodeSetter(false, false),
 
             collapse: function(isStart) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 if (isStart) {
                     boundaryUpdater(this, this.startContainer, this.startOffset, this.startContainer, this.startOffset);
@@ -584,7 +601,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             compareBoundaryPoints: function(how, range) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 assertSameDocumentOrFragment(this.startContainer, range.startContainer);
 
@@ -599,7 +615,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             insertNode: function(node) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 assertValidNodeType(node, insertableNodeTypes);
                 assertNodeNotReadOnly(this.startContainer);
@@ -617,7 +632,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             cloneContents: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 var clone, frag;
@@ -644,7 +658,6 @@ rangy.createModule("DomRange", function(api, module) {
             deleteContents: createRangeContentRemover(deleteSubtree),
 
             canSurroundContents: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 assertNodeNotReadOnly(this.startContainer);
                 assertNodeNotReadOnly(this.endContainer);
@@ -683,7 +696,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             cloneRange: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 var range = new Range(getRangeDocument(this));
                 var i = rangeProperties.length, prop;
@@ -699,7 +711,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             toString: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 var sc = this.startContainer;
                 if (sc === this.endContainer && dom.isCharacterDataNode(sc)) {
@@ -723,7 +734,6 @@ rangy.createModule("DomRange", function(api, module) {
             // been removed from Mozilla.
 
             compareNode: function(node) {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 var parent = node.parentNode;
@@ -744,7 +754,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             comparePoint: function(node, offset) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 assertNode(node, "HIERARCHY_REQUEST_ERR");
                 assertSameDocumentOrFragment(node, this.startContainer);
@@ -776,7 +785,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             // This follows the Mozilla model whereby a node that borders a range is not considered to intersect with it
             intersectsNode: function(node, touchingIsIntersecting) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 assertNode(node, "NOT_FOUND_ERR");
                 if (dom.getDocument(node) !== getRangeDocument(this)) {
@@ -793,7 +801,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             isPointInRange: function(node, offset) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 assertNode(node, "HIERARCHY_REQUEST_ERR");
                 assertSameDocumentOrFragment(node, this.startContainer);
@@ -806,7 +813,6 @@ rangy.createModule("DomRange", function(api, module) {
 
             // Sharing a boundary start-to-end or end-to-start does not count as intersection.
             intersectsRange: function(range, touchingIsIntersecting) {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 if (getRangeDocument(range) != getRangeDocument(this)) {
@@ -865,7 +871,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             splitBoundaries: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 log.debug("splitBoundaries called " + this.inspect());
@@ -893,7 +898,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             normalizeBoundaries: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
@@ -970,19 +974,26 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             createNodeIterator: function(nodeTypes, filter) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 return new RangeNodeIterator(this, nodeTypes, filter);
             },
 
             getNodes: function(nodeTypes, filter) {
-                assertNotDetached(this);
                 assertRangeValid(this);
                 return getNodesInRange(this, nodeTypes, filter);
             },
 
+            decompose: function() {
+                assertRangeValid(this);
+
+                this.splitBoundaries();
+                var iterator = new RangeIterator(this, false);
+                var nodes = decomposeSubtree(iterator);
+                iterator.detach();
+                return nodes;
+            },
+
             collapseToPoint: function(node, offset) {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 assertNoDocTypeNotationEntityAncestor(node, true);

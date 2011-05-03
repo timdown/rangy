@@ -119,6 +119,10 @@ rangy.createModule("Commands", function(api, module) {
                 (node.nodeType == 1 && inlineDisplayRegex.test(getComputedStyleProperty(node, "display")));
     }
 
+    function isNonBrInlineElement(node) {
+        return isInlineNode && node.nodeName.toLowerCase() != "br";
+    }
+
     /**
      * "An unwrappable node is an HTML element which may not be used where only
      * phrasing content is expected (not counting unknown or obsolete elements,
@@ -137,6 +141,175 @@ rangy.createModule("Commands", function(api, module) {
 
         return unwrappableTagNamesRegex.test(node.tagName);
     }
+
+    function blockExtend2(range) {
+        // "Let start node, start offset, end node, and end offset be the start
+        // and end nodes and offsets of the range."
+        var startNode = range.startContainer,
+            startOffset = range.startOffset,
+            endNode = range.endContainer,
+            endOffset = range.endOffset,
+            startChildNode,
+            endChildNode;
+
+        // "Repeat the following steps:"
+        while (true) {
+            // "If start node is a Text or Comment node or start offset is 0,
+            // set start offset to the index of start node and then set start
+            // node to its parent."
+            if (dom.isCharacterDataNode(startNode) || startOffset == 0) {
+                console.log("Char data or 0", startNode, startOffset)
+                startOffset = dom.getNodeIndex(startNode);
+                startNode = startNode.parentNode;
+
+            // "Otherwise, if start offset is equal to the length of start
+            // node, set start offset to one plus the index of start node and
+            // then set start node to its parent."
+            } else if (startOffset == dom.getNodeLength(startNode)) {
+                console.log("At end " + dom.getNodeLength(startNode))
+                startOffset = 1 + dom.getNodeIndex(startNode);
+                startNode = startNode.parentNode;
+
+            // "Otherwise, if the child of start node with index start offset
+            // minus one is a Text or Comment node, or a non-br inline element,
+            // subtract one from start offset."
+            } else if ( (startChildNode = startNode.childNodes[startOffset - 1]) &&
+                    (dom.isCharacterDataNode(startChildNode) || isNonBrInlineElement(startChildNode))) {
+
+                console.log("startChildNode: ", startChildNode, startOffset, isNonBrInlineElement(startChildNode))
+                startOffset--;
+
+            // "Otherwise, break from this loop."
+            } else {
+                break;
+            }
+        }
+
+        // "Repeat the following steps:"
+        while (true) {
+            // "If end offset is 0, set end offset to the index of end node and
+            // then set end node to its parent."
+            if (endOffset == 0) {
+                endOffset = dom.getNodeIndex(endNode);
+                endNode = endNode.parentNode;
+
+            // "Otherwise, if end node is a Text or Comment node or end offset
+            // is equal to the length of end node, set end offset to one plus
+            // the index of end node and then set end node to its parent."
+            } else if (dom.isCharacterDataNode(endNode) || endOffset == dom.getNodeLength(endNode)) {
+                endOffset = 1 + dom.getNodeIndex(endNode);
+                endNode = endNode.parentNode;
+
+            // "Otherwise, if the child of end node with index end offset is a
+            // Text or Comment node, or an (insert definition here), add one to
+            // end offset."
+            } else if ( (endChildNode = endNode.childNodes[endOffset]) &&
+                    (dom.isCharacterDataNode(endChildNode) || isNonBrInlineElement(endChildNode))) {
+
+                endOffset++;
+
+            // "Otherwise, break from this loop."
+            } else {
+                break;
+            }
+        }
+
+        // "Let new range be a new range whose start and end nodes and offsets
+        // are start node, start offset, end node, and end offset."
+        var newRange = range.cloneRange();
+        newRange.setStart(startNode, startOffset);
+        newRange.setEnd(endNode, endOffset);
+
+        // "Return new range."
+        return newRange;
+    }
+
+function blockExtend(range) {
+	// "Let start node, start offset, end node, and end offset be the start
+	// and end nodes and offsets of the range."
+	var startNode = range.startContainer;
+	var startOffset = range.startOffset;
+	var endNode = range.endContainer;
+	var endOffset = range.endOffset;
+
+	// "Repeat the following steps:"
+	while (true) {
+		// "If start node is a Text or Comment node or start offset is 0,
+		// set start offset to the index of start node and then set start
+		// node to its parent."
+		if (startNode.nodeType == Node.TEXT_NODE
+		|| startNode.nodeType == Node.COMMENT_NODE
+		|| startOffset == 0) {
+			startOffset = dom.getNodeIndex(startNode);
+			startNode = startNode.parentNode;
+            console.log("Char data or 0", startNode, startOffset)
+
+		// "Otherwise, if start offset is equal to the length of start
+		// node, set start offset to one plus the index of start node and
+		// then set start node to its parent."
+		} else if (startOffset == dom.getNodeLength(startNode)) {
+			startOffset = 1 + dom.getNodeIndex(startNode);
+			startNode = startNode.parentNode;
+            console.log("At end " + dom.getNodeLength(startNode))
+
+		// "Otherwise, if the child of start node with index start offset
+		// minus one is a Text or Comment node, or an (insert definition
+		// here), subtract one from start offset."
+		} else if (startNode.childNodes[startOffset - 1].nodeType == Node.TEXT_NODE
+		|| startNode.childNodes[startOffset - 1].nodeType == Node.COMMENT_NODE
+		|| ["B", "I", "SPAN", "A"].indexOf(startNode.childNodes[startOffset - 1].tagName) != -1) {
+            console.log("startChildNode: ", startNode.childNodes[startOffset - 1], startOffset, isNonBrInlineElement(startNode.childNodes[startOffset - 1]))
+			startOffset--;
+
+		// "Otherwise, break from this loop."
+		} else {
+            console.log("Done", startNode, startOffset)
+			break;
+		}
+	}
+
+	// "Repeat the following steps:"
+	while (true) {
+		// "If end offset is 0, set end offset to the index of end node and
+		// then set end node to its parent."
+		if (endOffset == 0) {
+			endOffset = dom.getNodeIndex(endNode);
+			endNode = endNode.parentNode;
+
+		// "Otherwise, if end node is a Text or Comment node or end offset
+		// is equal to the length of end node, set end offset to one plus
+		// the index of end node and then set end node to its parent."
+		} else if (endNode.nodeType == Node.TEXT_NODE
+		|| endNode.nodeType == Node.COMMENT_NODE
+		|| endOffset == dom.getNodeLength(endNode)) {
+			endOffset = 1 + dom.getNodeIndex(endNode);
+			endNode = endNode.parentNode;
+
+		// "Otherwise, if the child of end node with index end offset is a
+		// Text or Comment node, or an (insert definition here), add one to
+		// end offset."
+		} else if (endNode.childNodes[endOffset].nodeType == Node.TEXT_NODE
+		|| endNode.childNodes[endOffset].nodeType == Node.COMMENT_NODE
+		|| ["B", "I", "SPAN"].indexOf(endNode.childNodes[endOffset].tagName) != -1) {
+			endOffset++;
+
+		// "Otherwise, break from this loop."
+		} else {
+			break;
+		}
+	}
+
+	// "Let new range be a new range whose start and end nodes and offsets
+	// are start node, start offset, end node, and end offset."
+	var newRange = startNode.ownerDocument.createRange();
+	newRange.setStart(startNode, startOffset);
+	newRange.setEnd(endNode, endOffset);
+
+    console.log(newRange)
+
+	// "Return new range."
+	return newRange;
+}
 
     function Command(name, options) {
         this.name = name;
@@ -258,6 +431,16 @@ rangy.createModule("Commands", function(api, module) {
         }
     };
 
-    return
+    Command.util = {
+        getFurthestAncestor: getFurthestAncestor,
+        isContained: isContained,
+        isEffectivelyContained: isEffectivelyContained,
+        isHtmlNode: isHtmlNode,
+        isInlineNode: isInlineNode,
+        isUnwrappable: isUnwrappable,
+        blockExtend: blockExtend
+    };
+
+    api.Command = Command;
 
 });

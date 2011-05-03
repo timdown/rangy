@@ -869,6 +869,28 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             });
         }
 
+        if (testRange.decompose) {
+            s.test("decompose 1", function(t) {
+                var r1 = rangeCreator(doc);
+                r1.setStartBefore(t.nodes.plainText);
+                r1.setEndAfter(t.nodes.b);
+
+                var nodes = r1.decompose();
+
+                t.assertArraysEquivalent(nodes, [t.nodes.plainText, t.nodes.b]);
+            });
+
+            s.test("decompose 2", function(t) {
+                var r1 = rangeCreator(doc);
+                r1.setStartBefore(t.nodes.plainText);
+                r1.setEndAfter(t.nodes.boldText);
+
+                var nodes = r1.decompose();
+
+                t.assertArraysEquivalent(nodes, [t.nodes.plainText, t.nodes.boldText]);
+            });
+        }
+
         testRange.detach();
     }, false);
 }

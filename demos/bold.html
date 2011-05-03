@@ -21,6 +21,7 @@
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-textcommands.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-commands.js"></script>
     <script type="text/javascript">
         function gEBI(id) {
             return document.getElementById(id);
@@ -39,6 +40,18 @@
                     rangy.execSelectionCommand("bold");
                     return false;
                 };
+
+                var blockExtendButton = gEBI("blockExtendButton");
+                blockExtendButton.disabled = false;
+                blockExtendButton.onmousedown = function() {
+                    var sel = rangy.getSelection();
+                    if (sel.rangeCount) {
+                        var range = sel.getRangeAt(sel.rangeCount - 1);
+                        var blockRange = rangy.Command.util.blockExtend(range);
+                        sel.setSingleRange(blockRange);
+                    }
+                    return false;
+                };
             }
         };
 
@@ -51,6 +64,8 @@
 
         <br>
         <input type="button" disabled id="toggleBoldButton" value="Toggle bold" unselectable="on"
+               class="unselectable">
+        <input type="button" disabled id="blockExtendButton" value="Extend selection to block" unselectable="on"
                class="unselectable">
     </div>
 
