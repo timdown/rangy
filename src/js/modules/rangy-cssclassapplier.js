@@ -223,7 +223,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     };
 
-    var optionProperties = ["elementTagName", "elementCreateCallback", "elementRemoveCallback", "elementShouldRemoveCallback"];
+    var optionProperties = ["elementTagName", "elementCreateCallback", "elementRemoveCallback", "elementShouldRemoveCallback", "ignoreWhiteSpace"];
 
     function CssClassApplier(cssClass, options, tagNames) {
         this.cssClass = cssClass;
@@ -237,7 +237,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             elementPropertiesFromOptions = options.elementProperties;
 
             for (i = 0; propName = optionProperties[i++]; ) {
-                if (options[propName]) {
+                if (options.hasOwnProperty(propName)) {
                     this[propName] = options[propName];
                 }
             }
@@ -295,6 +295,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         elementCreateCallback: null,
         elementRemoveCallback: null,
         elementShouldRemoveCallback: null,
+        ignoreWhiteSpace: false,
 
         getAncestorWithClass: function(textNode) {
             var node = textNode.parentNode;
@@ -434,6 +435,12 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         },
 
+/*
+        appliesToTextNode: function(textNode) {
+            return !(this.ignoreWhiteSpace && dom.isWhiteSpaceNode(textNode)) && !this.getAncestorWithClass(textNode);
+        },
+*/
+
         applyToRange: function(range) {
             range.splitBoundaries();
             var textNodes = range.getNodes([3]);
@@ -443,7 +450,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
                 for (var i = 0, len = textNodes.length; i < len; ++i) {
                     textNode = textNodes[i];
-                    if (!this.getAncestorWithClass(textNode)) {
+                    if (!(this.ignoreWhiteSpace && dom.isWhiteSpaceNode(textNode)) && !this.getAncestorWithClass(textNode)) {
                         this.applyToTextNode(textNode);
                     }
                 }
@@ -527,7 +534,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             for (var i = 0, len = textNodes.length, selectedText; i < len; ++i) {
                 selectedText = this.getTextSelectedByRange(textNodes[i], range);
                 log.warn("text node: '" + textNodes[i].data + "', selectedText: '" + selectedText + "'");
-                if (selectedText != "" && !this.getAncestorWithClass(textNodes[i])) {
+                if (selectedText != "" && !(this.ignoreWhiteSpace && dom.isWhiteSpaceNode(textNodes[i])) && !this.getAncestorWithClass(textNodes[i])) {
                     return false;
                 }
             }
