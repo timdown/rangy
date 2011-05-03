@@ -58,6 +58,13 @@ rangy.createModule("DomUtil", function(api, module) {
         return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
     }
 
+    var whiteSpaceRegex = /^[\t\r\n ]+$/;
+
+    function isWhiteSpaceNode(node) {
+        var t = node.nodeType;
+        return isCharacterDataNode(node) && whiteSpaceRegex.test(node.data);
+    }
+
     function getNodeLength(node) {
         var childNodes;
         return isCharacterDataNode(node) ? node.length : ((childNodes = node.childNodes) ? childNodes.length : 0);
@@ -334,6 +341,7 @@ rangy.createModule("DomUtil", function(api, module) {
         isAncestorOf: isAncestorOf,
         getClosestAncestorIn: getClosestAncestorIn,
         isCharacterDataNode: isCharacterDataNode,
+        isWhiteSpaceNode: isWhiteSpaceNode,
         getNodeLength: getNodeLength,
         insertAfter: insertAfter,
         splitDataNode: splitDataNode,
