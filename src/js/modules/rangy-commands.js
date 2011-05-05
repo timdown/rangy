@@ -223,6 +223,128 @@ rangy.createModule("Commands", function(api, module) {
         return newRange;
     }
 
+    function clearValue(element, command) {
+        // "If element's specified value for command is null, return the empty
+        // list."
+        if (getSpecifiedValue(element, command) === null) {
+            return [];
+        }
+
+        // "If element is a simple modifiable element:"
+        if (isSimpleModifiableElement(element)) {
+            // "Let children be the children of element."
+            var children = Array.prototype.slice.call(element.childNodes);
+
+            // "While element has children, insert its first child into its parent
+            // immediately before it, preserving ranges."
+            while (element.childNodes.length) {
+                movePreservingRanges(element.firstChild, element.parentNode, getNodeIndex(element));
+            }
+
+            // "Remove element from its parent."
+            element.parentNode.removeChild(element);
+
+            // "Return children."
+            return children;
+        }
+
+        // "If command is "strikethrough", and element has a style attribute that
+        // sets "text-decoration" to some value containing "line-through", delete
+        // "line-through" from the value."
+        if (command == "strikethrough"
+        && element.style.textDecoration.indexOf("line-through") != -1) {
+            if (element.style.textDecoration == "line-through") {
+                element.style.textDecoration = "";
+            } else {
+                element.style.textDecoration = element.style.textDecoration.replace("line-through", "");
+            }
+            if (element.getAttribute("style") == "") {
+                element.removeAttribute("style");
+            }
+        }
+
+        // "If command is "underline", and element has a style attribute that sets
+        // "text-decoration" to some value containing "underline", delete
+        // "underline" from the value."
+        if (command == "underline"
+        && element.style.textDecoration.indexOf("underline") != -1) {
+            if (element.style.textDecoration == "underline") {
+                element.style.textDecoration = "";
+            } else {
+                element.style.textDecoration = element.style.textDecoration.replace("underline", "");
+            }
+            if (element.getAttribute("style") == "") {
+                element.removeAttribute("style");
+            }
+        }
+
+        // "If the relevant CSS property for command is not null, unset the CSS
+        // property property of element."
+        if (getRelevantCssProperty(command) !== null) {
+            element.style[getRelevantCssProperty(command)] = '';
+            if (element.getAttribute("style") == "") {
+                element.removeAttribute("style");
+            }
+        }
+
+        // "If element is a font element:"
+        if (isHtmlNamespace(element.namespaceURI) && element.tagName == "FONT") {
+            // "If command is "foreColor", unset element's color attribute, if set."
+            if (command == "forecolor") {
+                element.removeAttribute("color");
+            }
+
+            // "If command is "fontName", unset element's face attribute, if set."
+            if (command == "fontname") {
+                element.removeAttribute("face");
+            }
+
+            // "If command is "fontSize", unset element's size attribute, if set."
+            if (command == "fontsize") {
+                element.removeAttribute("size");
+            }
+        }
+
+        // "If element is an a element and command is "createLink" or "unlink",
+        // unset the href property of element."
+        if (isHtmlElement(element)
+        && element.tagName == "A"
+        && (command == "createlink" || command == "unlink")) {
+            element.removeAttribute("href");
+        }
+
+        // "If element's specified value for command is null, return the empty
+        // list."
+        if (getSpecifiedValue(element, command) === null) {
+            return [];
+        }
+
+        // "Let new element be a new HTML element with name "span", with the
+        // same attributes and ownerDocument as element."
+        var newElement = element.ownerDocument.createElement("span");
+        for (var j = 0; j < element.attributes.length; j++) {
+            // FIXME: Namespaces?
+            newElement.setAttribute(element.attributes[j].localName, element.attributes[j].value);
+        }
+
+        // "Insert new element into the parent of element immediately before it."
+        element.parentNode.insertBefore(newElement, element);
+
+        // "While element has children, append its first child as the last child of
+        // new element, preserving ranges."
+        while (element.childNodes.length) {
+            movePreservingRanges(element.firstChild, newElement, newElement.childNodes.length);
+        }
+
+        // "Remove element from its parent."
+        element.parentNode.removeChild(element);
+
+        // "Return the one-Node list consisting of new element."
+        return [newElement];
+    }
+
+
+
     function Command(name, options) {
         this.name = name;
         if (typeof options == "object") {
@@ -235,6 +357,13 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     Command.prototype = {
+        relevantCssProperty: null,
+
+        getSpecifiedValue: function(element) {
+            
+        },
+
+
         applyToRange: function(range) {
         },
 
@@ -353,6 +482,30 @@ rangy.createModule("Commands", function(api, module) {
         blockExtend: blockExtend
     };
 
+    var commandsByName = {};
+
+    api.registerCommand = function(name, command) {
+        if (!(command instanceof Command)) {
+            throw module.createError("Object supplied is not a Command");
+        }
+        commandsByName[name.toLowerCase()] = command;
+    };
+
+    function getCommand(name) {
+        var lowerName = name.toLowerCase();
+        if (commandsByName.hasOwnProperty(lowerName)) {
+            return commandsByName[lowerName];
+        } else {
+            throw module.createError("No command registered with the name '" + name + "'");
+        }
+    }
+
+    api.execCommand = function(name, options) {
+        var command = getCommand(name);
+        command.applyToSelection(options);
+    };
+
+    api.getCommand = getCommand;
     api.Command = Command;
 
 });
