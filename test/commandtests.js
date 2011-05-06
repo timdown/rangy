@@ -157,4 +157,55 @@ xn.test.suite("Commands module tests", function(s) {
         testRangeHtml(testEl, 'Bef[ore <span class="test">|One</span> after', t);
         testRangeHtml(testEl, '1[2]3', t);
     });
+
+    function testModifiableElement(name, element, html, isModifiable) {
+        s.test("Modifiable element " + name, function(t) {
+            t.assertEquals(rangy.Command.util.isModifiableElement(element), isModifiable);
+        });
+
+        s.test("Modifiable element " + name + " (HTML)", function(t) {
+            var container = rangy.dom.getDocument(element).createElement("div");
+            container.innerHTML = html;
+            t.assertEquals(rangy.Command.util.isModifiableElement(container.firstChild), isModifiable);
+        });
+    }
+
+    function testDocument(doc) {
+        var el = doc.createElement("span");
+        el.setAttribute("style", "border: solid green 1px; padding: 2px");
+        testModifiableElement("span with style", el, '<span style="border: solid green 1px; padding: 2px"></span>', true);
+
+        el = doc.createElement("span");
+        el.setAttribute("style", "border: solid green 1px; padding: 2px");
+        el.className = "test";
+        testModifiableElement("span with style and class", el, '<span class="test" style="border: solid green 1px; padding: 2px"></span>', false);
+    }
+
+    s.test("Can set single style property via setAttribute", function(t) {
+        var el = document.createElement("span");
+        el.setAttribute("style", "padding: 1px");
+        var styleAttr = el.attributes.getNamedItem("style");
+        t.assertEquivalent(styleAttr.specified, true);
+    });
+
+    s.test("Can set single style property via style property", function(t) {
+        var el = document.createElement("span");
+        el.style.padding = "1px";
+        var styleAttr = el.attributes.getNamedItem("style");
+        t.assertEquivalent(styleAttr.specified, true);
+    });
+
+    s.test("style property reports correct number of properties", function(t) {
+        var el = document.createElement("span");
+        el.style.fontWeight = "bold";
+        t.assertEquivalent(el.style.item(0), "font-weight");
+        t.assertEquivalent(el.style.cssText, "font-weight: bold;");
+        t.assertEquivalent(el.style.length, 1);
+        el.style.textDecoration = "underline";
+        t.assertEquivalent(el.style.length, 2);
+    });
+
+
+    testDocument(document);
+
 }, false);

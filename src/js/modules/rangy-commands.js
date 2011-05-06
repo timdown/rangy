@@ -100,10 +100,10 @@ rangy.createModule("Commands", function(api, module) {
         return false;
     }
 
-    // Opera 11 puts HTML elements in the null namespace, it seems.
+    // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
     function isHtmlNode(node) {
         var ns;
-        return typeof node.namespaceURI != UNDEF && (ns = node.namespaceURI) && ns == "http://www.w3.org/1999/xhtml";
+        return typeof (ns = node.namespaceURI) == UNDEF || (ns === null || ns == "http://www.w3.org/1999/xhtml");
     }
 
 
@@ -226,9 +226,11 @@ rangy.createModule("Commands", function(api, module) {
 
 
     function elementOnlyHasAttributes(el, attrs) {
+        log.info("elementOnlyHasAttributes. attr length: " + el.attributes.length);
         for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
             attrName = el.attributes[i].name;
-            if (el.attributes[i].specified && (!attrs || dom.arrayContains(attrs, attrName))) {
+            log.info("name: " + attrName + ", specified: " + el.attributes[i].specified);
+            if (el.attributes[i].specified && (!attrs || !dom.arrayContains(attrs, attrName))) {
                 return false;
             }
         }
@@ -257,6 +259,7 @@ rangy.createModule("Commands", function(api, module) {
     var modifiableElementRegex = new RegExp("^(" + modifiableElements + ")$");
 
     function isModifiableElement(node) {
+        log.info("isModifiableElement nodeType " + node.nodeType + ", isHtmlNode " + isHtmlNode(node))
         if (node.nodeType != 1 || !isHtmlNode(node)) {
             return false;
         }
@@ -314,55 +317,46 @@ rangy.createModule("Commands", function(api, module) {
         // "It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u
         // element with exactly one attribute, which is style, which sets no CSS
         // properties (including invalid or unrecognized properties)."
-        //
-        // Not gonna try for invalid or unrecognized.
-        if (attrName == "style" && node.style.length == 0) {
+        if (attrName == "style" && node.cssText.length == 0) {
             return true;
         }
 
         // "It is an a element with exactly one attribute, which is href."
-        if (node.tagName == "A"
-        && node.hasAttribute("href")) {
+        if (tagName == "a" && attrName == "href") {
             return true;
         }
 
         // "It is a font element with exactly one attribute, which is either color,
         // face, or size."
-        if (node.tagName == "FONT"
-        && (node.hasAttribute("color")
-        || node.hasAttribute("face")
-        || node.hasAttribute("size")
-        )) {
+        if (tagName == "font" && /^(color|face|size)$/.test(attrName)) {
             return true;
+        }
+
+        // Check style attribute and bail out if it has more than one property
+        if ( attrName != "style" || (typeof node.style.length == "number" && node.style.length > 1) ||
+                !/[a-z\-]+:[^;]+;?/.test(node.style.cssText)) {
+            return false;
         }
 
         // "It is a b or strong element with exactly one attribute, which is style,
         // and the style attribute sets exactly one CSS property (including invalid
         // or unrecognized properties), which is "font-weight"."
-        if ((node.tagName == "B" || node.tagName == "STRONG")
-        && node.hasAttribute("style")
-        && node.style.length == 1
-        && node.style.fontWeight != "") {
+
+        if ((tagName == "b" || tagName == "strong") && node.style.fontWeight != "") {
             return true;
         }
 
         // "It is an i or em element with exactly one attribute, which is style,
         // and the style attribute sets exactly one CSS property (including invalid
         // or unrecognized properties), which is "font-style"."
-        if ((node.tagName == "I" || node.tagName == "EM")
-        && node.hasAttribute("style")
-        && node.style.length == 1
-        && node.style.fontStyle != "") {
+        if ((tagName == "i" || tagName == "em") && node.style.fontStyle != "") {
             return true;
         }
 
         // "It is a sub or sub element with exactly one attribute, which is style,
         // and the style attribute sets exactly one CSS property (including invalid
         // or unrecognized properties), which is "vertical-align"."
-        if ((node.tagName == "SUB" || node.tagName == "SUP")
-        && node.hasAttribute("style")
-        && node.style.length == 1
-        && node.style.verticalAlign != "") {
+        if ((tagName == "sub" || tagName == "sup") && node.style.verticalAlign != "") {
             return true;
         }
 
@@ -370,10 +364,7 @@ rangy.createModule("Commands", function(api, module) {
         // style, and the style attribute sets exactly one CSS property (including
         // invalid or unrecognized properties), and that property is not
         // "text-decoration"."
-        if ((node.tagName == "A" || node.tagName == "FONT" || node.tagName == "SPAN")
-        && node.hasAttribute("style")
-        && node.style.length == 1
-        && node.style.textDecoration == "") {
+        if ((tagName == "a" || tagName == "font" || tagName == "span") && node.style.textDecoration == "") {
             return true;
         }
 
@@ -382,17 +373,11 @@ rangy.createModule("Commands", function(api, module) {
         // property (including invalid or unrecognized properties), which is
         // "text-decoration", which is set to "line-through" or "underline" or
         // "overline" or "none"."
-        if (["A", "FONT", "S", "SPAN", "STRIKE", "U"].indexOf(node.tagName) != -1
-        && node.hasAttribute("style")
-        && node.style.length == 1
-        && (node.style.textDecoration == "line-through"
-        || node.style.textDecoration == "underline"
-        || node.style.textDecoration == "overline"
-        || node.style.textDecoration == "none")) {
+        if (/^(a|font|s|span|strike|u)$/.test(tagName) && /^(line-through|underline|overline|none)$/.test(node.style.textDecoration)) {
             return true;
         }
 
-        return false;
+        return ;
     }
 
     function clearValue(element, command) {
@@ -652,7 +637,9 @@ rangy.createModule("Commands", function(api, module) {
         isHtmlNode: isHtmlNode,
         isInlineNode: isInlineNode,
         isUnwrappable: isUnwrappable,
-        blockExtend: blockExtend
+        blockExtend: blockExtend,
+        isModifiableElement: isModifiableElement,
+        isSimpleModifiableElement: isSimpleModifiableElement
     };
 
     var commandsByName = {};
