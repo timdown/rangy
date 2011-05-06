@@ -223,10 +223,182 @@ rangy.createModule("Commands", function(api, module) {
         return newRange;
     }
 
+
+
+    function elementOnlyHasAttributes(el, attrs) {
+        for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
+            attrName = el.attributes[i].name;
+            if (el.attributes[i].specified && (!attrs || dom.arrayContains(attrs, attrName))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function elementHasNoAttributes(el) {
+        return elementOnlyHasAttributes(el);
+    }
+
+    function elementHasAtMostAttributes(el, maxAttrCount) {
+        for (var i = 0, len = el.attributes.length, attrCount = 0, attrName; i < len; ++i) {
+            attrName = el.attributes[i].name;
+            if (el.attributes[i].specified && ++attrCount > maxAttrCount) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // "A modifiable element is a b, em, i, s, span, strong, sub, sup, or u element
+    // with no attributes except possibly style; or a font element with no
+    // attributes except possibly style, color, face, and/or size; or an a element
+    // with no attributes except possibly style and/or href."
+    var modifiableElements = "b|em|i|s|span|strike|strong|sub|sup|u";
+    var modifiableElementRegex = new RegExp("^(" + modifiableElements + ")$");
+
+    function isModifiableElement(node) {
+        if (node.nodeType != 1 || !isHtmlNode(node)) {
+            return false;
+        }
+        var tagName = node.tagName.toLowerCase(), allowedAttributes;
+
+        if (modifiableElementRegex.test(tagName)) {
+            allowedAttributes = ["style"];
+        } else if (tagName == "a") {
+            allowedAttributes = ["style", "href"];
+        } else if (tagName == "font") {
+            allowedAttributes = ["style", "color", "face", "size"];
+        } else {
+            return false;
+        }
+        return elementOnlyHasAttributes(node, allowedAttributes);
+    }
+
+    var simpleModifiableElements = modifiableElements + "|a|font";
+    var simpleModifiableElementRegex = new RegExp("^(" + simpleModifiableElements + ")$");
+
+    function isSimpleModifiableElement(node) {
+        // "A simple modifiable element is an HTML element for which at least one
+        // of the following holds:"
+        if (node.nodeType != 1 || !isHtmlNode(node)) {
+            return false;
+        }
+
+        // Only these elements can possibly be a simple modifiable element.
+        var tagName = node.tagName.toLowerCase();
+        if (!simpleModifiableElementRegex.test(tagName)) {
+            return false;
+        }
+
+        // Extract attributes once and quit if more than one is found
+        var attrName, attrValue, hasAnyAttrs = false;
+        for (var i = 0, len = node.attributes.length; i < len; ++i) {
+            if (el.attributes[i].specified) {
+                // If it's got more than one attribute, everything after this fails.
+                if (hasAnyAttrs) {
+                    return false;
+                } else {
+                    attrName = el.attributes[i].name;
+                    attrValue = el.getAttribute(attrName);
+                    hasAnyAttrs = true;
+                }
+            }
+        }
+
+        // "It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u
+        // element with no attributes."
+        if (!hasAnyAttrs) {
+            return true;
+        }
+
+        // "It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u
+        // element with exactly one attribute, which is style, which sets no CSS
+        // properties (including invalid or unrecognized properties)."
+        //
+        // Not gonna try for invalid or unrecognized.
+        if (attrName == "style" && node.style.length == 0) {
+            return true;
+        }
+
+        // "It is an a element with exactly one attribute, which is href."
+        if (node.tagName == "A"
+        && node.hasAttribute("href")) {
+            return true;
+        }
+
+        // "It is a font element with exactly one attribute, which is either color,
+        // face, or size."
+        if (node.tagName == "FONT"
+        && (node.hasAttribute("color")
+        || node.hasAttribute("face")
+        || node.hasAttribute("size")
+        )) {
+            return true;
+        }
+
+        // "It is a b or strong element with exactly one attribute, which is style,
+        // and the style attribute sets exactly one CSS property (including invalid
+        // or unrecognized properties), which is "font-weight"."
+        if ((node.tagName == "B" || node.tagName == "STRONG")
+        && node.hasAttribute("style")
+        && node.style.length == 1
+        && node.style.fontWeight != "") {
+            return true;
+        }
+
+        // "It is an i or em element with exactly one attribute, which is style,
+        // and the style attribute sets exactly one CSS property (including invalid
+        // or unrecognized properties), which is "font-style"."
+        if ((node.tagName == "I" || node.tagName == "EM")
+        && node.hasAttribute("style")
+        && node.style.length == 1
+        && node.style.fontStyle != "") {
+            return true;
+        }
+
+        // "It is a sub or sub element with exactly one attribute, which is style,
+        // and the style attribute sets exactly one CSS property (including invalid
+        // or unrecognized properties), which is "vertical-align"."
+        if ((node.tagName == "SUB" || node.tagName == "SUP")
+        && node.hasAttribute("style")
+        && node.style.length == 1
+        && node.style.verticalAlign != "") {
+            return true;
+        }
+
+        // "It is an a, font, or span element with exactly one attribute, which is
+        // style, and the style attribute sets exactly one CSS property (including
+        // invalid or unrecognized properties), and that property is not
+        // "text-decoration"."
+        if ((node.tagName == "A" || node.tagName == "FONT" || node.tagName == "SPAN")
+        && node.hasAttribute("style")
+        && node.style.length == 1
+        && node.style.textDecoration == "") {
+            return true;
+        }
+
+        // "It is an a, font, s, span, strike, or u element with exactly one
+        // attribute, which is style, and the style attribute sets exactly one CSS
+        // property (including invalid or unrecognized properties), which is
+        // "text-decoration", which is set to "line-through" or "underline" or
+        // "overline" or "none"."
+        if (["A", "FONT", "S", "SPAN", "STRIKE", "U"].indexOf(node.tagName) != -1
+        && node.hasAttribute("style")
+        && node.style.length == 1
+        && (node.style.textDecoration == "line-through"
+        || node.style.textDecoration == "underline"
+        || node.style.textDecoration == "overline"
+        || node.style.textDecoration == "none")) {
+            return true;
+        }
+
+        return false;
+    }
+
     function clearValue(element, command) {
         // "If element's specified value for command is null, return the empty
         // list."
-        if (getSpecifiedValue(element, command) === null) {
+        if (command.getSpecifiedValue(element) === null) {
             return [];
         }
 
@@ -360,7 +532,8 @@ rangy.createModule("Commands", function(api, module) {
         relevantCssProperty: null,
 
         getSpecifiedValue: function(element) {
-            
+            //throw new module.createError("Command '" + this.name + "' does not implement getSpecifiedValue()");
+            return null;
         },
 
 
