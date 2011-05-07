@@ -272,6 +272,14 @@ xn.test.suite("Commands module tests", function(s) {
         el.style.fontWeight = "normal";
         el.style.fontStyle = "normal";
         testSimpleModifiableElement("em with font-style and font-weight normal", el, '<em style="font-style: normal; font-weight: normal"></em>', false);
+
+        el = doc.createElement("strike");
+        el.style.textDecoration = "underline";
+        testSimpleModifiableElement("strike with text-decoration underline", el, '<strike style="text-decoration: underline"></strike>', true);
+
+        el = doc.createElement("strike");
+        el.style.fontWeight = "bold";
+        testSimpleModifiableElement("strike with font-weight bold", el, '<strike style="font-weight: bold"></strike>', false);
     }
 
 /*

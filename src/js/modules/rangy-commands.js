@@ -381,6 +381,95 @@ rangy.createModule("Commands", function(api, module) {
         return false;
     }
 
+    var nodeListToArray;
+
+    // Feature detect the browser's ability or otherwise to convert a NodeList into an array using slice
+    (function() {
+        var el = document.createElement("div");
+        el.appendChild(document.createElement("span"));
+        var slice = Array.prototype.slice;
+        try {
+            if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
+                nodeListToArray = function(nodeList) {
+                    return slice.call(nodeList, 0);
+                }
+            }
+        } catch (e) {}
+
+        if (!nodeListToArray) {
+            nodeListToArray = function(nodeList) {
+                for (var i = 0, len = nodeList.length, nodeArray; i < len; ++i) {
+                    nodeArray[i] = nodeList[i];
+                }
+                return nodeArray;
+            }
+        }
+    })();
+
+    function movePreservingRanges(range, node, newParent, newIndex) {
+        // "When the user agent is to move a Node to a new location, preserving
+        // ranges, it must remove the Node from its original parent, then insert it
+        // in the new location. In doing so, however, it must ignore the regular
+        // range mutation rules, and instead follow these rules:"
+
+        // "Let node be the moved Node, old parent and old index be the old parent
+        // and index, and new parent and new index be the new parent and index."
+        var oldParent = node.parentNode;
+        var oldIndex = dom.getNodeIndex(node);
+
+        // We only even attempt to preserve the supplied range object, not every
+        // range out there (the latter is probably impossible).
+        var sc = range.startContainer, so = range.startOffset,
+            ec = range.endContainer, eo = range.endOffset;
+
+        var newSc = sc, newSo = so, newEc = ec, newEo = eo;
+
+        // "If a boundary point's node is the same as or a descendant of node,
+        // leave it unchanged, so it moves to the new location."
+        //
+        // No modifications necessary.
+
+        // "If a boundary point's node is new parent and its offset is greater than
+        // new index, add one to its offset."
+        if (sc == newParent && so > newIndex) {
+            newSo++;
+        }
+        if (ec == newParent && eo > newIndex) {
+            newEo++;
+        }
+
+        // "If a boundary point's node is old parent and its offset is old index or
+        // old index + 1, set its node to new parent and add new index  old index
+        // to its offset."
+        if (sc == oldParent && (so == oldIndex  || so == oldIndex + 1)) {
+            newSc = newParent;
+            newSo += newIndex - oldIndex;
+        }
+        if (ec == oldParent && (eo == oldIndex || eo == oldIndex + 1)) {
+            newEc = newParent;
+            newEo += newIndex - oldIndex;
+        }
+
+        // "If a boundary point's node is old parent and its offset is greater than
+        // old index + 1, subtract one from its offset."
+        if (sc == oldParent && so > oldIndex + 1) {
+            newSo--;
+        }
+        if (ec == oldParent && eo > oldIndex + 1) {
+            newEo--;
+        }
+
+        // Now actually move it and preserve the range.
+        if (newParent.childNodes.length == newIndex) {
+            newParent.appendChild(node);
+        } else {
+            newParent.insertBefore(node, newParent.childNodes[newIndex]);
+        }
+
+        range.setStart(newSc, newSo);
+        range.setEnd(newEc, newEo);
+    }
+
     function clearValue(element, command) {
         // "If element's specified value for command is null, return the empty
         // list."
@@ -391,7 +480,7 @@ rangy.createModule("Commands", function(api, module) {
         // "If element is a simple modifiable element:"
         if (isSimpleModifiableElement(element)) {
             // "Let children be the children of element."
-            var children = Array.prototype.slice.call(element.childNodes);
+            var children = nodeListToArray(element.childNodes);
 
             // "While element has children, insert its first child into its parent
             // immediately before it, preserving ranges."
