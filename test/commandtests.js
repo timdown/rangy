@@ -170,6 +170,18 @@ xn.test.suite("Commands module tests", function(s) {
         });
     }
 
+    function testSimpleModifiableElement(name, element, html, isModifiable) {
+        s.test("Simple modifiable element " + name, function(t) {
+            t.assertEquals(rangy.Command.util.isSimpleModifiableElement(element), isModifiable);
+        });
+
+        s.test("Simple modifiable element " + name + " (HTML)", function(t) {
+            var container = rangy.dom.getDocument(element).createElement("div");
+            container.innerHTML = html;
+            t.assertEquals(rangy.Command.util.isSimpleModifiableElement(container.firstChild), isModifiable);
+        });
+    }
+
     function testDocument(doc) {
         var el = doc.createElement("span");
         el.setAttribute("style", "border: solid green 1px; padding: 2px");
@@ -179,14 +191,97 @@ xn.test.suite("Commands module tests", function(s) {
         el.setAttribute("style", "border: solid green 1px; padding: 2px");
         el.className = "test";
         testModifiableElement("span with style and class", el, '<span class="test" style="border: solid green 1px; padding: 2px"></span>', false);
+
+        el = doc.createElement("span");
+        testSimpleModifiableElement("span with no attributes", el, '<span></span>', true);
+
+        el = doc.createElement("em");
+        testSimpleModifiableElement("em with no attributes", el, '<em></em>', true);
+
+        el = doc.createElement("label");
+        testSimpleModifiableElement("label with no attributes", el, '<label></label>', false);
+
+        el = doc.createElement("span");
+        el.setAttribute("style", "");
+        testSimpleModifiableElement("span with empty style attribute", el, '<span></span>', true);
+
+        el = doc.createElement("a");
+        el.setAttribute("href", "http://www.timdown.co.uk/")
+        testSimpleModifiableElement("a with href attribute", el, '<a href="http://www.timdown.co.uk/"></a>', true);
+
+        el = doc.createElement("a");
+        el.href = "http://www.timdown.co.uk/";
+        testSimpleModifiableElement("a with href attribute set via property", el, '<a href="http://www.timdown.co.uk/"></a>', true);
+
+/*
+        el = doc.createElement("a");
+        el.setAttribute("name", "test");
+        testSimpleModifiableElement("a with name attribute", el, '<a name="test"></a>', false);
+
+        el = doc.createElement("a");
+        el.name = "test";
+        testSimpleModifiableElement("a with name attribute set via property", el, '<a name="test"></a>', false);
+*/
+
+        el = doc.createElement("a");
+        el.setAttribute("id", "test");
+        testSimpleModifiableElement("a with id attribute", el, '<a id="test"></a>', false);
+
+        el = doc.createElement("a");
+        el.id = "test";
+        testSimpleModifiableElement("a with id attribute set via property", el, '<a id="test"></a>', false);
+
+        el = doc.createElement("font");
+        el.setAttribute("face", "Serif");
+        testSimpleModifiableElement("font with face attribute", el, '<font face="Serif"></font>', true);
+
+        el = doc.createElement("font");
+        el.face = "Serif";
+        testSimpleModifiableElement("font with face attribute set via property", el, '<font face="Serif"></font>', true);
+
+        el = doc.createElement("font");
+        el.setAttribute("color", "#ff000");
+        testSimpleModifiableElement("font with color attribute", el, '<font color="#ff000"></font>', true);
+
+        el = doc.createElement("font");
+        el.color = "#ff000";
+        testSimpleModifiableElement("font with color attribute set via property", el, '<font color="#ff000"></font>', true);
+
+        el = doc.createElement("font");
+        el.setAttribute("size", "5");
+        testSimpleModifiableElement("font with size attribute", el, '<font size="5"></font>', true);
+
+        el = doc.createElement("font");
+        el.size = "5";
+        testSimpleModifiableElement("font with size attribute set via property", el, '<font size="5"></font>', true);
+
+        el = doc.createElement("font");
+        el.setAttribute("size", "5");
+        el.setAttribute("color", "#ff000");
+        testSimpleModifiableElement("font with size and color attributes", el, '<font size="5" color="#ff0000"></font>', false);
+
+        el = doc.createElement("em");
+        el.style.fontStyle = "normal";
+        testSimpleModifiableElement("em with font-style normal", el, '<em style="font-style: normal"></em>', true);
+
+        el = doc.createElement("em");
+        el.style.fontWeight = "normal";
+        testSimpleModifiableElement("em with font-weight normal", el, '<em style="font-weight: normal"></em>', false);
+
+        el = doc.createElement("em");
+        el.style.fontWeight = "normal";
+        el.style.fontStyle = "normal";
+        testSimpleModifiableElement("em with font-style and font-weight normal", el, '<em style="font-style: normal; font-weight: normal"></em>', false);
     }
 
+/*
     s.test("Can set single style property via setAttribute", function(t) {
         var el = document.createElement("span");
         el.setAttribute("style", "padding: 1px");
         var styleAttr = el.attributes.getNamedItem("style");
         t.assertEquivalent(styleAttr.specified, true);
     });
+*/
 
     s.test("Can set single style property via style property", function(t) {
         var el = document.createElement("span");
@@ -195,14 +290,11 @@ xn.test.suite("Commands module tests", function(s) {
         t.assertEquivalent(styleAttr.specified, true);
     });
 
-    s.test("style property reports correct number of properties", function(t) {
+    s.test("style property cssText", function(t) {
         var el = document.createElement("span");
         el.style.fontWeight = "bold";
-        t.assertEquivalent(el.style.item(0), "font-weight");
-        t.assertEquivalent(el.style.cssText, "font-weight: bold;");
-        t.assertEquivalent(el.style.length, 1);
-        el.style.textDecoration = "underline";
-        t.assertEquivalent(el.style.length, 2);
+        //t.assertEquivalent(el.style.item(0), "font-weight");
+        t.assert(/font-weight:\s?bold;?/i.test(el.style.cssText.toLowerCase()));
     });
 
 

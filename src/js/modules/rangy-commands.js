@@ -280,22 +280,23 @@ rangy.createModule("Commands", function(api, module) {
     var simpleModifiableElements = modifiableElements + "|a|font";
     var simpleModifiableElementRegex = new RegExp("^(" + simpleModifiableElements + ")$");
 
-    function isSimpleModifiableElement(node) {
+    function isSimpleModifiableElement(el) {
         // "A simple modifiable element is an HTML element for which at least one
         // of the following holds:"
-        if (node.nodeType != 1 || !isHtmlNode(node)) {
+        if (el.nodeType != 1 || !isHtmlNode(el)) {
             return false;
         }
 
         // Only these elements can possibly be a simple modifiable element.
-        var tagName = node.tagName.toLowerCase();
+        var tagName = el.tagName.toLowerCase();
         if (!simpleModifiableElementRegex.test(tagName)) {
             return false;
         }
 
         // Extract attributes once and quit if more than one is found
         var attrName, attrValue, hasAnyAttrs = false;
-        for (var i = 0, len = node.attributes.length; i < len; ++i) {
+        for (var i = 0, len = el.attributes.length; i < len; ++i) {
+            //log.info("attr specified: " + el.attributes[i].specified + ", name " + el.attributes[i].name);
             if (el.attributes[i].specified) {
                 // If it's got more than one attribute, everything after this fails.
                 if (hasAnyAttrs) {
@@ -317,7 +318,7 @@ rangy.createModule("Commands", function(api, module) {
         // "It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u
         // element with exactly one attribute, which is style, which sets no CSS
         // properties (including invalid or unrecognized properties)."
-        if (attrName == "style" && node.cssText.length == 0) {
+        if (attrName == "style" && el.style.cssText.length == 0) {
             return true;
         }
 
@@ -333,8 +334,8 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // Check style attribute and bail out if it has more than one property
-        if ( attrName != "style" || (typeof node.style.length == "number" && node.style.length > 1) ||
-                !/[a-z\-]+:[^;]+;?/.test(node.style.cssText)) {
+        if ( attrName != "style" || (typeof el.style.length == "number" && el.style.length > 1) ||
+                !/^[a-z\-]+:[^;]+;?$/i.test(el.style.cssText)) {
             return false;
         }
 
@@ -342,21 +343,21 @@ rangy.createModule("Commands", function(api, module) {
         // and the style attribute sets exactly one CSS property (including invalid
         // or unrecognized properties), which is "font-weight"."
 
-        if ((tagName == "b" || tagName == "strong") && node.style.fontWeight != "") {
+        if ((tagName == "b" || tagName == "strong") && el.style.fontWeight != "") {
             return true;
         }
 
         // "It is an i or em element with exactly one attribute, which is style,
         // and the style attribute sets exactly one CSS property (including invalid
         // or unrecognized properties), which is "font-style"."
-        if ((tagName == "i" || tagName == "em") && node.style.fontStyle != "") {
+        if ((tagName == "i" || tagName == "em") && el.style.fontStyle != "") {
             return true;
         }
 
         // "It is a sub or sub element with exactly one attribute, which is style,
         // and the style attribute sets exactly one CSS property (including invalid
         // or unrecognized properties), which is "vertical-align"."
-        if ((tagName == "sub" || tagName == "sup") && node.style.verticalAlign != "") {
+        if ((tagName == "sub" || tagName == "sup") && el.style.verticalAlign != "") {
             return true;
         }
 
@@ -364,7 +365,7 @@ rangy.createModule("Commands", function(api, module) {
         // style, and the style attribute sets exactly one CSS property (including
         // invalid or unrecognized properties), and that property is not
         // "text-decoration"."
-        if ((tagName == "a" || tagName == "font" || tagName == "span") && node.style.textDecoration == "") {
+        if ((tagName == "a" || tagName == "font" || tagName == "span") && el.style.textDecoration == "") {
             return true;
         }
 
@@ -373,11 +374,11 @@ rangy.createModule("Commands", function(api, module) {
         // property (including invalid or unrecognized properties), which is
         // "text-decoration", which is set to "line-through" or "underline" or
         // "overline" or "none"."
-        if (/^(a|font|s|span|strike|u)$/.test(tagName) && /^(line-through|underline|overline|none)$/.test(node.style.textDecoration)) {
+        if (/^(a|font|s|span|strike|u)$/.test(tagName) && /^(line-through|underline|overline|none)$/.test(el.style.textDecoration)) {
             return true;
         }
 
-        return ;
+        return false;
     }
 
     function clearValue(element, command) {
