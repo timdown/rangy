@@ -305,6 +305,23 @@ xn.test.suite("Commands module tests", function(s) {
         t.assert(/font-weight:\s?bold;?/i.test(el.style.cssText.toLowerCase()));
     });
 
+    s.test("Writable cssText, single style property", function(t) {
+        var el = document.createElement("span");
+        el.style.cssText = "font-weight: bold;";
+        var div = document.createElement("div");
+        div.appendChild(el);
+        t.assert(/<span style="font-weight:\s?bold;?"><\/span>/i.test(div.innerHTML));
+    });
+
+    s.test("Writable cssText, mutliple style properties", function(t) {
+        var el = document.createElement("span");
+        el.style.cssText = "font-weight: bold; font-style: italic";
+        var div = document.createElement("div");
+        div.appendChild(el);
+        t.assert(/<span style="font-weight:\s?bold;\s?font-style:\s?italic;?"><\/span>/i.test(div.innerHTML) ||
+                /<span style="font-style:\s?italic;\s?font-weight:\s?bold;?"><\/span>/i.test(div.innerHTML));
+    });
+
 
     testDocument(document);
 

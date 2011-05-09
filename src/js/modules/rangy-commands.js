@@ -57,6 +57,23 @@ rangy.createModule("Commands", function(api, module) {
         return root;
     }
 
+    // "Something is editable if it is a node which is not an editing host, does
+    // not have a contenteditable attribute set to the false state, and whose
+    // parent is an editing host or editable."
+
+    // We're not making any distinction. Rangy commands can run on non-editable content.
+    function isEditable(node) {
+        return true;
+/*
+        // This is slightly a lie, because we're excluding non-HTML elements with
+        // contentEditable attributes.
+        return node
+            && !isEditingHost(node)
+            && (node.nodeType != Node.ELEMENT_NODE || node.contentEditable != "false")
+            && (isEditingHost(node.parentNode) || isEditable(node.parentNode));
+*/
+    }
+
     /**
      * "contained" as defined by DOM Range: "A Node node is contained in a range
      * range if node's furthest ancestor is the same as range's root, and (node, 0)
@@ -136,6 +153,10 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         if (!isInlineNode(node)) {
+            return true;
+        }
+
+        if (!isEditable(node)) {
             return true;
         }
 
@@ -237,6 +258,7 @@ rangy.createModule("Commands", function(api, module) {
         return true;
     }
 
+/*
     function elementHasNoAttributes(el) {
         return elementOnlyHasAttributes(el);
     }
@@ -250,6 +272,7 @@ rangy.createModule("Commands", function(api, module) {
         }
         return true;
     }
+*/
 
     // "A modifiable element is a b, em, i, s, span, strong, sub, sup, or u element
     // with no attributes except possibly style; or a font element with no
@@ -406,19 +429,7 @@ rangy.createModule("Commands", function(api, module) {
         }
     })();
 
-    function movePreservingRanges(range, node, newParent, newIndex) {
-        // "When the user agent is to move a Node to a new location, preserving
-        // ranges, it must remove the Node from its original parent, then insert it
-        // in the new location. In doing so, however, it must ignore the regular
-        // range mutation rules, and instead follow these rules:"
-
-        // "Let node be the moved Node, old parent and old index be the old parent
-        // and index, and new parent and new index be the new parent and index."
-        var oldParent = node.parentNode;
-        var oldIndex = dom.getNodeIndex(node);
-
-        // We only even attempt to preserve the supplied range object, not every
-        // range out there (the latter is probably impossible).
+    function getRangeMove(range, oldParent, oldIndex, newParent, newIndex) {
         var sc = range.startContainer, so = range.startOffset,
             ec = range.endContainer, eo = range.endOffset;
 
@@ -459,18 +470,49 @@ rangy.createModule("Commands", function(api, module) {
             newEo--;
         }
 
-        // Now actually move it and preserve the range.
+        return (newSc == sc && newSo == so && newEc == ec && newEo == eo) ? null :
+                function() {
+                    range.setStart(newSc, newSo);
+                    range.setEnd(newEc, newEo);
+                };
+    }
+
+    function movePreservingRanges(node, newParent, newIndex, ranges) {
+        // "When the user agent is to move a Node to a new location, preserving
+        // ranges, it must remove the Node from its original parent, then insert it
+        // in the new location. In doing so, however, it must ignore the regular
+        // range mutation rules, and instead follow these rules:"
+
+        // "Let node be the moved Node, old parent and old index be the old parent
+        // and index, and new parent and new index be the new parent and index."
+        var oldParent = node.parentNode;
+        var oldIndex = dom.getNodeIndex(node);
+
+        var rangeMoves = [];
+
+        for (var i = 0, len = ranges.length, rangeMove; i < len; ++i) {
+            rangeMove = getRangeMove(ranges[i], oldParent, oldIndex, newParent, newIndex);
+            if (rangeMove) {
+                rangeMoves.push(rangeMove);
+            }
+        }
+
+        // Now actually move the node.
         if (newParent.childNodes.length == newIndex) {
             newParent.appendChild(node);
         } else {
             newParent.insertBefore(node, newParent.childNodes[newIndex]);
         }
 
-        range.setStart(newSc, newSo);
-        range.setEnd(newEc, newEo);
+        // Set the new range boundaries
+        for (i = 0, len = rangeMoves.length; i < len; ++i) {
+            rangeMoves[i]();
+        }
     }
 
-    function clearValue(element, command) {
+    function clearValue(element, command, rangesToPreserve) {
+        var child, nodeIndex, parent = element.parentNode;
+
         // "If element's specified value for command is null, return the empty
         // list."
         if (command.getSpecifiedValue(element) === null) {
@@ -481,97 +523,52 @@ rangy.createModule("Commands", function(api, module) {
         if (isSimpleModifiableElement(element)) {
             // "Let children be the children of element."
             var children = nodeListToArray(element.childNodes);
+            nodeIndex = dom.getNodeIndex(element);
 
             // "While element has children, insert its first child into its parent
             // immediately before it, preserving ranges."
-            while (element.childNodes.length) {
-                movePreservingRanges(element.firstChild, element.parentNode, getNodeIndex(element));
+            while ( (child = element.firstChild) ) {
+                movePreservingRanges(child, parent, nodeIndex++, rangesToPreserve);
             }
 
             // "Remove element from its parent."
-            element.parentNode.removeChild(element);
+            parent.removeChild(element);
 
             // "Return children."
             return children;
         }
 
-        // "If command is "strikethrough", and element has a style attribute that
-        // sets "text-decoration" to some value containing "line-through", delete
-        // "line-through" from the value."
-        if (command == "strikethrough"
-        && element.style.textDecoration.indexOf("line-through") != -1) {
-            if (element.style.textDecoration == "line-through") {
-                element.style.textDecoration = "";
-            } else {
-                element.style.textDecoration = element.style.textDecoration.replace("line-through", "");
-            }
-            if (element.getAttribute("style") == "") {
-                element.removeAttribute("style");
-            }
-        }
-
-        // "If command is "underline", and element has a style attribute that sets
-        // "text-decoration" to some value containing "underline", delete
-        // "underline" from the value."
-        if (command == "underline"
-        && element.style.textDecoration.indexOf("underline") != -1) {
-            if (element.style.textDecoration == "underline") {
-                element.style.textDecoration = "";
-            } else {
-                element.style.textDecoration = element.style.textDecoration.replace("underline", "");
-            }
-            if (element.getAttribute("style") == "") {
-                element.removeAttribute("style");
-            }
-        }
+        // Command-specific special cases
+        command.clearValue(element);
 
         // "If the relevant CSS property for command is not null, unset the CSS
         // property property of element."
-        if (getRelevantCssProperty(command) !== null) {
-            element.style[getRelevantCssProperty(command)] = '';
-            if (element.getAttribute("style") == "") {
+        if (command.relevantCssProperty !== null) {
+            element.style[command.relevantCssProperty] = "";
+            if (element.style.cssText == "") {
                 element.removeAttribute("style");
             }
-        }
-
-        // "If element is a font element:"
-        if (isHtmlNamespace(element.namespaceURI) && element.tagName == "FONT") {
-            // "If command is "foreColor", unset element's color attribute, if set."
-            if (command == "forecolor") {
-                element.removeAttribute("color");
-            }
-
-            // "If command is "fontName", unset element's face attribute, if set."
-            if (command == "fontname") {
-                element.removeAttribute("face");
-            }
-
-            // "If command is "fontSize", unset element's size attribute, if set."
-            if (command == "fontsize") {
-                element.removeAttribute("size");
-            }
-        }
-
-        // "If element is an a element and command is "createLink" or "unlink",
-        // unset the href property of element."
-        if (isHtmlElement(element)
-        && element.tagName == "A"
-        && (command == "createlink" || command == "unlink")) {
-            element.removeAttribute("href");
         }
 
         // "If element's specified value for command is null, return the empty
         // list."
-        if (getSpecifiedValue(element, command) === null) {
+        if (command.getSpecifiedValue(element) === null) {
             return [];
         }
 
         // "Let new element be a new HTML element with name "span", with the
         // same attributes and ownerDocument as element."
-        var newElement = element.ownerDocument.createElement("span");
-        for (var j = 0; j < element.attributes.length; j++) {
-            // FIXME: Namespaces?
-            newElement.setAttribute(element.attributes[j].localName, element.attributes[j].value);
+        var newElement = dom.getDocument(element).createElement("span"), attrs = element.attributes;
+
+        for (var i = 0, len = attrs.length; i < len; ++i) {
+            if (attrs[i].specified) {
+                // For IE, which doesn't allow copying of the entire style object using get/setAttribute
+                if (attrs[i].name == "style") {
+                    newElement.style.cssText = element.style.cssText;
+                } else {
+                    newElement.setAttribute(attrs[i].name, attrs[i].value);
+                }
+            }
         }
 
         // "Insert new element into the parent of element immediately before it."
@@ -579,40 +576,541 @@ rangy.createModule("Commands", function(api, module) {
 
         // "While element has children, append its first child as the last child of
         // new element, preserving ranges."
-        while (element.childNodes.length) {
-            movePreservingRanges(element.firstChild, newElement, newElement.childNodes.length);
+        nodeIndex = 0;
+
+        while ( (child = element.firstChild) ) {
+            movePreservingRanges(child, newElement, nodeIndex++, rangesToPreserve);
         }
 
         // "Remove element from its parent."
-        element.parentNode.removeChild(element);
+        parent.removeChild(element);
 
         // "Return the one-Node list consisting of new element."
         return [newElement];
     }
 
+    // This entire function is a massive hack to work around browser
+    // incompatibility.  It wouldn't work in real life, but it's good enough for a
+    // test implementation.  It's not clear how all this should actually be specced
+    // in practice, since CSS defines no notion of equality, does it?
+    function valuesEqual(command, val1, val2) {
+        if (val1 === null || val2 === null) {
+            return val1 === val2;
+        }
 
+        return command.valuesEqual(val1, val2);
+    }
 
-    function Command(name, options) {
-        this.name = name;
-        if (typeof options == "object") {
-            for (var i in options) {
-                if (options.hasOwnProperty(i)) {
-                    this[i] = options[i];
+    /**
+     * "effective value" per edit command spec
+     */
+    function getEffectiveValue(node, command) {
+        var isElement = (node.nodeType == 1);
+
+        // "If neither node nor its parent is an Element, return null."
+        if (!isElement && (!node.parentNode || node.parentNode.nodeType != 1)) {
+            return null;
+        }
+
+        // "If node is not an Element, return the effective value of its parent for
+        // command."
+        if (!isElement) {
+            return getEffectiveValue(node.parentNode, command);
+        }
+
+        return command.getEffectiveValue(node);
+    }
+
+    function forceCandidate(node, command, newValue, rangesToPreserve, siblingPropName) {
+        candidate = node[siblingPropName];
+
+        // "While candidate is a modifiable element, and candidate has exactly one
+        // child, and that child is also a modifiable element, and candidate is
+        // not a simple modifiable element or candidate's specified value for
+        // command is not new value, set candidate to its child."
+        while (isModifiableElement(candidate)
+                && candidate.childNodes.length == 1
+                && isModifiableElement(candidate.firstChild)
+                && (!isSimpleModifiableElement(candidate)
+                    || !valuesEqual(command, getSpecifiedValue(candidate, command), newValue))) {
+            candidate = candidate.firstChild;
+        }
+
+        // "If candidate is a simple modifiable element whose specified value and
+        // effective value for command are both new value, and candidate is
+        // not the previousSibling/nextSibling of node:"
+        if (isSimpleModifiableElement(candidate)
+                && valuesEqual(command, getSpecifiedValue(candidate, command), newValue)
+                && valuesEqual(command, getEffectiveValue(candidate, command), newValue)
+                && candidate != node[siblingPropName]) {
+
+            // "While candidate has children, insert the first child of
+            // candidate into candidate's parent immediately before candidate,
+            // preserving ranges."
+            var child, nodeIndex = getNodeIndex(candidate);
+            while ( (child = candidate.firstChild) ) {
+                movePreservingRanges(child, candidate.parentNode, nodeIndex++, rangesToPreserve);
+            }
+
+            // "Insert candidate into node's parent before node's
+            // previousSibling."
+            node.parentNode.insertBefore(candidate, node[siblingPropName]);
+
+            // "Append the nextSibling of candidate as the last child of
+            // candidate, preserving ranges."
+            movePreservingRanges(candidate.nextSibling, candidate, candidate.childNodes.length, rangesToPreserve);
+        }
+    }
+
+    function forceValue(node, command, newValue, styleWithCss, rangesToPreserve) {
+        var child, i, len, children, nodeType = node.nodeType;
+
+        // "If node's parent is null, abort this algorithm."
+        if (!node.parentNode) {
+            return;
+        }
+
+        // "If new value is null, abort this algorithm."
+        if (newValue === null) {
+            return;
+        }
+
+        // "If node is an Element, Text, Comment, or ProcessingInstruction node,
+        // and is not an unwrappable node:"
+        if (/^(1|3|4|7)$/.test("" + nodeType) && !isUnwrappableNode(node)) {
+            // "Let candidate be node's previousSibling."
+            forceCandidate(node, command, newValue, rangesToPreserve, "previousSibling");
+
+            // "Let candidate be node's nextSibling."
+            forceCandidate(node, command, newValue, rangesToPreserve, "nextSibling");
+
+            // "Let previous sibling and next sibling be node's previousSibling and
+            // nextSibling."
+            var previousSibling = node.previousSibling;
+            var nextSibling = node.nextSibling;
+
+            // "If previous sibling is a simple modifiable element whose specified
+            // value and effective value for command are both new value, append
+            // node as the last child of previous sibling, preserving ranges."
+            if (isSimpleModifiableElement(previousSibling)
+                    && valuesEqual(command, command.getSpecifiedValue(previousSibling), newValue)
+                    && valuesEqual(command, getEffectiveValue(previousSibling, command), newValue)) {
+                movePreservingRanges(node, previousSibling, previousSibling.childNodes.length);
+            }
+
+            // "If next sibling is a simple modifiable element whose specified value
+            // and effective value for command are both new value:"
+            if (isSimpleModifiableElement(nextSibling)
+                    && valuesEqual(command, command.getSpecifiedValue(nextSibling), newValue)
+                    && valuesEqual(command, getEffectiveValue(nextSibling, command), newValue)) {
+                // "If node is not a child of previous sibling, insert node as the
+                // first child of next sibling, preserving ranges."
+                if (node.parentNode != previousSibling) {
+                    movePreservingRanges(node, nextSibling, 0, rangesToPreserve);
+
+                // "Otherwise, while next sibling has children, append the first
+                // child of next sibling as the last child of previous sibling,
+                // preserving ranges.  Then remove next sibling from its parent."
+                } else {
+                    var nodeIndex = previousSibling.childNodes.length;
+                    while ( (child = nextSibling.firstChild) ) {
+                        movePreservingRanges(child, previousSibling, nodeIndex++, rangesToPreserve);
+                    }
+                    nextSibling.parentNode.removeChild(nextSibling);
+                }
+            }
+        }
+
+        // "If the effective value of command is new value on node, abort this
+        // algorithm."
+        if (valuesEqual(command, getEffectiveValue(node, command), newValue)) {
+            return;
+        }
+
+        // "If node is an unwrappable node:"
+        if (isUnwrappableNode(node)) {
+            // "Let children be all children of node, omitting any that are
+            // Elements whose specified value for command is neither null nor
+            // equal to new value."
+            children = [];
+            for (i = 0, len = node.childNodes.length, specifiedValue; i < len; ++i) {
+                child = node.childNodes[i];
+                if (child.nodeType == 1) {
+                    specifiedValue = command.getSpecifiedValue(child);
+                    if (specifiedValue !== null && !valuesEqual(command, newValue, specifiedValue)) {
+                        continue;
+                    }
+                }
+                children.push(child);
+            }
+
+            // "Force the value of each Node in children, with command and new
+            // value as in this invocation of the algorithm."
+            for (i = 0; child = children[i++]; ) {
+                forceValue(child, command, newValue, styleWithCss, rangesToPreserve);
+            }
+
+            // "Abort this algorithm."
+            return;
+        }
+
+        // "If node is a Comment or ProcessingInstruction, abort this algorithm."
+        if (nodeType == 4 || nodeType == 7) {
+            return;
+        }
+
+        // "If the effective value of command is new value on node, abort this
+        // algorithm."
+        if (valuesEqual(command, getEffectiveValue(node, command), newValue)) {
+            return;
+        }
+
+        // "Let new parent be null."
+        var newParent = null;
+
+        // TODO: Continue from here
+        // "If the CSS styling flag is false:"
+        if (!styleWithCss) {
+            // "If command is "bold" and new value is "bold", let new parent be the
+            // result of calling createElement("b") on the ownerDocument of node."
+            if (command == "bold" && (newValue == "bold" || newValue == "700")) {
+                newParent = node.ownerDocument.createElement("b");
+            }
+
+            // "If command is "italic" and new value is "italic", let new parent be
+            // the result of calling createElement("i") on the ownerDocument of
+            // node."
+            if (command == "italic" && newValue == "italic") {
+                newParent = node.ownerDocument.createElement("i");
+            }
+
+            // "If command is "strikethrough" and new value is "line-through", let
+            // new parent be the result of calling createElement("s") on the
+            // ownerDocument of node."
+            if (command == "strikethrough" && newValue == "line-through") {
+                newParent = node.ownerDocument.createElement("s");
+            }
+
+            // "If command is "underline" and new value is "underline", let new
+            // parent be the result of calling createElement("u") on the
+            // ownerDocument of node."
+            if (command == "underline" && newValue == "underline") {
+                newParent = node.ownerDocument.createElement("u");
+            }
+
+            // "If command is "foreColor", and new value is fully opaque with red,
+            // green, and blue components in the range 0 to 255:"
+            //
+            // Not going to do this properly, only well enough to pass tests.
+            if (command == "forecolor" && parseSimpleColor(newValue)) {
+                // "Let new parent be the result of calling createElement("font")
+                // on the ownerDocument of node."
+                newParent = node.ownerDocument.createElement("font");
+
+                // "If new value is one of the colors listed in the SVG color
+                // keywords section of CSS3 Color, set the color attribute of new
+                // parent to new value."
+                //
+                // "Otherwise, set the color attribute of new parent to the result
+                // of applying the rules for serializing simple color values to new
+                // value (interpreted as a simple color)."
+                newParent.setAttribute("color", parseSimpleColor(newValue));
+            }
+
+            // "If command is "fontName", let new parent be the result of calling
+            // createElement("font") on the ownerDocument of node, then set the
+            // face attribute of new parent to new value."
+            if (command == "fontname") {
+                newParent = node.ownerDocument.createElement("font");
+                newParent.face = newValue;
+            }
+        }
+
+        // "If command is "createLink" or "unlink", let new parent be the result of
+        // calling createElement("a") on the ownerDocument of node, then set the
+        // href attribute of new parent to new value."
+        if (command == "createlink" || command == "unlink") {
+            newParent = node.ownerDocument.createElement("a");
+            newParent.setAttribute("href", newValue);
+        }
+
+        // "If command is "fontSize"; and new value is one of "xx-small", "small",
+        // "medium", "large", "x-large", "xx-large", or "xxx-large"; and either the
+        // CSS styling flag is false, or new value is "xxx-large": let new parent
+        // be the result of calling createElement("font") on the ownerDocument of
+        // node, then set the size attribute of new parent to the number from the
+        // following table based on new value: [table omitted]"
+        if (command == "fontsize"
+        && ["xx-small", "small", "medium", "large", "x-large", "xx-large", "xxx-large"].indexOf(newValue) != -1
+        && (!cssStylingFlag || newValue == "xxx-large")) {
+            newParent = node.ownerDocument.createElement("font");
+            newParent.size = {
+                "xx-small": 1,
+                "small": 2,
+                "medium": 3,
+                "large": 4,
+                "x-large": 5,
+                "xx-large": 6,
+                "xxx-large": 7
+            }[newValue];
+        }
+
+        // "If command is "subscript" or "superscript" and new value is "sub", let
+        // new parent be the result of calling createElement("sub") on the
+        // ownerDocument of node."
+        if ((command == "subscript" || command == "superscript")
+        && newValue == "sub") {
+            newParent = node.ownerDocument.createElement("sub");
+        }
+
+        // "If command is "subscript" or "superscript" and new value is "super",
+        // let new parent be the result of calling createElement("sup") on the
+        // ownerDocument of node."
+        if ((command == "subscript" || command == "superscript")
+        && newValue == "super") {
+            newParent = node.ownerDocument.createElement("sup");
+        }
+
+        // "If new parent is null, let new parent be the result of calling
+        // createElement("span") on the ownerDocument of node."
+        if (!newParent) {
+            newParent = node.ownerDocument.createElement("span");
+        }
+
+        // "Insert new parent in node's parent before node."
+        node.parentNode.insertBefore(newParent, node);
+
+        // "If the effective value of command for new parent is not new value, and
+        // the relevant CSS property for command is not null, set that CSS property
+        // of new parent to new value (if the new value would be valid)."
+        var property = getRelevantCssProperty(command);
+        if (property !== null
+        && !valuesEqual(command, getEffectiveValue(newParent, command), newValue)) {
+            newParent.style[property] = newValue;
+        }
+
+        // "If command is "strikethrough", and new value is "line-through", and the
+        // effective value of "strikethrough" for new parent is not "line-through",
+        // set the "text-decoration" property of new parent to "line-through"."
+        if (command == "strikethrough"
+        && newValue == "line-through"
+        && getEffectiveValue(newParent, "strikethrough") != "line-through") {
+            newParent.style.textDecoration = "line-through";
+        }
+
+        // "If command is "underline", and new value is "underline", and the
+        // effective value of "underline" for new parent is not "underline", set
+        // the "text-decoration" property of new parent to "underline"."
+        if (command == "underline"
+        && newValue == "underline"
+        && getEffectiveValue(newParent, "underline") != "underline") {
+            newParent.style.textDecoration = "underline";
+        }
+
+        // "Append node to new parent as its last child, preserving ranges."
+        movePreservingRanges(node, newParent, newParent.childNodes.length);
+
+        // "If node is an Element and the effective value of command for node is
+        // not new value:"
+        if (node.nodeType == Node.ELEMENT_NODE
+        && !valuesEqual(command, getEffectiveValue(node, command), newValue)) {
+            // "Insert node into the parent of new parent before new parent,
+            // preserving ranges."
+            movePreservingRanges(node, newParent.parentNode, getNodeIndex(newParent));
+
+            // "Remove new parent from its parent."
+            newParent.parentNode.removeChild(newParent);
+
+            // "If new parent is a span, and either a) command is "underline" or
+            // "strikethrough", or b) command is "fontSize" and new value is not
+            // "xxx-large", or c) command is not "fontSize" and the relevant CSS
+            // property for command is not null:"
+            if (newParent.tagName == "SPAN"
+            && (
+                (command == "underline" || command == "strikethrough")
+                || (command == "fontsize" && newValue != "xxx-large")
+                || (command != "fontsize" && property !== null)
+            )) {
+                // "If the relevant CSS property for command is not null, set that
+                // CSS property of node to new value."
+                if (property !== null) {
+                    node.style[property] = newValue;
+                }
+
+                // "If command is "strikethrough" and new value is "line-through",
+                // alter the "text-decoration" property of node to include
+                // "line-through" (preserving "overline" or "underline" if
+                // present)."
+                if (command == "strikethrough" && newValue == "line-through") {
+                    if (node.style.textDecoration == ""
+                    || node.style.textDecoration == "none") {
+                        node.style.textDecoration = "line-through";
+                    } else {
+                        node.style.textDecoration += " line-through";
+                    }
+                }
+
+                // "If command is "underline" and new value is "underline", alter
+                // the "text-decoration" property of node to include "underline"
+                // (preserving "overline" or "line-through" if present)."
+                if (command == "underline" && newValue == "underline") {
+                    if (node.style.textDecoration == ""
+                    || node.style.textDecoration == "none") {
+                        node.style.textDecoration = "underline";
+                    } else {
+                        node.style.textDecoration += " underline";
+                    }
+                }
+
+            // "Otherwise:"
+            } else {
+                // "Let children be all children of node, omitting any that are
+                // Elements whose specified value for command is neither null nor
+                // equal to new value."
+                var children = [];
+                for (var i = 0; i < node.childNodes.length; i++) {
+                    if (node.childNodes[i].nodeType == Node.ELEMENT_NODE) {
+                        var specifiedValue = getSpecifiedValue(node.childNodes[i], command);
+
+                        if (specifiedValue !== null
+                        && !valuesEqual(command, newValue, specifiedValue)) {
+                            continue;
+                        }
+                    }
+                    children.push(node.childNodes[i]);
+                }
+
+                // "Force the value of each Node in children, with command and new
+                // value as in this invocation of the algorithm."
+                for (var i = 0; i < children.length; i++) {
+                    forceValue(children[i], command, newValue);
                 }
             }
         }
     }
 
+    function pushDownValues(node, command, newValue, styleWithCss, rangesToPreserve) {
+        // "If node's parent is not an Element, abort this algorithm."
+        if (!node.parentNode || node.parentNode.nodeType != 1) {
+            return;
+        }
+
+        // "If the effective value of command is new value on node, abort this
+        // algorithm."
+        if (valuesEqual(command, command.getEffectiveValue(node, command), newValue)) {
+            return;
+        }
+
+        // "Let current ancestor be node's parent."
+        var currentAncestor = node.parentNode;
+
+        // "Let ancestor list be a list of Nodes, initially empty."
+        var ancestorList = [];
+
+        // "While current ancestor is an editable Element and the effective value
+        // of command is not new value on it, append current ancestor to ancestor
+        // list, then set current ancestor to its parent."
+        while (isEditable(currentAncestor) && currentAncestor.nodeType == 1
+                && !valuesEqual(command, getEffectiveValue(currentAncestor, command), newValue)) {
+            ancestorList.push(currentAncestor);
+            currentAncestor = currentAncestor.parentNode;
+        }
+
+        // "If ancestor list is empty, abort this algorithm."
+        if (ancestorList.length == 0) {
+            return;
+        }
+
+        // "Let propagated value be the specified value of command on the last
+        // member of ancestor list."
+        var lastAncestor = ancestorList[ancestorList.length - 1],
+            propagatedValue = command.getSpecifiedValue(lastAncestor);
+
+        // "If propagated value is null and is not equal to new value, abort this
+        // algorithm."
+        if (propagatedValue === null && propagatedValue != newValue) {
+            return;
+        }
+
+        // "If the effective value of command is not new value on the parent of
+        // the last member of ancestor list, and new value is not null, abort this
+        // algorithm."
+        if (newValue !== null && !valuesEqual(command, getEffectiveValue(lastAncestor.parentNode, command), newValue)) {
+            return;
+        }
+
+        // "While ancestor list is not empty:"
+        while (ancestorList.length) {
+            // "Let current ancestor be the last member of ancestor list."
+            // "Remove the last member from ancestor list."
+            currentAncestor = ancestorList.pop();
+
+            // "If the specified value of current ancestor for command is not null,
+            // set propagated value to that value."
+            if (getSpecifiedValue(currentAncestor, command) !== null) {
+                propagatedValue = getSpecifiedValue(currentAncestor, command);
+            }
+
+            // "Let children be the children of current ancestor."
+            var children = nodeListToArray(currentAncestor.childNodes);
+
+            // "If the specified value of current ancestor for command is not null,
+            // clear the value of current ancestor."
+            if (getSpecifiedValue(currentAncestor, command) !== null) {
+                clearValue(currentAncestor, command);
+            }
+
+            // "For every child in children:"
+            for (var i = 0, child; child = children[i++]; ) {
+                // "If child is node, continue with the next child."
+                if (child == node) {
+                    continue;
+                }
+
+                // "If child is an Element whose specified value for command
+                // is neither null nor equal to propagated value, continue with the
+                // next child."
+                if (child.nodeType == 1
+                        && getSpecifiedValue(child, command) !== null
+                        && !valuesEqual(command, propagatedValue, getSpecifiedValue(child, command))) {
+                    continue;
+                }
+
+                // "If child is the last member of ancestor list, continue with the
+                // next child."
+                if (child == lastAncestor) {
+                    continue;
+                }
+
+                // "Force the value of child, with command as in this algorithm
+                // and new value equal to propagated value."
+                forceValue(child, command, propagatedValue, styleWithCss, rangesToPreserve);
+            }
+        }
+    }
+
+
+
+    function Command() {}
+
     Command.prototype = {
         relevantCssProperty: null,
 
-        getSpecifiedValue: function(element) {
+        getSpecifiedValue: function() {
             //throw new module.createError("Command '" + this.name + "' does not implement getSpecifiedValue()");
             return null;
         },
 
+        clearValue: function(element) {
 
-        applyToRange: function(range) {
+        },
+
+        getEffectiveValue: function(element) {
+            return getComputedStyleProperty(element, this.relevantCssProperty);
+        },
+
+
+        applyToRange: function(range, rangesToPreserve) {
         },
 
         applyToSelection: function(win) {
@@ -721,6 +1219,7 @@ rangy.createModule("Commands", function(api, module) {
     };
 
     Command.util = {
+        getComputedStyleProperty: getComputedStyleProperty,
         getFurthestAncestor: getFurthestAncestor,
         isContained: isContained,
         isEffectivelyContained: isEffectivelyContained,
@@ -730,6 +1229,19 @@ rangy.createModule("Commands", function(api, module) {
         blockExtend: blockExtend,
         isModifiableElement: isModifiableElement,
         isSimpleModifiableElement: isSimpleModifiableElement
+    };
+
+    Command.create = function(commandConstructor, properties) {
+        var proto = new Command();
+        commandConstructor.prototype = proto;
+
+        if (typeof properties == "object") {
+            for (var i in properties) {
+                if (properties.hasOwnProperty(i)) {
+                    proto[i] = properties[i];
+                }
+            }
+        }
     };
 
     var commandsByName = {};

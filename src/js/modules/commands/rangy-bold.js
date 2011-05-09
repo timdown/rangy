@@ -17,6 +17,29 @@ rangy.createModule("BoldCommand", function(api, module) {
 
     var dom = api.dom;
 
-    api.Command.create
+    function BoldCommand() {
+
+    }
+
+    api.Command.create(BoldCommand, {
+        relevantCssProperty: "fontWeight",
+
+        getSpecifiedValue: function(element) {
+            return element.style.fontWeight || (/^(strong|b)$/i.test(element.tagName) ? "bold" : null);
+        },
+
+        valuesEqual: function(val1, val2) {
+            val1 = val1.toLowerCase();
+            val2 = val2.toLowerCase();
+            return val1 == val2
+                || (val1 == "bold" && val2 == "700")
+                || (val2 == "bold" && val1 == "700")
+                || (val1 == "normal" && val2 == "400")
+                || (val2 == "normal" && val1 == "400");
+        }
+
+    });
+
+    var boldCommand = null;
 
 });
