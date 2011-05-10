@@ -132,7 +132,7 @@ rangy.createModule("Highlighter", function(api, module) {
             }
 
             this.highlights.sort(compareHighlights);
- 
+
             var rangeInfos = [], highlightRange;
 
             for (i = 0; i < this.highlights.length; ++i) {
@@ -208,7 +208,7 @@ rangy.createModule("Highlighter", function(api, module) {
 
         selectionOverlapsHighlight: function(selection) {
             selection = selection || rangy.getSelection();
-            return this.getIntersectingHighlights(selection.getAllRanges()) > 0;
+            return this.getIntersectingHighlights(selection.getAllRanges()).length > 0;
         },
 
         serialize: function() {
