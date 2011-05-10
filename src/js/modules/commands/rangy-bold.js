@@ -36,7 +36,12 @@ rangy.createModule("BoldCommand", function(api, module) {
                 || (val2 == "bold" && val1 == "700")
                 || (val1 == "normal" && val2 == "400")
                 || (val2 == "normal" && val1 == "400");
+        },
+
+        createNonCssElement: function(node, value) {
+            return (value == "bold" || value == "700") ? dom.getDocument(node).createElement("b") : null;
         }
+
 
     });
 
