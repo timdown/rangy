@@ -20,8 +20,11 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+<!--
     <script type="text/javascript" src="../src/js/modules/rangy-textcommands.js"></script>
+-->
     <script type="text/javascript" src="../src/js/modules/rangy-commands.js"></script>
+    <script type="text/javascript" src="../src/js/modules/commands/rangy-bold.js"></script>
     <script type="text/javascript">
         function gEBI(id) {
             return document.getElementById(id);
@@ -31,13 +34,17 @@
             rangy.init();
 
             // Enable buttons
-            var textCommandsModule = rangy.modules.TextCommands;
-            if (rangy.supported && textCommandsModule && textCommandsModule.supported) {
+            var commandsModule = rangy.modules.Commands;
+            if (rangy.supported && commandsModule && commandsModule.supported) {
                 var toggleBoldButton = gEBI("toggleBoldButton");
                 toggleBoldButton.disabled = false;
                 toggleBoldButton.onmousedown = function() {
                     //alert(rangy.querySelectionCommandValue("bold"));
-                    rangy.execSelectionCommand("bold");
+                    try {
+                        rangy.execCommand("bold");
+                    } catch(ex) {
+                        console.log("error", ex)
+                    }
                     return false;
                 };
 

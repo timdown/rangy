@@ -128,7 +128,7 @@ rangy.createModule("Commands", function(api, module) {
      */
     function isContained(node, range) {
         var pos1 = dom.comparePoints(node, 0, range.startContainer, range.startOffset);
-        var pos2 = dom.comparePoints(node, getNodeLength(node), range.endContainer, range.endOffset);
+        var pos2 = dom.comparePoints(node, dom.getNodeLength(node), range.endContainer, range.endOffset);
 
         return getRootContainer(node) == getRootContainer(range.startContainer)
             && pos1 == 1
@@ -153,9 +153,10 @@ rangy.createModule("Commands", function(api, module) {
         if (node == range.endContainer && isCharData && range.endOffset != 0) {
             return true;
         }
-        if (node.childNodes.length != 0) {
-            for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-                if (!isEffectivelyContained(node.childNodes[i], range)) {
+        var children = node.childNodes, childCount = children.length;
+        if (childCount != 0) {
+            for (var i = 0; i < childCount; ++i) {
+                if (!isEffectivelyContained(children[i], range)) {
                     return false;
                 }
             }
@@ -311,7 +312,7 @@ rangy.createModule("Commands", function(api, module) {
     var modifiableElementRegex = new RegExp("^(" + modifiableElements + ")$");
 
     function isModifiableElement(node) {
-        log.info("isModifiableElement nodeType " + node.nodeType + ", isHtmlNode " + isHtmlNode(node))
+        log.info("isModifiableElement nodeType " + node.nodeType + ", isHtmlNode " + isHtmlNode(node));
         if (node.nodeType != 1 || !isHtmlNode(node)) {
             return false;
         }
@@ -964,7 +965,7 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     function setNodeValue(node, command, newValue, rangesToPreserve) {
-        var i, len, child, children, nodeType = node.nodeType;
+        var i, len, child, nodeType = node.nodeType;
 
         // "If node is a Document, set the value of its Element child (if it has
         // one) and abort this algorithm."
@@ -1026,7 +1027,11 @@ rangy.createModule("Commands", function(api, module) {
         setChildrenNodeValue(node, command, newValue, rangesToPreserve);
     }
 
-
+    function getEffectiveTextNodes(range) {
+        return range.getNodes([3], function(node) {
+            isEffectivelyContained(node, range);
+        });
+    }
 
     function Command() {}
 
@@ -1174,6 +1179,9 @@ rangy.createModule("Commands", function(api, module) {
         blockExtend: blockExtend,
         isModifiableElement: isModifiableElement,
         isSimpleModifiableElement: isSimpleModifiableElement,
+        getEffectiveValue: getEffectiveValue,
+        getEffectiveTextNodes: getEffectiveTextNodes,
+        setNodeValue: setNodeValue,
         setOption: function(name, value) {
             options[name] = value;
         }
@@ -1210,9 +1218,9 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-    api.execCommand = function(name, options) {
+    api.execCommand = function(name, win, options) {
         var command = getCommand(name);
-        command.applyToSelection(options);
+        command.applyToSelection(win, options);
     };
 
     api.getCommand = getCommand;

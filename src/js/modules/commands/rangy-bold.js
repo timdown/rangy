@@ -15,7 +15,7 @@
 rangy.createModule("BoldCommand", function(api, module) {
     api.requireModules( ["Commands"] );
 
-    var dom = api.dom;
+    var dom = api.dom, commandUtil = api.Command.util;
 
     function BoldCommand() {
 
@@ -40,11 +40,38 @@ rangy.createModule("BoldCommand", function(api, module) {
 
         createNonCssElement: function(node, value) {
             return (value == "bold" || value == "700") ? dom.getDocument(node).createElement("b") : null;
+        },
+
+        isValueBold: function(val) {
+
+        },
+
+        getRangeValue: function(range) {
+            var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
+            while (i--) {
+                value = commandUtil.getEffectiveValue(textNodes[i]);
+                if (!/^(bold|700|800|900)$/.test(value)) {
+                    return false;
+                }
+            }
+            return true;
+        },
+
+        applyToSelection: function(win) {
+            var sel = api.getSelection(win);
+            var selRanges = sel.getAllRanges(), range = selRanges[0];
+
+            var decomposed = range.decompose();
+            var newValue = this.getRangeValue(range) ? "normal" : "bold";
+
+            for (var i = 0, len = decomposed.length; i < len; ++i) {
+                commandUtil.setNodeValue(decomposed[i], this, newValue, selRanges);
+            }
         }
 
 
     });
 
-    var boldCommand = null;
+    api.registerCommand("bold", new BoldCommand());
 
 });
