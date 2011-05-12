@@ -233,6 +233,8 @@ rangy.createModule("Highlighter", function(api, module) {
                             + "$" + api.serializeRange(range, true) );
                 }
 
+                this.highlights.length = 0;
+
                 return serializedHighlights.join("|");
             } else {
                 return "";
