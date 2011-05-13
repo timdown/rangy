@@ -1,0 +1,852 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<div><div>Dealing with inconsistencies in browser behavior during typing is one of the hardest parts of writing a sane web-based rich-text editor. We have researched what a variety of text editors (Word, Powerpoint, Wordpad, TextEdit) and browsers using contentEditable/DesignMode currently do when you press different keys on the keyboard, in a number of rich text situations, with a variety of text selections. From this data, we attempt to identify recommendations that are OS-agnostic for editing behaviors inside a contentEditable element.</div>
+
+</div><div><br></div><div>Since we&#39;ve used a bunch of tables and formatting, we&#39;ve attached the doc as an HTML file in addition to inline.</div><div><br></div><div>Ojan</div><div><span class="Apple-style-span" style="font-family: Times; font-size: medium; "><div style="margin-top: 15px; margin-right: auto; margin-bottom: 25px; margin-left: auto; padding-top: 40px; padding-right: 50px; padding-bottom: 40px; padding-left: 50px; font-family: Verdana; font-size: 10pt; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); min-height: 1100px; counter-reset: __goog_page__ 0; line-height: normal; border-top-width: 1px; border-top-style: solid; border-top-color: rgb(204, 204, 204); border-left-width: 1px; border-left-style: solid; border-left-color: rgb(204, 204, 204); border-right-width: 2px; border-right-style: solid; border-right-color: rgb(187, 187, 187); border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(187, 187, 187); width: 648px !important; ">
+
+<div style="margin-top: 0px; margin-bottom: 0px; text-align: center; ">Julie Parent, Ojan Vafai, Alex Russel, Eric Seidel</div><h3 style="font-size: 12pt; "><a id="What_this_document_is" name="What_this_document_is"></a>About this document</h3>
+
+<div style="margin-top: 0px; margin-bottom: 0px; ">We have researched what a variety of text editors (Word, Powerpoint, Wordpad, TextEdit) and browsers using contentEditable/DesignMode currently do when you press different keys on the keyboard, in a number of rich text situations, with a variety of text selections.  From this data, we have identified a set of common behaviors, listed below in the terminology section.  Finally, we have formed recommendations for default behaviors in these circumstances and, when necessary, added additional execCommands or specification details to existing execCommands.<font style="background-color: rgb(255, 255, 255); ">The execCommands match the behavior of the user-initiated action in order to give developers control over these behaviors when the defaults are incorrect for a specific use case.</font></div>
+
+<br><div style="margin-top: 0px; margin-bottom: 0px; "><font style="background-color: rgb(255, 255, 255); ">We tried to avoid defining any behaviors that are OS-specific and to make the descriptions as clear as possible, but there&#39;s a lot of detail here that could use the scrutiny of more eyes. We also tried to make the text as clear as possible, but are not spec writers and don&#39;t intend this to be the actual text used in the spec. Please comment on any text that doesn&#39;t make sense.</font></div>
+
+<br><div class="writely-toc" id="WritelyTableOfContents" style="margin-top: 0px; margin-bottom: 0px; "><ol class="writely-toc-upper-roman" style="margin-top: 0px; margin-bottom: 0px; list-style-type: upper-roman; padding-left: 3em; font-weight: bold; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Terminology" target="_self">Terminology</a></li><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Collapsed_selections_carets_" target="_self">Collapsed selections (carets)</a></li>
+
+<ol class="writely-toc-lower-roman writely-toc-subheading" style="margin-top: 0px; margin-bottom: 0px; list-style-type: lower-roman; padding-left: 1em; font-weight: normal; margin-left: 0pt; "><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+<a href="#Text_insertion__15327099990099669" target="_self">Text insertion</a></li><ol class="writely-toc-lower-roman writely-toc-subheading" style="margin-top: 0px; margin-bottom: 0px; list-style-type: lower-roman; padding-left: 1em; font-weight: normal; margin-left: 0pt; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Alphanumerics_5657284623011947" target="_self">Alphanumerics</a></li><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Paste_6935868207365274" target="_self">Paste</a></li>
+
+</ol><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Text_deletion__7460317360237241" target="_self">Text deletion</a></li><ol class="writely-toc-lower-roman writely-toc-subheading" style="margin-top: 0px; margin-bottom: 0px; list-style-type: lower-roman; padding-left: 1em; font-weight: normal; margin-left: 0pt; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Backspace_76161671243608" target="_self">Backspace</a></li><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Forward_Delete" target="_self">Forward Delete</a></li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Cut" target="_self">Cut</a></li></ol><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Tab_Key_" target="_self">Tab Key</a></li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+<a href="#Enter__35112586710602045" target="_self">Enter</a></li></ol><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Non_collapsed_selections" target="_self">Non collapsed selections</a></li><ol class="writely-toc-lower-roman writely-toc-subheading" style="margin-top: 0px; margin-bottom: 0px; list-style-type: lower-roman; padding-left: 1em; font-weight: normal; margin-left: 0pt; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Text_insertion_" target="_self">Text insertion</a></li><ol class="writely-toc-lower-roman writely-toc-subheading" style="margin-top: 0px; margin-bottom: 0px; list-style-type: lower-roman; padding-left: 1em; font-weight: normal; margin-left: 0pt; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Alphanumerics" target="_self">Alphanumerics</a></li><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Paste" target="_self">Paste</a></li></ol><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+<a href="#Text_deletion_" target="_self">Text deletion</a></li><ol class="writely-toc-lower-roman writely-toc-subheading" style="margin-top: 0px; margin-bottom: 0px; list-style-type: lower-roman; padding-left: 1em; font-weight: normal; margin-left: 0pt; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Backspace" target="_self">Backspace</a></li><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Delete" target="_self">Delete</a></li></ol><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+<a href="#Tab_" target="_self">Tab</a></li><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Enter_" target="_self">Enter</a></li></ol><li style="margin-top: 0px; margin-bottom: 0px; "><a href="#Appendix_8992731962352991_0404_9370131157338619" target="_self">Appendix</a></li>
+
+</ol></div><br><h1 style="font-size: 18pt; "><a id="Terminology" name="Terminology"></a>Terminology</h1><div style="margin-top: 0px; margin-bottom: 0px; "><b>Typeable Position:</b> A<font style="background-color: rgb(255, 255, 255); "> normalized </font>position (node, offset), for which inserting a character produces valid html.  Arrow keys move by typeable positions.  Basically, anywhere you can put a character and it isn&#39;t an HTML5 error.</div>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><b>Typing style:</b> Internal state of formatting that should be applied when text is inserted. The typing style is automatically emptied when the user modifies the selection (e.g. moves the caret). This is used for things like execCommand(&#39;bold&#39;) on a collapsed selection.</div>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><b>Caret:</b> Collapsed selection.</div><div style="margin-top: 0px; margin-bottom: 0px; "><b>Block context:</b> The type of block to use when adding a block during a split.</div>
+
+<br><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; "><b>Legend: Common behaviors</b></div><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; ">See <a href="#Appendix" id="omp9" target="_self" title="Appendix">Appendix</a> for details on differences in the current implementations of these behaviors.</div>
+
+<table border="1" cellpadding="3" cellspacing="0" id="s0k5" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; "><tbody><tr style="text-align: left; "><td width="50%">Short name</td><td width="50%">
+
+Description</td></tr><tr style="text-align: left; "><td width="50%">Undo: add entry</td><td width="50%">Adds a new entry to the undo stack</td></tr><tr style="text-align: left; "><td width="50%">Undo: combine with text</td>
+
+<td width="50%">Treat like any other text insertion - UA can group together to form a single entry.</td></tr><tr style="text-align: left; "><td width="50%">focus next</td><td width="50%">Contents: nop.<br><br>Undo: nop.<br>
+
+<br>Selection: Focus moved to next tabable item.</td></tr><tr style="text-align: left; "><td width="50%">focus prev</td><td width="50%">Like focus next, but moves to the previous item in tab order</td></tr><tr style="text-align: left; ">
+
+<td width="50%">focus next cell</td><td width="50%">Contents: nop.<br><br>undo: nop.<br><br>Selection: Focus is moved to the next cell (either next cell in a row, or to the first cell in the next row)  Cursor is at start of next cell or cell contents are selected.  See below for current details</td>
+
+</tr><tr style="text-align: left; "><td width="50%">select(item)</td><td width="50%">Cause the user visible selection to fully select the item.</td></tr><tr style="text-align: left; "><td width="50%">indent paragraph(s)</td>
+
+<td width="50%">Indent each paragraph individually.<br><br>Undo: add entry<br><br>Selection: unchanged</td></tr><tr style="text-align: left; "><td width="50%">outdent pragraph(s)</td><td width="50%">If indented, outdent one level.<br>
+
+undo: add entry<br><br>If not indented, nop.<br><br>Selection: unchanged</td></tr><tr style="text-align: left; "><td width="50%">indent li</td><td width="50%">Contents: See table below for current implementation differences.<br>
+
+<br>Undo: add entry.<br><br>Selection: Cursor is unchanged visibly.<br></td></tr><tr style="text-align: left; "><td width="50%">indent list</td><td width="50%">Contents: Html is no longer list based (this is word only).                                                                                         <br>
+
+<br>Undo: add entry<br><br>Selection: Cursor is unchanged visbily.</td></tr><tr style="text-align: left; "><td width="50%">insert tab char</td><td width="50%">Contents: Inserts tab character at typeable caret location.<br>
+
+<br>Undo: combined with text.<br><br>Selection: Caret is after tab char.</td></tr><tr style="text-align: left; "><td width="50%">insert spaces</td><td width="50%">Contents: See table below for different implementations of inserting spaces.<br>
+
+<br>Undo: combine with text.<br><br>Selection: Cursor is after the spaces and any tags they added.</td></tr><tr style="text-align: left; "><td width="50%">insert table row</td><td width="50%">Contents: Adds a new table row<br>
+
+<br>Undo: add entry<br><br>Selection: Cursor in first cell of new row<br></td></tr><tr style="text-align: left; "><td width="50%">break out</td><td width="50%">breaks out of the current node and adds a new node of the type of the new context it&#39;s in.<br>
+
+Note: Anytime a node is split, all copyable properties end up on both nodes (as an example, ID is not copyable since that would leave you with an invalid DOM).</td></tr><tr style="text-align: left; "><td width="50%">split</td>
+
+<td width="50%">splits the current block node at the cursor</td></tr><tr style="text-align: left; "><td width="50%">split contents</td><td width="50%">split contents into two nodes of th<font style="background-color: rgb(255, 255, 255); ">e block context </font>and make them the child of the parent<br>
+
+</td></tr><tr style="text-align: left; "><td width="50%">br</td><td width="50%">inserts a br</td></tr><tr style="text-align: left; "><td width="50%">break out and wrap in block</td><td width="50%">breaks out of the current node and wraps both new nodes in a block of the type <font style="background-color: rgb(255, 255, 255); ">of the new block conte</font>xt</td>
+
+</tr><tr style="text-align: left; "><td width="50%">split wrap in block</td><td width="50%">split inlines and <font style="background-color: rgb(255, 255, 255); ">wrap in two elements of the block context type</font></td>
+
+</tr><tr style="text-align: left; "><td width="50%">replace selected</td><td width="50%">Text selected is removed from the document and replaced with new content.<br><br>Cursor is collapsed at end of the newly inserted text.<br>
+
+<br>Undo: Either combine with text or add entry.  UA specific.</td></tr><tr style="text-align: left; "><td width="50%">remove(item)</td><td width="50%">Removes the item from the dom.<br><br><font style="background-color: rgb(255, 0, 255); "><font style="background-color: rgb(255, 255, 255); ">If the item removed would create an empty block tag, the UA should insert a non-breaking space that the user is unable to put the cursor after and is automatically deleted when the user types (this is roughly IE&#39;s behavior).<br>
+
+<br>If the item removed would create an empty inline styling tag, the tag and it&#39;s formatting should be removed and entered into the typing style.<br></font></font><br>For backspace: Cursor moves to typeable position before the removed item.<br>
+
+<br>For delete: Cursor moves to typeable poistion after the removed item.</td></tr><tr style="text-align: left; "><td width="50%">maintain styling</td><td width="50%"><font style="background-color: rgb(255, 0, 255); "><font style="background-color: rgb(255, 255, 255); ">Removes an inline styling tag from the dom and adds it to the typing style.</font><br>
+
+</font><br>Aka, given &quot;a&lt;b&gt;foo&lt;/b&gt;c&quot;, if you start at the end of &quot;foo&quot;, and backspace 3 times, you are left with &quot;ac&quot;, but if you insert a &quot;b&quot; before changing the selection, you&#39;d get &quot;a&lt;b&gt;b&lt;/b&gt;c&quot;.</td>
+
+</tr><tr style="text-align: left; "><td width="50%">merge</td><td width="50%">Merge 2 blocks into 1.  The second block (in document order) is merged into the first.  The type and styling of the second block are lost.<br>
+<br>
+Aka, given &lt;p&gt;paragraph&lt;/p&gt;&lt;h1&gt;header&lt;/h1&gt;, with the cursor at the start of the H1 and pressing backspace results in &lt;p&gt;paragraphheader&lt;/p&gt; and the &lt;h1&gt; is lost, and the cursor remains at the merge point, between &quot;paragraph&quot; and &quot;header&quot;.  For delete, if the cursor is at the end of the P, the result is the same as backspace at the start of the H1.<br>
+
+</td></tr><tr style="text-align: left; "><td width="50%">nop</td><td width="50%">Nothing happens to contents, selection, undo stack, etc.</td></tr><tr style="text-align: left; "><td width="50%">delete(rangeContents)</td>
+<td width="50%">
+Delete all fully selected nodes and all selected characters, but preserve partially selected nodes.  Cursor is collapsed after this action.</td></tr><tr style="text-align: left; "><td width="50%">no merge</td><td width="50%">
+
+Adjacent blocks are not merged into one block.</td></tr><tr style="text-align: left; "><td width="50%">merge + wrap styling</td><td width="50%">Merge adjacent blocks, but wrap the second blocks&#39;s contents in a styled span that keeps the original styling and cancels out any styling from the first block.</td>
+
+</tr><tr style="text-align: left; "><td width="50%">cursor: end of start</td><td width="50%">Cursor is located after the last character of the start node, but before the end node. That is, if you type, the inserted character will go into the start node.<br>
+
+Note: in all contexts, selection direction does not effect this.</td></tr><tr style="text-align: left; "><td width="50%">cursor: collapse(toStart)</td><td width="50%">Collapse the cursor to the start/end.<br></td></tr><tr style="text-align: left; ">
+
+<td width="50%">backwards merge</td><td width="50%">Merge 2 blocks, but rather than merging second  block into first block, merge first block into second block.</td></tr><tr style="text-align: left; "><td width="50%">no content change</td>
+
+<td width="50%">Text contents do not change.  Not a total nop since selection can still change.</td></tr></tbody></table><br><div style="margin-top: 0px; margin-bottom: 0px; "><b>Key to the tables below</b></div><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; text-align: left; ">
+
+<font style="background-color: rgb(0, 255, 0); ">Green:</font><font style="background-color: rgb(255, 255, 255); "> C</font>urrent behavior matches the recommended behavior.</p><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; text-align: left; ">
+
+<font style="background-color: rgb(255, 0, 0); ">Red:</font><font style="background-color: rgb(255, 255, 255); "> C</font>urrent behavior does not match the recommended behavior.</p><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; text-align: left; ">
+
+<font style="background-color: rgb(255, 153, 0); ">Orange</font>: Current behavior nearly matches the recommended behavior.  Difference is usually a platform specific subtlety.</p><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; text-align: left; ">
+
+N/A: Behavior does not apply in this context.</p><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; text-align: left; "><br></p><hr><h1 style="font-size: 18pt; "><a id="Collapsed_selections_carets_" name="Collapsed_selections_carets_"></a>Collapsed selections (carets)</h1>
+
+<h2 style="font-size: 14pt; "><a id="Text_insertion__15327099990099669" name="Text_insertion__15327099990099669"></a>Text insertion<sup><a href="#FOOTNOTE-1">1</a></sup> </h2><h3 style="font-size: 12pt; "><a id="Alphanumerics_5657284623011947" name="Alphanumerics_5657284623011947"></a>Alphanumerics</h3>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><b>Recomendation for HTML 5</b>:</div><div style="margin-top: 0px; margin-bottom: 0px; "><ol style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+<font style="background-color: rgb(255, 255, 255); ">Normalize the current caret to a typeable Position.</font></li><li style="margin-top: 0px; margin-bottom: 0px; ">Insert the character at the typeable position.</li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+Adjust the typeable position to be collapsed after the inserted text.</li></ol><br><div style="margin-top: 0px; margin-bottom: 0px; "><b>execCommand(&#39;insertText&#39;, false, singleCharacter)</b> should be equivalent to pressing the alphanumeric key on the keyboard.  Currently supported by WebKit.</div>
+
+<br>Notes: Current and recommended behaviors match here, and there are no known differences been UA&#39;s, other than with undo group formation, white-space rebalancing, and where typeable positions are.  Specifically:</div>
+
+<ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">Undo: combine with text (UA specific when to start new groups).</li><li style="margin-top: 0px; margin-bottom: 0px; ">Need to deal with white-space rebalancing to enable multiple spaces.</li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; ">Given a dom with multiple dom positions for the same visible positions, UA&#39;s currently vary in which position is considered the typeable position. Example: given foo&lt;b&gt;bar&lt;/b&gt;baz:</li>
+
+<ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">With the cursor between bar and baz (in the way a user can create, not programatically), insertions happen:  </li></ul><ul style="margin-top: 0px; margin-bottom: 0px; ">
+
+<ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">IE: if you click into the location, text goes into the B tag.  If you use arrow keys, it goes outside.</li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+FF: If you click in, outside.  If you arrow from outside the tag, outside.  If you arrow from inside the tag, inside.</li><li style="margin-top: 0px; margin-bottom: 0px; ">Chrome: always in.</li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+Word: always in.</li><li style="margin-top: 0px; margin-bottom: 0px; ">PPT: always in.</li></ul><li style="margin-top: 0px; margin-bottom: 0px; ">With the cursor between foo and bar, insertions happen:</li><ul style="margin-top: 0px; margin-bottom: 0px; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; ">IE: Click, outside B.  Arrows, inside.</li><li style="margin-top: 0px; margin-bottom: 0px; ">FF: Click, outside.  Arrow from inside the tag, inside.  Arrow from outside the tag, outside.</li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; ">Chrome: Always out.</li><li style="margin-top: 0px; margin-bottom: 0px; ">Word: always out.</li><li style="margin-top: 0px; margin-bottom: 0px; ">PPT: always out.</li></ul>
+
+</ul></ul><h3 style="font-size: 12pt; "><a id="Paste_6935868207365274" name="Paste_6935868207365274"></a>Paste</h3><div style="margin-top: 0px; margin-bottom: 0px; "><b>Recomendation for HTML 5</b>:</div><ol style="margin-top: 0px; margin-bottom: 0px; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font style="background-color: rgb(255, 255, 255); ">Normalize the current caret to a typeable Position.</font></li><li style="margin-top: 0px; margin-bottom: 0px; ">Begin a new undo group</li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; ">Insert the html, performing cleanups to create valid html.</li><li style="margin-top: 0px; margin-bottom: 0px; ">End undo group</li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+Adjust the typeable position to be collapsed after the inserted text.</li></ol><br><div style="margin-top: 0px; margin-bottom: 0px; "><b>execCommand(&#39;paste&#39;, false, null) </b>should be equivalent to paste from other sources (edit menu, right click, control + v).</div>
+
+<br><div style="margin-top: 0px; margin-bottom: 0px; ">Notes:</div><ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">Current and recommended behaviors match here, except for cleanups required to create valid html on insert.</li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; ">What if the html to insert would be invalid at that given location?  Currently, WebKit and IE do no (?) cleanup, and FF does some cleanup to create valid html.</li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+Example: Pasting a block into an inline: HTML is &quot;&lt;b&gt;fo|o&lt;/b&gt;&quot;, where | is the cursor.  Paste &quot;&lt;h1&gt;bar&lt;/h1&gt;&quot;.</li><ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+WebKit: <font face="verdana">&lt;b&gt;fo&lt;span class=&quot;Apple-style-span&quot; style=&quot;font-weight: normal; &quot;&gt;&lt;h1&gt;bar&lt;/h1&gt;&lt;/span&gt;o&lt;/b&gt;  (INVALID)</font></li><li style="margin-top: 0px; margin-bottom: 0px; ">
+
+<font face="verdana">IE 7:  <font face="verdana">&lt;b&gt;fo&lt;h1&gt;bar&lt;/h1&gt;o&lt;/b&gt; (INVALID)</font></font></li><li style="margin-top: 0px; margin-bottom: 0px; "><font face="verdana">FF 3: &lt;b&gt;fo&lt;/b&gt;&lt;h1&gt;bar&lt;/h1&gt;&lt;b&gt;o&lt;/b&gt; (VALID)</font></li>
+
+</ul></ul><h2 style="font-size: 14pt; "><a id="Text_deletion__7460317360237241" name="Text_deletion__7460317360237241"></a>Text deletion<sup><a href="#FOOTNOTE-2">2</a></sup> </h2><div style="margin-top: 0px; margin-bottom: 0px; ">
+
+Notes:</div><ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">Undo behavior for deletions matches insertions, that is, multiple insertions|deletions can combine into a single entry.</li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; ">In PPT, FF,  insertions and deletions do not share an undo group, in Word, IE, Chrome they do.</li></ul><h3 style="font-size: 12pt; "><a id="Backspace_76161671243608" name="Backspace_76161671243608"></a>Backspace</h3>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><b>Recommendation for HTML 5</b>:</div><div style="margin-top: 0px; margin-bottom: 0px; ">If cursor at the start of a block, merge with previous block.  Otherwise, remove previous item.  The table below shows how closely current editors match this recommendation.</div>
+
+<br><div style="margin-top: 0px; margin-bottom: 0px; "><b>execCommand(&#39;delete&#39;, false, null) </b>should be equivalent to backspace.<br></div><br><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; ">
+
+Current Default Behaviors and Recommendations:</div><table border="1" cellpadding="3" cellspacing="0" id="fywv" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; "><tbody><tr bgcolor="#ffffff" style="text-align: left; ">
+
+<td bgcolor="#ffffff">Context<br>Previous item is:</td><td width="12%">PPT</td><td width="12%">Word</td><td width="12%">IE</td><td width="12%">FF</td><td width="12%">Chrome</td><td bgcolor="#ffffff">Textedit</td><td bgcolor="#ffffff">
+
+Recomendation</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">text</td><td width="12%">remove(char)</td><td width="12%">remove(char)</td><td width="12%">remove(char)</td><td width="12%">remove(char)</td>
+
+<td width="12%">remove(char)</td><td bgcolor="#00ff00">remove(char)</td><td bgcolor="#ffffff">remove(char)</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">beginning of P/H/other blocks</td>
+
+<td width="12%">merge</td><td width="12%">merge</td><td width="12%">merge</td><td width="12%">merge</td><td width="12%">merge</td><td bgcolor="#00ff00">merge</td><td bgcolor="#ffffff">merge</td></tr><tr style="text-align: left; ">
+
+<td bgcolor="#ffffff">image</td><td width="12%">N/A - PPT doesn&#39;t allow images in text</td><td bgcolor="#ff0000">select(image)<br><br>double backspace: remove(image)</td><td bgcolor="#00ff00">remove(image)</td><td bgcolor="#00ff00">
+
+remove(image)</td><td bgcolor="#00ff00">remove(image)</td><td bgcolor="#00ff00">remove(image)</td><td bgcolor="#ffffff">remove(image)</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">link</td><td bgcolor="#ff0000" width="12%">
+
+unlinks</td><td bgcolor="#ff0000" width="12%">unlinks</td><td bgcolor="#ff0000" width="12%">unlinks</td><td bgcolor="#00ff00" width="12%">remove(char), subsequent insert goes inside link</td><td bgcolor="#ff9900" width="12%">
+
+remove(char), subsequent insert goes out of link</td><td bgcolor="#00ff00">remove(char),subsequent insert goes inside link<br><br></td><td bgcolor="#ffffff">remove(char), subsequent insert goes into link (if it still exists)<br>
+
+<br>[<a href="http://docs.google.com/a/google.com/Doc?docid=0ARN9zHKBPzXFY2c5N2J0dnhfOGhxa2N4emdj&amp;hl=en" id="bde7" title="Informal user study">Informal user study</a>: If the link text and href match, and were auto-linked to begin with, then this should also unlink.]</td>
+
+</tr><tr style="text-align: left; "><td bgcolor="#ffffff">table</td><td width="12%">N/A - PPT doesn&#39;t allow tables in text</td><td bgcolor="#ff0000" width="12%">nop</td><td bgcolor="#ff0000" width="12%">remove(table)</td>
+
+<td bgcolor="#ff0000" width="12%">remove(last char in last table cell)</td><td bgcolor="#ff0000" width="12%">merge into last table cell</td><td bgcolor="#ff0000">merge into last table cell</td><td bgcolor="#ffffff">select(table)<br>
+
+<br>[<a href="http://docs.google.com/a/google.com/Doc?docid=0ARN9zHKBPzXFY2c5N2J0dnhfOGhxa2N4emdj&amp;hl=en" id="hxpg" title="Informal user study">Informal user study</a>: Many users concerned here about an entire table just being deleted by a single backspace action]</td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">single char of styled text</td><td width="12%">remove(char), maintain styling</td><td width="12%">remove(char), maintain styling</td><td width="12%">
+
+remove(char), maintain styling</td><td width="12%">remove(char), maintain styling</td><td width="12%">remove(char), maintain styling</td><td bgcolor="#00ff00">remove(char), maintain styling</td><td bgcolor="#ffffff">remove(char), maintain styling </td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">table cell</td><td width="12%">remove(char)<br><br>cannot step out of cell</td><td width="12%">remove(char)<br><br>cannot step out of cell</td><td width="12%">
+
+remove(char)<br><br>cannot step out of cell</td><td width="12%">remove(char)<br><br>cannot step out of cell</td><td bgcolor="#ff9900">if at start of cell, move focus to previous cell (if there is one) or move out of table if in first cell<br>
+
+<br>if in first cell of empty row - delete row<br><br><br>Normal:<br>remove(char)<br></td><td bgcolor="#00ff00">remove(char)<br><br>cannot step out of cell</td><td bgcolor="#ffffff">remove(char)<br><br>cannot step out of cell</td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">list - one char in a li</td><td bgcolor="#ffff00">remove(char)<br><br>li turns into ghost bullet, that will be a bullet if you type into it again but doesn&#39;t render as a bullet<br>
+
+<br>backspace in a ghost bullet will remove the bullet</td><td width="12%">remove(char)</td><td width="12%">remove(char)</td><td width="12%">remove(char)</td><td width="12%">remove(char)</td><td bgcolor="#00ff00">remove(char)</td>
+
+<td bgcolor="#ffffff">remove(char)</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">list - before first char</td><td bgcolor="#00ff00" width="12%">remove(li)</td><td bgcolor="#00ff00" width="12%">remove(li)</td>
+
+<td bgcolor="#ff9900" width="12%">remove(li) + break out</td><td bgcolor="#ff0000" width="12%">merge</td><td bgcolor="#ff0000" width="12%">merge</td><td bgcolor="#ff9900">remove(li) + break out</td><td bgcolor="#ffffff">
+remove(li)<br>
+<br>Note: Second backspace performs the merge.</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">list</td><td width="12%">merge into last li</td><td width="12%">merge into last li</td><td bgcolor="#ff0000">
+
+merge into list, but not into an li</td><td width="12%">merge into last li</td><td width="12%">merge into last li</td><td bgcolor="#00ff00">merge into last li</td><td bgcolor="#ffffff">merge into last li</td></tr><tr style="text-align: left; ">
+
+<td bgcolor="#ffffff">list - empty li</td><td bgcolor="#00ff00" width="12%">only happens as ghost list, remove(li)</td><td bgcolor="#00ff00" width="12%">remove(li)</td><td bgcolor="#ff9900" width="12%">remove(li) + break out</td>
+
+<td bgcolor="#ff0000" width="12%">merge</td><td bgcolor="#ff0000" width="12%">merge</td><td bgcolor="#ff9900">remove(li) + break out</td><td bgcolor="#ffffff">remove(li)</td></tr></tbody></table><br><h3 style="font-size: 12pt; ">
+
+<a id="Forward_Delete" name="Forward_Delete"></a>Forward Delete</h3><div style="margin-top: 0px; margin-bottom: 0px; "><b>Recomendation for HTML 5</b>:</div><div style="margin-top: 0px; margin-bottom: 0px; ">A forward delete before an item should be equivalent to a backspace after the item. The table below shows how closely editors match this recommendation.  If a row is not included in the table below, then the behavior matches the backspace behavior. For individual cells, (m) = matches the backspace behavior.</div>
+
+<br><div style="margin-top: 0px; margin-bottom: 0px; "><b>execCommand(&#39;ForwardDelete&#39;)</b> should be equivalent to pressing forward delete key (implemented in Webkit).</div><br><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; ">
+
+Current Default Behaviors and Recommendations:</div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; "><table border="1" cellpadding="3" cellspacing="0" id="xedj" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; ">
+
+<tbody><tr style="text-align: left; "><td bgcolor="#ffffff">Context<br>Next item is:</td><td width="12%">PPT</td><td width="12%">Word</td><td width="12%">IE</td><td width="12%">FF</td><td width="12%">Chrome</td><td width="12%">
+
+Textedit</td><td bgcolor="#ffffff">Recomendation</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">link</td><td bgcolor="#ff9900" width="12%">remove(char)<br><br>subsequent insert out of link</td><td bgcolor="#ff0000" width="12%">
+
+select(link)<br><br>double delete: remove(link)</td><td bgcolor="#ff9900" width="12%">remove(char)<br><br>subsequent insert out of link</td><td bgcolor="#00ff00" width="12%">remove(char)<br><br>subsequent insert into link<br>
+
+(m)</td><td bgcolor="#ff9900" width="12%">remove(char)<br><br>subsequent insert out of link<br>(m)</td><td bgcolor="#ff9900" width="12%">remove(char)<br><br>subsequent insert out of link<br>(m)</td><td bgcolor="#ffffff">
+remove(char).<br>
+Subsequent typing into link (if it still exists)<br><br>If link text matches href and auto-linked, also unlink.<br><br>(m)</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">table</td><td width="12%">N/A<br>(m)</td>
+
+<td bgcolor="#ff0000" width="12%">merge previous content into first table cell</td><td bgcolor="#ff0000" width="12%">remove(table)<br>(m)</td><td bgcolor="#ff0000" width="12%">delete first char in first table cell (m)</td>
+
+<td bgcolor="#00ff00" width="12%">select(table)<br><br>double delete: remove(table)</td><td bgcolor="#ff0000" width="12%">merge first cell contents into previous content.  Table remains with no first cell.</td><td bgcolor="#ffffff">
+
+select(table)<br>(m)</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">single char of styled text</td><td bgcolor="#ff9900" width="12%">remove(char)</td><td bgcolor="#ff9900" width="12%">remove(char)</td><td bgcolor="#ff9900" width="12%">
+
+remove(char)</td><td bgcolor="#00ff00" width="12%">remove(char)<br>maintain style<br><br>(m)</td><td bgcolor="#00ff00" width="12%">remove(char)<br>maintain style<br><br>(m)</td><td bgcolor="#00ff00" width="12%">remove(char)<br>
+
+maintain style<br><br>(m)</td><td bgcolor="#ffffff">remove(char)<br><br>maintain style<br>(m)</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">table cell</td><td width="12%">remove(char)<br>
+
+<br>cannot step out of cell<br><br>(m)</td><td width="12%">remove(char)<br><br>cannot step out of cell<br><br>(m)</td><td width="12%">remove(char)<br><br>cannot step out of cell<br><br>(m)</td><td width="12%">remove(char)<br>
+
+<br>cannot step out of cell<br><br>(m)</td><td bgcolor="#ff9900">Normal: remove(char)<br>(m)<br><br>end of cell: nop, unless proceeding empty row, remove(row)<br><br><br><br></td><td bgcolor="#ff9900" width="12%">Normal: remove(char)<br>
+
+<br>end of cell: deletes cell + merges contents from that cell into next cell.  if last cell, merges content after table into last table cell</td><td bgcolor="#ffffff">remove(char)<br><br>cannot step out of cell<br><br>(m)</td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">list - one char in a li</td><td bgcolor="#ff0000">enters ghost bullet mode<br>Unlike backspace, further deletes won&#39;t remove the ghost</td><td width="12%">
+
+remove(char)<br><br>(m)</td><td width="12%">remove(char)<br><br>(m)</td><td width="12%">remove(char)<br><br>(m)</td><td width="12%">remove(char)<br><br>(m)</td><td width="12%">remove(char)<br><br>(m)</td><td bgcolor="#ffffff">
+
+remove(char)<br><br>(m)</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">list - after last char in a li</td><td bgcolor="#00ff00" width="12%">merge</td><td bgcolor="#00ff00" width="12%">merge</td><td bgcolor="#ff0000" width="12%">
+
+move cursor to start of next li, if there is one, else, merge</td><td bgcolor="#00ff00" width="12%">merge<br><br>(m)</td><td bgcolor="#00ff00" width="12%">merge<br><br>(m)</td><td bgcolor="#ff0000" width="12%">move next li and its contents onto this line, so there are two bullets on one line</td>
+
+<td bgcolor="#ffffff">merge</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff">list</td><td width="12%">merge</td><td width="12%">merge</td><td bgcolor="#ff0000">delete list, leave contents of lis intact, just not in lis</td>
+
+<td width="12%">merge</td><td width="12%">merge</td><td bgcolor="#ff0000" width="12%">move first li and its content onto the line with previous content, so there is a bullet halfway through the line</td><td bgcolor="#ffffff">
+
+merge</td></tr><tr style="text-align: left; "><td bgcolor="#ffffff">list - empty li</td><td bgcolor="#00ff00" width="12%">only happens as ghost list, remove(li)<br><br>(m)</td><td bgcolor="#00ff00" width="12%">remove(li)<br>
+
+<br>(m)</td><td bgcolor="#ff0000" width="12%">leave li alone, move cursor down to next li, if there is one, else merge into list</td><td bgcolor="#ff0000" width="12%">merge<br><br>(m)</td><td bgcolor="#ff0000" width="12%">
+
+merge<br><br>(m)</td><td bgcolor="#ff0000" width="12%">move next li and its contents onto this line.</td><td bgcolor="#ffffff">remove(li)<br><br>(m)</td></tr></tbody></table></div><h3 style="font-size: 12pt; "><a id="Cut" name="Cut"></a>Cut</h3>
+
+<div style="margin-top: 0px; margin-bottom: 0px; ">For a collapsed selection, this is a noop, it does not modify the undo stack.<sup><a href="#FOOTNOTE-3">3</a></sup> </div><h2 style="font-size: 14pt; "><a id="Tab_Key_" name="Tab_Key_"></a>Tab Key<sup><a href="#FOOTNOTE-4">4</a></sup> </h2>
+
+<div style="margin-top: 0px; margin-bottom: 0px; ">Note: FF 3, IE 7, Chrome 1 always perform focus next for tab, no matter what context.  They have been eliminated from the tables to avoid clutter.</div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; ">
+
+<br></div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; ">General undo philosophy</div><ol style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; ">If the tab action does not change contents, the undo stack is not modified.<br>
+
+</li><li style="margin-top: 0px; margin-bottom: 0px; ">If the tab action causes standard text content changes (inserting spaces, spans with spaces, tab character), then the tab action is added to the undo stack just like any other text insertion and can be combined with other text insertion into a single undo entry as the UA sees fit.<br>
+
+</li><li style="margin-top: 0px; margin-bottom: 0px; ">If the tab action changes contents, but the contents are more structural change (add table row, indent list item), then this action is added as a single entry to the undo stack.</li>
+
+</ol><br><div style="margin-top: 0px; margin-bottom: 0px; "><b>Recomendation for HTML 5:</b> This is largely context-specific, so recomendations are provided in the far right column of the table below.</div><br><div style="margin-top: 0px; margin-bottom: 0px; ">
+
+<b><font style="background-color: rgb(255, 255, 255); ">execCommand(&#39;indent&#39;)</font></b><font style="background-color: rgb(255, 255, 255); "> should be equivalent to tab when listed in the table as &quot;indent li&quot;.<b> execCommand(&#39;insertText&#39;, false, &quot;   &quot;) or execCommand(&#39;insertText&#39;, false, &quot;\t&quot;)</b>should be equivalent to tab when listed in the table as &quot;insert tab char/spaces&quot;.</font></div>
+
+<br><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; ">Current Default Behaviors and Recommendations:</div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; "><table border="1" cellpadding="3" cellspacing="0" id="f.x6" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; ">
+
+<tbody><tr style="text-align: left; "><td width="11%">Context</td><td width="11%">PPT</td><td width="11%">Word</td><td width="11%">Word<br>HTML mode<br><br></td><td width="11%">FF2 (Linux)</td><td width="11%">Wordpad</td>
+
+<td width="11%">TextEdit RTF mode</td><td width="11%">TextEdit Mac mode</td><td bgcolor="#ffffff" width="11%">Recommended default behavior</td></tr><tr style="text-align: left; "><td width="11%">li, with or without text content, cursor at start of li, inside list (not the first li in the list) </td>
+
+<td bgcolor="#00ff00" width="11%">indent li   </td><td bgcolor="#00ff00" width="11%">indent li   </td><td bgcolor="#00ff00" width="11%">indent li</td><td bgcolor="#00ff00" width="11%">indent li</td><td bgcolor="#ff0000" width="11%">
+
+ insert tab char                      </td><td bgcolor="#00ff00" width="11%">indent li<br></td><td bgcolor="#00ff00" width="11%">indent li</td><td bgcolor="#ffffff" width="11%">indent li</td></tr><tr style="text-align: left; ">
+
+<td width="11%">li, with or without text content, cursor at start of li, start of list (first li in list)</td><td bgcolor="#00ff00" width="11%">indent li   </td><td bgcolor="#ff0000" width="11%">indent list<br></td><td bgcolor="#ff0000" width="11%">
+
+indent list<br></td><td bgcolor="#00ff00" width="11%">indent li</td><td bgcolor="#ff0000" width="11%">insert tab char    </td><td bgcolor="#00ff00" width="11%">indent li</td><td bgcolor="#00ff00" width="11%">indent li</td>
+
+<td bgcolor="#ffffff" width="11%">indent li</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%">li, with or without content, cursor inside content</td><td width="11%">insert tab char               </td>
+
+<td width="11%">insert tab char   </td><td width="11%">insert spaces (8 nbsp + &quot; &quot;)</td><td bgcolor="#ff0000" width="11%">indent li</td><td width="11%">insert tab char                </td><td width="11%">insert tab char              </td>
+
+<td width="11%">insert tab char</td><td bgcolor="#ffffff" width="11%">insert tab char/spaces</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%">li, with content, cursor at end of li</td>
+
+<td width="11%">insert tab char               </td><td width="11%">insert tab char<br></td><td width="11%">insert spaces (8 nbsp + &quot; &quot;)<br></td><td bgcolor="#ff0000" width="11%">indent li</td><td width="11%">insert tab char                </td>
+
+<td width="11%">insert tab char                   </td><td width="11%">insert tab char<br></td><td bgcolor="#ffffff" width="11%">insert tab char/spaces</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%">
+
+table cell - not last cell   </td><td width="11%">focus next cell   </td><td width="11%">focus next cell<br></td><td width="11%">focus next cell<br></td><td bgcolor="#00ff00" width="11%">focus next cell</td><td width="11%">
+
+focus next cell    </td><td width="11%">focus next cell<br></td><td width="11%">focus next cell</td><td bgcolor="#ffffff" width="11%">focus next cell</td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%">
+
+table cell - last cell</td><td width="11%">insert table row</td><td width="11%">insert table row</td><td width="11%">insert table row</td><td width="11%">insert table row</td><td width="11%">insert table row</td><td bgcolor="#ff0000" width="11%">
+
+move visibly outside of table<br><br>if there is a node after table, cursor is there<br><br>otherwise, cursor is visibly outside of table, but when you type, goes into last table cell<br></td><td bgcolor="#ff0000" width="11%">
+
+move visibly outside of table<br><br>if there is a node after table, cursor is there<br><br>otherwise, cursor is visibly outside of table, but when you type, goes into last table cell<br></td><td bgcolor="#ffffff" width="11%">
+
+insert table row  </td></tr><tr style="text-align: left; "><td width="11%">PRE</td><td width="11%">N/A</td><td width="11%">N/A</td><td bgcolor="#00ff00" width="11%">insert spaces (5 nbsp + &quot; &quot;)</td><td bgcolor="#00ff00" width="11%">
+
+Insert tab (\t)</td><td width="11%">N/A</td><td bgcolor="#00ff00" width="11%">insert tab   </td><td bgcolor="#ff9900" width="11%">converts pre to P, insert spaces</td><td bgcolor="#ffffff" width="11%">insert tab/spaces</td>
+
+</tr><tr style="text-align: left; "><td width="11%">CODE</td><td width="11%">N/A</td><td width="11%">N/A</td><td bgcolor="#00ff00" width="11%">insert spaces (3 nbsp + &quot; &quot;)</td><td bgcolor="#00ff00" width="11%">
+Insert spaces</td>
+<td width="11%">N/A</td><td bgcolor="#00ff00" width="11%">insert tab   </td><td bgcolor="#ff9900" width="11%">converts code to P, insert spaces    </td><td bgcolor="#ffffff" width="11%">insert tab/spaces</td></tr><tr bgcolor="#00ff00" style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="11%">normal rich text text (not plaintext area)</td><td width="11%">insert tab char              </td><td width="11%">insert tab char<br></td><td width="11%"><font face="&#39;courier new&#39;">Insert spaces (8 nbsp + &quot; &quot;)</font>   </td>
+
+<td width="11%">Insert spaces<br><br></td><td width="11%">insert tab char                      </td><td width="11%">insert tab char<br></td><td width="11%">Insert spaces <br></td><td bgcolor="#ffffff" width="11%">insert tab/spaces</td>
+
+</tr><tr style="text-align: left; "><td width="11%">plaintextarea</td><td width="11%">N/A</td><td width="11%">N/A</td><td width="11%">N/A</td><td bgcolor="#00ff00" width="11%">focus next</td><td width="11%">N/A</td><td width="11%">
+
+N/A</td><td width="11%">N/A</td><td bgcolor="#ffffff" width="11%">focus next</td></tr></tbody></table></div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; "><br></div><h2 style="font-size: 14pt; "><a id="Enter__35112586710602045" name="Enter__35112586710602045"></a>Enter<sup><a href="#FOOTNOTE-5">5</a></sup> </h2>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>Recommendation for HTML 5:</b></font></div><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">This is largely context-specific, so recomendations are provided in the far right column of the table below.  Undo behaves the same as regular text insertion.  (shift|option)+enter: Always inserts a br.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>execCommand(&#39;SplitBlock&#39;, false, blockTagName):</b> Performs the split command. Walks up the tree to find the first parent block and splits all the nodes from the cursor to that block maintaining all attributes on the split nodes, including inline styling. If one of the nodes being split is an anchor tag, the anchor should not be included in the second half. Stops at the first table-cell or contentEditable ancestor. If there is no parent block between the caret and the first table-cell/contentEditable ancestor, then it wraps the inline contents before and after the selection in an element of type blockTagName.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">We stop at the first table-cell ancestor because splitting it does not actually perform the user-expected behavior of adding a new block.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">If any nodes that are split have an ID, then the ID is not added to the second node after the split.<br><br>In the table below, this command is listed below as &quot;split&quot;, &quot;split contents&quot;, &quot;split wrap in block&quot;, and <font size="2">&quot;break out and wrap block&quot;</font>.<br>
+
+</font></div><font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>execCommand(&#39;SplitOutOfBlock&#39;, false, blockTagName):</b> Performs a split command and changes the type of the second block to that of blockTagName.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">In both commands above, blockTagName defaults to &#39;DIV&#39;. This matches the WebKit behavior as opposed to the IE behavior of defaulting to &#39;P&#39;. DIV makes more sense to users as it matches other word processor behavior of not having default margins. Also, it is semantically more accurate as the UA does not know what the user intends to put inside the element.<br>
+
+<br>In the table below, this command maps to &quot;break out&quot;.<br></font></div><font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>execCommand(&#39;InsertBreak&#39;, false, null):</b> Inserts a BR element.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; "><font size="2">Current Default Behaviors and Recommendations<br></font></div><table border="1" cellpadding="3" cellspacing="0" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; text-align: left; ">
+
+<tbody><tr style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">Context</font></font></td><td width="9%"><font size="2"><font size="2">PPT 2008<br>Mac</font></font></td><td width="9%">
+
+<font size="2"><font size="2">Word 2008 Mac Doc mode              </font></font></td><td width="9%"><font size="2"><font size="2">Word 2008 Mac HTML mode</font></font></td><td width="9%"><font size="2"><font size="2">IE 7            </font></font></td>
+
+<td width="9%"><font size="2"><font size="2">FF 3 - Win  </font></font></td><td width="9%"><font size="2"><font size="2">Chrome</font></font></td><td width="9%"><font size="2"><font size="2">Wordpad</font></font></td><td width="9%">
+
+<font size="2"><font size="2">textedit Mac RTF mode</font></font></td><td width="9%"><font size="2"><font size="2">textedit Mac HTML mode  </font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">Recommended default behavior</font></font></td>
+
+</tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">end of header</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#00ff00" width="9%">
+
+<font size="2"><font size="2">break out </font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">break out  </font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">break out</font></font></td>
+
+<td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">break out and insert two brs</font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">break out</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split and add a bunch of styling</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">break out</font></font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">beginning/middle of header</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ffffff" width="9%">
+
+<font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split and add a bunch of styling</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">split</font></font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">paragraphs</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">split</font></font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">table cell</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">split contents</font></font></td><td width="9%"><font size="2"><font size="2">split contents<br></font></font></td><td width="9%"><font size="2"><font size="2">split contents<br>
+
+</font></font></td><td width="9%"><font size="2"><font size="2">split contents<br></font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">br</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">br</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split contents</font></font></td><td width="9%"><font size="2"><font size="2">split contents</font></font></td>
+
+<td bgcolor="#ffffff"><font size="2"><font size="2">split contents</font></font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">div</font></font></td><td width="9%">
+
+<font size="2"><font size="2">n/a</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split contents<br></font></font></td><td bgcolor="#00ff00" width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">br</font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">split</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">n/a</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">turn everything into p with styling</font></font></td>
+
+<td bgcolor="#ffffff"><font size="2"><font size="2">split</font></font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">li</font></font></td><td bgcolor="#00ff00" width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">split</font></font></td></tr><tr bgcolor="#00ff00" style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">empty li<br><br><br><br></font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split with placeholder list item</font></font></td>
+<td bgcolor="#ff9900" width="9%">
+<font size="2"><font size="2">break out (see footnote) </font></font></td><td bgcolor="#ff9900" width="9%"><font size="2"><font size="2">break out (see footnote)</font></font></td><td width="9%"><font size="2"><font size="2">break out</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">break out</font></font></td><td width="9%"><font size="2"><font size="2">break out</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">break out and add two line breaks</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">break out </font></font></td><td width="9%"><font size="2"><font size="2">break out</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">break out</font></font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">empty li in nested list</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split with placeholder list item </font></font></td>
+
+<td bgcolor="#ff9900" width="9%"><font size="2"><font size="2">break out </font></font></td><td bgcolor="#ff9900" width="9%"><font size="2"><font size="2">break out  </font></font></td><td width="9%"><font size="2"><font size="2">break out</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">break out</font></font></td><td width="9%"><font size="2"><font size="2">break out</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">break out </font></font></td><td width="9%"><font size="2"><font size="2">break out</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">break out</font></font></td>
+
+</tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">inlines</font></font></td><td width="9%"><font size="2"><font size="2">maintained</font></font></td><td width="9%"><font size="2"><font size="2">maintained</font></font></td>
+
+<td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">spilt wrap in block</font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">split wrap in block</font></font></td><td bgcolor="#ff0000" width="9%">
+
+<font size="2"><font size="2">br</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">br</font></font></td><td width="9%"><font size="2"><font size="2">maintained</font></font></td><td width="9%">
+
+<font size="2"><font size="2">maintained</font></font></td><td width="9%"><font size="2"><font size="2">maintained </font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">split wrap in block</font></font></td>
+
+</tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">link</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%">
+
+<font size="2"><font size="2">open link</font></font></td><td width="9%"><font size="2"><font size="2">open link    </font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">break out and wrap in block</font></font></td>
+
+<td width="9%"><font size="2"><font size="2">br</font></font></td><td width="9%"><font size="2"><font size="2">br</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td><td width="9%">
+
+<font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">split</font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">break out and wrap block</font></font></td></tr>
+
+<tr style="text-align: left; "><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">blockquote</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td>
+
+<td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split contents</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split contents</font></font></td><td bgcolor="#ff0000" width="9%">
+
+<font size="2"><font size="2">br</font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">split</font></font></td><td width="9%"><font size="2"><font size="2">n/a</font></font></td><td width="9%">
+<font size="2"><font size="2">n/a</font></font></td>
+<td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">turn everything into p with styling<br></font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">split</font></font></td></tr><tr bgcolor="#00ff00" style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">pre</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split</font></font></td>
+
+<td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split</font></font></td><td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split</font></font></td><td bgcolor="#00ff00" width="9%"><font size="2"><font size="2">br</font></font></td>
+
+<td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">split</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td><td bgcolor="#ffffff" width="9%"><font size="2"><font size="2">n/a</font></font></td>
+
+<td bgcolor="#ff0000" width="9%"><font size="2"><font size="2">turn everything into p with styling<br><br></font></font></td><td bgcolor="#ffffff"><font size="2"><font size="2">br</font></font></td></tr></tbody></table><font size="2"><br>
+
+</font><hr><h1 style="font-size: 18pt; "><a id="Non_collapsed_selections" name="Non_collapsed_selections"></a><font size="2">Non collapsed selections</font></h1><h2 style="font-size: 14pt; "><a id="Text_insertion_" name="Text_insertion_"></a><font size="2">Text insertion<sup><a href="#FOOTNOTE-6">6</a></sup> </font></h2>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Notes: Undo behavior is the same as collapsed case.<br></font><h3 style="font-size: 12pt; "><a id="Alphanumerics" name="Alphanumerics"></a><font size="2">Alphanumerics</font></h3>
+
+</div><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>Recomendation for HTML 5</b>: Equivalent to backspace + insert (execCommand(&#39;delete&#39;) + execCommand(&#39;insertText&#39;)) on collapsed selection.</font></div>
+
+<h3 style="font-size: 12pt; "><a id="Paste" name="Paste"></a><font size="2">Paste</font></h3><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>Recomendation for HTML 5</b>: Equivalent to backspace + paste <font size="2">(execCommand(&#39;delete&#39;) + execCommand(&#39;insertHTML&#39;)) </font>on collapsed selection.</font></div>
+
+<h2 style="font-size: 14pt; "><a id="Text_deletion_" name="Text_deletion_"></a><font size="2">Text deletion<sup><a href="#FOOTNOTE-7">7</a></sup> </font></h2><h3 style="font-size: 12pt; "><a id="Backspace" name="Backspace"></a><font size="2">Backspace</font></h3>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>Recomendation for HTML 5: </b></font></div><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Always delete the contents of the selected range. Unless a table cell is one of the endpoints, merge into the previous element, but preserve style from the second.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>execCommand(&#39;delete&#39;)</b> with a range selected should be equivalent to backspace with the same range selected.</font></div>
+
+<font size="2"><br></font><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; "><font size="2"><font size="2">Current Default Behaviors and Recommendations</font><br></font></div><font size="2"><br></font><table border="1" cellpadding="3" cellspacing="0" id="aflk" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; ">
+
+<tbody><tr style="text-align: left; "><td bgcolor="#ffffff" width="11%"><font size="2">Start node</font></td><td bgcolor="#ffffff" width="11%"><font size="2">End node</font></td><td width="11%"><font size="2">PPT</font></td>
+
+<td width="11%"><font size="2">Word</font></td><td width="11%"><font size="2">IE</font></td><td width="11%"><font size="2">FF</font></td><td width="11%"><font size="2">Chrome</font></td><td bgcolor="#ffffff" width="11%">
+<font size="2">TextEdit</font></td>
+<td bgcolor="#ffffff" width="11%"><font size="2">Recommendation</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%"><font size="2">Text</font></td><td bgcolor="#ffffff" width="11%">
+
+<font size="2">Text</font></td><td width="11%"><font size="2">delete(rangeContents)</font></td><td width="11%"><font size="2">delete(rangeContents)</font></td><td width="11%"><font size="2">delete(rangeContents)</font></td>
+
+<td width="11%"><font size="2">delete(rangeContents)</font></td><td width="11%"><font size="2">delete(rangeContents)</font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)</font></td><td bgcolor="#ffffff" width="11%">
+
+<font size="2">delete(rangeContents)</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%"><font size="2">inline</font></td><td bgcolor="#ffffff" width="11%"><font size="2">inline</font></td>
+
+<td width="11%"><font size="2">delete(rangeContents)<br><br>cursor: end of start</font></td><td width="11%"><font size="2">delete(rangeContents)<br><br>cursor: end of start</font></td><td width="11%"><font size="2">delete(rangeContents)<br>
+
+<br>cursor: end of start</font></td><td width="11%"><font size="2">delete(rangeContents)<br><br>cursor: end of start</font></td><td width="11%"><font size="2">delete(rangeContents)<br><br>cursor: end of start</font></td>
+<td bgcolor="#00ff00" width="11%">
+<font size="2">delete(rangeContents)<br><br>cursor: end of start</font></td><td bgcolor="#ffffff" width="11%"><font size="2">delete(rangeContents)<br><br>cursor: end of start</font></td></tr><tr style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="11%"><font size="2">DEFAULT BACKSPACE<br><br>inline/block/header/li<br>(any combo that isn&#39;t inline to inline)</font></td><td bgcolor="#ffffff" width="11%"><font size="2">DEFAULT BACKSPACE<br>
+
+<br>inline/block/header/li<br>(any combo that isn&#39;t inline to inline)</font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)<br><br>merge + preserve styling<br><br>cursor: end of start<br></font></td>
+
+<td bgcolor="#ff0000" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start<br><br>Note: Word 2003<br>delete(rangeContents) + backwards merge</font></td><td bgcolor="#00ff00" width="11%">
+
+<font size="2">delete(rangeContents)<br><br>merge + preserve styling<br><br>cursor: end of start<br><br></font></td><td bgcolor="#ff0000" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start</font></td>
+
+<td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)<br><br>merge + preserve styling<br><br>cursor: end of start<br><br></font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)<br>
+
+<br>merge + preserve styling<br><br>cursor: end of start</font></td><td bgcolor="#ffffff" width="11%"><font size="2">delete(rangeContents)<br><br>merge + preserve style<br><br>cursor: end of start</font></td></tr><tr style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="11%"><font size="2">inline/block</font></td><td bgcolor="#ffffff" width="11%"><font size="2">table cell</font></td><td width="11%"><font size="2">N/A<br></font></td><td bgcolor="#ff0000" width="11%">
+
+<font size="2">delete(rangeContent)<br><br>backwards merge<br><br>cursor: end of start</font></td><td bgcolor="#ff0000" width="11%"><font size="2">no content change<br><br>cursor: collapse(true)</font></td><td bgcolor="#00ff00" width="11%">
+
+<font size="2">DEFAULT BACKSPACE<br></font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start</font></td><td bgcolor="#ff9900" width="11%"><font size="2">delete(rangeContents)<br>
+
+<br>no merge<br><br>cursor: start of end</font></td><td bgcolor="#ffffff" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="11%">
+
+<font size="2">table cell</font></td><td bgcolor="#ffffff" width="11%"><font size="2">inline/block</font></td><td width="11%"><font size="2">N/A<br></font></td><td bgcolor="#ff9900" width="11%"><font size="2"><br>delete(rangeContents)<br>
+
+<br>no merge<br><br>cursor: start of end<br></font></td><td bgcolor="#ff0000" width="11%"><font size="2">no content change<br><br>cursor: collapse(true)</font></td><td bgcolor="#00ff00" width="11%"><font size="2">DEFAULT BACKSPACE</font></td>
+
+<td bgcolor="#ff0000" width="11%"><font size="2">DEFAULT BACKSPACE</font></td><td bgcolor="#ff9900" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: start of end, but once you type, contents jump back up into table cell.</font></td>
+
+<td bgcolor="#ffffff" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="11%"><font size="2">table cell</font></td>
+
+<td bgcolor="#ffffff" width="11%"><font size="2">table cell</font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete cell contents<br><br>cursor: collapse(true)</font></td><td bgcolor="#ff0000" width="11%"><font size="2">UI prompt - delete entire row|column, shift cells up|left<br>
+
+<br>(unless table cells are in different tables, then does delete(rangeContents) + merge)</font></td><td bgcolor="#ff0000" width="11%"><font size="2">no content change<br><br>cursor: collapse(true)</font></td><td bgcolor="#00ff00" width="11%">
+
+<font size="2">DEFAULT BACKSPACE</font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start</font></td><td bgcolor="#ff9900" width="11%"><font size="2">delete(rangeContents)<br>
+
+<br>no merge<br><br>cursor: start of end,<br>but if you type, cells merge</font></td><td bgcolor="#ffffff" width="11%"><font size="2">delete(rangeContents)<br><br>no merge<br><br>cursor: end of start</font></td></tr><tr style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="11%"><font size="2">li</font></td><td bgcolor="#ffffff" width="11%"><font size="2">li</font></td><td bgcolor="#00ff00" width="11%"><font size="2">DEFAULT BACKSPACE</font></td><td bgcolor="#ff0000" width="11%">
+
+<font size="2">DEFAULT BACKSPACE<sup><a href="#FOOTNOTE-8">8</a></sup> <br></font></td><td bgcolor="#00ff00" width="11%"><font size="2">DEFAULT BACKSPACE</font></td><td bgcolor="#00ff00" width="11%"><font size="2">delete(rangeContents)<br>
+
+<br>merge</font></td><td bgcolor="#00ff00" width="11%"><font size="2">DEFAULT BACKSPACE</font></td><td bgcolor="#00ff00" width="11%"><font size="2">DEFAULT BACKSPACE</font></td><td bgcolor="#ffffff" width="11%"><font size="2">DEFAULT BACKSPACE<br>
+
+</font></td></tr></tbody></table><font size="2"><br></font><h3 style="font-size: 12pt; "><a id="Delete" name="Delete"></a><font size="2">Delete</font></h3><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>Recommendation for HTML 5: </b></font></div>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Like in the collapsed cursor case, delete and backspace should be the same.</font></div><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><font size="2">Current exceptions:</font></font><ul style="margin-top: 0px; margin-bottom: 0px; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><font size="2">Firefox, only change is in cursor placement.  With backspace, cursor goes at the end of the start node.  With delete, it goes at the start of the end node.  This subtle change is noticeable when you type after performing a backspace/delete - does it take the style of the first or second original node?</font></font></li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><font size="2">IE, only change is with table cells.  With backspace, contents are not changed, but the cursor is collapsed.  With delete, it is a complete nop.</font></font></li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><font size="2">Word, only change is with table cell to table cell selection.  With backspace, a prompt is raised with several options on what to do (delete entire row, delete entire column, shift cells up, etc).  With delete, the cell contents are just deleted and the cursor is collapsed to start.</font></font></li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><font size="2">IE 8 is different from IE 7 for both backspace and delete cases.  The tables above show IE 7 behavior.  Biggest difference is that IE 8 uses directionality information and does different cursor placement for backspace/delete.  Behavior seems to be: forward selection + backspace: end of start, forward selection + delete, backward selection + backspace, backwards selection + delete: start of end</font></font></li>
+
+</ul><font size="2"><br></font></div><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><font size="2"><b>execCommand(&#39;ForwardDelete&#39;) </b>with a range selected should be equivalent to delete with the same range selected.</font></font></div>
+
+<font size="2"><br></font><h2 style="font-size: 14pt; "><a id="Tab_" name="Tab_"></a><font size="2">Tab<sup><a href="#FOOTNOTE-9">9</a></sup> </font></h2><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Notes: </font><ul style="margin-top: 0px; margin-bottom: 0px; ">
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2">FF 3, IE 7, Chrome 1 always perform focus next for tab, no matter what context.  They have been eliminated from the tables below to avoid clutter.</font></li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2">I&#39;ve combined Word in Doc mode and HTML mode into one column.  Only differences are with tab vs spaces.</font></li></ul></div><font size="2"><br></font><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; ">
+
+</p><p class="Body" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; "><font size="2"><font face="Arial"><b><font face="verdana">Recommendation for HTML 5</font>:</b> </font></font></p><p class="Body" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; ">
+
+<font size="2"><font face="Arial">This is largely context-specific, so recomendations are provided in the far right column of the table below.</font></font></p><p class="Body" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; ">
+
+<font size="2"><br></font></p><p class="Body" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; "><font size="2"><font face="Arial"><font style="background-color: rgb(255, 255, 255); "><font face="arial"><font style="background-color: rgb(255, 255, 255); "><font size="2"><b>execCommand(&#39;insertText&#39;, false, &#39;    &#39; | &#39;\t&#39;)</b> </font></font></font>should be equivalent to &quot;<font face="arial"><font style="background-color: rgb(255, 255, 255); "><font size="2">replace selected(tab|spaces)&quot; </font></font></font>with the same range selected, which should be equivalent to calling execCommand(&#39;Delete&#39;) and then execCommand(&#39;insertText&#39;).</font><br>
+
+</font></font></p><p class="Body" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; "><font size="2"><font face="Arial"><font style="background-color: rgb(255, 255, 255); "><font style="background-color: rgb(255, 255, 255); ">The assorted indent behaviors should be equivalent to execCommand(&#39;indent&#39;) when given the same selection, likewise, for the outdent behaviors and execCommand(&#39;outdent&#39;).</font></font></font></font></p>
+
+<p class="Body" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; "><font size="2"><br></font></p><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; "><font size="2">Current Default Behaviors and Recommendations:</font></div>
+
+<table border="1" cellpadding="3" cellspacing="0" id="uhi7" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; "><tbody><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">Context</font></td><td width="14.285714285714286%"><font size="2">PPT 2003<br>Win<br><br>PPT<br>2007<br>Win</font></td><td width="14.285714285714286%"><font size="2">Word 2003 Win Doc/HTML mode<br><br>Word 2007 Doc/HTML Mode</font></td>
+
+<td width="14.285714285714286%"><font size="2">FF2 (linux)</font></td><td width="14.285714285714286%"><font size="2">Wordpad</font></td><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">TextEdit Mac</font></td>
+
+<td bgcolor="#ffffff"><font size="2">Recommended default behavior</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">Text content selected, inside a single paragraph</font></td>
+
+<td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(tab |10 spaces)<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(4 spaces)<br>
+
+</font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#00ff00"><font size="2">replace selected(tab)</font></td><td bgcolor="#ffffff"><font size="2">replace selected(tab|spaces)</font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">Text content selected, inside a single paragraph, SHIFT+TAB<br></font></td><td width="14.285714285714286%">
+
+<font size="2">replace selected(tab)<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(tab | 10 spaces)<br></font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">focus prev</font></td>
+
+<td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">nop</font></td><td bgcolor="#ffffff"><font size="2">replace selected(tab|spaces)</font></td></tr><tr bgcolor="#ff0000" style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">Text content selected, span 2 paragraphs partially</font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">indent paragraphs<br><br></font></td>
+
+<td width="14.285714285714286%"><font size="2">Delete selected<br><br>indent paragraph<br><br>cursor collapsed to start of paragraph<br><br>undo: add entry(delete)<br><br>add entry(indent) </font></td><td width="14.285714285714286%">
+
+<font size="2">replace selected(4 spaces)<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">replace selected(space)</font></td><td bgcolor="#ffffff">
+
+<font size="2">indent paragraphs</font></td></tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">Text content selected, span 2 paragraphs partially, SHIFT + Tab</font></td>
+
+<td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent paragraph       </font></td><td width="14.285714285714286%"><font size="2">delete selected<br><br>outdent paragraph <br><br>collapse cursor to start of paragraph<br>
+
+<br>undo: add entry(delete)<br>add entry(outdent)<br><br><br></font></td><td width="14.285714285714286%"><font size="2">focus prev</font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td>
+
+<td bgcolor="#ff0000"><font size="2">nop</font></td><td bgcolor="#ffffff"><font size="2">outdent paragraphs</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">Text content, full paragraph(s)selected</font></td><td width="14.285714285714286%"><font size="2">indent paragraph(s)<br><br></font></td><td width="14.285714285714286%"><font size="2">indent paragraph(s)<br>
+
+<br></font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(4 spaces)</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td>
+
+<td bgcolor="#ff0000"><font size="2">replace selected(tab)</font></td><td bgcolor="#ffffff"><font size="2">indent paragraph(s)</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">text content, full paragraph(s) selected, SHIFT + TAB</font></td><td width="14.285714285714286%"><font size="2">outdent paragraph(s) </font></td><td width="14.285714285714286%"><font size="2">outdent paragraph(s)<br>
+
+</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">focus prev</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000">
+
+<font size="2">nop</font></td><td bgcolor="#ffffff"><font size="2">outdent paragraph(s)  </font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">text content, select 2 paragraphs, first paragraph fully selected, second partial</font></td>
+
+<td width="14.285714285714286%"><font size="2">indent paragraphs<br><br></font></td><td width="14.285714285714286%"><font size="2">indent paragraphs<br><br></font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(4 spaces)<br>
+
+</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">replace selected(tab)</font></td><td bgcolor="#ffffff"><font size="2">indent paragraphs</font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">text content, select 2 paragraphs, first paragraph fully selected, second partial, SHIFT + TAB<br></font></td>
+
+<td width="14.285714285714286%"><font size="2">outdent  paragraphs </font></td><td width="14.285714285714286%"><font size="2">outdent paragraphs </font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">focus prev</font></td>
+
+<td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">nop</font></td><td bgcolor="#ffffff"><font size="2">outdent paragraphs</font></td>
+
+</tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">text content, select 2 paragraphs, first paragraph partially selected, second fully<br></font></td><td bgcolor="#00ff00" width="14.285714285714286%">
+
+<font size="2">indent paragraphs<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(tab | 10 spaces)<br>     </font></td><td width="14.285714285714286%"><font size="2">replace selected(4 spaces)<br>
+
+</font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">replace selected(space)</font></td><td bgcolor="#ffffff"><font size="2">indent paragraphs</font></td>
+
+</tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">text content, select 2 paragraphs, first paragraph partially selected, second fully, SHIFT + TAB<br></font></td>
+
+<td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent paragraphs<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(tab | 10 spaces)<br><br></font></td><td width="14.285714285714286%">
+
+<font size="2">focus prev</font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">nop</font></td><td bgcolor="#ffffff"><font size="2">outdent paragraphs</font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">contained inside single li</font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)</font></td>
+
+<td width="14.285714285714286%"><font size="2">replace selected(tab | 7 spaces)</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">indent li<br>OR<br>indent just the text node containing the selection. Seems to depend on underlying html.</font></td>
+
+<td width="14.285714285714286%"><font size="2">replace selected(tab)</font></td><td bgcolor="#00ff00"><font size="2">replace selected(tab)</font></td><td bgcolor="#ffffff"><font size="2">replace selected(tab | spaces)</font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">contained inside single li, SHIFT + TAB<br></font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)</font></td>
+
+<td width="14.285714285714286%"><font size="2">replace selected(tab | 7 spaces)</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">outdent</font></td><td width="14.285714285714286%"><font size="2">replace selected(tab)</font></td>
+
+<td bgcolor="#ff0000"><font size="2">outdent</font></td><td bgcolor="#ffffff"><font size="2">replace selected(tab | spaces)</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">partially spanning multiple li</font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">indent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">delete selected<br>
+
+<br>indent li<br><br>cursor at start of li<br><br>undo: add entry(delete)<br><br>add entry(indent li)</font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">indent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%">
+
+<font size="2">replace selected(tab)</font></td><td bgcolor="#ff0000"><font size="2">replace selected(tab)</font></td><td bgcolor="#ffffff"><font size="2">indent lis</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">partially spanning multiple li, SHIFT + TAB<br></font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">delete selected<br>
+
+<br>outdent li<br><br>cursor at start of li<br><br>undo: add entry(delete)<br><br>add entry (outdent li) or add entry (move cursor)</font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent lis</font></td>
+
+<td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)</font></td><td bgcolor="#ff0000"><font size="2">outdent first li (regardless of direction)<br><br>cursor collapsed at start of second li, no matter ohw many selected</font></td>
+
+<td bgcolor="#ffffff"><font size="2">outdent lis</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">li(s) fully selected</font></td><td width="14.285714285714286%">
+
+<font size="2">indent li(s)</font></td><td bgcolor="#ffff00" width="14.285714285714286%"><font size="2">indent li(s) OR<br>if contains first li, indent list</font></td><td width="14.285714285714286%"><font size="2">indent li(s)</font></td>
+
+<td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff9900"><font size="2">if one: indent li, collapse cursor to start of li<br><br>if multiple: indent first li, collapse cursor to start of second li</font></td>
+
+<td bgcolor="#ffffff"><font size="2">indent li(s)</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">li(s) fully selected, SHIFT + TAB<br></font></td>
+
+<td width="14.285714285714286%"><font size="2">outdent li(s)</font></td><td bgcolor="#ffff00" width="14.285714285714286%"><font size="2">outdent li(s) OR if contsint the first li, outdent list</font></td><td width="14.285714285714286%">
+
+<font size="2">outdent li(s)</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff9900"><font size="2">if one: outdent li<br><br>if multiple: outdent first li, collapse cursor to start of second li</font></td>
+
+<td bgcolor="#ffffff"><font size="2">outdent li(s)</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">spanning multiple li&#39;s, first li fully selected</font></td>
+
+<td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">indent lis</font></td><td bgcolor="#ffff00" width="14.285714285714286%"><font size="2">indent lis OR<br>if contains first li, indent list</font></td><td bgcolor="#00ff00" width="14.285714285714286%">
+
+<font size="2">indent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">indent first li</font></td><td bgcolor="#ffffff">
+
+<font size="2">indent lis</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">spanning multiple li&#39;s, first li fully selected,<br>SHIFT + TAB</font></td>
+
+<td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent lis</font></td><td width="14.285714285714286%"><font size="2">outdent li(s)</font></td><td width="14.285714285714286%"><font size="2">outdent lis</font></td>
+
+<td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">outdent first li</font></td><td bgcolor="#ffffff"><font size="2">outdent lis</font></td>
+
+</tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">spanning multiple li&#39;s, first li not fully selected</font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">indent lis</font></td>
+
+<td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">delete selected<br><br>indent li<br><br>cursor at start of li<br><br>undo: add entry(delete)<br><br>add entry(indent)</font></td><td bgcolor="#00ff00" width="14.285714285714286%">
+
+<font size="2">indent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">replace selected(tab)</font></td><td bgcolor="#ffffff">
+
+<font size="2">indent lis</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">spanning multiple li&#39;s, first li not fully selected, SHIFT + TAB<br></font></td>
+
+<td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%"><font size="2">delete selected<br><br>outdent li<br><br>cursor at start of li<br><br>
+
+undo: add entry(delete)<br><br>add entry(outdent) or addentry(move cursor)<br><br></font></td><td bgcolor="#00ff00" width="14.285714285714286%"><font size="2">outdent lis</font></td><td bgcolor="#ff0000" width="14.285714285714286%">
+
+<font size="2">replace selected(tab)<br></font></td><td bgcolor="#ff0000"><font size="2">outdent first li</font></td><td bgcolor="#ffffff"><font size="2">outdent lis</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">table cell - inside one cell</font></td><td width="14.285714285714286%"><font size="2">focus next cell / insert table row (same as collapsed)</font></td><td width="14.285714285714286%">
+
+<font size="2">focus next cell / insert table row (same as collapsed)</font></td><td width="14.285714285714286%"><font size="2">focus next cell / insert table row</font></td><td width="14.285714285714286%"><font size="2">focus next cell / insert table row</font></td>
+
+<td bgcolor="#ff9900"><font size="2">focus next cell / move to next line</font></td><td bgcolor="#ffffff"><font size="2">focus next cell / insert table row</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">table cell - span 2 cells</font></td><td bgcolor="#ff0000"><font size="2">cannot select partial multiple cells<br><br>focus moves to first cell in selection, and that cell is fully selected</font></td><td bgcolor="#ff0000">
+
+<font size="2">cannot select partial multiple cells<br><br>focus moves to first cell in selection, and that cell is fully selected</font></td><td bgcolor="#ff0000"><font size="2">focus moves to second selected cell.<br><br>
+
+cursor collapsed</font></td><td bgcolor="#ff0000"><font size="2">cannot select partial multiple cells<br><br>forward selection: focus is moved 2 cells past the last selected cell, cell is fully selected<br><br>backwards selection: focus is moved 1 cel past the last selected cell (document order), cell is fully selected<br>
+
+<br>insert table row if focus would move to cell in a row that doesn&#39;t exist</font></td><td bgcolor="#ff0000"><font size="2">collapse cursor to start of second cell, no matter how many selected</font></td><td bgcolor="#ffffff">
+
+<font size="2">focus next cell</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">PRE</font></td><td width="14.285714285714286%"><font size="2">N/A</font></td>
+<td width="14.285714285714286%">
+<font size="2">replace (3 spaces)</font></td><td width="14.285714285714286%"><font size="2">replace (\t)</font></td><td width="14.285714285714286%"><font size="2">N/A</font></td><td bgcolor="#ffffff" width="14.285714285714286%">
+
+<font size="2">replace (\t)</font></td><td bgcolor="#ffffff"><font size="2">replace (tab | spaces)</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">CODE</font></td>
+
+<td width="14.285714285714286%"><font size="2">N/A</font></td><td width="14.285714285714286%"><font size="2">replace (1 space)</font></td><td width="14.285714285714286%"><font size="2">replace (4 spaces)</font></td><td width="14.285714285714286%">
+
+<font size="2">N/A</font></td><td bgcolor="#ffffff" width="14.285714285714286%"><font size="2">replace (\t)</font></td><td bgcolor="#ffffff"><font size="2"><br></font></td></tr></tbody></table><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; ">
+
+<font size="2"><br></font></div><h2 style="font-size: 14pt; "><a id="Enter_" name="Enter_"></a><font size="2">Enter<sup><a href="#FOOTNOTE-10">10</a></sup> </font></h2><div style="margin-top: 0px; margin-bottom: 0px; "><font size="2"><b>Recomendation for HTML 5</b>:</font></div>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Perform a delete then an enter (as defined above in Part I). No exceptions.  Undo: Behaves the same as regular text insertion. (shift|option) + enter: inserts a br.</font></div>
+
+<div style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Notes:</font><ul style="margin-top: 0px; margin-bottom: 0px; "><li style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Word 2008 - Basically the same as a backspace (not a forward-delete) followed by an enter. It does something different if the text is selected via an undo command (it pretends the selection is collapsed at the end of the selection). It also does something different for tables. Iff the selection is partially in a table then the selection is just collapsed to the beginning. If the selection spans multiple TDs, then the selection is shrunk down to the first TD and then a regular enter is performed within that TD.</font></li>
+
+<li style="margin-top: 0px; margin-bottom: 0px; "><font size="2">Behaviors are marked green in the table below if they match this recommendation even if their delete or enter implementations do not match those recommendations.</font></li>
+
+</ul></div><div style="margin-top: 0px; margin-bottom: 0px; text-align: center; "><font size="2">Current Default Behaviors:</font></div><table border="1" cellpadding="3" cellspacing="0" width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; text-align: left; ">
+
+<tbody><tr style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">Context</font></td><td width="14%"><font size="2">Word 2008 Mac Doc and HTML mode                       </font></td><td width="14%"><font size="2">IE 7                    </font></td>
+
+<td width="14%"><font size="2">FF 3 - Win</font></td><td width="14%"><font size="2">Chrome</font></td><td width="14%"><font size="2">Wordpad</font></td><td width="14%"><font size="2">textedit Mac RTF/HTML mode</font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">Base behavior</font></td><td bgcolor="#ff0000"><font size="2">backspace (not forward-delete), then caret enter - maintain inline formatting</font></td>
+
+<td width="14%"><font size="2">Delete then caret enter - maintain inline formatting</font></td><td width="14%"><font size="2">Delete then caret enter - inconsistent about maintaining inline formatting, but mostly does not keep any</font></td>
+
+<td width="14%"><font size="2">Delete then caret enter - maintains some inline formatting (e.g. sometimes loses background-color)</font></td><td width="14%"><font size="2">Delete then caret enter except it loses inline formatting</font></td>
+
+<td width="14%"><font size="2">Delete/backspace then caret enter - maintain inline formatting</font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">After Undo/Redo</font></td><td bgcolor="#ff0000">
+
+<font size="2">Collapse to end of the selection, then perform enter.</font></td><td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2"><br></font></td>
+
+<td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2"><br></font></td></tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">Selection starts before table ends in table</font></td>
+
+<td width="14%"><font size="2">Just collapse to beginning of selection. </font></td><td width="14%"><font size="2">noop</font></td><td width="14%"><font size="2">Delete all the text in the TDs, truncate selection to not include the table, do a regular delete+enter</font></td>
+
+<td width="14%"><font size="2">Delete all the text in the TDs, truncate selection to not include the table, do a regular delete+enter</font></td><td bgcolor="#00ff00"><font size="2">delete + enter</font></td><td width="14%">
+
+<font size="2">Shrink selection to end just before the table and perform enter</font></td></tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">Entire table row selected</font></td>
+
+<td width="14%"><font size="2">deletes the contents of the first selected cell, collapses cursor in that cell, then performs enter</font></td><td width="14%"><font size="2">nop</font></td><td width="14%"><font size="2">delete all text in the tds, collapse to start, regular delete + enter</font></td>
+
+<td width="14%"><font size="2">Any time a selection contains an entire table row, enter deletes that row</font></td><td bgcolor="#ff0000"><font size="2">delete row</font></td><td bgcolor="#ffffff"><font size="2"><br></font></td>
+
+</tr><tr bgcolor="#ff0000" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">Selection starts in a table and ends after it</font></td><td width="14%"><font size="2">Deletes the selected rows, performs a backspace, then enter.</font></td>
+
+<td width="14%"><font size="2">noop</font></td><td width="14%"><font size="2">Delete all the text in the TDs and the nodes selected after the table, then perform enter in the first TD</font></td><td width="14%"><font size="2">Delete all the text in the TDs and the nodes selected after the table, then perform enter in the first TD</font></td>
+
+<td bgcolor="#00ff00"><font size="2">delete + enter</font></td><td width="14%"><font size="2">Shrink selection to end at the end of the first TD selected and perform enter.</font></td></tr><tr bgcolor="#ff0000" style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="14%"><font size="2">Selection spans multiple TDs</font></td><td width="14%"><font size="2">Collapse the selection to the first TD and then perform enter.</font></td><td width="14%"><font size="2">noop</font></td>
+
+<td width="14%"><font size="2">Delete all the TD&#39;s contents and perform enter in the first TD</font></td><td width="14%"><font size="2">Delete all the TD&#39;s contents and perform enter in the first TD</font></td><td bgcolor="#ff0000">
+
+<font size="2">move selection to first cell not in selection, perform enter</font></td><td width="14%"><font size="2">Shrink selection to end at the end of the first TD selected and perform enter.<br></font></td></tr><tr style="text-align: left; ">
+
+<td bgcolor="#ffffff" width="14%"><font size="2">Entire table-contents selected</font></td><td width="14%"><font size="2">Delete the table and then perform enter.</font></td><td width="14%"><font size="2">noop</font></td>
+
+<td width="14%"><font size="2">Delete table contents</font></td><td width="14%"><font size="2">Delete the table and perform enter.<br></font></td><td width="14%"><font size="2">delete the table + enter</font></td><td width="14%">
+
+<font size="2">Delete all the TDs in the table and leave just one TD, then perform enter.</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">Entire table selected</font></td>
+
+<td width="14%"><font size="2">Delete the table and then perform enter.<br></font></td><td width="14%"><font size="2">Delete the table and perform enter.</font></td><td width="14%"><font size="2">Delete table perform enter</font></td>
+
+<td width="14%"><font size="2">Delete the table and perform enter.<br></font></td><td bgcolor="#00ff00"><font size="2">delete + enter</font></td><td width="14%"><font size="2">Delete the table and perform enter.</font></td>
+
+</tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">link</font></td><td bgcolor="#ff0000"><font size="2">Delete, then split the link (not delete + enter, since enter in a link in word navigates to the link)</font></td>
+
+<td width="14%"><font size="2">delete + enter</font></td><td width="14%"><font size="2">delete + enter</font></td><td width="14%"><font size="2">delete + enter</font></td><td width="14%"><font size="2">delete + enter</font></td>
+
+<td width="14%"><font size="2"><br></font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">li contents  </font></td><td width="14%"><font size="2">delete + enter</font></td>
+
+<td width="14%"><font size="2">delete + enter</font></td><td width="14%"><font size="2">delete + enter</font></td><td width="14%"><font size="2">Delete + enter</font></td><td bgcolor="#ffff00"><font size="2">if fully selected, <br>
+
+delete li contents, add a new li<br><br>if partial selection,<br>delete + enter</font></td><td width="14%"><font size="2"><br></font></td></tr><tr style="text-align: left; "><td bgcolor="#ffffff" width="14%"><font size="2">node contents + line break after li</font></td>
+
+<td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2">delete then enter, but the delete does funky things</font></td>
+
+<td width="14%"><font size="2"><br></font></td><td width="14%"><font size="2"><br></font></td></tr></tbody></table><br><hr><h1 style="font-size: 18pt; "><a id="Appendix_8992731962352991_0404_9370131157338619" name="Appendix_8992731962352991_0404_9370131157338619"></a><font size="2">Appendix</font></h1>
+
+<div style="margin-top: 0px; margin-bottom: 0px; text-align: center; "><font size="2"><b>Common Behavior Implementation Differences and Recomendations</b></font></div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; ">
+
+<table border="1" cellpadding="3" cellspacing="0" id="j5u." width="100%" style="font-size: 1em; line-height: inherit; border-collapse: collapse; "><tbody><tr style="text-align: left; "><td width="11%"><font size="2">Context</font></td>
+
+<td width="11%"><font size="2">PPT</font></td><td width="11%"><font size="2">Word</font></td><td width="11%"><font size="2">Word<br>HTML mode<br><br></font></td><td width="11%"><font size="2">FF2 (Linux)</font></td><td width="11%">
+
+<font size="2">Wordpad</font></td><td width="11%"><font size="2">TextEdit RTF mode</font></td><td width="11%"><font size="2">TextEdit Mac mode</font></td><td bgcolor="#ffffff" width="11%"><font size="2">Recommended default behavior</font></td>
+
+</tr><tr style="text-align: left; "><td width="11%"><font size="2">indent li</font></td><td bgcolor="#00ff00" width="11%"><font size="2">if one type of list - follow type<br><br>if mixed types but indenting one type- <br>
+
+follows type of li being indented<br><br>if mixed types, indenting mixed types-<br>follows mixed types (not collapsed cursor)</font></td><td bgcolor="#ff0000" width="11%"><font size="2">one type -<br>follows type<br><br>
+mixed types, single type selected - follows top type<br>
+<br>mixed types, multiple types selected - follows mixed types<br>(not collapsed cursor)<br></font></td><td bgcolor="#ff0000" width="11%"><font size="2">one type -<br>follows type<br><br>mixed types, single type selected - follows top type<br>
+
+<br>mixed types, multiple types selected - follows mixed types<br>(not collapsed cursor)<br></font></td><td bgcolor="#00ff00" width="11%"><font size="2">if one type - follow type<br><br>mixed types, single type selected-<br>
+
+follow type<br><br>mixed types, mixed types selected -<br>follows mixed types<br>(not collapsed cursor)<br></font></td><td width="11%"><font size="2">N/A</font></td><td bgcolor="#ff0000" width="11%"><font size="2">always UL    </font></td>
+
+<td bgcolor="#ff0000" width="11%"><font size="2">always UL</font></td><td bgcolor="#ffffff" width="11%"><font size="2">if one type - follow type<br><br>if mixed type - follow selected type  </font></td></tr><tr style="text-align: left; ">
+
+<td width="11%"><font size="2">insert spaces</font></td><td width="11%"><font size="2">N/A</font></td><td width="11%"><font size="2">N/A</font></td><td bgcolor="#00ff00" width="11%"><div style="margin-top: 0px; margin-bottom: 0px; direction: ltr; font-family: Arial, sans-serif; margin-left: 0px; margin-right: 0px; ">
+
+<font size="2"><font face="verdana"><font size="2">Inserts a span with spaces (variable # &amp;nbsp):<br></font><font face="&#39;courier new&#39;">&lt;<span class="start-tag">span</span><span class="attribute-name"> style</span>=<span class="attribute-value">&#39;mso-tab-count:1&#39;</span>&gt;       &lt;/<span class="end-tag">span</span>&gt;</font></font></font></div>
+
+</td><td bgcolor="#00ff00" width="11%"><div style="margin-top: 0px; margin-bottom: 0px; direction: ltr; font-family: Arial, sans-serif; margin-left: 0px; margin-right: 0px; "><font size="2"><font face="verdana"><font size="2">    &quot;&amp;nbsp;&amp;nbsp;&amp;nbsp; &quot; or &quot;&amp;nbsp;&amp;nbsp; &lt;br&gt;&quot; if end of block.</font></font>    </font></div>
+
+</td><td width="11%"><font size="2">N/A</font></td><td width="11%"><font size="2">N/A</font></td><td bgcolor="#00ff00" width="11%"><font size="2">&lt;span class=&quot;Apple-tab-span&quot;&gt;    &lt;/span&gt;<br></font></td>
+
+<td bgcolor="#ffffff" width="11%"><font size="2">UA specific</font></td></tr><tr bgcolor="#00ff00" style="text-align: left; "><td bgcolor="#ffffff" width="11%"><font size="2">focus next cell</font></td><td width="11%"><font size="2">moves focus to next table cell (next cell in row or first cell in next row)<br>
+
+<br>selects all text in that cell<br></font></td><td width="11%"><font size="2">moves focus to next table cell (next cell in row or first cell in next row)<br><br>selects all text in that cell<br></font></td><td width="11%">
+
+<font size="2">moves focus to next table cell (next cell in row or first cell in next row)<br><br>selects all text in that cell<br></font></td><td bgcolor="#ff0000" width="11%"><font size="2">focus moves to next table cell<br>
+
+<br>cursor collapsed at start of that cell</font></td><td width="11%"><font size="2">moves focus to next table cell (next cell in row or first cell in next row)<br><br>selects all text in that cell<br></font></td><td bgcolor="#ff0000" width="11%">
+
+<font size="2">moves focus to next table cell<br><br>cursor collapsed at start of  cell</font></td><td bgcolor="#ff0000" width="11%"><font size="2">moves focus to next table cell<br><br>cursor collapsed at start of  cell<br>
+
+</font></td><td bgcolor="#ffffff" width="11%"><font size="2">moves focus to next table cell<br><br>cursor selecting all text in cell<br></font></td></tr></tbody></table></div><div style="margin-top: 0px; margin-bottom: 0px; text-align: left; ">
+
+<font size="2"><br></font></div><font size="2"><br><br></font><br><br><br><div class="endnotes" style="margin-top: 0px; margin-bottom: 0px; "><p style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; page-break-before: always; text-align: center; ">
+
+notes</p><br><br><sup>1 </sup><a name="FOOTNOTE-1"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=dcr67n6m_35d9cbdxd8" id="ibk7" title="Eric&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Eric&#39;s original research</font></a><font size="2">.</font></font><br>
+
+<br><sup>2 </sup><a name="FOOTNOTE-2"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=dcr67n6m_35d9cbdxd8" id="j61a" title="Eric&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Eric&#39;s original research</font></a><font size="2"> and </font><a href="http://docs.google.com/a/google.com/View?docid=cg97btvx_7ghwkdwds" id="tbf6" title="Julie&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Julie&#39;s original research</font></a><font size="2">.  In this section, data is from Chrome 2.0.170.0.</font></font><br>
+
+<br><sup>3 </sup><a name="FOOTNOTE-3"></a><font face="verdana"><font size="2">Tested on IE 7, FF 3, Chrome 2, Word 2003, all on Windows.</font></font><br><br><sup>4 </sup><a name="FOOTNOTE-4"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=cg97btvx_2hnf88kch" id="tvnf" title="Julie&#39;s original research"><font size="2">Julie&#39;s original research</font></a></font><br>
+
+<br><sup>5 </sup><a name="FOOTNOTE-5"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=afz5pfkg6n_3c4tpxgcf" id="kwa7" title="Ojan&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Ojan&#39;s original research</font></a></font><br>
+
+<br><sup>6 </sup><a name="FOOTNOTE-6"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=dcr67n6m_35d9cbdxd8" id="samh" title="Eric&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Eric&#39;s original research</font></a><font size="2"> and </font><a href="http://docs.google.com/a/google.com/Edit?docid=cg97btvx_7ghwkdwds" id="r0ds" title="Julie&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Julie&#39;s original research</font></a><font size="2">. </font></font><br>
+
+<br><sup>7 </sup><a name="FOOTNOTE-7"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=dcr67n6m_35d9cbdxd8" id="pyvp" title="Eric&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Eric&#39;s original research</font></a><font size="2"> and </font><a href="http://docs.google.com/a/google.com/Edit?docid=cg97btvx_7ghwkdwds" id="agps" title="Julie&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Julie&#39;s original research</font></a><font size="2">.</font></font><br>
+
+<br><sup>8 </sup><a name="FOOTNOTE-8"></a>Does perform this UA&#39;s DEFAULT BACKSCPACE behavior, but that doesn&#39;t match recommended DEFAULT BACKSPACE behavior.<br><br><sup>9 </sup><a name="FOOTNOTE-9"></a><font face="arial"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=cg97btvx_2hnf88kch" id="w8.o" title="Julie&#39;s original research"><font size="2">Julie&#39;s original research</font></a><font size="2">.</font></font><br>
+
+<br><sup>10 </sup><a name="FOOTNOTE-10"></a><font face="verdana"><font size="2">For more details, see </font><a href="http://docs.google.com/a/google.com/Doc?id=afz5pfkg6n_3c4tpxgcf" id="kygg" title="Ojan&#39;s original research" style="color: rgb(85, 26, 139); "><font size="2">Ojan&#39;s original research</font></a></font></div>
+
+</div></span></div>
+
+</body>
+</html>

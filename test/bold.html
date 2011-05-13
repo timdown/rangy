@@ -1,43 +1,123 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-        "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-    <title></title>
-    <script type="text/javascript">
-
-        window.onload = function() {
-            var el = document.getElementById("d");
-
-            var k = function(evt) {
-                evt = evt || window.event;
-                if (evt.keyCode == 66 && evt.ctrlKey) {
-                    document.execCommand("bold", false, null);
-                    if (evt.preventDefault) {
-                        evt.preventDefault();
-                    } else {
-                        evt.returnValue = false;
-                    }
-                    window.setTimeout(function() {alert(el.innerHTML);}, 1);
-
-                }
-            };
-
-            if (el.addEventListener) {
-                el.addEventListener("keydown", k, false);
-            } else {
-                el.attachEvent("onkeydown", k);
-            }
-        };
-    </script>
+    <title>Rangy Bold Demo</title>
     <style type="text/css">
-        *.bold {
+        *.italicYellowBg {
+            font-style: italic;
+            background-color: yellow;
+        }
+
+        *.boldRed {
             font-weight: bold;
+            color: red;
         }
     </style>
+    <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript">
+        var appender = new log4javascript.InPageAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+        var log = log4javascript.getRootLogger();
+        log4javascript.setShowStackTraces(true);
+    </script>
+    <script type="text/javascript" src="../src/js/core/core.js"></script>
+    <script type="text/javascript" src="../src/js/core/dom.js"></script>
+    <script type="text/javascript" src="../src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-commands.js"></script>
+    <script type="text/javascript" src="../src/js/modules/commands/rangy-bold.js"></script>
+    <script type="text/javascript">
+        function gEBI(id) {
+            return document.getElementById(id);
+        }
+
+        window.onload = function() {
+            rangy.init();
+
+            // Enable buttons
+            var commandsModule = rangy.modules.Commands;
+            if (rangy.supported && commandsModule && commandsModule.supported) {
+                var toggleBoldButton = gEBI("toggleBoldButton");
+                toggleBoldButton.disabled = false;
+                toggleBoldButton.onmousedown = function() {
+                    //alert(rangy.querySelectionCommandValue("bold"));
+                    try {
+                        rangy.execCommand("bold");
+                    } catch(ex) {
+                        console.log("error", ex)
+                    }
+                    return false;
+                };
+
+                var blockExtendButton = gEBI("blockExtendButton");
+                blockExtendButton.disabled = false;
+                blockExtendButton.onmousedown = function() {
+                    var sel = rangy.getSelection();
+                    if (sel.rangeCount) {
+                        var range = sel.getRangeAt(sel.rangeCount - 1);
+                        var blockRange = rangy.Command.util.blockExtend(range);
+                        sel.setSingleRange(blockRange);
+                    }
+                    return false;
+                };
+            }
+        };
+
+    </script>
 </head>
 <body>
-<div id="d" contenteditable="true">Some lovely <b>bold</b> content and <strong>strong</strong> stuff and
-    a styled <span style="font-weight: bold">span</span>, yeah, and a <span class="bold">classy</span> span</div>
+    <div id="buttons">
+        <h3>Bold selection</h3>
+        <br>
+        <input type="button" disabled id="toggleBoldButton" value="Toggle bold" unselectable="on"
+               class="unselectable">
+        <input type="button" disabled id="blockExtendButton" value="Extend selection to block" unselectable="on"
+               class="unselectable">
+    </div>
 
+    <div id="content">
+        <h1>Rangy Bold Commands Module Demo</h1>
+
+        <!-- A comment -->
+
+        <p>
+            <b>Association football</b> is a sport <span style="font-weight: bold">played</span> between two teams.
+            It is <span style="font-weight: bold; color: pink">usually</span> called <b>football</b>, but in
+            some countries, such as the United States, it is called <b>soccer</b>. In
+            <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
+            Republic of Ireland, both words are commonly used.
+        </p>
+        <p>
+            Each team has 11 players on the field. One of these players is the <i>goalkeeper</i>, and the other ten are
+            known as <i>"outfield players."</i> The game is played by <b>kicking a ball into the opponent's goal</b>. A
+            match has 90 minutes of play, with a break of 15 minutes in the middle. The break in the middle is called
+            half-time.
+        </p>
+        <h2>Competitions <span class="smaller">(this section is editable)</span></h2>
+        <p contenteditable="true">
+            There are many competitions for football, for both football clubs and countries. Football clubs usually play
+            other teams in their own country, with a few exceptions. <b>Cardiff City F.C.</b> from Wales for example, play
+            in the English leagues and in the English FA Cup.
+        </p>
+        <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
+        <pre contenteditable="true">
+Football is the world's most popular sport. It is played in more
+countries than any other game. In fact, FIFA (the Federation
+Internationale de Football Association) has more members than the
+United Nations.
+
+It is played by both males and females.
+
+
+</pre>
+    </div>
+
+    <p class="small">
+        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
+        Association Football</a>, licensed under the
+        <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
+            Commons Attribution/Share-Alike License</a>.
+    </p>
 </body>
 </html>

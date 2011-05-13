@@ -312,8 +312,8 @@ rangy.createModule("Commands", function(api, module) {
     var modifiableElementRegex = new RegExp("^(" + modifiableElements + ")$");
 
     function isModifiableElement(node) {
-        log.info("isModifiableElement nodeType " + node.nodeType + ", isHtmlNode " + isHtmlNode(node));
-        if (node.nodeType != 1 || !isHtmlNode(node)) {
+        //log.info("isModifiableElement nodeType " + node.nodeType + ", isHtmlNode " + isHtmlNode(node));
+        if (!node || node.nodeType != 1 || !isHtmlNode(node)) {
             return false;
         }
         var tagName = node.tagName.toLowerCase(), allowedAttributes;
@@ -336,7 +336,7 @@ rangy.createModule("Commands", function(api, module) {
     function isSimpleModifiableElement(el) {
         // "A simple modifiable element is an HTML element for which at least one
         // of the following holds:"
-        if (el.nodeType != 1 || !isHtmlNode(el)) {
+        if (!el || el.nodeType != 1 || !isHtmlNode(el)) {
             return false;
         }
 
@@ -637,7 +637,7 @@ rangy.createModule("Commands", function(api, module) {
                 && candidate.childNodes.length == 1
                 && isModifiableElement(candidate.firstChild)
                 && (!isSimpleModifiableElement(candidate)
-                    || !valuesEqual(command, getSpecifiedValue(candidate, command), newValue))) {
+                    || !valuesEqual(command, command.getSpecifiedValue(candidate), newValue))) {
             candidate = candidate.firstChild;
         }
 
@@ -645,14 +645,14 @@ rangy.createModule("Commands", function(api, module) {
         // effective value for command are both new value, and candidate is
         // not the previousSibling/nextSibling of node:"
         if (isSimpleModifiableElement(candidate)
-                && valuesEqual(command, getSpecifiedValue(candidate, command), newValue)
+                && valuesEqual(command, command.getSpecifiedValue(candidate), newValue)
                 && valuesEqual(command, getEffectiveValue(candidate, command), newValue)
                 && candidate != node[siblingPropName]) {
 
             // "While candidate has children, insert the first child of
             // candidate into candidate's parent immediately before candidate,
             // preserving ranges."
-            var child, nodeIndex = getNodeIndex(candidate);
+            var child, nodeIndex = dom.getNodeIndex(candidate);
             while ( (child = candidate.firstChild) ) {
                 movePreservingRanges(child, candidate.parentNode, nodeIndex++, rangesToPreserve);
             }
@@ -682,7 +682,7 @@ rangy.createModule("Commands", function(api, module) {
 
         // "If node is an Element, Text, Comment, or ProcessingInstruction node,
         // and is not an unwrappable node:"
-        if (/^(1|3|4|7)$/.test("" + nodeType) && !isUnwrappableNode(node)) {
+        if (/^(1|3|4|7)$/.test("" + nodeType) && !isUnwrappable(node)) {
             // "Let candidate be node's previousSibling."
             forceCandidate(node, command, newValue, rangesToPreserve, "previousSibling");
 
@@ -700,7 +700,7 @@ rangy.createModule("Commands", function(api, module) {
             if (isSimpleModifiableElement(previousSibling)
                     && valuesEqual(command, command.getSpecifiedValue(previousSibling), newValue)
                     && valuesEqual(command, getEffectiveValue(previousSibling, command), newValue)) {
-                movePreservingRanges(node, previousSibling, previousSibling.childNodes.length);
+                movePreservingRanges(node, previousSibling, previousSibling.childNodes.length, rangesToPreserve);
             }
 
             // "If next sibling is a simple modifiable element whose specified value
@@ -733,7 +733,7 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // "If node is an unwrappable node:"
-        if (isUnwrappableNode(node)) {
+        if (isUnwrappable(node)) {
             // "Let children be all children of node, omitting any that are
             // Elements whose specified value for command is neither null nor
             // equal to new value."
@@ -752,7 +752,7 @@ rangy.createModule("Commands", function(api, module) {
             // "Force the value of each Node in children, with command and new
             // value as in this invocation of the algorithm."
             for (i = 0; child = children[i++]; ) {
-                forceValue(child, command, newValue, rangesToPreserve, options);
+                forceValue(child, command, newValue, rangesToPreserve);
             }
 
             // "Abort this algorithm."
@@ -865,7 +865,7 @@ rangy.createModule("Commands", function(api, module) {
 
         // "If the effective value of command is new value on node, abort this
         // algorithm."
-        if (valuesEqual(command, command.getEffectiveValue(node, command), newValue)) {
+        if (valuesEqual(command, getEffectiveValue(node, command), newValue)) {
             return;
         }
 
@@ -915,8 +915,8 @@ rangy.createModule("Commands", function(api, module) {
 
             // "If the specified value of current ancestor for command is not null,
             // set propagated value to that value."
-            if (getSpecifiedValue(currentAncestor, command) !== null) {
-                propagatedValue = getSpecifiedValue(currentAncestor, command);
+            if (command.getSpecifiedValue(currentAncestor) !== null) {
+                propagatedValue = command.getSpecifiedValue(currentAncestor);
             }
 
             // "Let children be the children of current ancestor."
@@ -924,8 +924,8 @@ rangy.createModule("Commands", function(api, module) {
 
             // "If the specified value of current ancestor for command is not null,
             // clear the value of current ancestor."
-            if (getSpecifiedValue(currentAncestor, command) !== null) {
-                clearValue(currentAncestor, command);
+            if (command.getSpecifiedValue(currentAncestor) !== null) {
+                clearValue(currentAncestor, command, rangesToPreserve);
             }
 
             // "For every child in children:"
@@ -939,8 +939,8 @@ rangy.createModule("Commands", function(api, module) {
                 // is neither null nor equal to propagated value, continue with the
                 // next child."
                 if (child.nodeType == 1
-                        && getSpecifiedValue(child, command) !== null
-                        && !valuesEqual(command, propagatedValue, getSpecifiedValue(child, command))) {
+                        && command.getSpecifiedValue(child) !== null
+                        && !valuesEqual(command, propagatedValue, command.getSpecifiedValue(child))) {
                     continue;
                 }
 
@@ -1028,8 +1028,10 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     function getEffectiveTextNodes(range) {
+        log.debug("getEffectiveTextNodes on range " + range.inspect());
         return range.getNodes([3], function(node) {
-            isEffectivelyContained(node, range);
+            log.debug("getEffectiveTextNodes on node " + dom.inspectNode(node) + ", isEffectivelyContained: " + isEffectivelyContained(node, range));
+            return isEffectivelyContained(node, range);
         });
     }
 

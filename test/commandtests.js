@@ -313,7 +313,7 @@ xn.test.suite("Commands module tests", function(s) {
         t.assert(/<span style="font-weight:\s?bold;?"><\/span>/i.test(div.innerHTML));
     });
 
-    s.test("Writable cssText, mutliple style properties", function(t) {
+    s.test("Writable cssText, multiple style properties", function(t) {
         var el = document.createElement("span");
         el.style.cssText = "font-weight: bold; font-style: italic";
         var div = document.createElement("div");

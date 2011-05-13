@@ -16,6 +16,7 @@ rangy.createModule("BoldCommand", function(api, module) {
     api.requireModules( ["Commands"] );
 
     var dom = api.dom, commandUtil = api.Command.util;
+    var log = log4javascript.getLogger("rangy.BoldCommand");
 
     function BoldCommand() {
 
@@ -48,12 +49,16 @@ rangy.createModule("BoldCommand", function(api, module) {
 
         getRangeValue: function(range) {
             var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
+            log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
             while (i--) {
-                value = commandUtil.getEffectiveValue(textNodes[i]);
+                value = commandUtil.getEffectiveValue(textNodes[i], this);
+                log.info("getRangeValue value " + value)
                 if (!/^(bold|700|800|900)$/.test(value)) {
+                    log.info("getRangeValue returning false")
                     return false;
                 }
             }
+            log.info("getRangeValue returning true")
             return true;
         },
 
