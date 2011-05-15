@@ -859,7 +859,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             splitBoundaries: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 log.debug("splitBoundaries called " + this.inspect());
@@ -877,6 +876,8 @@ rangy.createModule("DomRange", function(api, module) {
                     if (startEndSame) {
                         eo -= so;
                         ec = sc;
+                    } else if (ec == sc.parentNode && eo >= dom.getNodeIndex(sc)) {
+                        eo++;
                     }
                     so = 0;
                     log.debug("Split start", dom.inspectNode(sc), so);
@@ -885,7 +886,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             normalizeBoundaries: function() {
-                assertNotDetached(this);
                 assertRangeValid(this);
 
                 var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
@@ -904,12 +904,21 @@ rangy.createModule("DomRange", function(api, module) {
                     var sibling = node.previousSibling;
                     if (sibling && sibling.nodeType == node.nodeType) {
                         sc = node;
+                        var nodeLength = node.length;
                         so = sibling.length;
                         node.insertData(0, sibling.data);
                         sibling.parentNode.removeChild(sibling);
                         if (sc == ec) {
                             eo += so;
                             ec = sc;
+                        } else if (ec == node.parentNode) {
+                            var nodeIndex = dom.getNodeIndex(node);
+                            if (eo == nodeIndex) {
+                                ec = node;
+                                eo = nodeLength;
+                            } else if (eo > nodeIndex) {
+                                eo--;
+                            }
                         }
                     }
                 };
