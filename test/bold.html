@@ -19,6 +19,7 @@
         log4javascript.getRootLogger().addAppender(appender);
         var log = log4javascript.getRootLogger();
         log4javascript.setShowStackTraces(true);
+        log4javascript.setEnabled(false);
     </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
@@ -42,11 +43,17 @@
                 toggleBoldButton.disabled = false;
                 toggleBoldButton.onmousedown = function() {
                     //alert(rangy.querySelectionCommandValue("bold"));
-                    try {
+//                    try {
                         rangy.execCommand("bold");
+/*
                     } catch(ex) {
-                        console.log("error", ex)
+                        if (window.console) {
+                            console.log("error", ex)
+                        } else {
+                            alert(ex.message);
+                        }
                     }
+*/
                     return false;
                 };
 

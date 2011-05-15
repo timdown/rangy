@@ -68,7 +68,7 @@ rangy.createModule("Commands", function(api, module) {
 
         if (!nodeListToArray) {
             nodeListToArray = function(nodeList) {
-                for (var i = 0, len = nodeList.length, nodeArray; i < len; ++i) {
+                for (var i = 0, len = nodeList.length, nodeArray = []; i < len; ++i) {
                     nodeArray[i] = nodeList[i];
                 }
                 return nodeArray;
@@ -434,7 +434,7 @@ rangy.createModule("Commands", function(api, module) {
         return false;
     }
 
-    function getRangeMove(range, oldParent, oldIndex, newParent, newIndex) {
+    function addRangeMove(rangeMoves, range, oldParent, oldIndex, newParent, newIndex) {
         var sc = range.startContainer, so = range.startOffset,
             ec = range.endContainer, eo = range.endOffset;
 
@@ -475,11 +475,9 @@ rangy.createModule("Commands", function(api, module) {
             newEo--;
         }
 
-        return (newSc == sc && newSo == so && newEc == ec && newEo == eo) ? null :
-                function() {
-                    range.setStart(newSc, newSo);
-                    range.setEnd(newEc, newEo);
-                };
+        if (newSc == sc && newSo == so && newEc == ec && newEo == eo) {
+            rangeMoves.push([range, newSc, newSo, newEc, newEo]);
+        }
     }
 
     function movePreservingRanges(node, newParent, newIndex, rangesToPreserve) {
@@ -495,11 +493,8 @@ rangy.createModule("Commands", function(api, module) {
 
         var rangeMoves = [];
 
-        for (var i = 0, len = rangesToPreserve.length, rangeMove; i < len; ++i) {
-            rangeMove = getRangeMove(rangesToPreserve[i], oldParent, oldIndex, newParent, newIndex);
-            if (rangeMove) {
-                rangeMoves.push(rangeMove);
-            }
+        for (var i = 0, len = rangesToPreserve.length; i < len; ++i) {
+            addRangeMove(rangeMoves, rangesToPreserve[i], oldParent, oldIndex, newParent, newIndex);
         }
 
         // Now actually move the node.
@@ -510,8 +505,9 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // Set the new range boundaries
-        for (i = 0, len = rangeMoves.length; i < len; ++i) {
-            rangeMoves[i]();
+        for (var j = 0, rangeMove; rangeMove = rangeMoves[j++]; ) {
+            rangeMove[0].setStart(rangeMove[1], rangeMove[2]);
+            rangeMove[0].setEnd(rangeMove[3], rangeMove[4]);
         }
     }
 
@@ -827,7 +823,9 @@ rangy.createModule("Commands", function(api, module) {
                     node.style[property] = newValue;
                 }
 
-                command.styleSpanChildElement(node, newValue);
+                if (command.styleSpanChildElement) {
+                    command.styleSpanChildElement(node, newValue);
+                }
 
             // "Otherwise:"
             } else {
@@ -1027,6 +1025,7 @@ rangy.createModule("Commands", function(api, module) {
         setChildrenNodeValue(node, command, newValue, rangesToPreserve);
     }
 
+    // TODO: Add something about whitespace text nodes (option?)
     function getEffectiveTextNodes(range) {
         log.debug("getEffectiveTextNodes on range " + range.inspect());
         return range.getNodes([3], function(node) {
