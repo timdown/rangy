@@ -29,11 +29,11 @@ rangy.createModule("Commands", function(api, module) {
 
     var dom = api.dom;
     var log = log4javascript.getLogger("rangy.commands");
-    var tagName = "span", BOOLEAN = "boolean", UNDEF = "undefined";
+    var BOOLEAN = "boolean", UNDEF = "undefined";
     var getRootContainer = dom.getRootContainer;
 
-    var options = {
-        styleWithCss: true,
+    var globalOptions = {
+        styleWithCss: false,
         applyToEditableOnly: false
     };
 
@@ -109,15 +109,15 @@ rangy.createModule("Commands", function(api, module) {
     // not have a contenteditable attribute set to the false state, and whose
     // parent is an editing host or editable."
 
-    // We're not making any distinction, unless the applyToEditableOnly option is set to true. Rangy commands can run on
-    // non-editable content. The revised definition:
+    // We're not making any distinction, unless the applyToEditableOnly global option is set to true. Rangy commands can
+    // run on non-editable content. The revised definition:
 
     // "A node is editable if it is not an editing host and is or is the child of an Element whose isContentEditable
     // property returns true."
     function isEditable(node) {
         // This is slightly a lie, because we're excluding non-HTML elements with
         // contentEditable attributes.
-        return !options.applyToEditableOnly
+        return !globalOptions.applyToEditableOnly
             || ( (isEditableElement(node) || isEditableElement(node.parentNode)) && !isEditingHost(node) );
     }
 
@@ -663,7 +663,7 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-    function forceValue(node, command, newValue, rangesToPreserve) {
+    function forceValue(node, command, newValue, rangesToPreserve, options) {
         var child, i, len, children, nodeType = node.nodeType;
 
         // "If node's parent is null, abort this algorithm."
@@ -748,7 +748,7 @@ rangy.createModule("Commands", function(api, module) {
             // "Force the value of each Node in children, with command and new
             // value as in this invocation of the algorithm."
             for (i = 0; child = children[i++]; ) {
-                forceValue(child, command, newValue, rangesToPreserve);
+                forceValue(child, command, newValue, rangesToPreserve, options);
             }
 
             // "Abort this algorithm."
@@ -849,13 +849,13 @@ rangy.createModule("Commands", function(api, module) {
                 // "Force the value of each Node in children, with command and new
                 // value as in this invocation of the algorithm."
                 for (i = 0, len = children.length; i < len; ++i) {
-                    forceValue(children[i], command, newValue, rangesToPreserve);
+                    forceValue(children[i], command, newValue, rangesToPreserve, options);
                 }
             }
         }
     }
 
-    function pushDownValues(node, command, newValue, rangesToPreserve) {
+    function pushDownValues(node, command, newValue, rangesToPreserve, options) {
         // "If node's parent is not an Element, abort this algorithm."
         if (!node.parentNode || node.parentNode.nodeType != 1) {
             return;
@@ -950,19 +950,19 @@ rangy.createModule("Commands", function(api, module) {
 
                 // "Force the value of child, with command as in this algorithm
                 // and new value equal to propagated value."
-                forceValue(child, command, propagatedValue, rangesToPreserve);
+                forceValue(child, command, propagatedValue, rangesToPreserve, options);
             }
         }
     }
 
-    function setChildrenNodeValue(node, command, newValue, rangesToPreserve) {
+    function setChildrenNodeValue(node, command, newValue, rangesToPreserve, options) {
         var children = nodeListToArray(node.childNodes);
         for (var i = 0, len = children.length; i < len; ++i) {
-            setNodeValue(children[i], command, newValue, rangesToPreserve);
+            setNodeValue(children[i], command, newValue, rangesToPreserve, options);
         }
     }
 
-    function setNodeValue(node, command, newValue, rangesToPreserve) {
+    function setNodeValue(node, command, newValue, rangesToPreserve, options) {
         var i, len, child, nodeType = node.nodeType;
 
         // "If node is a Document, set the value of its Element child (if it has
@@ -971,7 +971,7 @@ rangy.createModule("Commands", function(api, module) {
             for (i = 0; i < node.childNodes.length; ++i) {
                 child = node.childNodes[i];
                 if (child.nodeType == 1) {
-                    setNodeValue(child, command, newValue, rangesToPreserve);
+                    setNodeValue(child, command, newValue, rangesToPreserve, options);
                     break;
                 }
             }
@@ -981,7 +981,7 @@ rangy.createModule("Commands", function(api, module) {
         // "If node is a DocumentFragment, let children be a list of its children.
         // Set the value of each member of children, then abort this algorithm."
         if (nodeType == 11) {
-            setChildrenNodeValue(node, command, newValue, rangesToPreserve);
+            setChildrenNodeValue(node, command, newValue, rangesToPreserve, options);
             return;
         }
 
@@ -994,19 +994,19 @@ rangy.createModule("Commands", function(api, module) {
         // "If node is not editable, let children be the children of node. Set the value of each member of children.
         // Abort this algorithm."
         if (!isEditable(node)) {
-            setChildrenNodeValue(node, command, newValue, rangesToPreserve);
+            setChildrenNodeValue(node, command, newValue, rangesToPreserve, options);
             return;
         }
 
         // "If node is an Element:"
         if (nodeType == 1) {
             // "Clear the value of node, and let new nodes be the result."
-            var newNodes = clearValue(node, command, rangesToPreserve);
+            var newNodes = clearValue(node, command, rangesToPreserve, options);
 
             // "For each new node in new nodes, set the value of new node, with the
             // same inputs as this invocation of the algorithm."
             for (i = 0, len = newNodes.length; i < len; ++i) {
-                setNodeValue(newNodes[i], command, newValue, rangesToPreserve);
+                setNodeValue(newNodes[i], command, newValue, rangesToPreserve, options);
             }
 
             // "If node's parent is null, abort this algorithm."
@@ -1016,13 +1016,13 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // "Push down values on node."
-        pushDownValues(node, command, newValue, rangesToPreserve);
+        pushDownValues(node, command, newValue, rangesToPreserve, options);
 
         // "Force the value of node."
-        forceValue(node, command, newValue, rangesToPreserve);
+        forceValue(node, command, newValue, rangesToPreserve, options);
 
         // "Let children be the children of node. Set the value of each member of children."
-        setChildrenNodeValue(node, command, newValue, rangesToPreserve);
+        setChildrenNodeValue(node, command, newValue, rangesToPreserve, options);
     }
 
     // TODO: Add something about whitespace text nodes (option?)
@@ -1219,9 +1219,18 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-    api.execCommand = function(name, win, options) {
+    api.execCommand = function(/*doc, name, options*/) {
+        var name, doc, options;
+        if (typeof arguments[0] == "string") {
+            name = arguments[0];
+            options = arguments[1];
+        } else {
+            doc = arguments[0];
+            name = arguments[1];
+            options = arguments[2];
+        }
         var command = getCommand(name);
-        command.applyToSelection(win, options);
+        command.applyToSelection(doc, options);
     };
 
     api.getCommand = getCommand;

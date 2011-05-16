@@ -43,34 +43,50 @@ rangy.createModule("BoldCommand", function(api, module) {
             return (value == "bold" || value == "700") ? dom.getDocument(node).createElement("b") : null;
         },
 
-        isValueBold: function(val) {
-
-        },
-
         getRangeValue: function(range) {
             var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
             while (i--) {
                 value = commandUtil.getEffectiveValue(textNodes[i], this);
-                log.info("getRangeValue value " + value)
+                log.info("getRangeValue value " + value);
                 if (!/^(bold|700|800|900)$/.test(value)) {
                     log.info("getRangeValue returning false")
                     return false;
                 }
             }
             log.info("getRangeValue returning true")
-            return true;
+            return textNodes.length > 0;
         },
 
-        applyToSelection: function(win) {
-            var sel = api.getSelection(win);
-            var selRanges = sel.getAllRanges(), range = selRanges[0];
+        getSelectionValue: function(sel) {
+            var selRanges = sel.getAllRanges();
+            for (var i = 0, len = selRanges.length; i < len; ++i) {
+                if (!this.getRangeValue(selRanges[i])) {
+                    return false;
+                }
+            }
+            return len > 0;
+        },
 
+        applyValueToRange: function(range, newValue, rangesToPreserve, options) {
             var decomposed = range.decompose();
-            var newValue = this.getRangeValue(range) ? "normal" : "bold";
 
             for (var i = 0, len = decomposed.length; i < len; ++i) {
-                commandUtil.setNodeValue(decomposed[i], this, newValue, selRanges);
+                commandUtil.setNodeValue(decomposed[i], this, newValue, rangesToPreserve, options);
+            }
+        },
+
+        applyToSelection: function(doc, options) {
+            doc = doc || document;
+            options = options || {};
+
+            var win = dom.getWindow(doc);
+            var sel = api.getSelection(win);
+            var selRanges = sel.getAllRanges();
+            var newValue = this.getSelectionValue(sel) ? "normal" : "bold"
+
+            for (var i = 0, len = selRanges.length; i < len; ++i) {
+                this.applyValueToRange(selRanges[i], newValue, selRanges, options);
             }
 
             sel.setRanges(selRanges);

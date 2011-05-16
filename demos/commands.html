@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title></title>
+    <style type="text/css">
+        div.halfWidth {
+            float: left;
+            width: 48%;
+            padding: 5px;
+        }
+    </style>
+    <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript" src="../src/js/core/core.js"></script>
+    <script type="text/javascript" src="../src/js/core/dom.js"></script>
+    <script type="text/javascript" src="../src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-commands.js"></script>
+    <script type="text/javascript" src="../src/js/modules/commands/rangy-bold.js"></script>
+    <script type="text/javascript">
+        var iframeDoc, iframeWin, contentHtmlTextArea, mainLoaded = false, iframeLoaded = false;
+
+        function updateContentHtml() {
+            contentHtmlTextArea.value = iframeDoc.body.innerHTML;
+        }
+
+        function allLoaded() {
+            updateContentHtml();
+        }
+
+        // This is good enough for our target browsers
+        function addEvent(obj, eventType, listener) {
+            if (typeof obj.addEventListener != "undefined") {
+                obj.addEventListener(eventType, listener, false);
+            } else if (typeof obj.attachEvent != "undefined") {
+                obj.attachEvent("on" + eventType, listener);
+            }
+        }
+
+        window.onload = function() {
+            rangy.init();
+            iframeWin = rangy.dom.getIframeWindow( document.getElementById("content") );
+            iframeDoc = iframeWin.document;
+            contentHtmlTextArea = document.getElementById("contentHtml");
+            mainLoaded = true;
+            if (iframeLoaded) {
+                allLoaded();
+            }
+
+            var timer = null;
+            addEvent(iframeDoc, "keyup", function() {
+                if (timer) {
+                    window.clearTimeout(timer);
+                }
+                timer = window.setTimeout(function() {
+                    timer = null;
+                    updateContentHtml();
+                }, 1000);
+            });
+
+        };
+
+        window.contentLoadCallback = function() {
+            iframeLoaded = true;
+            if (mainLoaded) {
+                allLoaded();
+            }
+        };
+
+        function bold() {
+            rangy.execCommand(iframeDoc, "bold");
+            updateContentHtml();
+            iframeWin.focus();
+        }
+    </script>
+
+</head>
+<h1>Rangy commands demo</h1>
+<div class="halfWidth">
+    WYSIWYG:
+    <div style="border: solid gray 1px">
+        <div style="background-color: #eee">
+            <input type="button" onclick="bold();" value="Bold">
+        </div>
+        <iframe id="content" src="content.html" style="width: 100%; height: 400px" frameborder="0"></iframe>
+    </div>
+</div>
+<div class="halfWidth">
+    HTML:
+    <textarea style="width: 98%; height: 420px; font-size: 0.75em; font-family: Courier New, Monospace" id="contentHtml"></textarea>
+</div>
+<body>
+</body>
+</html>
