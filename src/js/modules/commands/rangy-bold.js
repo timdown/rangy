@@ -68,30 +68,38 @@ rangy.createModule("BoldCommand", function(api, module) {
             return len > 0;
         },
 
-        applyValueToRange: function(range, newValue, rangesToPreserve, options) {
+        getNewSelectionValue: function(sel) {
+            return this.getSelectionValue(sel) ? "normal" : "bold";
+        },
+
+        applyValueToRange: function(range, context) {
             var decomposed = range.decompose();
 
             for (var i = 0, len = decomposed.length; i < len; ++i) {
-                commandUtil.setNodeValue(decomposed[i], this, newValue, rangesToPreserve, options);
+                commandUtil.setNodeValue(decomposed[i], context);
             }
-        },
+        }
+/*
 
         applyToSelection: function(doc, options) {
             doc = doc || document;
-            options = options || {};
 
             var win = dom.getWindow(doc);
             var sel = api.getSelection(win);
             var selRanges = sel.getAllRanges();
-            var newValue = this.getSelectionValue(sel) ? "normal" : "bold"
+            var newValue = this.getSelectionValue(sel) ? "normal" : "bold";
+
+            var context = this.createContext(newValue, selRanges, options);
+
 
             for (var i = 0, len = selRanges.length; i < len; ++i) {
-                this.applyValueToRange(selRanges[i], newValue, selRanges, options);
+                this.applyValueToRange(selRanges[i], context);
             }
 
             sel.setRanges(selRanges);
             log.info(sel.inspect(), selRanges);
         }
+*/
 
 
     });

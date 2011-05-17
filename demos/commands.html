@@ -67,8 +67,14 @@
             }
         };
 
-        function bold() {
-            rangy.execCommand(iframeDoc, "bold");
+        function bold(styleWithCss) {
+            rangy.execCommand(iframeDoc, "bold", null, { styleWithCss: styleWithCss });
+            updateContentHtml();
+            iframeWin.focus();
+        }
+
+        function nativeBold() {
+            iframeDoc.execCommand("bold", false, null);
             updateContentHtml();
             iframeWin.focus();
         }
@@ -80,7 +86,9 @@
     WYSIWYG:
     <div style="border: solid gray 1px">
         <div style="background-color: #eee">
-            <input type="button" onclick="bold();" value="Bold">
+            <input type="button" onclick="bold(true);" value="Bold (Rangy, CSS)">
+            <input type="button" onclick="bold(false);" value="Bold (Rangy, non-CSS)">
+            <input type="button" onclick="nativeBold();" value="Bold (native)">
         </div>
         <iframe id="content" src="content.html" style="width: 100%; height: 400px" frameborder="0"></iframe>
     </div>
