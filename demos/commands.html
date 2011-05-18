@@ -68,7 +68,11 @@
         };
 
         function bold(styleWithCss) {
-            rangy.execCommand(iframeDoc, "bold", null, { styleWithCss: styleWithCss });
+            rangy.execCommand("bold", {
+                document: iframeDoc,
+                styleWithCss: styleWithCss
+            });
+
             updateContentHtml();
             iframeWin.focus();
         }

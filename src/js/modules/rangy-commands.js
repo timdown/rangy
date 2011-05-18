@@ -1081,7 +1081,6 @@ rangy.createModule("Commands", function(api, module) {
         },
 
         applyToSelection: function(doc, value, options) {
-            doc = doc || document;
             var win = dom.getWindow(doc);
             var sel = api.getSelection(win);
             var selRanges = sel.getAllRanges();
@@ -1256,18 +1255,10 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-    api.execCommand = function(/*doc, name, value, options*/) {
-        var name, doc, value, options;
-        if (typeof arguments[0] == "string") {
-            name = arguments[0];
-            value = arguments[1];
-            options = arguments[2];
-        } else {
-            doc = arguments[0];
-            name = arguments[1];
-            value = arguments[2];
-            options = arguments[3];
-        }
+    api.execCommand = function(name, options) {
+        options = options || {};
+        var doc = options.hasOwnProperty("document") ? options.document : document;
+        var value = options.hasOwnProperty("value") ? options.value : null;
         var command = getCommand(name);
         command.applyToSelection(doc, value, options);
     };
