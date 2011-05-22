@@ -133,12 +133,12 @@ rangy.createModule("DomUtil", function(api, module) {
                     var sc = range.startContainer, so = range.startOffset, ec = range.endContainer, eo = range.endOffset;
                     var rangeChanged = false;
                     if (sc == node || ec == node) {
-                        if (range.startOffset > offset) {
+                        if (sc == node && range.startOffset > offset) {
                             sc = newNode;
                             so -= offset;
                             rangeChanged = true;
                         }
-                        if (range.endOffset > offset) {
+                        if (ec == node && range.endOffset > offset) {
                             ec = newNode;
                             eo -= offset;
                             rangeChanged = true;
