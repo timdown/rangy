@@ -713,6 +713,14 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return false;
     };
 
+    selProto.splitBoundaries = function() {
+        for (var i = 0, len = this._ranges.length, rangesToPreserve; i < len; ++i) {
+            rangesToPreserve = this._ranges.slice(0);
+            rangesToPreserve.splice(i, 1);
+            this._ranges[i].splitBoundaries(rangesToPreserve);
+        }
+    };
+
     function inspect(sel) {
         var rangeInspects = [];
         var anchor = new DomPosition(sel.anchorNode, sel.anchorOffset);

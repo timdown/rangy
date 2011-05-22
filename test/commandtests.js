@@ -30,68 +30,128 @@ xn.test.suite("Commands module tests", function(s) {
         }
     };
 
-    function createRangeInHtml(containerEl, html) {
+    function createRangesInHtml(containerEl, html) {
         containerEl.innerHTML = html;
-        var range = rangy.createRange(), foundStart = false;
-        var rangeInfo = new RangeInfo();
+        var rangeInfo, inRange = false, rangeInfos = [], doc = rangy.dom.getDocument(containerEl);
+
+        function startRange(node, offset) {
+            rangeInfo = new RangeInfo();
+            rangeInfo.setStart(node, offset);
+            rangeInfos.push(rangeInfo);
+            inRange = true;
+        }
+
+        function endRange(node, offset) {
+            rangeInfo.setEnd(node, offset);
+            inRange = false;
+        }
+
+        function checkForBracket(node, isStart) {
+            var bracketIndex = node.data.indexOf(isStart ? "[" : "]");
+            if (bracketIndex != -1) {
+                log.debug("bracketIndex: " + bracketIndex + ", data: " + node.data);
+                node.data = node.data.slice(0, bracketIndex) + node.data.slice(bracketIndex + 1);
+
+                (isStart ? startRange : endRange)(node, bracketIndex);
+                return true;
+            }
+            return false;
+        }
+
+        function checkForPipe(node) {
+            var pipeIndex = node.data.indexOf("|");
+            if (pipeIndex == 0 || pipeIndex == node.length - 1) {
+                var nodeIndex = rangy.dom.getNodeIndex(node);
+                if (pipeIndex == 0) {
+                    node.data = node.data.slice(1);
+                } else {
+                    node.data = node.data.slice(0, -1);
+                    nodeIndex++;
+                }
+                (inRange ? endRange : startRange)(node.parentNode, nodeIndex);
+                return true;
+            }
+            return false;
+        }
+
         iterateNodes(containerEl, function(node) {
             if (node.nodeType == 3) {
-                var openBracketIndex = node.data.indexOf("[");
-                if (openBracketIndex != -1) {
-                    node.data = node.data.slice(0, openBracketIndex) + node.data.slice(openBracketIndex + 1);
-                    log.debug("openBraceIndex: " + openBracketIndex + ", data: " + node.data);
-                    rangeInfo.setStart(node, openBracketIndex);
-                    foundStart = true;
-                }
-
-                var pipeIndex = node.data.indexOf("|");
-                if (pipeIndex == 0) {
-                    node.data = node.data.slice(1);
-                    rangeInfo[foundStart ? "setEnd" : "setStart"](node.parentNode, rangy.dom.getNodeIndex(node));
-                    foundStart = true;
-                } else if (pipeIndex == node.length - 1) {
-                    node.data = node.data.slice(0, -1);
-                    rangeInfo[foundStart ? "setEnd" : "setStart"](node.parentNode, rangy.dom.getNodeIndex(node) + 1);
-                    foundStart = true;
-                }
-
-                var closeBracketIndex = node.data.indexOf("]");
-                if (closeBracketIndex != -1) {
-                    node.data = node.data.slice(0, closeBracketIndex) + node.data.slice(closeBracketIndex + 1);
-                    log.debug("openBraceIndex: " + openBracketIndex + ", data: " + node.data);
-                    rangeInfo.setEnd(node, closeBracketIndex);
-                }
-
-                pipeIndex = node.data.indexOf("|");
-                if (pipeIndex == 0) {
-                    node.data = node.data.slice(1);
-                    rangeInfo.setEnd(node.parentNode, rangy.dom.getNodeIndex(node));
-                } else if (pipeIndex == node.length - 1) {
-                    node.data = node.data.slice(0, -1);
-                    rangeInfo.setEnd(node.parentNode, rangy.dom.getNodeIndex(node) + 1);
+                var noneFound = false;
+                while (!noneFound) {
+                    noneFound = true;
+                    noneFound = !checkForBracket(node, true) && noneFound;
+                    noneFound = !checkForPipe(node) && noneFound;
+                    noneFound = !checkForBracket(node, false) && noneFound;
+                    noneFound = !checkForPipe(node) && noneFound;
                 }
 
                 // Clear empty text node
-                if (node.data.length == 0) {
+                if (node.length == 0) {
                     node.parentNode.removeChild(node);
                 }
             }
         }, false);
 
-        range.setStart(rangeInfo.sc, rangeInfo.so);
-        range.setEnd(rangeInfo.ec, rangeInfo.eo);
+        var ranges = [];
+        for (var i = 0, range; rangeInfo = rangeInfos[i++]; ) {
+            range = rangy.createRange(doc);
+            range.setStart(rangeInfo.sc, rangeInfo.so);
+            range.setEnd(rangeInfo.ec, rangeInfo.eo);
+            ranges.push(range);
+            log.info("Added range " + range.inspect());
+        }
 
-        return range;
+        return ranges;
     }
 
     function getSortedClassName(el) {
         return el.className.split(/\s+/).sort().join(" ");
     }
 
-    function htmlAndRangeToString(containerEl, range) {
-        function isElementRangeBoundary(el, offset, range, isStart) {
-            var prefix = isStart ? "start" : "end";
-            return (el == range[prefix + "Container"] && offset == range[prefix + "Offset"]);
+    // Puts ranges in order, last in document first.
+    function compareRanges(r1, r2) {
+        return r2.compareBoundaryPoints(r1.START_TO_START, r1);
+    }
+
+    function htmlAndRangesToString(containerEl, ranges) {
+        ranges = ranges.slice(0);
+        ranges.sort(compareRanges);
+
+        var containerClone = containerEl.cloneNode(true);
+
+        function getCloneForNode(node) {
+            var indexes = [];
+            if (node == containerEl) {
+                return containerClone;
+            }
+            while (node != containerEl) {
+                indexes.push(rangy.dom.getNodeIndex(node));
+                node = node.parentNode;
+            }
+            node = containerClone;
+            while (indexes.length) {
+                node = node.childNodes[indexes.pop()];
+            }
+            return node;
+        }
+
+        function insertRangeBoundaryChar(node, offset, isStart) {
+            var clone = getCloneForNode(node);
+            if (rangy.dom.isCharacterDataNode(clone)) {
+                clone.data = clone.data.slice(0, offset) + (isStart ? "[" : "]") + clone.data.slice(offset);
+            } else {
+                var textNode = rangy.dom.getDocument(node).createTextNode("|");
+                if (offset == clone.childNodes.length) {
+                    clone.appendChild(textNode);
+                } else {
+                    clone.insertBefore(textNode, clone.childNodes[offset]);
+                }
+            }
+        }
+
+        for (var i = 0, range; range = ranges[i++]; ) {
+            insertRangeBoundaryChar(range.endContainer, range.endOffset, false);
+            insertRangeBoundaryChar(range.startContainer, range.startOffset, true);
         }
 
         function getHtml(node, includeSelf) {
@@ -105,16 +165,17 @@ xn.test.suite("Commands module tests", function(s) {
                     if (node.className) {
                         html += ' class="' + getSortedClassName(node) + '"';
                     }
+                    if (node.style.cssText) {
+                        var style = node.style.cssText.toLowerCase().replace(/\s+$/, "");
+                        if (style.slice(-1) != ";") {
+                            style += ";";
+                        }
+                        html += ' style="' + style + '"';
+                    }
                     html += ">";
                 }
 
                 for (var i = 0, children = node.childNodes, len = children.length; i <= len; ++i) {
-                    if (isElementRangeBoundary(node, i, range, true)) {
-                        html += "|";
-                    }
-                    if (isElementRangeBoundary(node, i, range, false)) {
-                        html += "|";
-                    }
                     if (i != len) {
                         html += getHtml(children[i], true);
                     }
@@ -124,39 +185,20 @@ xn.test.suite("Commands module tests", function(s) {
                     html += "</" + node.tagName.toLowerCase() + ">";
                 }
             } else if (includeSelf && node.nodeType == 3) {
-                var text = node.data;
-                if (node == range.endContainer) {
-                    text = text.slice(0, range.endOffset) + "]" + text.slice(range.endOffset);
-                }
-                if (node == range.startContainer) {
-                    text = text.slice(0, range.startOffset) + "[" + text.slice(range.startOffset);
-                }
-
-                html += text;
+                html += node.data;
             }
             return html;
         }
 
-        return getHtml(containerEl, false);
+        return getHtml(containerClone, false);
     }
 
     function testRangeHtml(testEl, html, t) {
-        var range = createRangeInHtml(testEl, html);
+        var range = createRangesInHtml(testEl, html)[0];
         log.info("Range: " + range.inspect());
-        var newHtml = htmlAndRangeToString(testEl, range);
+        var newHtml = htmlAndRangesToString(testEl, [range]);
         t.assertEquals(html, newHtml);
     }
-
-
-    s.test("Test the Range/HTML test functions", function(t) {
-        var testEl = document.getElementById("test");
-        testRangeHtml(testEl, 'Before <span class="test">[One]</span> after', t);
-        testRangeHtml(testEl, 'Before <span class="test">|On]e</span> after', t);
-        testRangeHtml(testEl, 'Before <span class="test">|One|</span> after', t);
-        testRangeHtml(testEl, 'Bef[ore <span class="test">One</span> af]ter', t);
-        testRangeHtml(testEl, 'Bef[ore <span class="test">|One</span> after', t);
-        testRangeHtml(testEl, '1[2]3', t);
-    });
 
     function testModifiableElement(name, element, html, isModifiable) {
         s.test("Modifiable element " + name, function(t) {
@@ -179,6 +221,19 @@ xn.test.suite("Commands module tests", function(s) {
             var container = rangy.dom.getDocument(element).createElement("div");
             container.innerHTML = html;
             t.assertEquals(rangy.Command.util.isSimpleModifiableElement(container.firstChild), isModifiable);
+        });
+    }
+
+    function testCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
+        s.test("Command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
+            var testEl = document.getElementById("test");
+            var ranges = createRangesInHtml(testEl, initialHtmlAndRange);
+            var sel = rangy.getSelection();
+            sel.setRanges(ranges);
+
+            rangy.execCommand(commandName, options);
+
+            t.assertEquals(htmlAndRangesToString(testEl, sel.getAllRanges()), expectedHtmlRange);
         });
     }
 
@@ -280,6 +335,14 @@ xn.test.suite("Commands module tests", function(s) {
         el = doc.createElement("strike");
         el.style.fontWeight = "bold";
         testSimpleModifiableElement("strike with font-weight bold", el, '<strike style="font-weight: bold"></strike>', false);
+
+        testCommand("bold", { styleWithCss: false }, "1[2]3", "1<b>[2]</b>3");
+        testCommand("bold", { styleWithCss: true }, "1[2]3", '1<span style="font-weight: bold;">[2]</span>3');
+
+        if (rangy.features.selectionSupportsMultipleRanges) {
+            testCommand("bold", { styleWithCss: false }, "[1]2[3]", "<b>[1]</b>2<b>[3]</b>");
+            testCommand("bold", { styleWithCss: true }, "[1]2[3]", '<span style="font-weight: bold;">[1]</span>2<span style="font-weight: bold;">[3]</span>');
+        }
     }
 
 /*
@@ -290,6 +353,16 @@ xn.test.suite("Commands module tests", function(s) {
         t.assertEquivalent(styleAttr.specified, true);
     });
 */
+
+    s.test("Test the Range/HTML test functions", function(t) {
+        var testEl = document.getElementById("test");
+        testRangeHtml(testEl, 'Before <span class="test">[One]</span> after', t);
+        testRangeHtml(testEl, 'Before <span class="test">|On]e</span> after', t);
+        testRangeHtml(testEl, 'Before <span class="test">|One|</span> after', t);
+        testRangeHtml(testEl, 'Bef[ore <span class="test">One</span> af]ter', t);
+        testRangeHtml(testEl, 'Bef[ore <span class="test">|One</span> after', t);
+        testRangeHtml(testEl, '1[2]3', t);
+    });
 
     s.test("Can set single style property via style property", function(t) {
         var el = document.createElement("span");
@@ -310,7 +383,7 @@ xn.test.suite("Commands module tests", function(s) {
         el.style.cssText = "font-weight: bold;";
         var div = document.createElement("div");
         div.appendChild(el);
-        t.assert(/<span style="font-weight:\s?bold;?"><\/span>/i.test(div.innerHTML));
+        t.assert(/<span style="font-weight:\s?bold;?\s?"><\/span>/i.test(div.innerHTML));
     });
 
     s.test("Writable cssText, multiple style properties", function(t) {
@@ -318,10 +391,9 @@ xn.test.suite("Commands module tests", function(s) {
         el.style.cssText = "font-weight: bold; font-style: italic";
         var div = document.createElement("div");
         div.appendChild(el);
-        t.assert(/<span style="font-weight:\s?bold;\s?font-style:\s?italic;?"><\/span>/i.test(div.innerHTML) ||
-                /<span style="font-style:\s?italic;\s?font-weight:\s?bold;?"><\/span>/i.test(div.innerHTML));
+        t.assert(/<span style="font-weight:\s?bold;\s?font-style:\s?italic;?\s?"><\/span>/i.test(div.innerHTML) ||
+                /<span style="font-style:\s?italic;\s?font-weight:\s?bold;?\s?"><\/span>/i.test(div.innerHTML));
     });
-
 
     testDocument(document);
 

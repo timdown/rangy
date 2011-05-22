@@ -10,6 +10,12 @@
         }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript">
+        var appender = new log4javascript.PopUpAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+        log4javascript.setShowStackTraces(true);
+        //log4javascript.setEnabled(false);
+    </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>

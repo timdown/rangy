@@ -73,7 +73,6 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function decomposeSubtree(rangeIterator, nodes) {
-        var it, n;
         nodes = nodes || [];
         for (var node, subRangeIterator; node = rangeIterator.next(); ) {
             if (rangeIterator.isPartiallySelectedSubtree()) {
@@ -870,7 +869,7 @@ rangy.createModule("DomRange", function(api, module) {
                 return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, dom.getNodeLength(node)) <= 0;
             },
 
-            splitBoundaries: function() {
+            splitBoundaries: function(rangesToPreserve) {
                 assertRangeValid(this);
 
                 log.debug("splitBoundaries called " + this.inspect());
@@ -878,13 +877,13 @@ rangy.createModule("DomRange", function(api, module) {
                 var startEndSame = (sc === ec);
 
                 if (dom.isCharacterDataNode(ec) && eo > 0 && eo < ec.length) {
-                    dom.splitDataNode(ec, eo);
+                    dom.splitDataNode(ec, eo, rangesToPreserve);
                     log.debug("Split end", dom.inspectNode(ec), eo);
                 }
 
                 if (dom.isCharacterDataNode(sc) && so > 0 && so < sc.length) {
                     log.debug("Splitting start", dom.inspectNode(sc), so);
-                    sc = dom.splitDataNode(sc, so);
+                    sc = dom.splitDataNode(sc, so, rangesToPreserve);
                     if (startEndSame) {
                         eo -= so;
                         ec = sc;
@@ -983,14 +982,24 @@ rangy.createModule("DomRange", function(api, module) {
                 return getNodesInRange(this, nodeTypes, filter);
             },
 
-            decompose: function() {
+            decompose: function(rangesToPreserve) {
                 assertRangeValid(this);
 
-                this.splitBoundaries();
+                this.splitBoundaries(rangesToPreserve);
                 var iterator = new RangeIterator(this, false);
                 var nodes = decomposeSubtree(iterator);
                 iterator.detach();
                 return nodes;
+            },
+
+            setStartAndEnd: function(startNode, startOffset, endNode, endOffset) {
+                assertNotDetached(this);
+                assertNoDocTypeNotationEntityAncestor(startNode, true);
+                assertNoDocTypeNotationEntityAncestor(endNode, true);
+                assertValidOffset(startNode, startOffset);
+                assertValidOffset(endNode, endOffset);
+
+                boundaryUpdater(this, startNode, startOffset, endNode, endOffset);
             },
 
             collapseToPoint: function(node, offset) {

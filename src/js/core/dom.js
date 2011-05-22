@@ -119,14 +119,49 @@ rangy.createModule("DomUtil", function(api, module) {
         return node;
     }
 
-    function splitDataNode(node, index) {
-        var newNode;
+    // This method follows the splitText() Range mutation rules from the HTML5 DOM Range spec
+    // http://html5.org/specs/dom-range.html#range-mutation-rules
+    function splitDataNode(node, offset, rangesToPreserve) {
+        var newNode, parent = node.parentNode, nodeIndex = getNodeIndex(node);
+        if (node.parentNode === null) {
+            throw new Error("splitDataNode: Node being split must have a non-null parent node");
+        }
         if (node.nodeType == 3) {
-            newNode = node.splitText(index);
+            newNode = node.splitText(offset);
+            if (rangesToPreserve) {
+                for (var i = 0, range; range = rangesToPreserve[i++]; ) {
+                    var sc = range.startContainer, so = range.startOffset, ec = range.endContainer, eo = range.endOffset;
+                    var rangeChanged = false;
+                    if (sc == node || ec == node) {
+                        if (range.startOffset > offset) {
+                            sc = newNode;
+                            so -= offset;
+                            rangeChanged = true;
+                        }
+                        if (range.endOffset > offset) {
+                            ec = newNode;
+                            eo -= offset;
+                            rangeChanged = true;
+                        }
+                    } else {
+                        if (sc == parent && so > nodeIndex + 1) {
+                            so++;
+                            rangeChanged = true;
+                        }
+                        if (ec == parent && eo > nodeIndex + 1) {
+                            eo++;
+                            rangeChanged = true;
+                        }
+                    }
+                    if (rangeChanged) {
+                        range.setStartAndEnd(sc, so, ec, eo);
+                    }
+                }
+            }
         } else {
             newNode = node.cloneNode();
-            newNode.deleteData(0, index);
-            node.deleteData(0, node.length - index);
+            newNode.deleteData(0, offset);
+            node.deleteData(0, node.length - offset);
             insertAfter(newNode, node);
         }
         return newNode;

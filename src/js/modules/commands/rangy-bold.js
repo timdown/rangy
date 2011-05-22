@@ -73,7 +73,7 @@ rangy.createModule("BoldCommand", function(api, module) {
         },
 
         applyValueToRange: function(range, context) {
-            var decomposed = range.decompose();
+            var decomposed = range.decompose(context.rangesToPreserve);
 
             for (var i = 0, len = decomposed.length; i < len; ++i) {
                 commandUtil.setNodeValue(decomposed[i], context);

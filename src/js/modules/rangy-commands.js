@@ -387,7 +387,7 @@ rangy.createModule("Commands", function(api, module) {
 
         // Check style attribute and bail out if it has more than one property
         if ( attrName != "style" || (typeof el.style.length == "number" && el.style.length > 1) ||
-                !/^[a-z\-]+:[^;]+;?$/i.test(el.style.cssText)) {
+                !/^[a-z\-]+:[^;]+;?\s?$/i.test(el.style.cssText)) {
             return false;
         }
 
@@ -481,7 +481,7 @@ rangy.createModule("Commands", function(api, module) {
 
     function movePreservingRanges(node, newParent, newIndex, rangesToPreserve) {
         // "When the user agent is to move a Node to a new location, preserving
-        // ranges, it must remove the Node from its original parent, then insert it
+        // ranges, it must remove the Node from its original parent (if any), then insert it
         // in the new location. In doing so, however, it must ignore the regular
         // range mutation rules, and instead follow these rules:"
 
@@ -504,7 +504,9 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // Set the new range boundaries
+        log.info("Node move: ", dom.inspectNode(node), "to", dom.inspectNode(newParent), newIndex);
         for (var j = 0, rangeMove; rangeMove = rangeMoves[j++]; ) {
+            log.info("Moving " + rangeMove[0].inspect(), dom.inspectNode(rangeMove[1]), rangeMove[2], dom.inspectNode(rangeMove[3]), rangeMove[4]);
             rangeMove[0].setStart(rangeMove[1], rangeMove[2]);
             rangeMove[0].setEnd(rangeMove[3], rangeMove[4]);
         }
@@ -1084,124 +1086,27 @@ rangy.createModule("Commands", function(api, module) {
             var win = dom.getWindow(doc);
             var sel = api.getSelection(win);
             var selRanges = sel.getAllRanges();
+/*
+            selRanges.sort(function(r1, r2) {
+                return r2.compareBoundaryPoints(r1.START_TO_START, r1);
+            });
+*/
             var newValue = this.getNewSelectionValue(sel, value, options);
             var context = this.createContext(newValue, selRanges, options);
 
+            for (var j = 0, range; range = selRanges[j++]; ) {
+                log.warn("Selected range " + range.inspect());
+            }
+
             for (var i = 0, len = selRanges.length; i < len; ++i) {
                 this.applyValueToRange(selRanges[i], context);
+                for (j = 0; range = selRanges[j++]; ) {
+                    log.warn("Selected range " + range.inspect());
+                }
             }
 
             sel.setRanges(selRanges);
         }
-
-/*
-        applyToRange: function(range, rangesToPreserve) {
-        },
-
-        applyToSelection: function(win) {
-            log.group("applyToSelection");
-            win = win || window;
-            var sel = api.getSelection(win);
-            log.info("applyToSelection " + sel.inspect());
-            var range, ranges = sel.getAllRanges();
-            sel.removeAllRanges();
-            var i = ranges.length;
-            while (i--) {
-                range = ranges[i];
-                this.applyToRange(range);
-                sel.addRange(range);
-            }
-            log.groupEnd();
-        },
-
-        undoToRange: function(range) {
-            log.info("undoToRange " + range.inspect());
-            range.splitBoundaries();
-            var textNodes = range.getNodes( [3] ), textNode, appliedAncestor;
-
-            if (textNodes.length) {
-                for (var i = 0, len = textNodes.length; i < len; ++i) {
-                    textNode = textNodes[i];
-                    appliedAncestor = this.getAppliedAncestor(textNode);
-                    if (appliedAncestor) {
-                        this.undoToTextNode(textNode, range, appliedAncestor);
-                    }
-                }
-
-                range.setStart(textNodes[0], 0);
-                textNode = textNodes[textNodes.length - 1];
-                range.setEnd(textNode, textNode.length);
-                log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
-
-                if (this.normalize) {
-                    this.postApply(textNodes, range);
-                }
-            }
-        },
-
-        undoToSelection: function(win) {
-            win = win || window;
-            var sel = api.getSelection(win);
-            var ranges = sel.getAllRanges(), range;
-            sel.removeAllRanges();
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                range = ranges[i];
-                this.undoToRange(range);
-                sel.addRange(range);
-            }
-        },
-
-        isAppliedToElement: function(el) {
-            return false;
-        },
-
-        isAppliedToRange: function(range) {
-            var textNodes = range.getNodes( [3] );
-            for (var i = 0, len = textNodes.length, selectedText; i < len; ++i) {
-                selectedText = this.getTextSelectedByRange(textNodes[i], range);
-                log.debug("text node: '" + textNodes[i].data + "', selectedText: '" + selectedText + "'", this.isAppliedToElement(textNodes[i].parentNode));
-                if (selectedText != "" && !this.isAppliedToElement(textNodes[i].parentNode)) {
-                    return false;
-                }
-            }
-            return true;
-        },
-
-        isAppliedToSelection: function(win) {
-            win = win || window;
-            var sel = api.getSelection(win);
-            var ranges = sel.getAllRanges();
-            var i = ranges.length;
-            while (i--) {
-                if (!this.isAppliedToRange(ranges[i])) {
-                    return false;
-                }
-            }
-            return true;
-        },
-
-        toggleRange: function(range) {
-            if (this.isAppliedToRange(range)) {
-                this.undoToRange(range);
-            } else {
-                this.applyToRange(range);
-            }
-        },
-
-        toggleSelection: function(win) {
-            if (this.isAppliedToSelection(win)) {
-                this.undoToSelection(win);
-            } else {
-                this.applyToSelection(win);
-            }
-        },
-
-        execSelection: function(win, value, options) {
-        },
-
-        querySelectionValue: function(win) {
-        }
-*/
     };
 
     Command.util = {
