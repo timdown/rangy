@@ -62,84 +62,100 @@ rangy.createModule("ApplyClassCommand", function(api, module) {
     }
 
     api.Command.create(ApplyClassCommand, {
-        getEffectiveValue: function(element, options) {
-            return hasClass(element, options.cssClass);
+        defaultOptions: {
+            tagName: "span",
+            validTagNames: ["span"]
         },
 
-
-        getSpecifiedValue: function(element) {
-            return element.style.fontWeight || (/^(strong|b)$/i.test(element.tagName) ? "bold" : null);
+        isValidElementForClass: function(el, validTagNames) {
+            return new RegExp("^(" + validTagNames.join("|") + ")$", "i").test(el.tagName);
         },
 
+        isSimpleModifiableElement: function(el, context) {
+            if (!this.isValidElementForClass(el, context.options.validTagNames)) {
+                return false;
+            }
 
-        valuesEqual: function(val1, val2) {
-            val1 = ("" + val1).toLowerCase();
-            val2 = ("" + val2).toLowerCase();
-            return val1 == val2
-                || (val1 == "bold" && val2 == "700")
-                || (val2 == "bold" && val1 == "700")
-                || (val1 == "normal" && val2 == "400")
-                || (val2 == "normal" && val1 == "400");
+            // Extract attributes once and quit if more than one is found or the attribute is not "class"
+            var hasAnyAttrs = false;
+            for (var i = 0, len = el.attributes.length; i < len; ++i) {
+                if (el.attributes[i].specified) {
+                    // If it's got more than one attribute, everything after this fails.
+                    if (hasAnyAttrs || el.attributes[i].name != "class") {
+                        return false;
+                    }
+                    hasAnyAttrs = true;
+                }
+            }
+
+            return true;
+        },
+
+        createCssElement: function(doc, context) {
+            return doc.createElement(context.options.tagName);
+        },
+
+        styleCssElement: function(el, value) {
+            el.className = value;
+        },
+
+        getAncestorOrSelfWithClass: function(node, validTagNames, cssClass) {
+            while (node) {
+                if (node.nodeType == 1 && this.isValidElementForClass(node, validTagNames) && hasClass(node, cssClass)) {
+                    return node;
+                }
+                node = node.parentNode;
+            }
+            return null;
+        },
+
+        getSpecifiedValue: function(element, context) {
+            return hasClass(element, context.value) ? context.value : null;
+        },
+
+        getEffectiveValue: function(element, context) {
+            return this.getAncestorOrSelfWithClass(element, context.options.validTagNames, context.value) ?
+                    context.value : null;
         },
 
         createNonCssElement: function(node, value) {
             return (value == "bold" || value == "700") ? dom.getDocument(node).createElement("b") : null;
         },
 
-        getRangeValue: function(range, options) {
-            var tagNames = options.tagNames || defaultTagNames;
+        getRangeValue: function(range, context) {
             var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
             while (i--) {
-                value = commandUtil.getEffectiveValue(textNodes[i], this);
-                if (!/^(bold|700|800|900)$/.test(value)) {
+                log.warn("effective value on " + textNodes[i].data +  ": " + commandUtil.getEffectiveValue(textNodes[i], context));
+                if (commandUtil.getEffectiveValue(textNodes[i], context) === null) {
                     return false;
                 }
             }
+            log.info("getRangeValue returning true");
             return textNodes.length > 0;
         },
 
-        getSelectionValue: function(sel) {
+        getSelectionValue: function(sel, context) {
             var selRanges = sel.getAllRanges();
             for (var i = 0, len = selRanges.length; i < len; ++i) {
-                if (!this.getRangeValue(selRanges[i])) {
+                if (!this.getRangeValue(selRanges[i], context)) {
                     return false;
                 }
             }
             return len > 0;
         },
 
-        getNewSelectionValue: function(sel, value, options) {
-            return this.getSelectionValue() ? "normal" : "bold";
+        getNewSelectionValue: function(sel, context) {
+            return this.getSelectionValue(sel, context) ? "" : context.value;
         },
 
-        applyValueToRange: function(range, newValue, rangesToPreserve, options) {
-            var decomposed = range.decompose();
+        applyValueToRange: function(range, context) {
+            var decomposed = range.decompose(context.rangesToPreserve);
 
             for (var i = 0, len = decomposed.length; i < len; ++i) {
-                commandUtil.setNodeValue(decomposed[i], this, newValue, rangesToPreserve, options);
+                commandUtil.setNodeValue(decomposed[i], context);
             }
-        },
-
-        applyToSelection: function(doc, options) {
-            doc = doc || document;
-            options = options || {};
-
-            var win = dom.getWindow(doc);
-            var sel = api.getSelection(win);
-            var selRanges = sel.getAllRanges();
-            var newValue = this.getSelectionValue(sel) ? "normal" : "bold"
-
-            for (var i = 0, len = selRanges.length; i < len; ++i) {
-                this.applyValueToRange(selRanges[i], newValue, selRanges, options);
-            }
-
-            sel.setRanges(selRanges);
-            log.info(sel.inspect(), selRanges);
         }
-
-
-
     });
 
     api.registerCommand("applyclass", new ApplyClassCommand());

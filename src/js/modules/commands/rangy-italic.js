@@ -1,6 +1,6 @@
 /**
  * @license Selection save and restore module for Rangy.
- * Bold command
+ * Italic command
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
@@ -12,35 +12,25 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("BoldCommand", function(api, module) {
+rangy.createModule("ItalicCommand", function(api, module) {
     api.requireModules( ["Commands"] );
 
     var dom = api.dom, commandUtil = api.Command.util;
-    var log = log4javascript.getLogger("rangy.BoldCommand");
+    var log = log4javascript.getLogger("rangy.ItalicCommand");
 
-    function BoldCommand() {
+    function ItalicCommand() {
 
     }
 
-    api.Command.create(BoldCommand, {
-        relevantCssProperty: "fontWeight",
+    api.Command.create(ItalicCommand, {
+        relevantCssProperty: "fontStyle",
 
         getSpecifiedValue: function(element) {
-            return element.style.fontWeight || (/^(strong|b)$/i.test(element.tagName) ? "bold" : null);
-        },
-
-        valuesEqual: function(val1, val2) {
-            val1 = ("" + val1).toLowerCase();
-            val2 = ("" + val2).toLowerCase();
-            return val1 == val2
-                || (val1 == "bold" && val2 == "700")
-                || (val2 == "bold" && val1 == "700")
-                || (val1 == "normal" && val2 == "400")
-                || (val2 == "normal" && val1 == "400");
+            return element.style.fontStyle || (/^(em|i)$/i.test(element.tagName) ? "italic" : null);
         },
 
         createNonCssElement: function(node, value) {
-            return (value == "bold" || value == "700") ? dom.getDocument(node).createElement("b") : null;
+            return (value == "italic") ? dom.getDocument(node).createElement("i") : null;
         },
 
         getRangeValue: function(range, context) {
@@ -49,7 +39,7 @@ rangy.createModule("BoldCommand", function(api, module) {
             while (i--) {
                 value = commandUtil.getEffectiveValue(textNodes[i], context);
                 log.info("getRangeValue value " + value);
-                if (!/^(bold|700|800|900)$/.test(value)) {
+                if (value != "italic") {
                     log.info("getRangeValue returning false");
                     return false;
                 }
@@ -69,7 +59,7 @@ rangy.createModule("BoldCommand", function(api, module) {
         },
 
         getNewSelectionValue: function(sel, context) {
-            return this.getSelectionValue(sel, context) ? "normal" : "bold";
+            return this.getSelectionValue(sel, context) ? "normal" : "italic";
         },
 
         applyValueToRange: function(range, context) {
@@ -81,6 +71,6 @@ rangy.createModule("BoldCommand", function(api, module) {
         }
     });
 
-    api.registerCommand("bold", new BoldCommand());
+    api.registerCommand("italic", new ItalicCommand());
 
 });

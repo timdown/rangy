@@ -11,11 +11,9 @@
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript">
-/*
         var appender = new log4javascript.PopUpAppender();
         log4javascript.getRootLogger().addAppender(appender);
         log4javascript.setShowStackTraces(true);
-*/
         //log4javascript.setEnabled(false);
     </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -25,8 +23,12 @@
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-commands.js"></script>
     <script type="text/javascript" src="../src/js/modules/commands/rangy-bold.js"></script>
+    <script type="text/javascript" src="../src/js/modules/commands/rangy-italic.js"></script>
+    <script type="text/javascript" src="../src/js/modules/commands/rangy-applyclass.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
     <script type="text/javascript">
         var iframeDoc, iframeWin, contentHtmlTextArea, mainLoaded = false, iframeLoaded = false;
+        var greenBorderCssClassApplier, boldRedCssClassApplier;
 
         function updateContentHtml() {
             contentHtmlTextArea.value = iframeDoc.body.innerHTML;
@@ -66,6 +68,12 @@
                 }, 1000);
             });
 
+            contentHtmlTextArea.onchange = function() {
+                iframeDoc.body.innerHTML = contentHtmlTextArea.value;
+            };
+
+            greenBorderCssClassApplier = rangy.createCssClassApplier("greenBorder");
+            boldRedCssClassApplier = rangy.createCssClassApplier("boldRed");
         };
 
         window.contentLoadCallback = function() {
@@ -85,8 +93,35 @@
             iframeWin.focus();
         }
 
+        function italic(styleWithCss) {
+            rangy.execCommand("italic", {
+                document: iframeDoc,
+                styleWithCss: styleWithCss
+            });
+
+            updateContentHtml();
+            iframeWin.focus();
+        }
+
         function nativeBold() {
             iframeDoc.execCommand("bold", false, null);
+            updateContentHtml();
+            iframeWin.focus();
+        }
+
+        function applyClass(className) {
+            rangy.execCommand("applyClass", {
+                document: iframeDoc,
+                value: className
+            });
+
+            updateContentHtml();
+            iframeWin.focus();
+        }
+
+        function applyClassCssClassApplier(className) {
+            var applier = (className == "boldRed") ? boldRedCssClassApplier : greenBorderCssClassApplier;
+            applier.toggleSelection(iframeWin);
             updateContentHtml();
             iframeWin.focus();
         }
@@ -94,15 +129,25 @@
 
 </head>
 <h1>Rangy commands demo</h1>
+<p>
+    Use the buttons to test the available commands. Both panes (WYSIWYG and HTML) are editable (HTML textarea uses
+    <code>onchange</code>, so click outside or tab away to get the WYSIWYG pane to update).
+</p>
 <div class="halfWidth">
     WYSIWYG:
     <div style="border: solid gray 1px">
         <div style="background-color: #eee">
-            <input type="button" onclick="bold(true);" value="Bold (Rangy, CSS)">
-            <input type="button" onclick="bold(false);" value="Bold (Rangy, non-CSS)">
+            <input type="button" onclick="bold(true);" value="Bold/CSS">
+            <input type="button" onclick="bold(false);" value="Bold">
             <input type="button" onclick="nativeBold();" value="Bold (native)">
+            <input type="button" onclick="italic(true);" value="Italic/CSS">
+            <input type="button" onclick="italic(false);" value="Italic">
+            <input type="button" onclick="applyClass('greenBorder');" value="Green border">
+            <input type="button" onclick="applyClass('boldRed');" value="Bold red">
+            <input type="button" onclick="applyClassCssClassApplier('greenBorder');" value="Green border (CssClassApplier)">
+            <input type="button" onclick="applyClassCssClassApplier('boldRed');" value="Bold red (CssClassApplier)">
         </div>
-        <iframe id="content" src="content.html" style="width: 100%; height: 400px" frameborder="0"></iframe>
+        <iframe id="content" src="content.html?1" style="width: 100%; height: 400px" frameborder="0"></iframe>
     </div>
 </div>
 <div class="halfWidth">
