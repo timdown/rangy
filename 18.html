@@ -39,8 +39,9 @@
             win = iframe.contentWindow;
             doc = win.document;
             doc.open();
-            doc.write("<html><body contenteditable='true'>Hello, this is some text</body></html>");
+            doc.write("<html><body>Hello, this is some text</body></html>");
             doc.close();
+            doc.designMode = "on";
         }
     </script>
 
