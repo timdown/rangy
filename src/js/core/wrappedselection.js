@@ -25,7 +25,15 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     function getDocSelection(winParam) {
-        return ((winParam || window).document.selection);
+        var doc = (winParam || window).document, nativeSel = doc.selection;
+
+        // Check whether the selection TextRange is actually contained within the correct document and focus the window
+        // object provided otherwise
+        if (nativeSel.type != "Control" && dom.getDocument(nativeSel.createRange().parentElement()) != doc) {
+            winParam.focus();
+        }
+
+        return nativeSel;
     }
 
     // Test for the Range/TextRange and Selection features required
