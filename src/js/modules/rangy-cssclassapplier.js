@@ -228,10 +228,14 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     CssClassApplier.prototype = {
+        appliesToElement: function(el) {
+            return this.applyToAnyTagName || dom.arrayContains(this.tagNames, el.tagName.toLowerCase());
+        },
+
         getAncestorWithClass: function(textNode) {
             var node = textNode.parentNode;
             while (node) {
-                if (node.nodeType == 1 && dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) && hasClass(node, this.cssClass)) {
+                if (node.nodeType == 1 && this.appliesToElement(node) && hasClass(node, this.cssClass)) {
                     return node;
                 }
                 node = node.parentNode;
@@ -310,7 +314,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             log.group("Apply CSS class. textNode: " + textNode.data);
             log.info("Apply CSS class. textNode: " + textNode.data);
             var parent = textNode.parentNode;
-            if (parent.childNodes.length == 1 && dom.arrayContains(this.tagNames, parent.tagName.toLowerCase())) {
+            if (parent.childNodes.length == 1 && this.appliesToElement(parent)) {
                 addClass(parent, this.cssClass);
             } else {
                 var el = this.createContainer(dom.getDocument(textNode));
