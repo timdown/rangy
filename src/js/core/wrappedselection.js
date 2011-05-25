@@ -25,15 +25,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     function getDocSelection(winParam) {
-        var doc = (winParam || window).document, nativeSel = doc.selection;
-
-        // Check whether the selection TextRange is actually contained within the correct document and focus the window
-        // object provided otherwise
-        if (nativeSel.type != "Control" && dom.getDocument(nativeSel.createRange().parentElement()) != doc) {
-            winParam.focus();
-        }
-
-        return nativeSel;
+        return (winParam || window).document.selection;
     }
 
     // Test for the Range/TextRange and Selection features required
@@ -43,8 +35,17 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (implementsWinGetSelection) {
         getSelection = getWinSelection;
+        api.isSelectionValid = function() {
+            return true;
+        };
     } else if (implementsDocSelection) {
         getSelection = getDocSelection;
+        api.isSelectionValid = function(winParam) {
+            var doc = (winParam || window).document, nativeSel = doc.selection;
+
+            // Check whether the selection TextRange is actually contained within the correct document
+            return (nativeSel.type != "None" || dom.getDocument(nativeSel.createRange().parentElement()) == doc);
+        };
     } else {
         module.fail("No means of obtaining a selection object");
     }
@@ -298,10 +299,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
     /**
      * @constructor
      */
-    function WrappedSelection(selection, docSelection) {
+    function WrappedSelection(selection, docSelection, win) {
         this.nativeSelection = selection;
         this.docSelection = docSelection;
         this._ranges = [];
+        this.win = win;
         this.refresh();
     }
 
@@ -314,7 +316,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             sel.docSelection = docSel;
             sel.refresh(win);
         } else {
-            sel = new WrappedSelection(nativeSel, docSel);
+            sel = new WrappedSelection(nativeSel, docSel, win);
             win[windowPropertyName] = sel;
         }
         return sel;
@@ -522,7 +524,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else if (util.isHostMethod(testSelection, "createRange") && implementsDocSelection) {
         refreshSelection = function(sel) {
-            var range = sel.docSelection.createRange();
+            var range;
+            if (api.isSelectionValid(sel.win)) {
+                range = sel.docSelection.createRange();
+            } else {
+                range = dom.getBody(sel.win.document).createTextRange();
+                range.collapse(true);
+            }
             log.warn("selection refresh called, selection type: " + sel.docSelection.type);
 
             if (sel.docSelection.type == CONTROL) {
@@ -748,9 +756,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     selProto.detach = function() {
-        if (this.anchorNode) {
-            dom.getWindow(this.anchorNode)[windowPropertyName] = null;
-        }
+        this.win[windowPropertyName] = null;
+        this.win = this.anchorNode = this.focusNode = null;
     };
 
     WrappedSelection.inspect = inspect;
