@@ -209,8 +209,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     function updateFromTextRange(sel, range) {
-        // Test whether the
-
         // Create a Range from the selected TextRange
         var wrappedRange = new WrappedRange(range);
         sel._ranges = [wrappedRange];
