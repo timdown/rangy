@@ -147,6 +147,10 @@ rangy.createModule("SaveRestore", function(api, module) {
 
     function saveSelection(win) {
         win = win || window;
+        if (!api.isSelectionValid(win)) {
+            module.warn("Cannot save selection. This usually happens when the selection is collapsed and the selection document has lost focus.");
+            return;
+        }
         var sel = api.getSelection(win);
         var ranges = sel.getAllRanges();
         var backwards = (ranges.length == 1 && sel.isBackwards());
