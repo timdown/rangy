@@ -67,6 +67,17 @@ rangy.createModule("CssClassApplier", function(api, module) {
         parent.removeChild(el);
     }
 
+    function rangeSelectsAnyText(range, textNode) {
+        var textRange = range.cloneRange();
+        textRange.selectNodeContents(textNode);
+
+        var intersectionRange = textRange.intersection(range);
+        var text = intersectionRange ? intersectionRange.toString() : "";
+        textRange.detach();
+
+        return text != "";
+    }
+
     function elementsHaveSameNonClassAttributes(el1, el2) {
         if (el1.attributes.length != el2.attributes.length) return false;
         for (var i = 0, len = el1.attributes.length, attr1, attr2, name; i < len; ++i) {
@@ -355,7 +366,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
         applyToRange: function(range) {
             range.splitBoundaries();
             log.info("applyToRange split boundaries ", range.inspect());
-            var textNodes = range.getNodes([3]);
+
+            var textNodes = range.getNodes([3], function(textNode) {
+                return rangeSelectsAnyText(range, textNode);
+            });
+
             log.info("applyToRange got text nodes " + textNodes);
 
             if (textNodes.length) {
@@ -430,23 +445,10 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         },
 
-        getTextSelectedByRange: function(textNode, range) {
-            var textRange = range.cloneRange();
-            textRange.selectNodeContents(textNode);
-
-            var intersectionRange = textRange.intersection(range);
-            var text = intersectionRange ? intersectionRange.toString() : "";
-            textRange.detach();
-
-            return text;
-        },
-
         isAppliedToRange: function(range) {
             var textNodes = range.getNodes( [3] );
-            for (var i = 0, len = textNodes.length, selectedText; i < len; ++i) {
-                selectedText = this.getTextSelectedByRange(textNodes[i], range);
-                log.warn("text node: '" + textNodes[i].data + "', selectedText: '" + selectedText + "'");
-                if (selectedText != "" && !this.getAncestorWithClass(textNodes[i])) {
+            for (var i = 0, len = textNodes.length; i < len; ++i) {
+                if (rangeSelectsAnyText(range, textNodes[i]) && !this.getAncestorWithClass(textNodes[i])) {
                     return false;
                 }
             }
