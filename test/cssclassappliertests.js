@@ -349,7 +349,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('1<span class="c1 rangy_1">2</span><span class="c1 c2 rangy_1 rangy_2">[3]</span><span class="c1 rangy_1">4</span>5', htmlAndRangeToString(testEl, range));
     });
 
-    s.test("Test issue 50 (Mac double click)", function(t) {
+    s.test("Test issue 50 (Mac double click), trailing text", function(t) {
         var applier = rangy.createCssClassApplier("c1");
 
         var testEl = document.getElementById("test");
@@ -357,6 +357,16 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
 
         applier.applyToRange(range);
         t.assertEquals('<b><span class="c1">[one]</span></b> two', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test issue 50 (Mac double click), leading text", function(t) {
+        var applier = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, "<span>one [<span>two] three</span></span>");
+
+        applier.applyToRange(range);
+        t.assertEquals('<span>one <span><span class="c1">[two]</span> three</span></span>', htmlAndRangeToString(testEl, range));
     });
 
 }, false);

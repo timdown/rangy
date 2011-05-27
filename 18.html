@@ -21,7 +21,7 @@
         var saved, win, doc;
 
         function save() {
-            window.focus();
+            //window.focus();
             saved = rangy.saveSelection(win);
             document.getElementById("main").value = document.body.innerHTML;
             document.getElementById("iframe").value = doc.body.innerHTML;
