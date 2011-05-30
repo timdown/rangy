@@ -25,6 +25,10 @@ rangy.createModule("BoldCommand", function(api, module) {
     api.Command.create(BoldCommand, {
         relevantCssProperty: "fontWeight",
 
+        defaultOptions: {
+            tagName: "b"
+        },
+
         getSpecifiedValue: function(element) {
             return element.style.fontWeight || (/^(strong|b)$/i.test(element.tagName) ? "bold" : null);
         },
@@ -39,8 +43,12 @@ rangy.createModule("BoldCommand", function(api, module) {
                 || (val2 == "normal" && val1 == "400");
         },
 
-        createNonCssElement: function(node, value) {
-            return (value == "bold" || value == "700") ? dom.getDocument(node).createElement("b") : null;
+        createNonCssElement: function(node, value, context) {
+            if (value == "bold" || value == "700") {
+                return dom.getDocument(node).createElement(context.options.tagName);
+            }
+
+            return null;
         },
 
         getRangeValue: function(range, context) {

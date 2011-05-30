@@ -637,7 +637,7 @@ rangy.createModule("Commands", function(api, module) {
         return context.command.getEffectiveValue(node, context);
     }
 
-    function forceCandidate(node, command, newValue, context, siblingPropName) {
+    function reorderModifiableDescendants(node, command, newValue, context, siblingPropName) {
         var candidate = node[siblingPropName], rangesToPreserve = context.rangesToPreserve;
 
         // "While candidate is a modifiable element, and candidate has exactly one
@@ -693,10 +693,10 @@ rangy.createModule("Commands", function(api, module) {
         // and is not an unwrappable node:"
         if (/^(1|3|4|7)$/.test("" + nodeType) && !isUnwrappable(node, options)) {
             // "Let candidate be node's previousSibling."
-            forceCandidate(node, command, newValue, context, "previousSibling");
+            reorderModifiableDescendants(node, command, newValue, context, "previousSibling");
 
             // "Let candidate be node's nextSibling."
-            forceCandidate(node, command, newValue, context, "nextSibling");
+            reorderModifiableDescendants(node, command, newValue, context, "nextSibling");
 
             // "Let previous sibling and next sibling be node's previousSibling and
             // nextSibling."
@@ -784,7 +784,7 @@ rangy.createModule("Commands", function(api, module) {
 
         // "If the CSS styling flag is false:"
         if (!options.styleWithCss && command.createNonCssElement) {
-            newParent = command.createNonCssElement(node, newValue);
+            newParent = command.createNonCssElement(node, newValue, context);
         }
 
         // "If new parent is null, let new parent be the result of calling
@@ -1200,6 +1200,17 @@ rangy.createModule("Commands", function(api, module) {
         var value = options.hasOwnProperty("value") ? options.value : null;
         var command = getCommand(name);
         command.applyToSelection(doc, value, options);
+    };
+
+    api.queryCommandValue = function(name, options) {
+        options = options || {};
+        var win = options.hasOwnProperty("document") ? dom.getWindow(options.document) : window;
+        var value = options.hasOwnProperty("value") ? options.value : null;
+        var command = getCommand(name);
+        var sel = api.getSelection(win);
+        var context = this.createContext(value, null, options);
+
+        return command.getSelectionValue(sel, context);
     };
 
     api.getCommand = getCommand;

@@ -8,6 +8,16 @@
             width: 48%;
             padding: 5px;
         }
+
+        input.unapplied {
+            border: solid #999 1px;
+            background-color: #ccc;
+        }
+
+        input.applied {
+            border: solid #999 1px;
+            background-color: #eee;
+        }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript">
@@ -83,10 +93,35 @@
             }
         };
 
-        function bold(styleWithCss) {
+        function execCommand(commandName, options) {
+            options.document = iframeDoc;
+            rangy.execCommand(commandName, options);
+
+            updateContentHtml();
+            iframeWin.focus();
+        }
+
+        var toolUpdaters = [];
+
+        function createButton(text, commandName, options, updater) {
+            var button = document.createElement("input");
+            button.type = "button";
+            button.value = text;
+            button.className = "unapplied";
+            button.onclick = function() {
+                execCommand(commandName, options);
+                if (updater) {
+                    updater();
+                }
+            };
+            document.getElementById("toolbar").appendChild(button);
+        }
+
+        function bold(styleWithCss, tagName) {
             rangy.execCommand("bold", {
                 document: iframeDoc,
-                styleWithCss: styleWithCss
+                styleWithCss: styleWithCss,
+                tagName: tagName
             });
 
             updateContentHtml();
@@ -136,9 +171,10 @@
 <div class="halfWidth">
     WYSIWYG:
     <div style="border: solid gray 1px">
-        <div style="background-color: #eee">
+        <div style="background-color: #eee" id="toolbar">
             <input type="button" onclick="bold(true);" value="Bold/CSS">
-            <input type="button" onclick="bold(false);" value="Bold">
+            <input type="button" onclick="bold(false, 'b');" value="Bold/B">
+            <input type="button" onclick="bold(false, 'strong');" value="Bold/strong">
             <input type="button" onclick="nativeBold();" value="Bold (native)">
             <input type="button" onclick="italic(true);" value="Italic/CSS">
             <input type="button" onclick="italic(false);" value="Italic">
