@@ -435,6 +435,44 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
 
+        if (testRange.splitBoundaries) {
+            s.test("splitBoundaries 'on[e]two' element container", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStart(text1, 1);
+                range.setEnd(b, 1);
+                t.assertEquals("ne", range.toString());
+                range.splitBoundaries();
+                t.assertEquals("ne", range.toString());
+
+                t.assertEquals(b.childNodes[1], range.startContainer);
+                t.assertEquals(0, range.startOffset);
+                t.assertEquals(b, range.endContainer);
+                t.assertEquals(2, range.endOffset);
+            });
+
+            s.test("splitBoundaries 'on[e]two' element container 2", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStart(text1, 1);
+                range.setEnd(b, 2);
+                t.assertEquals("netwo", range.toString());
+                range.splitBoundaries();
+                t.assertEquals("netwo", range.toString());
+
+                t.assertEquals(b.childNodes[1], range.startContainer);
+                t.assertEquals(0, range.startOffset);
+                t.assertEquals(b, range.endContainer);
+                t.assertEquals(3, range.endOffset);
+            });
+        }
+
         if (testRange.normalizeBoundaries) {
             s.test("normalizeBoundaries 'one|two' element container", function(t) {
                 var range = rangeCreator(doc);
@@ -734,6 +772,45 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assertEquals(3, range.endOffset);
                 t.assertEquals("", range.toString());
                 t.assertTrue(range.collapsed);
+            });
+
+            s.test("normalizeBoundaries end boundary shift 1 ", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                var span = b.appendChild( doc.createElement("span") );
+
+                range.setStart(text2, 0);
+                range.setEnd(b, 2);
+                t.assertEquals(range.toString(), "two");
+                range.normalizeBoundaries();
+                t.assertEquals(range.toString(), "two");
+                t.assertEquals(b.childNodes[0], range.startContainer);
+                t.assertEquals(b, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(1, range.endOffset);
+            });
+
+            s.test("normalizeBoundaries end boundary shift 2", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                var span = b.appendChild( doc.createElement("span") );
+                span.innerHTML = "three";
+
+                range.setStart(text2, 0);
+                range.setEnd(b, 3);
+                t.assertEquals(range.toString(), "twothree");
+                range.normalizeBoundaries();
+                t.assertEquals(range.toString(), "twothree");
+                t.assertEquals(b.childNodes[0], range.startContainer);
+                t.assertEquals(b, range.endContainer);
+                t.assertEquals(3, range.startOffset);
+                t.assertEquals(2, range.endOffset);
             });
         }
 

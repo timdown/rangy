@@ -25,7 +25,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     function getDocSelection(winParam) {
-        return ((winParam || window).document.selection);
+        return (winParam || window).document.selection;
     }
 
     // Test for the Range/TextRange and Selection features required
@@ -35,8 +35,17 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     if (implementsWinGetSelection) {
         getSelection = getWinSelection;
+        api.isSelectionValid = function() {
+            return true;
+        };
     } else if (implementsDocSelection) {
         getSelection = getDocSelection;
+        api.isSelectionValid = function(winParam) {
+            var doc = (winParam || window).document, nativeSel = doc.selection;
+
+            // Check whether the selection TextRange is actually contained within the correct document
+            return (nativeSel.type != "None" || dom.getDocument(nativeSel.createRange().parentElement()) == doc);
+        };
     } else {
         module.fail("No means of obtaining a selection object");
     }
@@ -66,33 +75,41 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
-        // Test whether the native selection is capable of supporting multiple ranges
         (function() {
-            var textNode1 = body.appendChild(document.createTextNode("One"));
-            var textNode2 = body.appendChild(document.createTextNode("Two"));
-            var testRange2 = api.createNativeRange(document);
-            testRange2.selectNodeContents(textNode1);
-            var testRange3 = api.createNativeRange(document);
-            testRange3.selectNodeContents(textNode2);
-            testSelection.removeAllRanges();
-            testSelection.addRange(testRange2);
-            testSelection.addRange(testRange3);
-            selectionSupportsMultipleRanges = (testSelection.rangeCount == 2);
-            testSelection.removeAllRanges();
-            textNode1.parentNode.removeChild(textNode1);
-            textNode2.parentNode.removeChild(textNode2);
+            var iframe = document.createElement("iframe");
+            body.appendChild(iframe);
+
+            var iframeDoc = dom.getIframeDocument(iframe);
+            iframeDoc.open();
+            iframeDoc.write("<html><head></head><body>12</body></html>");
+            iframeDoc.close();
+
+            var sel = dom.getIframeWindow(iframe).getSelection();
+            var docEl = iframeDoc.documentElement;
+            var iframeBody = docEl.lastChild, textNode = iframeBody.firstChild;
 
             // Test whether the native selection will allow a collapsed selection within a non-editable element
-            var el = document.createElement("p");
-            el.contentEditable = false;
-            var textNode3 = el.appendChild(document.createTextNode("test"));
-            body.appendChild(el);
-            var testRange4 = api.createRange();
-            testRange4.collapseToPoint(textNode3, 1);
-            testSelection.addRange(testRange4.nativeRange);
-            collapsedNonEditableSelectionsSupported = (testSelection.rangeCount == 1);
-            testSelection.removeAllRanges();
-            body.removeChild(el);
+            var r1 = iframeDoc.createRange();
+            r1.setStart(textNode, 1);
+            r1.collapse(true);
+            sel.addRange(r1);
+            collapsedNonEditableSelectionsSupported = (sel.rangeCount == 1);
+            sel.removeAllRanges();
+
+            // Test whether the native selection is capable of supporting multiple ranges
+            var r2 = r1.cloneRange();
+            r1.setStart(textNode, 0);
+            r2.setEnd(textNode, 2);
+            sel.addRange(r1);
+            sel.addRange(r2);
+
+            selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+
+            // Clean up
+            r1.detach();
+            r2.detach();
+
+            body.removeChild(iframe);
         })();
     }
 
@@ -280,10 +297,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
     /**
      * @constructor
      */
-    function WrappedSelection(selection, docSelection) {
+    function WrappedSelection(selection, docSelection, win) {
         this.nativeSelection = selection;
         this.docSelection = docSelection;
         this._ranges = [];
+        this.win = win;
         this.refresh();
     }
 
@@ -294,9 +312,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         if (sel) {
             sel.nativeSelection = nativeSel;
             sel.docSelection = docSel;
-            sel.refresh();
+            sel.refresh(win);
         } else {
-            sel = new WrappedSelection(nativeSel, docSel);
+            sel = new WrappedSelection(nativeSel, docSel, win);
             win[windowPropertyName] = sel;
         }
         return sel;
@@ -504,7 +522,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else if (util.isHostMethod(testSelection, "createRange") && implementsDocSelection) {
         refreshSelection = function(sel) {
-            var range = sel.docSelection.createRange();
+            var range;
+            if (api.isSelectionValid(sel.win)) {
+                range = sel.docSelection.createRange();
+            } else {
+                range = dom.getBody(sel.win.document).createTextRange();
+                range.collapse(true);
+            }
             log.warn("selection refresh called, selection type: " + sel.docSelection.type);
 
             if (sel.docSelection.type == CONTROL) {
@@ -730,9 +754,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     selProto.detach = function() {
-        if (this.anchorNode) {
-            dom.getWindow(this.anchorNode)[windowPropertyName] = null;
-        }
+        this.win[windowPropertyName] = null;
+        this.win = this.anchorNode = this.focusNode = null;
     };
 
     WrappedSelection.inspect = inspect;
