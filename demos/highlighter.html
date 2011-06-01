@@ -13,6 +13,12 @@
         }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript">
+        var appender = new log4javascript.PopUpAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+        var log = log4javascript.getRootLogger();
+        log4javascript.setShowStackTraces(true);
+    </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
@@ -52,13 +58,13 @@
             var greenHighlightButton = gEBI("greenHighlightButton");
             greenHighlightButton.disabled = false;
             greenHighlightButton.onclick = function() {
-                highlighter.highlightSelection("greenhighlight")
+                console.log(highlighter.highlightSelection("greenhighlight"));
             };
 
             var yellowHighlightButton = gEBI("yellowHighlightButton");
             yellowHighlightButton.disabled = false;
             yellowHighlightButton.onclick = function() {
-                highlighter.highlightSelection("yellowhighlight")
+                console.log(highlighter.highlightSelection("yellowhighlight"));
             };
 
             var removeHighlightsButton = gEBI("removeHighlightsButton");
@@ -104,6 +110,8 @@
         <h1>Rangy Highlighter Module Demo</h1>
 
         <!-- A comment -->
+        <p>1 2</p>
+        <p>3 4</p>
 
         <p id="intro">
             Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on

@@ -48,7 +48,7 @@ rangy.createModule("Highlighter", function(api, module) {
         },
 
         toString: function() {
-            return "[Highlight(ID: " + this.id + ", range: " + this.range.inspect() + ")]";
+            return "[Highlight(ID: " + this.id + ", class: " + this.cssClassApplier.cssClass + ", range: " + this.range.inspect() + ")]";
         }
     };
 

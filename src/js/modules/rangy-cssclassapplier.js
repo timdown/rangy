@@ -316,7 +316,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 }
                 node = node.parentNode;
             }
-            return false;
+            return null;
         },
 
         // Normalizes nodes after applying a CSS class to a Range.
@@ -544,8 +544,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         isAppliedToRange: function(range) {
             var textNodes = range.getNodes( [3] );
-            for (var i = 0, len = textNodes.length, selectedText; i < len; ++i) {
-                if (rangeSelectsAnyText(range, textNodes[i]) && !this.getAncestorWithClass(textNodes[i])) {
+            for (var i = 0, len = textNodes.length; i < len; ++i) {
+                if ((!this.ignoreWhiteSpace || !dom.isWhiteSpaceNode(textNodes[i])) && rangeSelectsAnyText(range, textNodes[i]) && !this.getAncestorWithClass(textNodes[i])) {
                     return false;
                 }
             }

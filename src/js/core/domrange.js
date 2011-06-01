@@ -190,7 +190,7 @@ rangy.createModule("DomRange", function(api, module) {
         this.range = range;
         this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
 
-        log.info("New RangeIterator ", dom.inspectNode(range.startContainer), range.startOffset, dom.inspectNode(range.endContainer), range.endOffset);
+        log.trace("New RangeIterator ", dom.inspectNode(range.startContainer), range.startOffset, dom.inspectNode(range.endContainer), range.endOffset);
 
         if (!range.collapsed) {
             this.sc = range.startContainer;
@@ -208,7 +208,7 @@ rangy.createModule("DomRange", function(api, module) {
                 this._last = (this.ec === root && !dom.isCharacterDataNode(this.ec)) ?
                     this.ec.childNodes[this.eo - 1] : dom.getClosestAncestorIn(this.ec, root, true);
             }
-            log.info("RangeIterator first and last", dom.inspectNode(this._first), dom.inspectNode(this._last));
+            log.trace("RangeIterator first and last", dom.inspectNode(this._first), dom.inspectNode(this._last));
         }
     }
 
