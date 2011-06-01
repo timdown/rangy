@@ -13,12 +13,6 @@
         }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
-    <script type="text/javascript">
-        var appender = new log4javascript.PopUpAppender();
-        log4javascript.getRootLogger().addAppender(appender);
-        var log = log4javascript.getRootLogger();
-        log4javascript.setShowStackTraces(true);
-    </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
@@ -85,9 +79,6 @@
 <body>
     <div id="buttons">
         <h3>Highlight selection</h3>
-        <form action="highlighter.html" method="get" id="highlightForm">
-            <input type="hidden">
-        </form>
         Make a selection in the document on the right and use the buttons below to add and remove highlights:
 
         <br>
