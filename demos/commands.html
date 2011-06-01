@@ -21,9 +21,11 @@
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript">
+/*
         var appender = new log4javascript.PopUpAppender();
         log4javascript.getRootLogger().addAppender(appender);
         log4javascript.setShowStackTraces(true);
+*/
         //log4javascript.setEnabled(false);
     </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -144,6 +146,7 @@
             iframeWin.focus();
         }
 
+/*
         function applyClass(className) {
             rangy.execCommand("applyClass", {
                 document: iframeDoc,
@@ -160,6 +163,7 @@
             updateContentHtml();
             iframeWin.focus();
         }
+*/
     </script>
 
 </head>
@@ -178,10 +182,12 @@
             <input type="button" onclick="nativeBold();" value="Bold (native)">
             <input type="button" onclick="italic(true);" value="Italic/CSS">
             <input type="button" onclick="italic(false);" value="Italic">
+<!--
             <input type="button" onclick="applyClass('greenBorder');" value="Green border">
             <input type="button" onclick="applyClass('boldRed');" value="Bold red">
             <input type="button" onclick="applyClassCssClassApplier('greenBorder');" value="Green border (CssClassApplier)">
             <input type="button" onclick="applyClassCssClassApplier('boldRed');" value="Bold red (CssClassApplier)">
+-->
         </div>
         <iframe id="content" src="content.html?1" style="width: 100%; height: 400px" frameborder="0"></iframe>
     </div>
