@@ -10,13 +10,15 @@
         }
 
         input.unapplied {
-            border: solid #999 1px;
+            border: solid #666 1px;
             background-color: #ccc;
+            margin-right: 5px;
         }
 
         input.applied {
-            border: solid #999 1px;
+            border: solid #006 1px;
             background-color: #eee;
+            margin-right: 5px;
         }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
@@ -173,6 +175,40 @@
                 }
             );
 
+            var boldStrongOptions = {
+                document: iframeDoc,
+                styleWithCss: false,
+                tagName: "b"
+            };
+
+            createButton("Bold (strong)", "bold", boldStrongOptions,
+                function() {
+                    return rangy.queryCommandValue("bold", boldStrongOptions);
+                }
+            );
+
+            var italicCssOptions = {
+                document: iframeDoc,
+                styleWithCss: true
+            };
+
+            createButton("Italic (CSS)", "italic", italicCssOptions,
+                function() {
+                    return rangy.queryCommandValue("italic", italicCssOptions);
+                }
+            );
+
+            var italicIOptions = {
+                document: iframeDoc,
+                styleWithCss: false
+            };
+
+            createButton("Italic (i)", "italic", italicIOptions,
+                function() {
+                    return rangy.queryCommandValue("italic", italicIOptions);
+                }
+            );
+
 /*
             greenBorderCssClassApplier = rangy.createCssClassApplier("greenBorder");
             boldRedCssClassApplier = rangy.createCssClassApplier("boldRed");
@@ -243,7 +279,7 @@
 <div class="halfWidth">
     WYSIWYG:
     <div style="border: solid gray 1px">
-        <div style="background-color: #eee" id="toolbar">
+        <div style="background-color: #999; padding: 2px" id="toolbar">
 <!--
             <input type="button" onclick="bold(true);" value="Bold/CSS">
             <input type="button" onclick="bold(false, 'b');" value="Bold/B">

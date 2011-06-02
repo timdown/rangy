@@ -36,16 +36,19 @@ rangy.createModule("ItalicCommand", function(api, module) {
         getRangeValue: function(range, context) {
             var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
-            while (i--) {
-                value = commandUtil.getEffectiveValue(textNodes[i], context);
-                log.info("getRangeValue value " + value);
-                if (value != "italic") {
-                    log.info("getRangeValue returning false");
-                    return false;
+            if (textNodes.length == 0) {
+                return commandUtil.getEffectiveValue(range.commonAncestorContainer, context) == "italic";
+            } else {
+                while (i--) {
+                    value = commandUtil.getEffectiveValue(textNodes[i], context);
+                    log.info("getRangeValue value " + value);
+                    if (value != "italic") {
+                        log.info("getRangeValue returning false");
+                        return false;
+                    }
                 }
+                return true;
             }
-            log.info("getRangeValue returning true");
-            return textNodes.length > 0;
         },
 
         getSelectionValue: function(sel, context) {

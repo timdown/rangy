@@ -51,19 +51,27 @@ rangy.createModule("BoldCommand", function(api, module) {
             return null;
         },
 
+        isBoldCssValue: function(value) {
+            return /^(bold|700|800|900)$/.test(value);
+        },
+
         getRangeValue: function(range, context) {
             var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
-            while (i--) {
-                value = commandUtil.getEffectiveValue(textNodes[i], context);
-                log.info("getRangeValue value " + value);
-                if (!/^(bold|700|800|900)$/.test(value)) {
-                    log.info("getRangeValue returning false");
-                    return false;
+
+            if (textNodes.length == 0) {
+                return this.isBoldCssValue(commandUtil.getEffectiveValue(range.commonAncestorContainer, context))
+            } else {
+                while (i--) {
+                    value = commandUtil.getEffectiveValue(textNodes[i], context);
+                    log.info("getRangeValue value " + value);
+                    if (!this.isBoldCssValue(value)) {
+                        log.info("getRangeValue returning false");
+                        return false;
+                    }
                 }
+                return true;
             }
-            log.info("getRangeValue returning true");
-            return textNodes.length > 0;
         },
 
         getSelectionValue: function(sel, context) {
