@@ -59,16 +59,15 @@
             }
         }
 
-        window.onload = function() {
-            rangy.init();
-            iframeWin = rangy.dom.getIframeWindow( document.getElementById("content") );
-            iframeDoc = iframeWin.document;
-            contentHtmlTextArea = document.getElementById("contentHtml");
-            mainLoaded = true;
-            if (iframeLoaded) {
-                allLoaded();
-            }
+        function execCommand(commandName, options) {
+            options.document = iframeDoc;
+            rangy.execCommand(commandName, options);
 
+            updateContentHtml();
+            iframeWin.focus();
+        }
+
+        function initTextareaIframeSync() {
             var timer = null;
             addEvent(iframeDoc, "keyup", function() {
                 if (timer) {
@@ -83,11 +82,104 @@
             contentHtmlTextArea.onchange = function() {
                 iframeDoc.body.innerHTML = contentHtmlTextArea.value;
             };
+        }
 
+        var toolUpdaters = [];
+
+        function initToolUpdates() {
+            var timer = null;
+
+            function doUpdate() {
+                for (var i = 0, len = toolUpdaters.length; i < len; ++i) {
+                    toolUpdaters[i]();
+                }
+            }
+
+            function debouncedEventHandler() {
+                if (timer) {
+                    window.clearTimeout(timer);
+                }
+                timer = window.setTimeout(function() {
+                    timer = null;
+                    doUpdate();
+                }, 50);
+            }
+
+            if ("onselectionchange" in iframeDoc) {
+                addEvent(iframeDoc, "selectionchange", debouncedEventHandler);
+            } else {
+                addEvent(iframeDoc, "keyup", debouncedEventHandler);
+                addEvent(iframeDoc, "mouseup", debouncedEventHandler);
+            }
+        }
+
+        function createButton(text, commandName, options, isAppliedFunc) {
+            var button = document.createElement("input");
+            button.type = "button";
+            button.value = text;
+            button.className = "unapplied";
+
+            var updater = function() {
+                button.className = (isAppliedFunc && isAppliedFunc()) ? "applied" : "unapplied";
+            };
+
+            toolUpdaters.push(updater);
+
+            button.onclick = function() {
+                execCommand(commandName, options);
+                updater();
+            };
+
+            document.getElementById("toolbar").appendChild(button);
+        }
+
+        window.onload = function() {
+            rangy.init();
+            iframeWin = rangy.dom.getIframeWindow( document.getElementById("content") );
+            iframeDoc = iframeWin.document;
+            contentHtmlTextArea = document.getElementById("contentHtml");
+            mainLoaded = true;
+            if (iframeLoaded) {
+                allLoaded();
+            }
+
+            // Update the source textarea after changes in the WYSIWYG iframe and vice versa
+            initTextareaIframeSync();
+
+            // Update toolbar when the selection changes
+            initToolUpdates();
+
+            // Create buttons
+            var boldCssOptions = {
+                document: iframeDoc,
+                styleWithCss: true
+            };
+
+            createButton("Bold (CSS)", "bold", boldCssOptions,
+                function() {
+                    return rangy.queryCommandValue("bold", boldCssOptions);
+                }
+            );
+
+            var boldBOptions = {
+                document: iframeDoc,
+                styleWithCss: false,
+                tagName: "b"
+            };
+
+            createButton("Bold (b)", "bold", boldBOptions,
+                function() {
+                    return rangy.queryCommandValue("bold", boldBOptions);
+                }
+            );
+
+/*
             greenBorderCssClassApplier = rangy.createCssClassApplier("greenBorder");
             boldRedCssClassApplier = rangy.createCssClassApplier("boldRed");
+*/
         };
 
+        // Iframe load callback
         window.contentLoadCallback = function() {
             iframeLoaded = true;
             if (mainLoaded) {
@@ -95,28 +187,11 @@
             }
         };
 
-        function execCommand(commandName, options) {
-            options.document = iframeDoc;
-            rangy.execCommand(commandName, options);
-
+/*
+        function nativeBold() {
+            iframeDoc.execCommand("bold", false, null);
             updateContentHtml();
             iframeWin.focus();
-        }
-
-        var toolUpdaters = [];
-
-        function createButton(text, commandName, options, updater) {
-            var button = document.createElement("input");
-            button.type = "button";
-            button.value = text;
-            button.className = "unapplied";
-            button.onclick = function() {
-                execCommand(commandName, options);
-                if (updater) {
-                    updater();
-                }
-            };
-            document.getElementById("toolbar").appendChild(button);
         }
 
         function bold(styleWithCss, tagName) {
@@ -140,13 +215,6 @@
             iframeWin.focus();
         }
 
-        function nativeBold() {
-            iframeDoc.execCommand("bold", false, null);
-            updateContentHtml();
-            iframeWin.focus();
-        }
-
-/*
         function applyClass(className) {
             rangy.execCommand("applyClass", {
                 document: iframeDoc,
@@ -176,13 +244,13 @@
     WYSIWYG:
     <div style="border: solid gray 1px">
         <div style="background-color: #eee" id="toolbar">
+<!--
             <input type="button" onclick="bold(true);" value="Bold/CSS">
             <input type="button" onclick="bold(false, 'b');" value="Bold/B">
             <input type="button" onclick="bold(false, 'strong');" value="Bold/strong">
             <input type="button" onclick="nativeBold();" value="Bold (native)">
             <input type="button" onclick="italic(true);" value="Italic/CSS">
             <input type="button" onclick="italic(false);" value="Italic">
-<!--
             <input type="button" onclick="applyClass('greenBorder');" value="Green border">
             <input type="button" onclick="applyClass('boldRed');" value="Bold red">
             <input type="button" onclick="applyClassCssClassApplier('greenBorder');" value="Green border (CssClassApplier)">

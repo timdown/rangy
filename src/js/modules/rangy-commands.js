@@ -1208,7 +1208,7 @@ rangy.createModule("Commands", function(api, module) {
         var value = options.hasOwnProperty("value") ? options.value : null;
         var command = getCommand(name);
         var sel = api.getSelection(win);
-        var context = this.createContext(value, null, options);
+        var context = command.createContext(value, null, options);
 
         return command.getSelectionValue(sel, context);
     };
