@@ -187,8 +187,18 @@ rangy.createModule("Commands", function(api, module) {
         return isInlineNode(node) && node.nodeName.toLowerCase() != "br";
     }
 
-    function isHtmlElement(node) {
-        return node && node.nodeType == 1 && isHtmlNode(node);
+    function isHtmlElement(node, tagNames) {
+        if (!node || node.nodeType != 1 || !isHtmlNode(node)) {
+            return false;
+        }
+        switch (typeof tagNames) {
+            case "string":
+                return node.tagName.toLowerCase() == tagNames.toLowerCase();
+            case "object":
+                return new RegExp("^(" + tagNames.join(",") + ")$", "i").test(node.tagName);
+            default:
+                return true;
+        }
     }
 
     /**
@@ -637,6 +647,191 @@ rangy.createModule("Commands", function(api, module) {
         return context.command.getEffectiveValue(node, context);
     }
 
+    function removeExtraneousLineBreaksBefore(node) {
+        // "If node is not an Element, or it is an inline node, do nothing and
+        // abort these steps."
+        if (!node || node.nodeType != 1 || isInlineNode(node)) {
+            return;
+        }
+
+        // "If the previousSibling of node is a br, and the previousSibling of the
+        // previousSibling of node is an inline node that is not a br, remove the
+        // previousSibling of node from its parent."
+        var previousSibling = node.previousSibling, previousSiblingPreviousSibling;
+        if (isHtmlElement(previousSibling, "br")
+                && isInlineNode( (previousSiblingPreviousSibling = node.previousSibling.previousSibling) )
+                && !isHtmlElement(previousSiblingPreviousSibling, "br")) {
+            node.parentNode.removeChild(previousSibling);
+        }
+    }
+
+    function removeExtraneousLineBreaksAtTheEndOf(node) {
+        // "If node is not an Element, or it is an inline node, do nothing and
+        // abort these steps."
+        if (!node || node.nodeType != 1 || isInlineNode(node)) {
+            return;
+        }
+
+        // "If node has at least two children, and its last child is a br, and its
+        // second-to-last child is an inline node that is not a br, remove the last
+        // child of node from node."
+        var lastChild = node.lastChild, lastChildPreviousSibling;
+        if (node.childNodes.length >= 2 && isHtmlElement(node.lastChild, "br")
+                && isInlineNode( (lastChildPreviousSibling = node.lastChild.previousSibling) )
+                && !isHtmlElement(lastChildPreviousSibling, "br")) {
+            node.removeChild(lastChild);
+        }
+    }
+
+    // "To remove extraneous line breaks from a node, first remove extraneous line
+    // breaks before it, then remove extraneous line breaks at the end of it."
+    function removeExtraneousLineBreaksFrom(node) {
+        removeExtraneousLineBreaksBefore(node);
+        removeExtraneousLineBreaksAtTheEndOf(node);
+    }
+
+    function wrap(nodeList, siblingCriteria, newParentInstructions, context) {
+        var firstNode = nodeList[0];
+        var options = context.options, rangesToPreserve = context.rangesToPreserve;
+        var i, len, range;
+        var doc = dom.getDocument(newParent);
+
+        // "If node list is empty, or the first member of node list is not
+        // editable, return null and abort these steps."
+        if (!nodeList.length || !isEditable(firstNode, options)) {
+            return null;
+        }
+
+        var lastNode = nodeList[nodeList.length - 1];
+
+        // "If node list's last member is an inline node that's not a br, and node
+        // list's last member's nextSibling is a br, append that br to node list."
+        if (isInlineNode(lastNode) && !isHtmlElement(lastNode, "br") && isHtmlElement(lastNode.nextSibling, "br")) {
+            nodeList.push(lastNode.nextSibling);
+        }
+
+        // "If the previousSibling of the first member of node list is editable and
+        // meets the sibling criteria, let new parent be the previousSibling of the
+        // first member of node list."
+        var newParent, nodePriorToFirstNode = firstNode.previousSibling, nodeAfterLastNode = lastNode.nextSibling;
+
+        if (isEditable(nodePriorToFirstNode, options) && siblingCriteria(nodePriorToFirstNode)) {
+            newParent = nodePriorToFirstNode;
+
+        // "Otherwise, if the nextSibling of the last member of node list is
+        // editable and meets the sibling criteria, let new parent be the
+        // nextSibling of the last member of node list."
+        } else if (isEditable(nodeAfterLastNode, options) && siblingCriteria(nodeAfterLastNode)) {
+            newParent = nodeAfterLastNode;
+
+        // "Otherwise, run the new parent instructions, and let new parent be the
+        // result."
+        } else {
+            newParent = newParentInstructions();
+        }
+
+        // "If new parent is null, abort these steps and return null."
+        if (!newParent) {
+            return null;
+        }
+
+        var newParentParent = newParent.parentNode, firstNodeParent = firstNode.parentNode;
+
+        // "If new parent's parent is null:"
+        if (!newParentParent) {
+            // "Insert new parent into the parent of the first member of node list
+            // immediately before the first member of node list."
+            firstNodeParent.insertBefore(newParent, firstNode);
+
+            // "If any range has a boundary point with node equal to the parent of
+            // new parent and offset equal to the index of new parent, add one to
+            // that boundary point's offset."
+
+            // Preserve only the ranges passed in
+            for (i = 0; range = rangesToPreserve[i++]; ) {
+                if (range.startContainer == newParentParent && range.startOffset == dom.getNodeIndex(newParent)) {
+                    range.setStart(range.startContainer, range.startOffset + 1);
+                }
+                if (range.endContainer == newParentParent && range.endOffset == dom.getNodeIndex(newParent)) {
+                    range.setEnd(range.endContainer, range.endOffset + 1);
+                }
+            }
+        }
+
+        // "Let original parent be the parent of the first member of node list."
+
+        // "If new parent is before the first member of node list in tree order:"
+        if (dom.isBefore(newParent, firstNode)) {
+            // "If new parent is not an inline node, but the last child of new
+            // parent and the first member of node list are both inline nodes, and
+            // the last child of new parent is not a br, call createElement("br")
+            // on the ownerDocument of new parent and append the result as the last
+            // child of new parent."
+            if (!isInlineNode(newParent) && isInlineNode(newParent.lastChild) && isInlineNode(firstNode) && !isHtmlElement(newParent.lastChild, "br")) {
+                newParent.appendChild(doc.createElement("br"));
+            }
+
+            // "For each node in node list, append node as the last child of new
+            // parent, preserving ranges."
+            for (i = 0, len = nodeList.length; i < len; ++i) {
+                movePreservingRanges(nodeList[i], newParent, -1, rangesToPreserve);
+            }
+
+        // "Otherwise:"
+        } else {
+            // "If new parent is not an inline node, but the first child of new
+            // parent and the last member of node list are both inline nodes, and
+            // the last member of node list is not a br, call createElement("br")
+            // on the ownerDocument of new parent and insert the result as the
+            // first child of new parent."
+            if (!isInlineNode(newParent) && isInlineNode(newParent.firstChild) && isInlineNode(lastNode) && !isHtmlElement(lastNode, "br")) {
+                newParent.insertBefore(doc.createElement("br"), newParent.firstChild);
+            }
+
+            // "For each node in node list, in reverse order, insert node as the
+            // first child of new parent, preserving ranges."
+            for (i = nodeList.length - 1; i >= 0; i--) {
+                movePreservingRanges(nodeList[i], newParent, 0, rangesToPreserve);
+            }
+        }
+
+        // "If original parent is editable and has no children, remove it from its
+        // parent."
+        if (isEditable(firstNodeParent, options) && !firstNodeParent.hasChildNodes()) {
+            firstNodeParent.parentNode.removeChild(firstNodeParent);
+        }
+
+        // "If new parent's nextSibling is editable and meets the sibling
+        // criteria:"
+        var newParentNextSibling = newParent.nextSibling;
+        if (isEditable(newParentNextSibling, options) && siblingCriteria(newParentNextSibling)) {
+            // "If new parent is not an inline node, but new parent's last child
+            // and new parent's nextSibling's first child are both inline nodes,
+            // and new parent's last child is not a br, call createElement("br") on
+            // the ownerDocument of new parent and append the result as the last
+            // child of new parent."
+            if (!isInlineNode(newParent) && isInlineNode(newParent.lastChild) &&
+                    isInlineNode(newParentNextSibling.firstChild) && !isHtmlElement(newParent.lastChild, "br")) {
+                newParent.appendChild(doc.createElement("br"));
+            }
+
+            // "While new parent's nextSibling has children, append its first child
+            // as the last child of new parent, preserving ranges."
+            while (newParentNextSibling.hasChildNodes()) {
+                movePreservingRanges(newParentNextSibling.firstChild, newParent, -1, rangesToPreserve);
+            }
+
+            // "Remove new parent's nextSibling from its parent."
+            newParent.parentNode.removeChild(newParentNextSibling);
+        }
+
+        // "Remove extraneous line breaks from new parent."
+        removeExtraneousLineBreaksFrom(newParent);
+
+        // "Return new parent."
+        return newParent;
+    }
+
     function reorderModifiableDescendants(node, command, newValue, context, siblingPropName) {
         var candidate = node[siblingPropName], rangesToPreserve = context.rangesToPreserve;
 
@@ -692,47 +887,25 @@ rangy.createModule("Commands", function(api, module) {
         // "If node is an Element, Text, Comment, or ProcessingInstruction node,
         // and is not an unwrappable node:"
         if (/^(1|3|4|7)$/.test("" + nodeType) && !isUnwrappable(node, options)) {
-            // "Let candidate be node's previousSibling."
+		    // "Reorder modifiable descendants of node's previousSibling."
             reorderModifiableDescendants(node, command, newValue, context, "previousSibling");
 
-            // "Let candidate be node's nextSibling."
+    		// "Reorder modifiable descendants of node's nextSibling."
             reorderModifiableDescendants(node, command, newValue, context, "nextSibling");
 
-            // "Let previous sibling and next sibling be node's previousSibling and
-            // nextSibling."
-            var previousSibling = node.previousSibling;
-            var nextSibling = node.nextSibling;
-
-            // "If previous sibling is a simple modifiable element whose specified
-            // value and effective value for command are both new value, append
-            // node as the last child of previous sibling, preserving ranges."
-            if (isSimpleModifiableElement(previousSibling, context)
-                    && valuesEqual(command, command.getSpecifiedValue(previousSibling, context), newValue)
-                    && valuesEqual(command, getEffectiveValue(previousSibling, context), newValue)) {
-                movePreservingRanges(node, previousSibling, previousSibling.childNodes.length, rangesToPreserve);
-            }
-
-            // "If next sibling is a simple modifiable element whose specified value
-            // and effective value for command are both new value:"
-            if (isSimpleModifiableElement(nextSibling, context)
-                    && valuesEqual(command, command.getSpecifiedValue(nextSibling, context), newValue)
-                    && valuesEqual(command, getEffectiveValue(nextSibling, context), newValue)) {
-                // "If node is not a child of previous sibling, insert node as the
-                // first child of next sibling, preserving ranges."
-                if (node.parentNode != previousSibling) {
-                    movePreservingRanges(node, nextSibling, 0, rangesToPreserve);
-
-                // "Otherwise, while next sibling has children, append the first
-                // child of next sibling as the last child of previous sibling,
-                // preserving ranges.  Then remove next sibling from its parent."
-                } else {
-                    var nodeIndex = previousSibling.childNodes.length;
-                    while ( (child = nextSibling.firstChild) ) {
-                        movePreservingRanges(child, previousSibling, nodeIndex++, rangesToPreserve);
-                    }
-                    nextSibling.parentNode.removeChild(nextSibling);
-                }
-            }
+            // "Wrap the one-node list consisting of node, with sibling criteria
+            // matching a simple modifiable element whose specified value and
+            // effective value for command are both new value, and with new parent
+            // instructions returning null."
+            wrap([node],
+                function(node) {
+                    return isSimpleModifiableElement(node, context)
+                        && valuesEqual(command, getSpecifiedValue(node, command), newValue)
+                        && valuesEqual(command, getEffectiveValue(node, command), newValue);
+                },
+                function() { return null; },
+                context
+            );
         }
 
         // "If the effective value of command is new value on node, abort this

@@ -265,6 +265,15 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
+    function isBefore(nodeA, nodeB) {
+        var parentA = nodeA.parentNode, parentB = nodeB.parentNode;
+        if (parentA && parentB) {
+            return comparePoints(nodeA.parentNode, getNodeIndex(nodeA), nodeB.parentNode, getNodeIndex(nodeB)) == -1;
+        } else {
+            return !parentA;
+        }
+    }
+
     function inspectNode(node) {
         if (!node) {
             return "[No node]";
@@ -387,6 +396,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getRootContainer: getRootContainer,
         getBody: getBody,
         comparePoints: comparePoints,
+        isBefore: isBefore,
         inspectNode: inspectNode,
         createIterator: createIterator,
         DomPosition: DomPosition
