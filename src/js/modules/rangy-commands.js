@@ -224,6 +224,31 @@ rangy.createModule("Commands", function(api, module) {
         return unwrappableTagNamesRegex.test(node.tagName);
     }
 
+
+/*
+    function isWhitespaceNode(node) {
+        return node.nodeType == 3 && !/[^\r\n\t ]/.test(node.data);
+    }
+*/
+
+    function isIgnoredNode(node, options) {
+        // Ignore comment nodes
+        if (node.nodeType == 8) {
+            return true;
+        } else if (node.nodeType == 3) {
+            // Ignore text nodes that are within <script> and <style> elements
+            if (node.parentNode && /^(script|style)$/i.test(node.parentNode.tagName)) {
+                return true;
+            }
+
+            // Ignore whitespace nodes that are next to a block level element
+            if (options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)) {
+
+            }
+        }
+        return false;
+    }
+
     function blockExtend(range) {
         // "Let start node, start offset, end node, and end offset be the start
         // and end nodes and offsets of the range."
@@ -306,10 +331,10 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     function elementOnlyHasAttributes(el, attrs) {
-        log.info("elementOnlyHasAttributes. attr length: " + el.attributes.length);
+        log.debug("elementOnlyHasAttributes. attr length: " + el.attributes.length);
         for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
             attrName = el.attributes[i].name;
-            log.info("name: " + attrName + ", specified: " + el.attributes[i].specified);
+            //log.info("name: " + attrName + ", specified: " + el.attributes[i].specified);
             if (el.attributes[i].specified && (!attrs || !dom.arrayContains(attrs, attrName))) {
                 return false;
             }
@@ -501,6 +526,11 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     function movePreservingRanges(node, newParent, newIndex, rangesToPreserve) {
+        // For convenience, allow newIndex to be -1 to mean "insert at the end".
+        if (newIndex == -1) {
+            newIndex = newParent.childNodes.length;
+        }
+
         // "When the user agent is to move a Node to a new location, preserving
         // ranges, it must remove the Node from its original parent (if any), then insert it
         // in the new location. In doing so, however, it must ignore the regular
@@ -525,12 +555,63 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // Set the new range boundaries
-        log.info("Node move: ", dom.inspectNode(node), "to", dom.inspectNode(newParent), newIndex);
+        log.debug("Node move: ", dom.inspectNode(node), "to", dom.inspectNode(newParent), newIndex);
         for (var j = 0, rangeMove; rangeMove = rangeMoves[j++]; ) {
-            log.info("Moving " + rangeMove[0].inspect(), dom.inspectNode(rangeMove[1]), rangeMove[2], dom.inspectNode(rangeMove[3]), rangeMove[4]);
+            log.debug("Moving " + rangeMove[0].inspect(), dom.inspectNode(rangeMove[1]), rangeMove[2], dom.inspectNode(rangeMove[3]), rangeMove[4]);
             rangeMove[0].setStart(rangeMove[1], rangeMove[2]);
             rangeMove[0].setEnd(rangeMove[3], rangeMove[4]);
         }
+    }
+
+    function decomposeSubtree(rangeIterator, nodes) {
+        nodes = nodes || [];
+        for (var node, subRangeIterator; node = rangeIterator.next(); ) {
+            if (rangeIterator.isPartiallySelectedSubtree()) {
+                // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of the
+                // node selected by the Range.
+                subRangeIterator = rangeIterator.getSubtreeIterator();
+                decomposeSubtree(subRangeIterator, nodes);
+                subRangeIterator.detach(true);
+            } else {
+                nodes.push(node);
+            }
+        }
+        return nodes;
+    }
+
+    function decomposeRange(range, rangesToPreserve) {
+        // "If range's start and end are the same, return an empty list."
+        if (range.startContainer == range.endContainer && range.startOffset == range.endOffset) {
+            return [];
+        }
+
+        range.splitBoundaries(rangesToPreserve);
+
+        // "Let cloned range be the result of calling cloneRange() on range."
+        var clonedRange = range.cloneRange();
+
+        // "While the start offset of cloned range is 0, and the parent of cloned
+        // range's start node is not null, set the start of cloned range to (parent
+        // of start node, index of start node)."
+        while (clonedRange.startOffset == 0 && clonedRange.startContainer.parentNode) {
+            clonedRange.setStart(clonedRange.startContainer.parentNode, dom.getNodeIndex(clonedRange.startContainer));
+        }
+
+        // "While the end offset of cloned range equals the length of its end node,
+        // and the parent of clone range's end node is not null, set the end of
+        // cloned range to (parent of end node, 1 + index of end node)."
+        while (clonedRange.endOffset == dom.getNodeLength(clonedRange.endContainer) && clonedRange.endContainer.parentNode) {
+            clonedRange.setEnd(clonedRange.endContainer.parentNode, 1 + dom.getNodeIndex(clonedRange.endContainer));
+        }
+
+        // "Return a list consisting of every Node contained in cloned range in
+        // tree order, omitting any whose parent is also contained in cloned
+        // range."
+
+        var iterator = new rangy.DomRange.RangeIterator(clonedRange, false);
+        var nodes = decomposeSubtree(iterator);
+        iterator.detach();
+        return nodes;
     }
 
     function moveChildrenPreservingRanges(node, newParent, newIndex, removeNode, rangesToPreserve) {
@@ -575,6 +656,7 @@ rangy.createModule("Commands", function(api, module) {
 
         // "If element is a simple modifiable element:"
         if (isSimpleModifiableElement(element, context)) {
+            var p = element.parentNode;
             return replaceWithOwnChildren(element, rangesToPreserve);
         }
 
@@ -694,7 +776,6 @@ rangy.createModule("Commands", function(api, module) {
         var firstNode = nodeList[0];
         var options = context.options, rangesToPreserve = context.rangesToPreserve;
         var i, len, range;
-        var doc = dom.getDocument(newParent);
 
         // "If node list is empty, or the first member of node list is not
         // editable, return null and abort these steps."
@@ -735,6 +816,7 @@ rangy.createModule("Commands", function(api, module) {
             return null;
         }
 
+        var doc = dom.getDocument(newParent);
         var newParentParent = newParent.parentNode, firstNodeParent = firstNode.parentNode;
 
         // "If new parent's parent is null:"
@@ -900,8 +982,8 @@ rangy.createModule("Commands", function(api, module) {
             wrap([node],
                 function(node) {
                     return isSimpleModifiableElement(node, context)
-                        && valuesEqual(command, getSpecifiedValue(node, command), newValue)
-                        && valuesEqual(command, getEffectiveValue(node, command), newValue);
+                        && valuesEqual(command, command.getSpecifiedValue(node, context), newValue)
+                        && valuesEqual(command, getEffectiveValue(node, context), newValue);
                 },
                 function() { return null; },
                 context
@@ -1157,6 +1239,22 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
+    function outerHtml(node) {
+        if (node === null) {
+            return "null";
+        } else if (node.nodeType == 3) {
+            return node.data;
+        } else {
+            var div = dom.getDocument(node).createElement("div");
+            div.appendChild(node.cloneNode(true));
+            return div.innerHTML;
+        }
+    }
+
+    function getRangeContainerHtml(range) {
+        return outerHtml(range.commonAncestorContainer);
+    }
+
     function setNodeValue(node, context) {
         var i, len, child, nodeType = node.nodeType;
 
@@ -1222,9 +1320,7 @@ rangy.createModule("Commands", function(api, module) {
 
     // TODO: Add something about whitespace text nodes (option?)
     function getEffectiveTextNodes(range) {
-        log.debug("getEffectiveTextNodes on range " + range.inspect());
         return range.getNodes([3], function(node) {
-            log.debug("getEffectiveTextNodes on node " + dom.inspectNode(node) + ", isEffectivelyContained: " + isEffectivelyContained(node, range));
             return isEffectivelyContained(node, range);
         });
     }
@@ -1297,15 +1393,8 @@ rangy.createModule("Commands", function(api, module) {
             var context = this.createContext(value, selRanges, options);
             context.value = this.getNewSelectionValue(sel, context);
 
-            for (var j = 0, range; range = selRanges[j++]; ) {
-                log.warn("Selected range " + range.inspect());
-            }
-
             for (var i = 0, len = selRanges.length; i < len; ++i) {
                 this.applyValueToRange(selRanges[i], context);
-                for (j = 0; range = selRanges[j++]; ) {
-                    log.warn("Selected range " + range.inspect());
-                }
             }
 
             sel.setRanges(selRanges);
@@ -1330,6 +1419,8 @@ rangy.createModule("Commands", function(api, module) {
         getEffectiveValue: getEffectiveValue,
         getEffectiveTextNodes: getEffectiveTextNodes,
         setNodeValue: setNodeValue,
+        wrap: wrap,
+        decomposeRange: decomposeRange,
 
         setGlobalOption: function(name, value) {
             globalOptions[name] = value;

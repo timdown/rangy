@@ -23,11 +23,9 @@
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript">
-/*
         var appender = new log4javascript.PopUpAppender();
         log4javascript.getRootLogger().addAppender(appender);
         log4javascript.setShowStackTraces(true);
-*/
         //log4javascript.setEnabled(false);
     </script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -223,13 +221,13 @@
             }
         };
 
-/*
         function nativeBold() {
             iframeDoc.execCommand("bold", false, null);
             updateContentHtml();
             iframeWin.focus();
         }
 
+/*
         function bold(styleWithCss, tagName) {
             rangy.execCommand("bold", {
                 document: iframeDoc,
@@ -280,6 +278,7 @@
     WYSIWYG:
     <div style="border: solid gray 1px">
         <div style="background-color: #999; padding: 2px" id="toolbar">
+            <input type="button" onclick="nativeBold();" value="Bold (native)">
 <!--
             <input type="button" onclick="bold(true);" value="Bold/CSS">
             <input type="button" onclick="bold(false, 'b');" value="Bold/B">

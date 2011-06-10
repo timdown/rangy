@@ -225,13 +225,29 @@ xn.test.suite("Commands module tests", function(s) {
     }
 
     function testCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
-        s.test("Command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
+        s.test("Rangy command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
             var testEl = document.getElementById("test");
             var ranges = createRangesInHtml(testEl, initialHtmlAndRange);
             var sel = rangy.getSelection();
             sel.setRanges(ranges);
 
             rangy.execCommand(commandName, options);
+
+            t.assertEquals(htmlAndRangesToString(testEl, sel.getAllRanges()), expectedHtmlRange);
+        });
+    }
+
+    function testAryehCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
+        s.test("Aryeh command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
+            var testEl = document.getElementById("test");
+            var ranges = createRangesInHtml(testEl, initialHtmlAndRange);
+            var sel = rangy.getSelection();
+            sel.setRanges(ranges);
+
+            document.body.contentEditable = true;
+            aryeh.execCommand("stylewithcss", false, !!options.styleWithCss);
+            aryeh.execCommand(commandName, false, options.value || null, ranges[0]);
+            document.body.contentEditable = false;
 
             t.assertEquals(htmlAndRangesToString(testEl, sel.getAllRanges()), expectedHtmlRange);
         });
@@ -343,6 +359,9 @@ xn.test.suite("Commands module tests", function(s) {
             testCommand("bold", { styleWithCss: false }, "[1]2[3]", "<b>[1]</b>2<b>[3]</b>");
             testCommand("bold", { styleWithCss: true }, "[1]2[3]", '<span style="font-weight: bold;">[1]</span>2<span style="font-weight: bold;">[3]</span>');
         }
+
+        testCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
+        testAryehCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
     }
 
 /*

@@ -66,7 +66,7 @@ rangy.createModule("ItalicCommand", function(api, module) {
         },
 
         applyValueToRange: function(range, context) {
-            var decomposed = range.decompose(context.rangesToPreserve);
+            var decomposed = commandUtil.decomposeRange(range, context.rangesToPreserve);
 
             for (var i = 0, len = decomposed.length; i < len; ++i) {
                 commandUtil.setNodeValue(decomposed[i], context);

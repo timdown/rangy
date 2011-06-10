@@ -72,23 +72,6 @@ rangy.createModule("DomRange", function(api, module) {
         return frag;
     }
 
-    function decomposeSubtree(rangeIterator, nodes) {
-        nodes = nodes || [];
-        for (var node, subRangeIterator; node = rangeIterator.next(); ) {
-            if (rangeIterator.isPartiallySelectedSubtree()) {
-                // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of the
-                // node selected by the Range.
-                subRangeIterator = rangeIterator.getSubtreeIterator();
-                decomposeSubtree(subRangeIterator, nodes);
-                subRangeIterator.detach(true);
-            } else {
-                nodes.push(node);
-            }
-        }
-        return nodes;
-    }
-
-
     function iterateSubtree(rangeIterator, func, iteratorState) {
         var it, n;
         iteratorState = iteratorState || { stop: false };
@@ -980,16 +963,6 @@ rangy.createModule("DomRange", function(api, module) {
             getNodes: function(nodeTypes, filter) {
                 assertRangeValid(this);
                 return getNodesInRange(this, nodeTypes, filter);
-            },
-
-            decompose: function(rangesToPreserve) {
-                assertRangeValid(this);
-
-                this.splitBoundaries(rangesToPreserve);
-                var iterator = new RangeIterator(this, false);
-                var nodes = decomposeSubtree(iterator);
-                iterator.detach();
-                return nodes;
             },
 
             setStartAndEnd: function(startNode, startOffset, endNode, endOffset) {
