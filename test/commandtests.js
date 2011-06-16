@@ -224,7 +224,7 @@ xn.test.suite("Commands module tests", function(s) {
         });
     }
 
-    function testCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
+    function testSelectionCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
         s.test("Rangy command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
             var testEl = document.getElementById("test");
             var ranges = createRangesInHtml(testEl, initialHtmlAndRange);
@@ -234,6 +234,17 @@ xn.test.suite("Commands module tests", function(s) {
             rangy.execCommand(commandName, options);
 
             t.assertEquals(htmlAndRangesToString(testEl, sel.getAllRanges()), expectedHtmlRange);
+        });
+    }
+
+    function testRangeCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
+        s.test("Rangy command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
+            var testEl = document.getElementById("test");
+            var ranges = createRangesInHtml(testEl, initialHtmlAndRange);
+
+            rangy.execCommand(commandName, options, ranges[0]);
+
+            t.assertEquals(htmlAndRangesToString(testEl, ranges), expectedHtmlRange);
         });
     }
 
@@ -352,16 +363,17 @@ xn.test.suite("Commands module tests", function(s) {
         el.style.fontWeight = "bold";
         testSimpleModifiableElement("strike with font-weight bold", el, '<strike style="font-weight: bold"></strike>', false);
 
-        testCommand("bold", { styleWithCss: false }, "1[2]3", "1<b>[2]</b>3");
-        testCommand("bold", { styleWithCss: true }, "1[2]3", '1<span style="font-weight: bold;">[2]</span>3');
+        testSelectionCommand("bold", { styleWithCss: false }, "1[2]3", "1<b>[2]</b>3");
+        testSelectionCommand("bold", { styleWithCss: true }, "1[2]3", '1<span style="font-weight: bold;">[2]</span>3');
 
         if (rangy.features.selectionSupportsMultipleRanges) {
-            testCommand("bold", { styleWithCss: false }, "[1]2[3]", "<b>[1]</b>2<b>[3]</b>");
-            testCommand("bold", { styleWithCss: true }, "[1]2[3]", '<span style="font-weight: bold;">[1]</span>2<span style="font-weight: bold;">[3]</span>');
+            testSelectionCommand("bold", { styleWithCss: false }, "[1]2[3]", "<b>[1]</b>2<b>[3]</b>");
+            testSelectionCommand("bold", { styleWithCss: true }, "[1]2[3]", '<span style="font-weight: bold;">[1]</span>2<span style="font-weight: bold;">[3]</span>');
         }
 
-        testCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
+        testSelectionCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
         testAryehCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
+        testRangeCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
     }
 
 /*

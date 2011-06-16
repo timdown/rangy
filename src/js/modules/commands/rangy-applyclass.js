@@ -123,7 +123,7 @@ rangy.createModule("ApplyClassCommand", function(api, module) {
         },
 
         getRangeValue: function(range, context) {
-            var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
+            var textNodes = commandUtil.getEffectiveTextNodes(range, context), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
             while (i--) {
                 log.warn("effective value on " + textNodes[i].data +  ": " + commandUtil.getEffectiveValue(textNodes[i], context));

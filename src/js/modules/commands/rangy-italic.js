@@ -25,6 +25,10 @@ rangy.createModule("ItalicCommand", function(api, module) {
     api.Command.create(ItalicCommand, {
         relevantCssProperty: "fontStyle",
 
+        defaultOptions: {
+            ignoreWhiteSpace: true
+        },
+
         getSpecifiedValue: function(element) {
             return element.style.fontStyle || (/^(em|i)$/i.test(element.tagName) ? "italic" : null);
         },
@@ -34,7 +38,7 @@ rangy.createModule("ItalicCommand", function(api, module) {
         },
 
         getRangeValue: function(range, context) {
-            var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
+            var textNodes = commandUtil.getEffectiveTextNodes(range, context), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
             if (textNodes.length == 0) {
                 return commandUtil.getEffectiveValue(range.commonAncestorContainer, context) == "italic";
@@ -59,6 +63,10 @@ rangy.createModule("ItalicCommand", function(api, module) {
                 }
             }
             return len > 0;
+        },
+
+        getNewRangeValue: function(range, context) {
+            return this.getRangeValue(range, context) ? "normal" : "italic";
         },
 
         getNewSelectionValue: function(sel, context) {

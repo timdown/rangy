@@ -38,6 +38,7 @@
     <script type="text/javascript" src="../src/js/modules/commands/rangy-italic.js"></script>
     <script type="text/javascript" src="../src/js/modules/commands/rangy-applyclass.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../test/implementation.js"></script>
     <script type="text/javascript">
         var iframeDoc, iframeWin, contentHtmlTextArea, mainLoaded = false, iframeLoaded = false;
         var greenBorderCssClassApplier, boldRedCssClassApplier;
@@ -227,6 +228,17 @@
             iframeWin.focus();
         }
 
+        function aryehBold() {
+            var sel = rangy.getSelection(iframeDoc.defaultView);
+
+            iframeDoc.body.contentEditable = true;
+            aryeh.execCommand("stylewithcss", false, true);
+            aryeh.execCommand("bold", false, null, rangy.getSelection(iframeDoc.defaultView).getRangeAt(0));
+            iframeDoc.body.contentEditable = false;
+
+            updateContentHtml();
+            iframeWin.focus();
+        }
 /*
         function bold(styleWithCss, tagName) {
             rangy.execCommand("bold", {
@@ -279,6 +291,7 @@
     <div style="border: solid gray 1px">
         <div style="background-color: #999; padding: 2px" id="toolbar">
             <input type="button" onclick="nativeBold();" value="Bold (native)">
+            <input type="button" onclick="aryehBold();" value="Bold (Aryeh)">
 <!--
             <input type="button" onclick="bold(true);" value="Bold/CSS">
             <input type="button" onclick="bold(false, 'b');" value="Bold/B">

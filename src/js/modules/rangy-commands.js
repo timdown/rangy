@@ -183,6 +183,10 @@ rangy.createModule("Commands", function(api, module) {
                 (node.nodeType == 1 && inlineDisplayRegex.test(getComputedStyleProperty(node, "display")));
     }
 
+    function isNullOrInlineNode(node) {
+        return !node || isInlineNode(node);
+    }
+
     function isNonBrInlineNode(node) {
         return isInlineNode(node) && node.nodeName.toLowerCase() != "br";
     }
@@ -221,6 +225,13 @@ rangy.createModule("Commands", function(api, module) {
             return true;
         }
 
+/*
+        if (node.nodeType == 3 && options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)
+                && (isUnwrappable(node.previousSibling, options) || isUnwrappable(node.nextSibling, options))) {
+            return true;
+        }
+*/
+
         return unwrappableTagNamesRegex.test(node.tagName);
     }
 
@@ -238,12 +249,14 @@ rangy.createModule("Commands", function(api, module) {
         } else if (node.nodeType == 3) {
             // Ignore text nodes that are within <script> and <style> elements
             if (node.parentNode && /^(script|style)$/i.test(node.parentNode.tagName)) {
+                //log.fatal("IGNORED NODE " + dom.inspectNode(node));
                 return true;
             }
 
-            // Ignore whitespace nodes that are next to a block level element
-            if (options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)) {
-
+            // Ignore whitespace nodes that are next to an unwrappable element
+            if (options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)
+                    && (isUnwrappable(node.previousSibling, options) || isUnwrappable(node.nextSibling, options))) {
+                return true;
             }
         }
         return false;
@@ -1284,6 +1297,11 @@ rangy.createModule("Commands", function(api, module) {
             return;
         }
 
+        // If node is a ignorable text node, abort
+        if (isIgnoredNode(node, context.options)) {
+            return;
+        }
+
         // "If node is not editable, let children be the children of node. Set the value of each member of children.
         // Abort this algorithm."
         if (!isEditable(node, context.options)) {
@@ -1319,9 +1337,9 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     // TODO: Add something about whitespace text nodes (option?)
-    function getEffectiveTextNodes(range) {
+    function getEffectiveTextNodes(range, context) {
         return range.getNodes([3], function(node) {
-            return isEffectivelyContained(node, range);
+            return isEffectivelyContained(node, range) && !isIgnoredNode(node, context.options);
         });
     }
 
@@ -1382,8 +1400,18 @@ rangy.createModule("Commands", function(api, module) {
             return null;
         },
 
+        getNewRangeValue: function(/*range, context*/) {
+            return null;
+        },
+
         getNewSelectionValue: function(/*sel, context*/) {
             return null;
+        },
+
+        applyToRange: function(doc, value, options, range) {
+            var context = this.createContext(value, [range], options);
+            context.value = this.getNewRangeValue(range, context);
+            this.applyValueToRange(range, context);
         },
 
         applyToSelection: function(doc, value, options) {
@@ -1458,15 +1486,19 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-    api.execCommand = function(name, options) {
+    api.execCommand = function(name, options, range) {
         options = options || {};
         var doc = options.hasOwnProperty("document") ? options.document : document;
         var value = options.hasOwnProperty("value") ? options.value : null;
         var command = getCommand(name);
-        command.applyToSelection(doc, value, options);
+        if (range) {
+            command.applyToRange(doc, value, options, range);
+        } else {
+            command.applyToSelection(doc, value, options);
+        }
     };
 
-    api.queryCommandValue = function(name, options) {
+    api.queryCommandValue = function(name, options, range) {
         options = options || {};
         var win = options.hasOwnProperty("document") ? dom.getWindow(options.document) : window;
         var value = options.hasOwnProperty("value") ? options.value : null;

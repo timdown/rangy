@@ -26,7 +26,8 @@ rangy.createModule("BoldCommand", function(api, module) {
         relevantCssProperty: "fontWeight",
 
         defaultOptions: {
-            tagName: "b"
+            tagName: "b",
+            ignoreWhiteSpace: true
         },
 
         getSpecifiedValue: function(element) {
@@ -56,7 +57,7 @@ rangy.createModule("BoldCommand", function(api, module) {
         },
 
         getRangeValue: function(range, context) {
-            var textNodes = commandUtil.getEffectiveTextNodes(range), i = textNodes.length, value;
+            var textNodes = commandUtil.getEffectiveTextNodes(range, context), i = textNodes.length, value;
             log.info("getRangeValue on " + range.inspect() + ", text nodes: " + textNodes);
 
             if (textNodes.length == 0) {
@@ -82,6 +83,10 @@ rangy.createModule("BoldCommand", function(api, module) {
                 }
             }
             return len > 0;
+        },
+
+        getNewRangeValue: function(range, context) {
+            return this.getRangeValue(range, context) ? "normal" : "bold";
         },
 
         getNewSelectionValue: function(sel, context) {

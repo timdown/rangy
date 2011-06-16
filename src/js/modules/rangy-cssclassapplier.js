@@ -306,7 +306,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         elementCreateCallback: null,
         elementRemoveCallback: null,
         elementShouldRemoveCallback: null,
-        ignoreWhiteSpace: false,
+        ignoreWhiteSpace: true,
 
         getAncestorWithClass: function(textNode) {
             var node = textNode.parentNode;
