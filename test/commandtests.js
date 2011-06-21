@@ -12,8 +12,9 @@ xn.test.suite("Commands module tests", function(s) {
         if (includeSelf) {
             func(node);
         }
-        for (var i = 0, children = node.childNodes, len = children.length; i < len; ++i) {
-            iterateNodes(children[i], func, true);
+        for (var child = node.firstChild, nextChild; !!child; child = nextChild) {
+            nextChild = child.nextSibling;
+            iterateNodes(child, func, true);
         }
     }
 
@@ -264,6 +265,20 @@ xn.test.suite("Commands module tests", function(s) {
         });
     }
 
+    function testAryehRangeCommand(commandName, options, initialHtmlAndRange, expectedHtmlRange) {
+        s.test("Aryeh range command '" + commandName + "' on " + initialHtmlAndRange, function(t) {
+            var testEl = document.getElementById("test");
+            var ranges = createRangesInHtml(testEl, initialHtmlAndRange);
+
+            document.body.contentEditable = true;
+            aryeh.execCommand("stylewithcss", false, !!options.styleWithCss);
+            aryeh.execCommand(commandName, false, options.value || null, ranges[0]);
+            document.body.contentEditable = false;
+
+            t.assertEquals(htmlAndRangesToString(testEl, ranges), expectedHtmlRange);
+        });
+    }
+
     function testDocument(doc) {
         var el = doc.createElement("span");
         el.setAttribute("style", "border: solid green 1px; padding: 2px");
@@ -373,7 +388,9 @@ xn.test.suite("Commands module tests", function(s) {
 
         testSelectionCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
         testAryehCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
-        testRangeCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
+        //testRangeCommand("bold", { styleWithCss: false }, "|<span>foo</span>|", '|<span style="font-weight: bold;">foo</span>|');
+        //testRangeCommand("bold", { styleWithCss: true }, "[<span>foo</span>]", '[<span style="font-weight: bold;">foo</span>]');
+        //testRangeCommand("bold", { styleWithCss: false }, "[<span>foo</span>]", "[<b>foo</b>]");
     }
 
 /*
