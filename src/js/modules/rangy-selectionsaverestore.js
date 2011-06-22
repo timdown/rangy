@@ -135,7 +135,7 @@ rangy.createModule("SaveRestore", function(api, module) {
             range = ranges[i];
             doc = api.DomRange.getRangeDocument(range);
             if (range.collapsed) {
-                range.collapseBefore(gEBI(rangeInfos[i].markerId, doc));
+                range.collapseAfter(gEBI(rangeInfos[i].markerId, doc));
             } else {
                 range.setEndBefore(gEBI(rangeInfos[i].endMarkerId, doc));
                 range.setStartAfter(gEBI(rangeInfos[i].startMarkerId, doc));

@@ -8,13 +8,22 @@ xn.test.suite("Commands module tests", function(s) {
         document.getElementById("test").innerHTML = "";
     };
 
-    function iterateNodes(node, func, includeSelf) {
+    var nextIterationId = 1;
+
+    function iterateNodes(node, func, includeSelf, iterationId) {
+        if (!iterationId) {
+            iterationId = nextIterationId++;
+        }
+        if (node.iterationId == iterationId) {
+            throw new Error("Node already iterated: " + rangy.dom.inspectNode(node));
+        }
         if (includeSelf) {
             func(node);
         }
+        node.iterated = true;
         for (var child = node.firstChild, nextChild; !!child; child = nextChild) {
             nextChild = child.nextSibling;
-            iterateNodes(child, func, true);
+            iterateNodes(child, func, true, iterationId);
         }
     }
 
@@ -50,7 +59,7 @@ xn.test.suite("Commands module tests", function(s) {
         function checkForBracket(node, isStart) {
             var bracketIndex = node.data.indexOf(isStart ? "[" : "]");
             if (bracketIndex != -1) {
-                log.debug("bracketIndex: " + bracketIndex + ", data: " + node.data);
+                //log.debug("bracketIndex: " + bracketIndex + ", data: " + node.data);
                 node.data = node.data.slice(0, bracketIndex) + node.data.slice(bracketIndex + 1);
 
                 (isStart ? startRange : endRange)(node, bracketIndex);
@@ -60,17 +69,19 @@ xn.test.suite("Commands module tests", function(s) {
         }
 
         function checkForPipe(node) {
-            var pipeIndex = node.data.indexOf("|");
-            if (pipeIndex == 0 || pipeIndex == node.length - 1) {
-                var nodeIndex = rangy.dom.getNodeIndex(node);
-                if (pipeIndex == 0) {
-                    node.data = node.data.slice(1);
-                } else {
-                    node.data = node.data.slice(0, -1);
-                    nodeIndex++;
+            if (node.length > 0) {
+                var pipeIndex = node.data.indexOf("|");
+                if (pipeIndex == 0 || pipeIndex == node.length - 1) {
+                    var nodeIndex = rangy.dom.getNodeIndex(node);
+                    if (pipeIndex == 0) {
+                        node.data = node.data.slice(1);
+                    } else {
+                        node.data = node.data.slice(0, -1);
+                        nodeIndex++;
+                    }
+                    (inRange ? endRange : startRange)(node.parentNode, nodeIndex);
+                    return true;
                 }
-                (inRange ? endRange : startRange)(node.parentNode, nodeIndex);
-                return true;
             }
             return false;
         }
@@ -388,9 +399,9 @@ xn.test.suite("Commands module tests", function(s) {
 
         testSelectionCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
         testAryehCommand("bold", { styleWithCss: false }, "<p><b><i>[2</i> ]</b></p>", "<p><i>[2</i> ]</p>");
-        //testRangeCommand("bold", { styleWithCss: false }, "|<span>foo</span>|", '|<span style="font-weight: bold;">foo</span>|');
-        //testRangeCommand("bold", { styleWithCss: true }, "[<span>foo</span>]", '[<span style="font-weight: bold;">foo</span>]');
-        //testRangeCommand("bold", { styleWithCss: false }, "[<span>foo</span>]", "[<b>foo</b>]");
+        testRangeCommand("bold", { styleWithCss: false }, "<span>|foo|</span>", '<span style="font-weight: bold;">|foo|</span>');
+        testRangeCommand("bold", { styleWithCss: true }, "<span>[foo]</span>]", '<span style="font-weight: bold;">[foo]</span>]');
+        testRangeCommand("bold", { styleWithCss: false }, "<span>[foo]</span>", "<b>[foo]</b>");
     }
 
 /*
