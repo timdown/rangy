@@ -245,6 +245,9 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
                     if (node.className) {
                         html += ' class="' + getSortedClassName(node) + '"';
                     }
+                    if (node.href) {
+                        html += ' href="' + node.href + '"';
+                    }
                     html += ">";
                 }
 
@@ -388,5 +391,46 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
 
         range = createRangeInHtml(testEl, 'te[]st');
         t.assertFalse(applier.isAppliedToRange(range));
+    });
+
+    s.test("Test whitespace 1 (non-ignorable whitespace)", function(t) {
+        var applier = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<b>1</b> <i>2</i>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<b><span class="c1">[1</span></b><span class="c1"> </span><i><span class="c1">2]</span></i>x', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test whitespace 2 (ignorable whitespace)", function(t) {
+        var applier = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<p>1</p> <p>2</p>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<p><span class="c1">[1</span></p> <p><span class="c1">2]</span></p>x', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test whitespace 3 (ignorable whitespace, ignore option disabled)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {ignoreWhiteSpace: false});
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<p>1</p> <p>2</p>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<p><span class="c1">[1</span></p><span class="c1"> </span><p><span class="c1">2]</span></p>x', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test link", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {
+            elementTagName: "a",
+            elementProperties: {
+                "href": "http://www.google.com/"
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 't[es]t');
+        applier.applyToRange(range);
+        t.assertEquals('t<a class="c1" href="http://www.google.com/">[es]</a>t', htmlAndRangeToString(testEl, range));
     });
 }, false);
