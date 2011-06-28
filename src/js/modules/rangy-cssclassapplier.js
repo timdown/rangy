@@ -115,7 +115,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return offset > 0 && offset < node.childNodes.length;
     }
 
-    function splitNodeAt(node, descendantNode, descendantOffset) {
+    function splitNodeAt(node, descendantNode, descendantOffset, rangesToPreserve) {
         log.debug("splitNodeAt", dom.inspectNode(node), dom.inspectNode(descendantNode), descendantOffset);
         var newNode;
         if (dom.isCharacterDataNode(descendantNode)) {
@@ -126,7 +126,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 descendantOffset = dom.getNodeIndex(descendantNode) + 1;
                 descendantNode = descendantNode.parentNode;
             } else {
-                newNode = dom.splitDataNode(descendantNode, descendantOffset);
+                throw module.createError("splitNodeAt should not be splitting data node.");
             }
         }
         if (!newNode) {
@@ -137,6 +137,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             var child;
             while ((child = descendantNode.childNodes[descendantOffset])) {
                 log.debug("Moving node " + dom.inspectNode(child) + " into " + dom.inspectNode(newNode));
+                //movePreservingRanges(child, newNode, -1, rangesToPreserve);
                 newNode.appendChild(child);
             }
             dom.insertAfter(newNode, descendantNode);
@@ -167,6 +168,18 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         }
         return null;
+    }
+
+    function outerHtml(node) {
+        if (node === null) {
+            return "null";
+        } else if (node.nodeType == 3) {
+            return node.data;
+        } else {
+            var div = dom.getDocument(node).createElement("div");
+            div.appendChild(node.cloneNode(true));
+            return div.innerHTML;
+        }
     }
 
     function Merge(firstNode) {
@@ -340,7 +353,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         undoToTextNode: function(textNode, range, ancestorWithClass) {
-            log.info("undoToTextNode", dom.inspectNode(textNode), range.inspect(), dom.inspectNode(ancestorWithClass), range.containsNode(ancestorWithClass));
+            log.info("undoToTextNode", dom.inspectNode(textNode), range.inspect(), outerHtml(ancestorWithClass), range.containsNode(ancestorWithClass));
             if (!range.containsNode(ancestorWithClass)) {
                 // Split out the portion of the ancestor from which we can remove the CSS class
                 //var parent = ancestorWithClass.parentNode, index = dom.getNodeIndex(ancestorWithClass);
@@ -355,7 +368,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     ancestorWithClass = splitNodeAt(ancestorWithClass, range.startContainer, range.startOffset);
                 }
             }
-            log.info("isRemovable", this.isRemovable(ancestorWithClass), dom.inspectNode(ancestorWithClass), ancestorWithClass.innerHTML, ancestorWithClass.parentNode.innerHTML);
+            log.info("isRemovable", this.isRemovable(ancestorWithClass), outerHtml(ancestorWithClass), ancestorWithClass.innerHTML, ancestorWithClass.parentNode.innerHTML);
             if (this.isRemovable(ancestorWithClass)) {
                 replaceWithOwnChildren(ancestorWithClass);
             } else {
@@ -446,13 +459,17 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isAppliedToRange: function(range) {
-            var textNodes = range.getNodes( [3] );
-            for (var i = 0, len = textNodes.length; i < len; ++i) {
-                if (rangeSelectsAnyText(range, textNodes[i]) && !this.getAncestorWithClass(textNodes[i])) {
-                    return false;
+            if (range.collapsed) {
+                return !!this.getAncestorWithClass(range.commonAncestorContainer);
+            } else {
+                var textNodes = range.getNodes( [3] );
+                for (var i = 0, len = textNodes.length; i < len; ++i) {
+                    if (rangeSelectsAnyText(range, textNodes[i]) && !this.getAncestorWithClass(textNodes[i])) {
+                        return false;
+                    }
                 }
+                return true;
             }
-            return true;
         },
 
         isAppliedToSelection: function(win) {

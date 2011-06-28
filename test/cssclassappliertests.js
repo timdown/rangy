@@ -349,7 +349,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('1<span class="c1 rangy_1">2</span><span class="c1 c2 rangy_1 rangy_2">[3]</span><span class="c1 rangy_1">4</span>5', htmlAndRangeToString(testEl, range));
     });
 
-    s.test("Test issue 50 (Mac double click), trailing text", function(t) {
+    s.test("Test issue 50 (Mac double click)", function(t) {
         var applier = rangy.createCssClassApplier("c1");
 
         var testEl = document.getElementById("test");
@@ -359,14 +359,34 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('<b><span class="c1">[one]</span></b> two', htmlAndRangeToString(testEl, range));
     });
 
-    s.test("Test issue 50 (Mac double click), leading text", function(t) {
+    s.test("Test issue 54 (two appliers, apply first then apply second to subrange then toggle first on same range)", function(t) {
+        var applier1 = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'T<span class="c1">h<span class="c2">[r]</span>e</span>e');
+
+        applier1.toggleRange(range);
+        t.assertEquals('T<span class="c1">h</span><span class="c2">[r]</span><span class="c1">e</span>e', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test issue 54 related (last step toggles subrange of subrange)", function(t) {
+        var applier1 = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'T<span class="c1">h<span class="c2">r[r]r</span>e</span>e');
+
+        applier1.toggleRange(range);
+        t.assertEquals('T<span class="c1">h<span class="c2">r</span></span><span class="c2">[r]</span><span class="c1"><span class="c2">r</span>e</span>e', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test issue 57 (isAppliedToRange on empty range)", function(t) {
         var applier = rangy.createCssClassApplier("c1");
 
         var testEl = document.getElementById("test");
-        var range = createRangeInHtml(testEl, "<span>one [<span>two] three</span></span>");
+        var range = createRangeInHtml(testEl, '<span class="c1">te[]st</span>');
+        t.assert(applier.isAppliedToRange(range));
 
-        applier.applyToRange(range);
-        t.assertEquals('<span>one <span><span class="c1">[two]</span> three</span></span>', htmlAndRangeToString(testEl, range));
+        range = createRangeInHtml(testEl, 'te[]st');
+        t.assertFalse(applier.isAppliedToRange(range));
     });
-
 }, false);
