@@ -372,6 +372,16 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('T<span class="c1">h</span><span class="c2">[r]</span><span class="c1">e</span>e', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test issue 54 (two appliers, apply first then apply second to subrange then toggle first on same range, more nodes)", function(t) {
+        var applier1 = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<b>One</b> T<span class="c1">h<span class="c2">[r]</span>e</span>e');
+
+        applier1.toggleRange(range);
+        t.assertEquals('<b>One</b> T<span class="c1">h</span><span class="c2">[r]</span><span class="c1">e</span>e', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Test issue 54 related (last step toggles subrange of subrange)", function(t) {
         var applier1 = rangy.createCssClassApplier("c1");
 

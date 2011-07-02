@@ -6,7 +6,8 @@
 
         <script type="text/javascript" src="../lib/log4javascript.js"></script>
         <script type="text/javascript">
-            var appender = new log4javascript.InPageAppender();
+            //var appender = new log4javascript.InPageAppender();
+            var appender = new log4javascript.BrowserConsoleAppender();
             //log4javascript.getRootLogger().addAppender(appender);
             var log = log4javascript.getRootLogger();
             log4javascript.setShowStackTraces(true);
