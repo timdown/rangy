@@ -61,6 +61,7 @@ var rangy = (function() {
     var areHostProperties = createMultiplePropertyTest(isHostProperty);
 
     var api = {
+        version: "%%build:version%%",
         initialized: false,
         supported: true,
 
