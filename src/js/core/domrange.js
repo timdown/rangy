@@ -858,6 +858,26 @@ rangy.createModule("DomRange", function(api, module) {
                 return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, dom.getNodeLength(node)) <= 0;
             },
 
+            containsRange: function(range) {
+                return this.intersection(range).equals(range);
+            },
+
+            containsNodeText: function(node) {
+                var nodeRange = this.cloneRange();
+                nodeRange.selectNode(node);
+                var textNodes = nodeRange.getNodes([3]);
+                if (textNodes.length > 0) {
+                    nodeRange.setStart(textNodes[0], 0);
+                    var lastTextNode = textNodes.pop();
+                    nodeRange.setEnd(lastTextNode, lastTextNode.length);
+                    var contains = this.containsRange(nodeRange);
+                    nodeRange.detach();
+                    return contains;
+                } else {
+                    return this.containsNodeContents(node);
+                }
+            },
+
             splitBoundaries: function(rangesToPreserve) {
                 assertRangeValid(this);
 
