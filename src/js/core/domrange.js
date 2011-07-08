@@ -421,7 +421,7 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function isOrphan(node) {
-        return !getDocumentOrFragmentContainer(node, true);
+        return !dom.arrayContains(rootContainerNodeTypes, node.nodeType) && !getDocumentOrFragmentContainer(node, true);
     }
 
     function isValidOffset(node, offset) {
