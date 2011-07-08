@@ -2,7 +2,12 @@
 <html>
 	<head>
 		<title>Rangy IE9 crash</title>
-        <script type="text/javascript" src="lib/log4javascript_stub.js"></script>
+        <script type="text/javascript" src="lib/log4javascript.js"></script>
+        <script type="text/javascript">
+            var appender = new log4javascript.InPageAppender();
+            var log = log4javascript.getRootLogger();
+            log.addAppender(appender);
+        </script>
 		<script type="text/javascript" src="src/js/core/core.js"></script>
         <script type="text/javascript" src="src/js/core/dom.js"></script>
         <script type="text/javascript" src="src/js/core/domrange.js"></script>

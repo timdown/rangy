@@ -212,7 +212,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    if (api.features.implementsDomRange) {
+    if (api.features.implementsDomRange && (!api.features.implementsTextRange || !api.config.preferTextRange)) {
         // This is a wrapper around the browser's native DOM Range. It has two aims:
         // - Provide workarounds for specific browser bugs
         // - provide convenient extensions, as found in Rangy's DomRange
@@ -337,6 +337,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 canSetRangeStartAfterEnd = true;
 
                 rangeProto.setStart = function(node, offset) {
+                    log.info("SETTING START ON NATIVE")
                     this.nativeRange.setStart(node, offset);
                     updateRangeProperties(this);
                 };
@@ -455,6 +456,12 @@ rangy.createModule("WrappedRange", function(api, module) {
             range2.detach();
         })();
 
+        api.createNativeRange = function(doc) {
+            doc = doc || document;
+            return doc.createRange();
+        };
+
+
     } else if (api.features.implementsTextRange) {
         // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
         // prototype
@@ -504,6 +511,11 @@ rangy.createModule("WrappedRange", function(api, module) {
         if (typeof globalObj.Range == "undefined") {
             globalObj.Range = WrappedRange;
         }
+
+        api.createNativeRange = function(doc) {
+            doc = doc || document;
+            return doc.body.createTextRange();
+        };
     }
 
     WrappedRange.prototype.getName = function() {
@@ -511,15 +523,6 @@ rangy.createModule("WrappedRange", function(api, module) {
     };
 
     api.WrappedRange = WrappedRange;
-
-    api.createNativeRange = function(doc) {
-        doc = doc || document;
-        if (api.features.implementsDomRange) {
-            return doc.createRange();
-        } else if (api.features.implementsTextRange) {
-            return doc.body.createTextRange();
-        }
-    };
 
     api.createRange = function(doc) {
         doc = doc || document;

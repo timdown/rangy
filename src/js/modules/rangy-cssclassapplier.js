@@ -539,7 +539,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 textNode = textNodes[textNodes.length - 1];
                 range.setEnd(textNode, textNode.length);
                 if (this.normalize) {
-                    throw new Error("normalize on")
                     this.postApply(textNodes, range, false);
                 }
             }
