@@ -79,7 +79,7 @@ var rangy = (function() {
         modules: {},
         config: {
             alertOnWarn: false,
-            preferTextRange: true
+            preferTextRange: false
         }
     };
 
