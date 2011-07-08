@@ -431,6 +431,62 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             });
         }
 
+        if (testRange.union) {
+            s.test("union of overlapping ranges in text node", function(t) {
+                var r1 = rangeCreator(doc);
+                r1.setStart(t.nodes.plainText, 1);
+                r1.setEnd(t.nodes.plainText, 3);
+
+                var r2 = rangeCreator(doc);
+                r2.setStart(t.nodes.plainText, 2);
+                r2.setEnd(t.nodes.plainText, 4);
+
+                var r3 = r1.union(r2), r4 = r2.union(r1);
+
+                t.assert(r3.equals(r4));
+                t.assertEquivalent(r3.startContainer, t.nodes.plainText);
+                t.assertEquivalent(r3.startOffset, 1);
+                t.assertEquivalent(r3.endContainer, t.nodes.plainText);
+                t.assertEquivalent(r3.endOffset, 4);
+            });
+
+            s.test("union of touching ranges in text node", function(t) {
+                var r1 = rangeCreator(doc);
+                r1.setStart(t.nodes.plainText, 1);
+                r1.setEnd(t.nodes.plainText, 3);
+
+                var r2 = rangeCreator(doc);
+                r2.setStart(t.nodes.plainText, 3);
+                r2.setEnd(t.nodes.plainText, 4);
+
+                var r3 = r1.union(r2), r4 = r2.union(r1);
+
+                t.assert(r3.equals(r4));
+                t.assertEquivalent(r3.startContainer, t.nodes.plainText);
+                t.assertEquivalent(r3.startOffset, 1);
+                t.assertEquivalent(r3.endContainer, t.nodes.plainText);
+                t.assertEquivalent(r3.endOffset, 4);
+            });
+
+
+            s.test("union of non-overlapping ranges in text node", function(t) {
+                var r1 = rangeCreator(doc);
+                r1.setStart(t.nodes.plainText, 1);
+                r1.setEnd(t.nodes.plainText, 2);
+
+                var r2 = rangeCreator(doc);
+                r2.setStart(t.nodes.plainText, 3);
+                r2.setEnd(t.nodes.plainText, 4);
+
+                t.assertError(function() {
+                    var r3 = r1.union(r2);
+                });
+                t.assertError(function() {
+                    var r4 = r2.union(r1);
+                });
+            });
+        }
+
         if (testRange.containsNodeText) {
             s.test("containsNodeText on node with text", function(t) {
                 var range = rangeCreator(doc);

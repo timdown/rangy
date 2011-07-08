@@ -847,6 +847,21 @@ rangy.createModule("DomRange", function(api, module) {
                 return null;
             },
 
+            union: function(range) {
+                if (this.intersectsRange(range, true)) {
+                    var unionRange = this.cloneRange();
+                    if (dom.comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) == -1) {
+                        unionRange.setStart(range.startContainer, range.startOffset);
+                    }
+                    if (dom.comparePoints(range.endContainer, range.endOffset, this.endContainer, this.endOffset) == 1) {
+                        unionRange.setEnd(range.endContainer, range.endOffset);
+                    }
+                    return unionRange;
+                } else {
+                    throw new RangeException("Ranges do not intersect");
+                }
+            },
+
             containsNode: function(node, allowPartial) {
                 if (allowPartial) {
                     return this.intersectsNode(node, false);
