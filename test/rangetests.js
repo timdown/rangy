@@ -431,6 +431,35 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             });
         }
 
+        if (testRange.containsNodeText) {
+            s.test("containsNodeText on node with text", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.boldAndItalicText, 0);
+                range.setEnd(t.nodes.boldAndItalicText, t.nodes.boldAndItalicText.length);
+
+                t.assertFalse(range.containsNode(t.nodes.i));
+                t.assertFalse(range.containsNodeContents(t.nodes.i));
+                t.assertTrue(range.containsNodeText(t.nodes.i));
+                range.setStart(t.nodes.boldAndItalicText, 1);
+                t.assertFalse(range.containsNodeText(t.nodes.i));
+            });
+
+            s.test("containsNodeText on node without text", function(t) {
+                var br = t.nodes.i.appendChild(doc.createElement("br"));
+                var range = rangeCreator(doc);
+                range.selectNode(t.nodes.i);
+
+                t.assertTrue(range.containsNode(br));
+                t.assertTrue(range.containsNodeContents(br));
+                t.assertTrue(range.containsNodeText(br));
+
+                range.selectNodeContents(t.nodes.boldAndItalicText);
+
+                t.assertFalse(range.containsNode(br));
+                t.assertFalse(range.containsNodeContents(br));
+                t.assertFalse(range.containsNodeText(br));
+            });
+        }
 
         // TODO: Write tests for all possible exceptions
         // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
