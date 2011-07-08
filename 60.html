@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Rangy IE9 crash</title>
+        <script type="text/javascript" src="lib/log4javascript_stub.js"></script>
+		<script type="text/javascript" src="src/js/core/core.js"></script>
+        <script type="text/javascript" src="src/js/core/dom.js"></script>
+        <script type="text/javascript" src="src/js/core/domrange.js"></script>
+        <script type="text/javascript" src="src/js/core/wrappedrange.js"></script>
+        <script type="text/javascript" src="src/js/core/wrappedselection.js"></script>
+		<script type="text/javascript" src="src/js/modules/rangy-cssclassapplier.js"></script>
+		<script type="text/javascript">
+		var cssApplier;
+
+		window.onload = function() {
+			rangy.init();
+			cssApplier = rangy.createCssClassApplier("someClass", true);
+			var range = rangy.createRange();
+			var textNode = document.getElementById("p1").firstChild;
+			range.setStart(textNode, 6);
+			range.setEnd(textNode, 12);
+			//rangy.getSelection().setSingleRange(range);
+			window.setInterval(function() {
+				cssApplier.toggleRange(range);
+			}, 100);
+		};
+		</script>
+		<style>
+		.someClass {font-weight: bold;}
+		</style>
+	</head>
+	<input type="button" value="Toggle someClass on selection" onclick="cssApplier.toggleSelection();">
+	<p id="p1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed eget nulla a nisl lobortis congue vitae sed ipsum. Etiam molestie posuere nibh sed scelerisque. Donec a massa orci. Curabitur at nisi tortor, at vehicula est. Vestibulum odio diam, dapibus nec feugiat a, luctus vel nulla. Pellentesque cursus lorem nec nunc mollis mollis. Sed facilisis massa quis sapien posuere volutpat. Pellentesque aliquam lacus sed nibh vulputate pulvinar euismod leo cursus. Phasellus gravida aliquet eros, vitae rhoncus velit feugiat non. Integer eget tellus ut ipsum dignissim ornare euismod at tellus. Donec in volutpat augue. Suspendisse sapien quam, eleifend eu fermentum vel, eleifend sit amet mauris. Etiam fringilla libero ac erat mattis lobortis. Nunc venenatis convallis nulla, et placerat sem aliquet a. Nulla facilisi. Donec eget lectus est, ut molestie odio. </p>
+	<p>Donec ultrices neque id libero feugiat eget feugiat dolor congue. Praesent non augue eros. Suspendisse eu dolor in ipsum dictum posuere. Duis scelerisque lectus dictum nisl porttitor euismod. Aenean eget enim sit amet risus tincidunt egestas et ac tortor. Mauris porttitor rutrum est, sit amet aliquet augue consequat a. Quisque lacinia faucibus tortor a euismod. Sed pretium turpis ac nulla mattis quis ultrices neque condimentum. Nunc mauris diam, sagittis congue dictum quis, convallis at nunc. Nunc sagittis rhoncus lacus sed posuere. Ut urna nibh, aliquam id faucibus ac, consequat eu eros. Donec varius semper volutpat. Sed vel metus justo, tincidunt consectetur nibh. In hac habitasse platea dictumst. Integer porta, odio id condimentum porttitor, ipsum neque egestas dui, ut sagittis mauris mauris sit amet lacus. Aliquam at mauris sed libero vestibulum placerat. Nulla vehicula tempor scelerisque. Duis dapibus sapien eget tortor ornare vel cursus turpis egestas. </p>
+	<p>Sed tempor, tellus quis mollis hendrerit, magna nisl luctus mauris, ut facilisis turpis urna sed elit. Integer enim tortor, facilisis ac volutpat ac, pretium a lorem. Suspendisse potenti. Sed faucibus tristique blandit. Nam ullamcorper massa ac mi imperdiet tincidunt. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Fusce ac dolor sapien, vel fermentum lectus. Nam dictum sapien rhoncus mi facilisis dictum. Nam viverra, nunc et rutrum mattis, ligula elit faucibus felis, non scelerisque leo nibh nec orci. Nam tempus volutpat lacinia. Suspendisse lectus purus, fermentum eu fringilla quis, egestas ac justo.</p>
+</html>

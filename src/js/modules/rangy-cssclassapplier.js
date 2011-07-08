@@ -305,10 +305,10 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
             normalize = options.normalize;
         } else {
-            this.normalize = normalize;
+            normalize = options;
         }
 
-        // Backwards compatibility: the second parameter used to be a Boolean indicating normalizing
+        // Backwards compatibility: the second parameter can also be a Boolean indicating whether normalization
         this.normalize = (typeof normalize == "undefined") ? true : normalize;
 
         // Initialize element properties and attribute exceptions
@@ -539,6 +539,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 textNode = textNodes[textNodes.length - 1];
                 range.setEnd(textNode, textNode.length);
                 if (this.normalize) {
+                    throw new Error("normalize on")
                     this.postApply(textNodes, range, false);
                 }
             }
