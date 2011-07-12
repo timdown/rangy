@@ -33,12 +33,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var implementsWinGetSelection = api.util.isHostMethod(window, "getSelection"),
         implementsDocSelection = api.util.isHostObject(document, "selection");
 
-    if (implementsWinGetSelection) {
-        getSelection = getWinSelection;
-        api.isSelectionValid = function() {
-            return true;
-        };
-    } else if (implementsDocSelection) {
+    var useDocumentSelection = implementsDocSelection && (!implementsWinGetSelection || api.config.preferTextRange);
+
+    if (useDocumentSelection) {
         getSelection = getDocSelection;
         api.isSelectionValid = function(winParam) {
             var doc = (winParam || window).document, nativeSel = doc.selection;
@@ -46,8 +43,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
             // Check whether the selection TextRange is actually contained within the correct document
             return (nativeSel.type != "None" || dom.getDocument(nativeSel.createRange().parentElement()) == doc);
         };
+    } else if (implementsWinGetSelection) {
+        getSelection = getWinSelection;
+        api.isSelectionValid = function() {
+            return true;
+        };
     } else {
-        module.fail("No means of obtaining a selection object");
+        module.fail("Neither document.selection or window.getSelection() detected.");
     }
 
     api.getNativeSelection = getSelection;
@@ -178,7 +180,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         } else if (range instanceof WrappedRange) {
             nativeRange = range.nativeRange;
-        } else if (window.Range && (range instanceof Range)) {
+        } else if (api.features.implementsDomRange && (range instanceof dom.getWindow(range.startContainer).Range)) {
             nativeRange = range;
         }
         return nativeRange;
@@ -345,7 +347,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     // Selecting a range
-    if (selectionHasAnchorAndFocus && util.areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
+    if (!useDocumentSelection && selectionHasAnchorAndFocus && util.areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
         selProto.removeAllRanges = function() {
             this.nativeSelection.removeAllRanges();
             updateEmptySelection(this);
@@ -424,7 +426,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         };
     } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select") &&
-               implementsControlRange && implementsDocSelection) {
+               implementsControlRange && useDocumentSelection) {
 
         selProto.removeAllRanges = function() {
             // Added try/catch as fix for issue #21
@@ -490,7 +492,26 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var refreshSelection;
 
-    if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
+    if (useDocumentSelection) {
+        refreshSelection = function(sel) {
+            var range;
+            if (api.isSelectionValid(sel.win)) {
+                range = sel.docSelection.createRange();
+            } else {
+                range = dom.getBody(sel.win.document).createTextRange();
+                range.collapse(true);
+            }
+            log.warn("selection refresh called, selection type: " + sel.docSelection.type);
+
+            if (sel.docSelection.type == CONTROL) {
+                updateControlSelection(sel);
+            } else if (isTextRange(range)) {
+                updateFromTextRange(sel, range);
+            } else {
+                updateEmptySelection(sel);
+            }
+        };
+    } else if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         refreshSelection = function(sel) {
             if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
                 updateControlSelection(sel);
@@ -516,25 +537,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 sel.rangeCount = 1;
                 updateAnchorAndFocusFromNativeSelection(sel);
                 sel.isCollapsed = selectionIsCollapsed(sel);
-            } else {
-                updateEmptySelection(sel);
-            }
-        };
-    } else if (util.isHostMethod(testSelection, "createRange") && implementsDocSelection) {
-        refreshSelection = function(sel) {
-            var range;
-            if (api.isSelectionValid(sel.win)) {
-                range = sel.docSelection.createRange();
-            } else {
-                range = dom.getBody(sel.win.document).createTextRange();
-                range.collapse(true);
-            }
-            log.warn("selection refresh called, selection type: " + sel.docSelection.type);
-
-            if (sel.docSelection.type == CONTROL) {
-                updateControlSelection(sel);
-            } else if (isTextRange(range)) {
-                updateFromTextRange(sel, range);
             } else {
                 updateEmptySelection(sel);
             }
@@ -615,7 +617,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // Detecting if a selection is backwards
     var selectionIsBackwards;
-    if (selectionHasAnchorAndFocus && api.features.implementsDomRange) {
+    if (!useDocumentSelection && selectionHasAnchorAndFocus && api.features.implementsDomRange) {
         selectionIsBackwards = function(sel) {
             var backwards = false;
             if (sel.anchorNode) {
@@ -634,7 +636,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     // Selection text
-    // This is conformant to the HTML 5 draft spec but differs from WebKit and Mozilla's implementation
+    // This is conformant to the new WHATWG DOM Range draft spec but differs from WebKit and Mozilla's implementation
     selProto.toString = function() {
         log.debug("selection toString called");
         var rangeTexts = [];
@@ -727,6 +729,18 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
         }
         return false;
+    };
+
+    selProto.toHtml = function() {
+        var html = "";
+        if (this.rangeCount) {
+            var container = DomRange.getRangeDocument(this._ranges[0]).createElement("div");
+            for (var i = 0, len = this._ranges.length; i < len; ++i) {
+                container.appendChild(this._ranges[i].cloneContents());
+            }
+            html = container.innerHTML;
+        }
+        return html;
     };
 
     function inspect(sel) {

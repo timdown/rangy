@@ -776,6 +776,13 @@ rangy.createModule("DomRange", function(api, module) {
                 return frag;
             },
 
+            toHtml: function() {
+                assertRangeValid(this);
+                var container = getRangeDocument(this).createElement("div");
+                container.appendChild(this.cloneContents());
+                return container.innerHTML;
+            },
+
             // touchingIsIntersecting determines whether this method considers a node that borders a range intersects
             // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
             intersectsNode: function(node, touchingIsIntersecting) {

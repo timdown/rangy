@@ -19,6 +19,10 @@
             alert(rangy.getSelection().getRangeAt(0));
         }
 
+        function reportSelectionHtml() {
+            alert(rangy.getSelection().toHtml());
+        }
+
         function inspectSelection() {
             alert(rangy.getSelection().inspect());
         }
@@ -56,6 +60,13 @@
             var range = getFirstRange();
             if (range) {
                 alert(range.inspect());
+            }
+        }
+
+        function reportRangeHtml() {
+            var range = getFirstRange();
+            if (range) {
+                alert(range.toHtml());
             }
         }
 
@@ -118,7 +129,7 @@
             button.onmousedown = function() {
                 clickHandler();
                 return false;
-            }
+            };
             button.value = value;
             parentNode.appendChild(button);
             button = null;
@@ -136,6 +147,7 @@
             var selectionButtonsContainer = gEBI("selectionButtons");
             createButton(selectionButtonsContainer, reportSelectionText, "Get selection text");
             createButton(selectionButtonsContainer, inspectSelection, "Inspect selection");
+            createButton(selectionButtonsContainer, reportSelectionHtml, "Get selection HTML");
             createButton(selectionButtonsContainer, deleteSelection, "Delete selection");
             createButton(selectionButtonsContainer, collapseSelectionToStart, "Collapse to start");
             createButton(selectionButtonsContainer, collapseSelectionToEnd, "Collapse to end");
@@ -143,6 +155,7 @@
             // Create Range buttons
             var rangeButtonsContainer = gEBI("rangeButtons");
             createButton(rangeButtonsContainer, inspectRange, "Inspect");
+            createButton(rangeButtonsContainer, reportRangeHtml, "Get HTML");
             createButton(rangeButtonsContainer, extractRange, "Extract");
             createButton(rangeButtonsContainer, cloneRange, "Clone");
             createButton(rangeButtonsContainer, deleteRange, "Delete");
