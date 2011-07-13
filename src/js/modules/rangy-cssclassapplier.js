@@ -587,33 +587,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         },
 
-        _undoToRange: function(range) {
-            log.info("undoToRange " + range.inspect());
-            range.splitBoundaries();
-            var textNodes = range.getNodes( [3] ), textNode, ancestorWithClass;
-            var lastTextNode = textNodes[textNodes.length - 1];
-
-            if (textNodes.length) {
-                for (var i = 0, len = textNodes.length; i < len; ++i) {
-                    textNode = textNodes[i];
-                    ancestorWithClass = this.getSelfOrAncestorWithClass(textNode);
-                    if (ancestorWithClass) {
-                        this.undoToTextNode(textNode, range, ancestorWithClass);
-                    }
-
-                    // Ensure the range is still valid
-                    range.setStart(textNodes[0], 0);
-                    range.setEnd(lastTextNode, lastTextNode.length);
-                }
-
-                log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
-
-                if (this.normalize) {
-                    this.postApply(textNodes, range, true);
-                }
-            }
-        },
-
         undoToSelection: function(win) {
             win = win || window;
             var sel = api.getSelection(win);

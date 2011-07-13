@@ -107,16 +107,12 @@ rangy.createModule("DomUtil", function(api, module) {
         return node;
     }
 
+    // Note that we cannot use splitText() because it is bugridden in IE 9.
     function splitDataNode(node, index) {
-        var newNode;
-        if (node.nodeType == 3) {
-            newNode = node.splitText(index);
-        } else {
-            newNode = node.cloneNode();
-            newNode.deleteData(0, index);
-            node.deleteData(0, node.length - index);
-            insertAfter(newNode, node);
-        }
+        var newNode = node.cloneNode(false);
+        newNode.deleteData(0, index);
+        node.deleteData(index, node.length - index);
+        insertAfter(newNode, node);
         return newNode;
     }
 
