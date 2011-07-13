@@ -5,6 +5,10 @@ rangy.createModule("DomRange", function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var DOMException = api.DOMException;
+    
+    var START_CONTAINER = "startContainer", START_OFFSET = "startOffset";
+    var END_CONTAINER = "endContainer", END_OFFSET = "endOffset";
+    
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -12,11 +16,11 @@ rangy.createModule("DomRange", function(api, module) {
 
     function isNonTextPartiallySelected(node, range) {
         return (node.nodeType != 3) &&
-               (dom.isAncestorOf(node, range.startContainer, true) || dom.isAncestorOf(node, range.endContainer, true));
+               (dom.isAncestorOf(node, range[START_CONTAINER], true) || dom.isAncestorOf(node, range[END_CONTAINER], true));
     }
 
     function getRangeDocument(range) {
-        return dom.getDocument(range.startContainer);
+        return dom.getDocument(range[START_CONTAINER]);
     }
 
     function dispatchEvent(range, type, args) {
@@ -162,8 +166,8 @@ rangy.createModule("DomRange", function(api, module) {
 
     function inspect(range) {
         var name = (typeof range.getName == "undefined") ? "Range" : range.getName();
-        return "[" + name + "(" + dom.inspectNode(range.startContainer) + ":" + range.startOffset + ", " +
-                dom.inspectNode(range.endContainer) + ":" + range.endOffset + ")]";
+        return "[" + name + "(" + dom.inspectNode(range[START_CONTAINER]) + ":" + range[START_OFFSET] + ", " +
+                dom.inspectNode(range[END_CONTAINER]) + ":" + range[END_OFFSET] + ")]";
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -177,13 +181,13 @@ rangy.createModule("DomRange", function(api, module) {
         this.range = range;
         this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
 
-        log.info("New RangeIterator ", dom.inspectNode(range.startContainer), range.startOffset, dom.inspectNode(range.endContainer), range.endOffset);
+        log.info("New RangeIterator ", dom.inspectNode(range[START_CONTAINER]), range[START_OFFSET], dom.inspectNode(range[END_CONTAINER]), range[END_OFFSET]);
 
         if (!range.collapsed) {
-            this.sc = range.startContainer;
-            this.so = range.startOffset;
-            this.ec = range.endContainer;
-            this.eo = range.endOffset;
+            this.sc = range[START_CONTAINER];
+            this.so = range[START_OFFSET];
+            this.ec = range[END_CONTAINER];
+            this.eo = range[END_OFFSET];
             var root = range.commonAncestorContainer;
 
             if (this.sc === this.ec && dom.isCharacterDataNode(this.sc)) {
@@ -385,7 +389,7 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function assertNotDetached(range) {
-        if (!range.startContainer) {
+        if (!range[START_CONTAINER]) {
             throw new DOMException("INVALID_STATE_ERR");
         }
     }
@@ -430,9 +434,9 @@ rangy.createModule("DomRange", function(api, module) {
 
     function assertRangeValid(range) {
         assertNotDetached(range);
-        if (isOrphan(range.startContainer) || isOrphan(range.endContainer) ||
-                !isValidOffset(range.startContainer, range.startOffset) ||
-                !isValidOffset(range.endContainer, range.endOffset)) {
+        if (isOrphan(range[START_CONTAINER]) || isOrphan(range[END_CONTAINER]) ||
+                !isValidOffset(range[START_CONTAINER], range[START_OFFSET]) ||
+                !isValidOffset(range[END_CONTAINER], range[END_OFFSET])) {
             throw new Error("Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
         }
     }
@@ -475,8 +479,8 @@ rangy.createModule("DomRange", function(api, module) {
         }
 
         function setRangeStart(range, node, offset) {
-            var ec = range.endContainer, eo = range.endOffset;
-            if (node !== range.startContainer || offset !== this.startOffset) {
+            var ec = range[END_CONTAINER], eo = range[END_OFFSET];
+            if (node !== range[START_CONTAINER] || offset !== this[START_OFFSET]) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
                 if (getRootContainer(node) != getRootContainer(ec) || dom.comparePoints(node, offset, ec, eo) == 1) {
@@ -488,8 +492,8 @@ rangy.createModule("DomRange", function(api, module) {
         }
 
         function setRangeEnd(range, node, offset) {
-            var sc = range.startContainer, so = range.startOffset;
-            if (node !== range.endContainer || offset !== this.endOffset) {
+            var sc = range[START_CONTAINER], so = range[START_OFFSET];
+            if (node !== range[END_CONTAINER] || offset !== this[END_OFFSET]) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
                 if (getRootContainer(node) != getRootContainer(sc) || dom.comparePoints(node, offset, sc, so) == -1) {
@@ -501,7 +505,7 @@ rangy.createModule("DomRange", function(api, module) {
         }
 
         function setRangeStartAndEnd(range, node, offset) {
-            if (node !== range.startContainer || offset !== this.startOffset || node !== range.endContainer || offset !== this.endOffset) {
+            if (node !== range[START_CONTAINER] || offset !== this[START_OFFSET] || node !== range[END_CONTAINER] || offset !== this[END_OFFSET]) {
                 boundaryUpdater(range, node, offset, node, offset);
             }
         }
@@ -510,7 +514,7 @@ rangy.createModule("DomRange", function(api, module) {
             return function() {
                 assertRangeValid(this);
 
-                var sc = this.startContainer, so = this.startOffset, root = this.commonAncestorContainer;
+                var sc = this[START_CONTAINER], so = this[START_OFFSET], root = this.commonAncestorContainer;
 
                 var iterator = new RangeIterator(this, true);
 
@@ -568,9 +572,9 @@ rangy.createModule("DomRange", function(api, module) {
             collapse: function(isStart) {
                 assertRangeValid(this);
                 if (isStart) {
-                    boundaryUpdater(this, this.startContainer, this.startOffset, this.startContainer, this.startOffset);
+                    boundaryUpdater(this, this[START_CONTAINER], this[START_OFFSET], this[START_CONTAINER], this[START_OFFSET]);
                 } else {
-                    boundaryUpdater(this, this.endContainer, this.endOffset, this.endContainer, this.endOffset);
+                    boundaryUpdater(this, this[END_CONTAINER], this[END_OFFSET], this[END_CONTAINER], this[END_OFFSET]);
                 }
             },
 
@@ -595,7 +599,7 @@ rangy.createModule("DomRange", function(api, module) {
 
             compareBoundaryPoints: function(how, range) {
                 assertRangeValid(this);
-                assertSameDocumentOrFragment(this.startContainer, range.startContainer);
+                assertSameDocumentOrFragment(this[START_CONTAINER], range[START_CONTAINER]);
 
                 var nodeA, offsetA, nodeB, offsetB;
                 var prefixA = (how == e2s || how == s2s) ? "start" : "end";
@@ -610,9 +614,9 @@ rangy.createModule("DomRange", function(api, module) {
             insertNode: function(node) {
                 assertRangeValid(this);
                 assertValidNodeType(node, insertableNodeTypes);
-                assertNodeNotReadOnly(this.startContainer);
+                assertNodeNotReadOnly(this[START_CONTAINER]);
 
-                if (dom.isAncestorOf(node, this.startContainer, true)) {
+                if (dom.isAncestorOf(node, this[START_CONTAINER], true)) {
                     throw new DOMException("HIERARCHY_REQUEST_ERR");
                 }
 
@@ -620,7 +624,7 @@ rangy.createModule("DomRange", function(api, module) {
                 // children of the type of node: the browser's DOM implementation should do this for us when we attempt
                 // to add the node
 
-                var firstNodeInserted = insertNodeAtPosition(node, this.startContainer, this.startOffset);
+                var firstNodeInserted = insertNodeAtPosition(node, this[START_CONTAINER], this[START_OFFSET]);
                 this.setStartBefore(firstNodeInserted);
             },
 
@@ -631,9 +635,9 @@ rangy.createModule("DomRange", function(api, module) {
                 if (this.collapsed) {
                     return getRangeDocument(this).createDocumentFragment();
                 } else {
-                    if (this.startContainer === this.endContainer && dom.isCharacterDataNode(this.startContainer)) {
-                        clone = this.startContainer.cloneNode(true);
-                        clone.data = clone.data.slice(this.startOffset, this.endOffset);
+                    if (this[START_CONTAINER] === this[END_CONTAINER] && dom.isCharacterDataNode(this[START_CONTAINER])) {
+                        clone = this[START_CONTAINER].cloneNode(true);
+                        clone.data = clone.data.slice(this[START_OFFSET], this[END_OFFSET]);
                         frag = getRangeDocument(this).createDocumentFragment();
                         frag.appendChild(clone);
                         return frag;
@@ -652,8 +656,8 @@ rangy.createModule("DomRange", function(api, module) {
 
             canSurroundContents: function() {
                 assertRangeValid(this);
-                assertNodeNotReadOnly(this.startContainer);
-                assertNodeNotReadOnly(this.endContainer);
+                assertNodeNotReadOnly(this[START_CONTAINER]);
+                assertNodeNotReadOnly(this[END_CONTAINER]);
 
                 // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
                 // no non-text nodes.
@@ -682,7 +686,7 @@ rangy.createModule("DomRange", function(api, module) {
                 }
 
                 // Insert the new node and add the extracted contents
-                insertNodeAtPosition(node, this.startContainer, this.startOffset);
+                insertNodeAtPosition(node, this[START_CONTAINER], this[START_OFFSET]);
                 node.appendChild(content);
 
                 this.selectNode(node);
@@ -705,9 +709,9 @@ rangy.createModule("DomRange", function(api, module) {
 
             toString: function() {
                 assertRangeValid(this);
-                var sc = this.startContainer;
-                if (sc === this.endContainer && dom.isCharacterDataNode(sc)) {
-                    return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
+                var sc = this[START_CONTAINER];
+                if (sc === this[END_CONTAINER] && dom.isCharacterDataNode(sc)) {
+                    return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this[START_OFFSET], this[END_OFFSET]) : "";
                 } else {
                     var textBits = [], iterator = new RangeIterator(this, true);
                     log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
@@ -749,11 +753,11 @@ rangy.createModule("DomRange", function(api, module) {
             comparePoint: function(node, offset) {
                 assertRangeValid(this);
                 assertNode(node, "HIERARCHY_REQUEST_ERR");
-                assertSameDocumentOrFragment(node, this.startContainer);
+                assertSameDocumentOrFragment(node, this[START_CONTAINER]);
 
-                if (dom.comparePoints(node, offset, this.startContainer, this.startOffset) < 0) {
+                if (dom.comparePoints(node, offset, this[START_CONTAINER], this[START_OFFSET]) < 0) {
                     return -1;
-                } else if (dom.comparePoints(node, offset, this.endContainer, this.endOffset) > 0) {
+                } else if (dom.comparePoints(node, offset, this[END_CONTAINER], this[END_OFFSET]) > 0) {
                     return 1;
                 }
                 return 0;
@@ -795,8 +799,8 @@ rangy.createModule("DomRange", function(api, module) {
                 var parent = node.parentNode, offset = dom.getNodeIndex(node);
                 assertNode(parent, "NOT_FOUND_ERR");
 
-                var startComparison = dom.comparePoints(parent, offset, this.endContainer, this.endOffset),
-                    endComparison = dom.comparePoints(parent, offset + 1, this.startContainer, this.startOffset);
+                var startComparison = dom.comparePoints(parent, offset, this[END_CONTAINER], this[END_OFFSET]),
+                    endComparison = dom.comparePoints(parent, offset + 1, this[START_CONTAINER], this[START_OFFSET]);
 
                 return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
             },
@@ -805,10 +809,10 @@ rangy.createModule("DomRange", function(api, module) {
             isPointInRange: function(node, offset) {
                 assertRangeValid(this);
                 assertNode(node, "HIERARCHY_REQUEST_ERR");
-                assertSameDocumentOrFragment(node, this.startContainer);
+                assertSameDocumentOrFragment(node, this[START_CONTAINER]);
 
-                return (dom.comparePoints(node, offset, this.startContainer, this.startOffset) >= 0) &&
-                       (dom.comparePoints(node, offset, this.endContainer, this.endOffset) <= 0);
+                return (dom.comparePoints(node, offset, this[START_CONTAINER], this[START_OFFSET]) >= 0) &&
+                       (dom.comparePoints(node, offset, this[END_CONTAINER], this[END_OFFSET]) <= 0);
             },
 
             // The methods below are non-standard and invented by me.
@@ -821,24 +825,24 @@ rangy.createModule("DomRange", function(api, module) {
                     throw new DOMException("WRONG_DOCUMENT_ERR");
                 }
 
-                var startComparison = dom.comparePoints(this.startContainer, this.startOffset, range.endContainer, range.endOffset),
-                    endComparison = dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset);
+                var startComparison = dom.comparePoints(this[START_CONTAINER], this[START_OFFSET], range[END_CONTAINER], range[END_OFFSET]),
+                    endComparison = dom.comparePoints(this[END_CONTAINER], this[END_OFFSET], range[START_CONTAINER], range[START_OFFSET]);
 
                 return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
             },
 
             intersection: function(range) {
                 if (this.intersectsRange(range)) {
-                    var startComparison = dom.comparePoints(this.startContainer, this.startOffset, range.startContainer, range.startOffset),
-                        endComparison = dom.comparePoints(this.endContainer, this.endOffset, range.endContainer, range.endOffset);
+                    var startComparison = dom.comparePoints(this[START_CONTAINER], this[START_OFFSET], range[START_CONTAINER], range[START_OFFSET]),
+                        endComparison = dom.comparePoints(this[END_CONTAINER], this[END_OFFSET], range[END_CONTAINER], range[END_OFFSET]);
 
                     var intersectionRange = this.cloneRange();
                     log.info("intersection", this.inspect(), range.inspect(), startComparison, endComparison);
                     if (startComparison == -1) {
-                        intersectionRange.setStart(range.startContainer, range.startOffset);
+                        intersectionRange.setStart(range[START_CONTAINER], range[START_OFFSET]);
                     }
                     if (endComparison == 1) {
-                        intersectionRange.setEnd(range.endContainer, range.endOffset);
+                        intersectionRange.setEnd(range[END_CONTAINER], range[END_OFFSET]);
                     }
                     return intersectionRange;
                 }
@@ -848,11 +852,11 @@ rangy.createModule("DomRange", function(api, module) {
             union: function(range) {
                 if (this.intersectsRange(range, true)) {
                     var unionRange = this.cloneRange();
-                    if (dom.comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) == -1) {
-                        unionRange.setStart(range.startContainer, range.startOffset);
+                    if (dom.comparePoints(range[START_CONTAINER], range[START_OFFSET], this[START_CONTAINER], this[START_OFFSET]) == -1) {
+                        unionRange.setStart(range[START_CONTAINER], range[START_OFFSET]);
                     }
-                    if (dom.comparePoints(range.endContainer, range.endOffset, this.endContainer, this.endOffset) == 1) {
-                        unionRange.setEnd(range.endContainer, range.endOffset);
+                    if (dom.comparePoints(range[END_CONTAINER], range[END_OFFSET], this[END_CONTAINER], this[END_OFFSET]) == 1) {
+                        unionRange.setEnd(range[END_CONTAINER], range[END_OFFSET]);
                     }
                     return unionRange;
                 } else {
@@ -896,7 +900,7 @@ rangy.createModule("DomRange", function(api, module) {
                 assertRangeValid(this);
 
                 log.debug("splitBoundaries called " + this.inspect());
-                var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+                var sc = this[START_CONTAINER], so = this[START_OFFSET], ec = this[END_CONTAINER], eo = this[END_OFFSET];
                 var startEndSame = (sc === ec);
 
                 if (dom.isCharacterDataNode(ec) && eo > 0 && eo < ec.length) {
@@ -922,7 +926,7 @@ rangy.createModule("DomRange", function(api, module) {
             normalizeBoundaries: function() {
                 assertRangeValid(this);
 
-                var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+                var sc = this[START_CONTAINER], so = this[START_OFFSET], ec = this[END_CONTAINER], eo = this[END_OFFSET];
 
                 var mergeForward = function(node) {
                     var sibling = node.nextSibling;
@@ -1047,19 +1051,19 @@ rangy.createModule("DomRange", function(api, module) {
 
     // Updates commonAncestorContainer and collapsed after boundary change
     function updateCollapsedAndCommonAncestor(range) {
-        range.collapsed = (range.startContainer === range.endContainer && range.startOffset === range.endOffset);
+        range.collapsed = (range[START_CONTAINER] === range[END_CONTAINER] && range[START_OFFSET] === range[END_OFFSET]);
         range.commonAncestorContainer = range.collapsed ?
-            range.startContainer : dom.getCommonAncestor(range.startContainer, range.endContainer);
+            range[START_CONTAINER] : dom.getCommonAncestor(range[START_CONTAINER], range[END_CONTAINER]);
     }
 
     function updateBoundaries(range, startContainer, startOffset, endContainer, endOffset) {
-        var startMoved = (range.startContainer !== startContainer || range.startOffset !== startOffset);
-        var endMoved = (range.endContainer !== endContainer || range.endOffset !== endOffset);
+        var startMoved = (range[START_CONTAINER] !== startContainer || range[START_OFFSET] !== startOffset);
+        var endMoved = (range[END_CONTAINER] !== endContainer || range[END_OFFSET] !== endOffset);
 
-        range.startContainer = startContainer;
-        range.startOffset = startOffset;
-        range.endContainer = endContainer;
-        range.endOffset = endOffset;
+        range[START_CONTAINER] = startContainer;
+        range[START_OFFSET] = startOffset;
+        range[END_CONTAINER] = endContainer;
+        range[END_OFFSET] = endOffset;
 
         updateCollapsedAndCommonAncestor(range);
         dispatchEvent(range, "boundarychange", {startMoved: startMoved, endMoved: endMoved});
@@ -1067,7 +1071,7 @@ rangy.createModule("DomRange", function(api, module) {
 
     function detach(range) {
         assertNotDetached(range);
-        range.startContainer = range.startOffset = range.endContainer = range.endOffset = null;
+        range[START_CONTAINER] = range[START_OFFSET] = range[END_CONTAINER] = range[END_OFFSET] = null;
         range.collapsed = range.commonAncestorContainer = null;
         dispatchEvent(range, "detach", null);
         range._listeners = null;
@@ -1077,10 +1081,10 @@ rangy.createModule("DomRange", function(api, module) {
      * @constructor
      */
     function Range(doc) {
-        this.startContainer = doc;
-        this.startOffset = 0;
-        this.endContainer = doc;
-        this.endOffset = 0;
+        this[START_CONTAINER] = doc;
+        this[START_OFFSET] = 0;
+        this[END_CONTAINER] = doc;
+        this[END_OFFSET] = 0;
         this._listeners = {
             boundarychange: [],
             detach: []
@@ -1092,7 +1096,7 @@ rangy.createModule("DomRange", function(api, module) {
 
     Range.fromRange = function(r) {
         var range = new Range(getRangeDocument(r));
-        updateBoundaries(range, r.startContainer, r.startOffset, r.endContainer, r.endOffset);
+        updateBoundaries(range, r[START_CONTAINER], r[START_OFFSET], r[END_CONTAINER], r[END_OFFSET]);
         return range;
     };
 
@@ -1103,10 +1107,10 @@ rangy.createModule("DomRange", function(api, module) {
     Range.inspect = inspect;
     Range.getRangeDocument = getRangeDocument;
     Range.rangesEqual = function(r1, r2) {
-        return r1.startContainer === r2.startContainer &&
-               r1.startOffset === r2.startOffset &&
-               r1.endContainer === r2.endContainer &&
-               r1.endOffset === r2.endOffset;
+        return r1[START_CONTAINER] === r2[START_CONTAINER] &&
+               r1[START_OFFSET] === r2[START_OFFSET] &&
+               r1[END_CONTAINER] === r2[END_CONTAINER] &&
+               r1[END_OFFSET] === r2[END_OFFSET];
     };
     Range.getEndOffset = getEndOffset;
 

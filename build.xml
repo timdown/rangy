@@ -53,7 +53,7 @@
         <replaceregexp file="${uncompressed.dir}/${js.file}" byline="true" match="^\s*var\s+log\s*=.*$" replace=""/>
 
         <!-- Compress -->
-        <jscomp compilationLevel="simple" debug="false" output="${compressed.dir}/${js.file}">
+        <jscomp compilationLevel="advanced" debug="false" output="${compressed.dir}/${js.file}">
             <sources dir="${uncompressed.dir}">
                 <file name="${js.file}"/>
             </sources>
