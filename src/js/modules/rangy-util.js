@@ -15,6 +15,9 @@
 rangy.createModule("Util", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
+    var rangeProto = api.DomRange.prototype;
+    var selProto = api.Selection.prototype;
+
     var getRangeBoundingClientRect = (function() {
         function mergeRects(rect1, rect2) {
             var rect = {
@@ -106,4 +109,5 @@ rangy.createModule("Util", function(api, module) {
 
     api.getRangeBoundingClientRect = getRangeBoundingClientRect;
 
+    
 });

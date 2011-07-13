@@ -277,14 +277,7 @@ rangy.createModule("DomUtil", function(api, module) {
 
         inspect: function() {
             return "[DomPosition(" + inspectNode(this.node) + ":" + this.offset + ")]";
-        }/*,
-
-        isStartOfElementContent: function() {
-            var isCharacterData = isCharacterDataNode(this.node);
-            var el = isCharacterData ? this.node.parentNode : this.node;
-            return (el && el.nodeType == 1 && (isCharacterData ?
-            if (isCharacterDataNode(this.node) && !this.node.previousSibling && this.node.parentNode)
-        }*/
+        }
     };
 
     /**

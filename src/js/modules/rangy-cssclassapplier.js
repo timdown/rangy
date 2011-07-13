@@ -464,11 +464,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         createContainer: function(doc) {
             var el = doc.createElement(this.elementTagName);
-            for (var i in this.elementProperties) {
-                if (this.elementProperties.hasOwnProperty(i)) {
-                    el[i] = this.elementProperties[i];
-                }
-            }
+            api.util.extend(el, this.elementProperties);
             addClass(el, this.cssClass);
             return el;
         },

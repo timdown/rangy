@@ -8,6 +8,7 @@ rangy.createModule("DomRange", function(api, module) {
     
     var START_CONTAINER = "startContainer", START_OFFSET = "startOffset";
     var END_CONTAINER = "endContainer", END_OFFSET = "endOffset";
+    var COLLAPSED = "collapsed", COMMON_ANCESTOR_CONTAINER = "commonAncestorContainer";
     
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -183,12 +184,12 @@ rangy.createModule("DomRange", function(api, module) {
 
         log.info("New RangeIterator ", dom.inspectNode(range[START_CONTAINER]), range[START_OFFSET], dom.inspectNode(range[END_CONTAINER]), range[END_OFFSET]);
 
-        if (!range.collapsed) {
+        if (!range[COLLAPSED]) {
             this.sc = range[START_CONTAINER];
             this.so = range[START_OFFSET];
             this.ec = range[END_CONTAINER];
             this.eo = range[END_OFFSET];
-            var root = range.commonAncestorContainer;
+            var root = range[COMMON_ANCESTOR_CONTAINER];
 
             if (this.sc === this.ec && dom.isCharacterDataNode(this.sc)) {
                 this.isSingleCharacterDataNode = true;
@@ -443,11 +444,350 @@ rangy.createModule("DomRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
-        "commonAncestorContainer"];
+    var rangeProperties = [START_CONTAINER, START_OFFSET, END_CONTAINER, END_OFFSET, COLLAPSED,
+        COMMON_ANCESTOR_CONTAINER];
 
     var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
     var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
+
+    function RangePrototype() {}
+
+    RangePrototype.prototype = {
+        attachListener: function(type, listener) {
+            this._listeners[type].push(listener);
+        },
+
+        compareBoundaryPoints: function(how, range) {
+            assertRangeValid(this);
+            assertSameDocumentOrFragment(this[START_CONTAINER], range[START_CONTAINER]);
+
+            var nodeA, offsetA, nodeB, offsetB;
+            var prefixA = (how == e2s || how == s2s) ? "start" : "end";
+            var prefixB = (how == s2e || how == s2s) ? "start" : "end";
+            nodeA = this[prefixA + "Container"];
+            offsetA = this[prefixA + "Offset"];
+            nodeB = range[prefixB + "Container"];
+            offsetB = range[prefixB + "Offset"];
+            return dom.comparePoints(nodeA, offsetA, nodeB, offsetB);
+        },
+
+        insertNode: function(node) {
+            assertRangeValid(this);
+            assertValidNodeType(node, insertableNodeTypes);
+            assertNodeNotReadOnly(this[START_CONTAINER]);
+
+            if (dom.isAncestorOf(node, this[START_CONTAINER], true)) {
+                throw new DOMException("HIERARCHY_REQUEST_ERR");
+            }
+
+            // No check for whether the container of the start of the Range is of a type that does not allow
+            // children of the type of node: the browser's DOM implementation should do this for us when we attempt
+            // to add the node
+
+            var firstNodeInserted = insertNodeAtPosition(node, this[START_CONTAINER], this[START_OFFSET]);
+            this.setStartBefore(firstNodeInserted);
+        },
+
+        cloneContents: function() {
+            assertRangeValid(this);
+
+            var clone, frag;
+            if (this[COLLAPSED]) {
+                return getRangeDocument(this).createDocumentFragment();
+            } else {
+                if (this[START_CONTAINER] === this[END_CONTAINER] && dom.isCharacterDataNode(this[START_CONTAINER])) {
+                    clone = this[START_CONTAINER].cloneNode(true);
+                    clone.data = clone.data.slice(this[START_OFFSET], this[END_OFFSET]);
+                    frag = getRangeDocument(this).createDocumentFragment();
+                    frag.appendChild(clone);
+                    return frag;
+                } else {
+                    var iterator = new RangeIterator(this, true);
+                    clone = cloneSubtree(iterator);
+                    iterator.detach();
+                }
+                return clone;
+            }
+        },
+
+        canSurroundContents: function() {
+            assertRangeValid(this);
+            assertNodeNotReadOnly(this[START_CONTAINER]);
+            assertNodeNotReadOnly(this[END_CONTAINER]);
+
+            // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
+            // no non-text nodes.
+            var iterator = new RangeIterator(this, true);
+            var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                    (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
+            iterator.detach();
+            return !boundariesInvalid;
+        },
+
+        surroundContents: function(node) {
+            assertValidNodeType(node, surroundNodeTypes);
+
+            if (!this.canSurroundContents()) {
+                throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
+            }
+
+            // Extract the contents
+            var content = this.extractContents();
+
+            // Clear the children of the node
+            if (node.hasChildNodes()) {
+                while (node.lastChild) {
+                    node.removeChild(node.lastChild);
+                }
+            }
+
+            // Insert the new node and add the extracted contents
+            insertNodeAtPosition(node, this[START_CONTAINER], this[START_OFFSET]);
+            node.appendChild(content);
+
+            this.selectNode(node);
+        },
+
+        cloneRange: function() {
+            assertRangeValid(this);
+            var range = new Range(getRangeDocument(this));
+            var i = rangeProperties.length, prop;
+            while (i--) {
+                prop = rangeProperties[i];
+                range[prop] = this[prop];
+            }
+            return range;
+        },
+
+        toString: function() {
+            assertRangeValid(this);
+            var sc = this[START_CONTAINER];
+            if (sc === this[END_CONTAINER] && dom.isCharacterDataNode(sc)) {
+                return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this[START_OFFSET], this[END_OFFSET]) : "";
+            } else {
+                var textBits = [], iterator = new RangeIterator(this, true);
+                log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
+                iterateSubtree(iterator, function(node) {
+                    // Accept only text or CDATA nodes, not comments
+                    log.info("toString: got node", dom.inspectNode(node));
+                    if (node.nodeType == 3 || node.nodeType == 4) {
+                        textBits.push(node.data);
+                    }
+                });
+                iterator.detach();
+                return textBits.join("");
+            }
+        },
+
+        // The methods below are all non-standard. The following batch were introduced by Mozilla but have since
+        // been removed from Mozilla.
+
+        compareNode: function(node) {
+            assertRangeValid(this);
+
+            var parent = node.parentNode;
+            var nodeIndex = dom.getNodeIndex(node);
+
+            if (!parent) {
+                throw new DOMException("NOT_FOUND_ERR");
+            }
+
+            var startComparison = this.comparePoint(parent, nodeIndex),
+                endComparison = this.comparePoint(parent, nodeIndex + 1);
+
+            if (startComparison < 0) { // Node starts before
+                return (endComparison > 0) ? n_b_a : n_b;
+            } else {
+                return (endComparison > 0) ? n_a : n_i;
+            }
+        },
+
+        comparePoint: function(node, offset) {
+            assertRangeValid(this);
+            assertNode(node, "HIERARCHY_REQUEST_ERR");
+            assertSameDocumentOrFragment(node, this[START_CONTAINER]);
+
+            if (dom.comparePoints(node, offset, this[START_CONTAINER], this[START_OFFSET]) < 0) {
+                return -1;
+            } else if (dom.comparePoints(node, offset, this[END_CONTAINER], this[END_OFFSET]) > 0) {
+                return 1;
+            }
+            return 0;
+        },
+
+        createContextualFragment: function(html) {
+            assertNotDetached(this);
+            var doc = getRangeDocument(this);
+            var container = doc.createElement("div");
+
+            // The next line is obviously non-standard but will work in all recent browsers
+            container.innerHTML = html;
+
+            var frag = doc.createDocumentFragment(), n;
+
+            while ( (n = container.firstChild) ) {
+                frag.appendChild(n);
+            }
+
+            return frag;
+        },
+
+        toHtml: function() {
+            assertRangeValid(this);
+            var container = getRangeDocument(this).createElement("div");
+            container.appendChild(this.cloneContents());
+            return container.innerHTML;
+        },
+
+        // touchingIsIntersecting determines whether this method considers a node that borders a range intersects
+        // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
+        intersectsNode: function(node, touchingIsIntersecting) {
+            assertRangeValid(this);
+            assertNode(node, "NOT_FOUND_ERR");
+            if (dom.getDocument(node) !== getRangeDocument(this)) {
+                return false;
+            }
+
+            var parent = node.parentNode, offset = dom.getNodeIndex(node);
+            assertNode(parent, "NOT_FOUND_ERR");
+
+            var startComparison = dom.comparePoints(parent, offset, this[END_CONTAINER], this[END_OFFSET]),
+                endComparison = dom.comparePoints(parent, offset + 1, this[START_CONTAINER], this[START_OFFSET]);
+
+            return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+        },
+
+
+        isPointInRange: function(node, offset) {
+            assertRangeValid(this);
+            assertNode(node, "HIERARCHY_REQUEST_ERR");
+            assertSameDocumentOrFragment(node, this[START_CONTAINER]);
+
+            return (dom.comparePoints(node, offset, this[START_CONTAINER], this[START_OFFSET]) >= 0) &&
+                   (dom.comparePoints(node, offset, this[END_CONTAINER], this[END_OFFSET]) <= 0);
+        },
+
+        // The methods below are non-standard and invented by me.
+
+        // Sharing a boundary start-to-end or end-to-start does not count as intersection.
+        intersectsRange: function(range, touchingIsIntersecting) {
+            assertRangeValid(this);
+
+            if (getRangeDocument(range) != getRangeDocument(this)) {
+                throw new DOMException("WRONG_DOCUMENT_ERR");
+            }
+
+            var startComparison = dom.comparePoints(this[START_CONTAINER], this[START_OFFSET], range[END_CONTAINER], range[END_OFFSET]),
+                endComparison = dom.comparePoints(this[END_CONTAINER], this[END_OFFSET], range[START_CONTAINER], range[START_OFFSET]);
+
+            return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+        },
+
+        intersection: function(range) {
+            if (this.intersectsRange(range)) {
+                var startComparison = dom.comparePoints(this[START_CONTAINER], this[START_OFFSET], range[START_CONTAINER], range[START_OFFSET]),
+                    endComparison = dom.comparePoints(this[END_CONTAINER], this[END_OFFSET], range[END_CONTAINER], range[END_OFFSET]);
+
+                var intersectionRange = this.cloneRange();
+                log.info("intersection", this.inspect(), range.inspect(), startComparison, endComparison);
+                if (startComparison == -1) {
+                    intersectionRange.setStart(range[START_CONTAINER], range[START_OFFSET]);
+                }
+                if (endComparison == 1) {
+                    intersectionRange.setEnd(range[END_CONTAINER], range[END_OFFSET]);
+                }
+                return intersectionRange;
+            }
+            return null;
+        },
+
+        union: function(range) {
+            if (this.intersectsRange(range, true)) {
+                var unionRange = this.cloneRange();
+                if (dom.comparePoints(range[START_CONTAINER], range[START_OFFSET], this[START_CONTAINER], this[START_OFFSET]) == -1) {
+                    unionRange.setStart(range[START_CONTAINER], range[START_OFFSET]);
+                }
+                if (dom.comparePoints(range[END_CONTAINER], range[END_OFFSET], this[END_CONTAINER], this[END_OFFSET]) == 1) {
+                    unionRange.setEnd(range[END_CONTAINER], range[END_OFFSET]);
+                }
+                return unionRange;
+            } else {
+                throw new RangeException("Ranges do not intersect");
+            }
+        },
+
+        containsNode: function(node, allowPartial) {
+            if (allowPartial) {
+                return this.intersectsNode(node, false);
+            } else {
+                return this.compareNode(node) == n_i;
+            }
+        },
+
+        containsNodeContents: function(node) {
+            return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, getEndOffset(node)) <= 0;
+        },
+
+        containsRange: function(range) {
+            return this.intersection(range).equals(range);
+        },
+
+        containsNodeText: function(node) {
+            var nodeRange = this.cloneRange();
+            nodeRange.selectNode(node);
+            var textNodes = nodeRange.getNodes([3]);
+            if (textNodes.length > 0) {
+                nodeRange.setStart(textNodes[0], 0);
+                var lastTextNode = textNodes.pop();
+                nodeRange.setEnd(lastTextNode, lastTextNode.length);
+                var contains = this.containsRange(nodeRange);
+                nodeRange.detach();
+                return contains;
+            } else {
+                return this.containsNodeContents(node);
+            }
+        },
+
+        createNodeIterator: function(nodeTypes, filter) {
+            assertRangeValid(this);
+            return new RangeNodeIterator(this, nodeTypes, filter);
+        },
+
+        getNodes: function(nodeTypes, filter) {
+            assertRangeValid(this);
+            return getNodesInRange(this, nodeTypes, filter);
+        },
+
+        getDocument: function() {
+            return getRangeDocument(this);
+        },
+
+        collapseBefore: function(node) {
+            assertNotDetached(this);
+
+            this.setEndBefore(node);
+            this.collapse(false);
+        },
+
+        collapseAfter: function(node) {
+            assertNotDetached(this);
+
+            this.setStartAfter(node);
+            this.collapse(true);
+        },
+
+        getName: function() {
+            return "DomRange";
+        },
+
+        equals: function(range) {
+            return Range.rangesEqual(this, range);
+        },
+
+        inspect: function() {
+            return inspect(this);
+        }
+    };
 
     function copyComparisonConstantsToObject(obj) {
         obj.START_TO_START = s2s;
@@ -464,6 +804,39 @@ rangy.createModule("DomRange", function(api, module) {
     function copyComparisonConstants(constructor) {
         copyComparisonConstantsToObject(constructor);
         copyComparisonConstantsToObject(constructor.prototype);
+    }
+
+    function createRangeContentRemover(remover, boundaryUpdater) {
+        return function() {
+            assertRangeValid(this);
+
+            var sc = this[START_CONTAINER], so = this[START_OFFSET], root = this[COMMON_ANCESTOR_CONTAINER];
+
+            var iterator = new RangeIterator(this, true);
+
+            // Work out where to position the range after content removal
+            var node, boundary;
+            if (sc !== root) {
+                node = dom.getClosestAncestorIn(sc, root, true);
+                boundary = getBoundaryAfterNode(node);
+                sc = boundary.node;
+                so = boundary.offset;
+            }
+
+            // Check none of the range is read-only
+            iterateSubtree(iterator, assertNodeNotReadOnly);
+
+            iterator.reset();
+
+            // Remove the content
+            var returnValue = remover(iterator);
+            iterator.detach();
+
+            // Move to the new position
+            boundaryUpdater(this, sc, so, sc, so);
+
+            return returnValue;
+        };
     }
 
     function createPrototypeRange(constructor, boundaryUpdater, detacher) {
@@ -510,44 +883,9 @@ rangy.createModule("DomRange", function(api, module) {
             }
         }
 
-        function createRangeContentRemover(remover) {
-            return function() {
-                assertRangeValid(this);
+        constructor.prototype = new RangePrototype();
 
-                var sc = this[START_CONTAINER], so = this[START_OFFSET], root = this.commonAncestorContainer;
-
-                var iterator = new RangeIterator(this, true);
-
-                // Work out where to position the range after content removal
-                var node, boundary;
-                if (sc !== root) {
-                    node = dom.getClosestAncestorIn(sc, root, true);
-                    boundary = getBoundaryAfterNode(node);
-                    sc = boundary.node;
-                    so = boundary.offset;
-                }
-
-                // Check none of the range is read-only
-                iterateSubtree(iterator, assertNodeNotReadOnly);
-
-                iterator.reset();
-
-                // Remove the content
-                var returnValue = remover(iterator);
-                iterator.detach();
-
-                // Move to the new position
-                boundaryUpdater(this, sc, so, sc, so);
-
-                return returnValue;
-            };
-        }
-
-        constructor.prototype = {
-            attachListener: function(type, listener) {
-                this._listeners[type].push(listener);
-            },
-
+        api.util.extend(constructor.prototype, {
             setStart: function(node, offset) {
                 assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
@@ -597,62 +935,9 @@ rangy.createModule("DomRange", function(api, module) {
                 boundaryUpdater(this, start.node, start.offset, end.node, end.offset);
             },
 
-            compareBoundaryPoints: function(how, range) {
-                assertRangeValid(this);
-                assertSameDocumentOrFragment(this[START_CONTAINER], range[START_CONTAINER]);
+            extractContents: createRangeContentRemover(extractSubtree, boundaryUpdater),
 
-                var nodeA, offsetA, nodeB, offsetB;
-                var prefixA = (how == e2s || how == s2s) ? "start" : "end";
-                var prefixB = (how == s2e || how == s2s) ? "start" : "end";
-                nodeA = this[prefixA + "Container"];
-                offsetA = this[prefixA + "Offset"];
-                nodeB = range[prefixB + "Container"];
-                offsetB = range[prefixB + "Offset"];
-                return dom.comparePoints(nodeA, offsetA, nodeB, offsetB);
-            },
-
-            insertNode: function(node) {
-                assertRangeValid(this);
-                assertValidNodeType(node, insertableNodeTypes);
-                assertNodeNotReadOnly(this[START_CONTAINER]);
-
-                if (dom.isAncestorOf(node, this[START_CONTAINER], true)) {
-                    throw new DOMException("HIERARCHY_REQUEST_ERR");
-                }
-
-                // No check for whether the container of the start of the Range is of a type that does not allow
-                // children of the type of node: the browser's DOM implementation should do this for us when we attempt
-                // to add the node
-
-                var firstNodeInserted = insertNodeAtPosition(node, this[START_CONTAINER], this[START_OFFSET]);
-                this.setStartBefore(firstNodeInserted);
-            },
-
-            cloneContents: function() {
-                assertRangeValid(this);
-
-                var clone, frag;
-                if (this.collapsed) {
-                    return getRangeDocument(this).createDocumentFragment();
-                } else {
-                    if (this[START_CONTAINER] === this[END_CONTAINER] && dom.isCharacterDataNode(this[START_CONTAINER])) {
-                        clone = this[START_CONTAINER].cloneNode(true);
-                        clone.data = clone.data.slice(this[START_OFFSET], this[END_OFFSET]);
-                        frag = getRangeDocument(this).createDocumentFragment();
-                        frag.appendChild(clone);
-                        return frag;
-                    } else {
-                        var iterator = new RangeIterator(this, true);
-                        clone = cloneSubtree(iterator);
-                        iterator.detach();
-                    }
-                    return clone;
-                }
-            },
-
-            extractContents: createRangeContentRemover(extractSubtree),
-
-            deleteContents: createRangeContentRemover(deleteSubtree),
+            deleteContents: createRangeContentRemover(deleteSubtree, boundaryUpdater),
 
             canSurroundContents: function() {
                 assertRangeValid(this);
@@ -668,232 +953,8 @@ rangy.createModule("DomRange", function(api, module) {
                 return !boundariesInvalid;
             },
 
-            surroundContents: function(node) {
-                assertValidNodeType(node, surroundNodeTypes);
-
-                if (!this.canSurroundContents()) {
-                    throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
-                }
-
-                // Extract the contents
-                var content = this.extractContents();
-
-                // Clear the children of the node
-                if (node.hasChildNodes()) {
-                    while (node.lastChild) {
-                        node.removeChild(node.lastChild);
-                    }
-                }
-
-                // Insert the new node and add the extracted contents
-                insertNodeAtPosition(node, this[START_CONTAINER], this[START_OFFSET]);
-                node.appendChild(content);
-
-                this.selectNode(node);
-            },
-
-            cloneRange: function() {
-                assertRangeValid(this);
-                var range = new Range(getRangeDocument(this));
-                var i = rangeProperties.length, prop;
-                while (i--) {
-                    prop = rangeProperties[i];
-                    range[prop] = this[prop];
-                }
-                return range;
-            },
-
             detach: function() {
                 detacher(this);
-            },
-
-            toString: function() {
-                assertRangeValid(this);
-                var sc = this[START_CONTAINER];
-                if (sc === this[END_CONTAINER] && dom.isCharacterDataNode(sc)) {
-                    return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this[START_OFFSET], this[END_OFFSET]) : "";
-                } else {
-                    var textBits = [], iterator = new RangeIterator(this, true);
-                    log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
-                    iterateSubtree(iterator, function(node) {
-                        // Accept only text or CDATA nodes, not comments
-                        log.info("toString: got node", dom.inspectNode(node));
-                        if (node.nodeType == 3 || node.nodeType == 4) {
-                            textBits.push(node.data);
-                        }
-                    });
-                    iterator.detach();
-                    return textBits.join("");
-                }
-            },
-
-            // The methods below are all non-standard. The following batch were introduced by Mozilla but have since
-            // been removed from Mozilla.
-
-            compareNode: function(node) {
-                assertRangeValid(this);
-
-                var parent = node.parentNode;
-                var nodeIndex = dom.getNodeIndex(node);
-
-                if (!parent) {
-                    throw new DOMException("NOT_FOUND_ERR");
-                }
-
-                var startComparison = this.comparePoint(parent, nodeIndex),
-                    endComparison = this.comparePoint(parent, nodeIndex + 1);
-
-                if (startComparison < 0) { // Node starts before
-                    return (endComparison > 0) ? n_b_a : n_b;
-                } else {
-                    return (endComparison > 0) ? n_a : n_i;
-                }
-            },
-
-            comparePoint: function(node, offset) {
-                assertRangeValid(this);
-                assertNode(node, "HIERARCHY_REQUEST_ERR");
-                assertSameDocumentOrFragment(node, this[START_CONTAINER]);
-
-                if (dom.comparePoints(node, offset, this[START_CONTAINER], this[START_OFFSET]) < 0) {
-                    return -1;
-                } else if (dom.comparePoints(node, offset, this[END_CONTAINER], this[END_OFFSET]) > 0) {
-                    return 1;
-                }
-                return 0;
-            },
-
-            createContextualFragment: function(html) {
-                assertNotDetached(this);
-                var doc = getRangeDocument(this);
-                var container = doc.createElement("div");
-
-                // The next line is obviously non-standard but will work in all recent browsers
-                container.innerHTML = html;
-
-                var frag = doc.createDocumentFragment(), n;
-
-                while ( (n = container.firstChild) ) {
-                    frag.appendChild(n);
-                }
-
-                return frag;
-            },
-
-            toHtml: function() {
-                assertRangeValid(this);
-                var container = getRangeDocument(this).createElement("div");
-                container.appendChild(this.cloneContents());
-                return container.innerHTML;
-            },
-
-            // touchingIsIntersecting determines whether this method considers a node that borders a range intersects
-            // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
-            intersectsNode: function(node, touchingIsIntersecting) {
-                assertRangeValid(this);
-                assertNode(node, "NOT_FOUND_ERR");
-                if (dom.getDocument(node) !== getRangeDocument(this)) {
-                    return false;
-                }
-
-                var parent = node.parentNode, offset = dom.getNodeIndex(node);
-                assertNode(parent, "NOT_FOUND_ERR");
-
-                var startComparison = dom.comparePoints(parent, offset, this[END_CONTAINER], this[END_OFFSET]),
-                    endComparison = dom.comparePoints(parent, offset + 1, this[START_CONTAINER], this[START_OFFSET]);
-
-                return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
-            },
-
-
-            isPointInRange: function(node, offset) {
-                assertRangeValid(this);
-                assertNode(node, "HIERARCHY_REQUEST_ERR");
-                assertSameDocumentOrFragment(node, this[START_CONTAINER]);
-
-                return (dom.comparePoints(node, offset, this[START_CONTAINER], this[START_OFFSET]) >= 0) &&
-                       (dom.comparePoints(node, offset, this[END_CONTAINER], this[END_OFFSET]) <= 0);
-            },
-
-            // The methods below are non-standard and invented by me.
-
-            // Sharing a boundary start-to-end or end-to-start does not count as intersection.
-            intersectsRange: function(range, touchingIsIntersecting) {
-                assertRangeValid(this);
-
-                if (getRangeDocument(range) != getRangeDocument(this)) {
-                    throw new DOMException("WRONG_DOCUMENT_ERR");
-                }
-
-                var startComparison = dom.comparePoints(this[START_CONTAINER], this[START_OFFSET], range[END_CONTAINER], range[END_OFFSET]),
-                    endComparison = dom.comparePoints(this[END_CONTAINER], this[END_OFFSET], range[START_CONTAINER], range[START_OFFSET]);
-
-                return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
-            },
-
-            intersection: function(range) {
-                if (this.intersectsRange(range)) {
-                    var startComparison = dom.comparePoints(this[START_CONTAINER], this[START_OFFSET], range[START_CONTAINER], range[START_OFFSET]),
-                        endComparison = dom.comparePoints(this[END_CONTAINER], this[END_OFFSET], range[END_CONTAINER], range[END_OFFSET]);
-
-                    var intersectionRange = this.cloneRange();
-                    log.info("intersection", this.inspect(), range.inspect(), startComparison, endComparison);
-                    if (startComparison == -1) {
-                        intersectionRange.setStart(range[START_CONTAINER], range[START_OFFSET]);
-                    }
-                    if (endComparison == 1) {
-                        intersectionRange.setEnd(range[END_CONTAINER], range[END_OFFSET]);
-                    }
-                    return intersectionRange;
-                }
-                return null;
-            },
-
-            union: function(range) {
-                if (this.intersectsRange(range, true)) {
-                    var unionRange = this.cloneRange();
-                    if (dom.comparePoints(range[START_CONTAINER], range[START_OFFSET], this[START_CONTAINER], this[START_OFFSET]) == -1) {
-                        unionRange.setStart(range[START_CONTAINER], range[START_OFFSET]);
-                    }
-                    if (dom.comparePoints(range[END_CONTAINER], range[END_OFFSET], this[END_CONTAINER], this[END_OFFSET]) == 1) {
-                        unionRange.setEnd(range[END_CONTAINER], range[END_OFFSET]);
-                    }
-                    return unionRange;
-                } else {
-                    throw new RangeException("Ranges do not intersect");
-                }
-            },
-
-            containsNode: function(node, allowPartial) {
-                if (allowPartial) {
-                    return this.intersectsNode(node, false);
-                } else {
-                    return this.compareNode(node) == n_i;
-                }
-            },
-
-            containsNodeContents: function(node) {
-                return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, getEndOffset(node)) <= 0;
-            },
-
-            containsRange: function(range) {
-                return this.intersection(range).equals(range);
-            },
-
-            containsNodeText: function(node) {
-                var nodeRange = this.cloneRange();
-                nodeRange.selectNode(node);
-                var textNodes = nodeRange.getNodes([3]);
-                if (textNodes.length > 0) {
-                    nodeRange.setStart(textNodes[0], 0);
-                    var lastTextNode = textNodes.pop();
-                    nodeRange.setEnd(lastTextNode, lastTextNode.length);
-                    var contains = this.containsRange(nodeRange);
-                    nodeRange.detach();
-                    return contains;
-                } else {
-                    return this.containsNodeContents(node);
-                }
             },
 
             splitBoundaries: function() {
@@ -974,7 +1035,7 @@ rangy.createModule("DomRange", function(api, module) {
                             mergeForward(endNode);
                         }
                     }
-                    normalizeStart = !this.collapsed;
+                    normalizeStart = !this[COLLAPSED];
                 }
 
                 if (normalizeStart) {
@@ -998,16 +1059,6 @@ rangy.createModule("DomRange", function(api, module) {
                 boundaryUpdater(this, sc, so, ec, eo);
             },
 
-            createNodeIterator: function(nodeTypes, filter) {
-                assertRangeValid(this);
-                return new RangeNodeIterator(this, nodeTypes, filter);
-            },
-
-            getNodes: function(nodeTypes, filter) {
-                assertRangeValid(this);
-                return getNodesInRange(this, nodeTypes, filter);
-            },
-
             collapseToPoint: function(node, offset) {
                 assertRangeValid(this);
 
@@ -1015,34 +1066,8 @@ rangy.createModule("DomRange", function(api, module) {
                 assertValidOffset(node, offset);
 
                 setRangeStartAndEnd(this, node, offset);
-            },
-
-            collapseBefore: function(node) {
-                assertNotDetached(this);
-
-                this.setEndBefore(node);
-                this.collapse(false);
-            },
-
-            collapseAfter: function(node) {
-                assertNotDetached(this);
-
-                this.setStartAfter(node);
-                this.collapse(true);
-            },
-
-            getName: function() {
-                return "DomRange";
-            },
-
-            equals: function(range) {
-                return Range.rangesEqual(this, range);
-            },
-
-            inspect: function() {
-                return inspect(this);
             }
-        };
+        });
 
         copyComparisonConstants(constructor);
     }
@@ -1051,8 +1076,8 @@ rangy.createModule("DomRange", function(api, module) {
 
     // Updates commonAncestorContainer and collapsed after boundary change
     function updateCollapsedAndCommonAncestor(range) {
-        range.collapsed = (range[START_CONTAINER] === range[END_CONTAINER] && range[START_OFFSET] === range[END_OFFSET]);
-        range.commonAncestorContainer = range.collapsed ?
+        range[COLLAPSED] = (range[START_CONTAINER] === range[END_CONTAINER] && range[START_OFFSET] === range[END_OFFSET]);
+        range[COMMON_ANCESTOR_CONTAINER] = range[COLLAPSED] ?
             range[START_CONTAINER] : dom.getCommonAncestor(range[START_CONTAINER], range[END_CONTAINER]);
     }
 
@@ -1072,7 +1097,7 @@ rangy.createModule("DomRange", function(api, module) {
     function detach(range) {
         assertNotDetached(range);
         range[START_CONTAINER] = range[START_OFFSET] = range[END_CONTAINER] = range[END_OFFSET] = null;
-        range.collapsed = range.commonAncestorContainer = null;
+        range[COLLAPSED] = range[COMMON_ANCESTOR_CONTAINER] = null;
         dispatchEvent(range, "detach", null);
         range._listeners = null;
     }
@@ -1100,6 +1125,7 @@ rangy.createModule("DomRange", function(api, module) {
         return range;
     };
 
+    Range.proto = RangePrototype.prototype
     Range.rangeProperties = rangeProperties;
     Range.RangeIterator = RangeIterator;
     Range.copyComparisonConstants = copyComparisonConstants;

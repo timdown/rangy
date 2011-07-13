@@ -7,7 +7,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-var rangy = (function() {
+window['rangy'] = (function() {
     var log = log4javascript.getLogger("rangy.core");
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
@@ -101,6 +101,18 @@ var rangy = (function() {
     }
 
     api.warn = warn;
+
+    if ({}.hasOwnProperty) {
+        api.util.extend = function(o, props) {
+            for (var i in props) {
+                if (props.hasOwnProperty(i)) {
+                    o[i] = props[i];
+                }
+            }
+        };
+    } else {
+        fail("hasOwnProperty not supported");
+    }
 
     var initListeners = [];
     var moduleInitializers = [];

@@ -179,7 +179,6 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
                 var openBracketIndex = node.data.indexOf("[");
                 if (openBracketIndex != -1) {
                     node.data = node.data.slice(0, openBracketIndex) + node.data.slice(openBracketIndex + 1);
-                    log.debug("openBraceIndex: " + openBracketIndex + ", data: " + node.data);
                     rangeInfo.setStart(node, openBracketIndex);
                     foundStart = true;
                 }
@@ -198,7 +197,6 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
                 var closeBracketIndex = node.data.indexOf("]");
                 if (closeBracketIndex != -1) {
                     node.data = node.data.slice(0, closeBracketIndex) + node.data.slice(closeBracketIndex + 1);
-                    log.debug("openBraceIndex: " + openBracketIndex + ", data: " + node.data);
                     rangeInfo.setEnd(node, closeBracketIndex);
                 }
 
@@ -285,7 +283,6 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
 
     function testRangeHtml(testEl, html, t) {
         var range = createRangeInHtml(testEl, html);
-        log.info("Range: " + range.inspect());
         var newHtml = htmlAndRangeToString(testEl, range);
         t.assertEquals(html, newHtml);
     }
