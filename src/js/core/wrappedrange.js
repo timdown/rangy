@@ -460,8 +460,6 @@ rangy.createModule("WrappedRange", function(api, module) {
             doc = doc || document;
             return doc.createRange();
         };
-
-
     } else if (api.features.implementsTextRange) {
         // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
         // prototype

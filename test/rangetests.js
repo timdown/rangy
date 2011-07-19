@@ -1236,3 +1236,13 @@ testAcid3(createWrappedNativeDomRange, "Wrapped native Range");
 if (hasNativeDomRange) {
     testAcid3(createNativeDomRange, "native Range");
 }
+
+xn.test.suite("Range prototype extension", function(s) {
+    s.test("Range prototype extension", function(t) {
+        rangy.rangePrototype.fooBar = "test";
+
+        t.assertEquals(rangy.createRange().fooBar, "test");
+        t.assertEquals(rangy.createRangyRange().fooBar, "test");
+
+    });
+}, false);

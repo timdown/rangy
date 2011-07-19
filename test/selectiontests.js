@@ -600,3 +600,11 @@ xn.addEventListener(window, "load", function() {
 
     iframeWin[0] = win;
 });
+
+xn.test.suite("Selection prototype extension", function(s) {
+    s.test("Selection prototype extension", function(t) {
+        rangy.selectionPrototype.fooBar = "test";
+
+        t.assertEquals(rangy.getSelection().fooBar, "test");
+    });
+}, false);

@@ -1119,13 +1119,8 @@ rangy.createModule("DomRange", function(api, module) {
 
     createPrototypeRange(Range, updateBoundaries, detach);
 
-    Range.fromRange = function(r) {
-        var range = new Range(getRangeDocument(r));
-        updateBoundaries(range, r[START_CONTAINER], r[START_OFFSET], r[END_CONTAINER], r[END_OFFSET]);
-        return range;
-    };
+    api.rangePrototype = RangePrototype.prototype;
 
-    Range.proto = RangePrototype.prototype
     Range.rangeProperties = rangeProperties;
     Range.RangeIterator = RangeIterator;
     Range.copyComparisonConstants = copyComparisonConstants;
