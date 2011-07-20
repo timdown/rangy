@@ -527,7 +527,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 for (var i = 0, len = textNodes.length; i < len; ++i) {
                     textNode = textNodes[i];
                     log.info("textnode " + textNode.data + " is ignorable: " + this.isIgnorableWhiteSpaceNode(textNode))
-                    if (!this.isIgnorableWhiteSpaceNode(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
+                    if (!this.isIgnorableWhiteSpaceNode(textNode) && !this.getSelfOrAncestorWithClass(textNode)
+                            && this.isEditable(textNode)) {
                         this.applyToTextNode(textNode);
                     }
                 }
@@ -566,7 +567,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 for (var i = 0, len = textNodes.length; i < len; ++i) {
                     textNode = textNodes[i];
                     ancestorWithClass = this.getSelfOrAncestorWithClass(textNode);
-                    if (ancestorWithClass) {
+                    if (ancestorWithClass && this.isEditable(textNode)) {
                         this.undoToTextNode(textNode, range, ancestorWithClass);
                     }
 
@@ -611,8 +612,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 return !!this.getSelfOrAncestorWithClass(range.commonAncestorContainer);
             } else {
                 var textNodes = range.getNodes( [3] );
-                for (var i = 0, len = textNodes.length; i < len; ++i) {
-                    if (!this.isIgnorableWhiteSpaceNode(textNodes[i]) && rangeSelectsAnyText(range, textNodes[i]) && !this.getSelfOrAncestorWithClass(textNodes[i])) {
+                for (var i = 0, textNode; textNode = textNodes[i++]; ) {
+                    if (!this.isIgnorableWhiteSpaceNode(textNode) && rangeSelectsAnyText(range, textNode)
+                            && this.isEditable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
                         return false;
                     }
                 }
