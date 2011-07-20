@@ -13,6 +13,11 @@
             font-weight: bold;
             color: red;
         }
+
+        a.pinkLink {
+            color: #f66;
+            font-size: 1.2em;
+        }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -26,7 +31,7 @@
             return document.getElementById(id);
         }
 
-        var italicYellowBgApplier, boldRedApplier;
+        var italicYellowBgApplier, boldRedApplier, pinkLinkApplier;
 
         function toggleItalicYellowBg() {
             italicYellowBgApplier.toggleSelection();
@@ -36,6 +41,10 @@
             boldRedApplier.toggleSelection();
         }
 
+        function togglePinkLink() {
+            pinkLinkApplier.toggleSelection();
+        }
+
         window.onload = function() {
             rangy.init();
 
@@ -43,7 +52,17 @@
             var cssClassApplierModule = rangy.modules.CssClassApplier;
             if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
                 boldRedApplier = rangy.createCssClassApplier("boldRed", true);
+
                 italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", true, ["span", "a", "b"]);
+
+                pinkLinkApplier = rangy.createCssClassApplier("pinkLink", {
+                    elementTagName: "a",
+                    elementProperties: {
+                        href: "http://code.google.com/p/rangy",
+                        title: "Rangy home page"
+                    }
+                });
+
 
                 var toggleBoldRedButton = gEBI("toggleBoldRedButton");
                 toggleBoldRedButton.disabled = false;
@@ -56,6 +75,13 @@
                 toggleItalicYellowBgButton.disabled = false;
                 toggleItalicYellowBgButton.onmousedown = function() {
                     toggleItalicYellowBg();
+                    return false;
+                };
+
+                var togglePinkLinkButton = gEBI("togglePinkLinkButton");
+                togglePinkLinkButton.disabled = false;
+                togglePinkLinkButton.onmousedown = function() {
+                    togglePinkLink();
                     return false;
                 };
             }
@@ -74,6 +100,9 @@
         <br>
         <input type="button" disabled id="toggleItalicYellowBgButton" value="Toggle italic and yellow bg"
                unselectable="on" class="unselectable">
+        <br>
+        <input type="button" disabled id="togglePinkLinkButton" value="Toggle pink link"
+               unselectable="on" class="unselectable">
     </div>
 
     <div id="content">
@@ -87,7 +116,7 @@
         </p>
 
         <p>
-            <b>Association football</b> is a sport played between two teams. It is usually called <b>football</b>, but in
+            <b>Association football</b> is a sport played between two teams. It is usually called <b class="pinkLink">football</b>, but in
             some countries, such as the United States, it is called <b>soccer</b>. In
             <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
             Republic of Ireland, both words are commonly used.

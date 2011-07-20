@@ -16,11 +16,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         DomPosition = dom.DomPosition,
         getSelection,
         selectionIsCollapsed,
-        CONTROL = "Control",
-        ANCHOR_NODE = "anchorNode",
-        ANCHOR_OFFSET = "anchorOffset",
-        FOCUS_NODE = "focusNode",
-        FOCUS_OFFSET = "focusOffset";
+        CONTROL = "Control";
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
 
@@ -63,8 +59,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var body = dom.getBody(document);
 
     // Obtaining a range from a selection
-    var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, [ANCHOR_NODE, FOCUS_NODE] &&
-                                     util.areHostProperties(testSelection, [ANCHOR_OFFSET, FOCUS_OFFSET]));
+    var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"] &&
+                                     util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]));
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test for existence of native selection extend() method
@@ -136,7 +132,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // Selection collapsedness
     if (selectionHasAnchorAndFocus) {
         selectionIsCollapsed = function(sel) {
-            return sel[ANCHOR_NODE] === sel[FOCUS_NODE] && sel[ANCHOR_OFFSET] === sel[FOCUS_OFFSET];
+            return sel.anchorNode === sel.focusNode && sel.anchorOffset === sel.focusOffset;
         };
     } else {
         selectionIsCollapsed = function(sel) {
@@ -146,23 +142,23 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function updateAnchorAndFocusFromRange(sel, range, backwards) {
         var anchorPrefix = backwards ? "end" : "start", focusPrefix = backwards ? "start" : "end";
-        sel[ANCHOR_NODE] = range[anchorPrefix + "Container"];
-        sel[ANCHOR_OFFSET] = range[anchorPrefix + "Offset"];
-        sel[FOCUS_NODE] = range[focusPrefix + "Container"];
-        sel[FOCUS_OFFSET] = range[focusPrefix + "Offset"];
+        sel.anchorNode = range[anchorPrefix + "Container"];
+        sel.anchorOffset = range[anchorPrefix + "Offset"];
+        sel.focusNode = range[focusPrefix + "Container"];
+        sel.focusOffset = range[focusPrefix + "Offset"];
     }
 
     function updateAnchorAndFocusFromNativeSelection(sel) {
         var nativeSel = sel.nativeSelection;
-        sel[ANCHOR_NODE] = nativeSel[ANCHOR_NODE];
-        sel[ANCHOR_OFFSET] = nativeSel[ANCHOR_OFFSET];
-        sel[FOCUS_NODE] = nativeSel[FOCUS_NODE];
-        sel[FOCUS_OFFSET] = nativeSel[FOCUS_OFFSET];
+        sel.anchorNode = nativeSel.anchorNode;
+        sel.anchorOffset = nativeSel.anchorOffset;
+        sel.focusNode = nativeSel.focusNode;
+        sel.focusOffset = nativeSel.focusOffset;
     }
 
     function updateEmptySelection(sel) {
-        sel[ANCHOR_NODE] = sel[FOCUS_NODE] = null;
-        sel[ANCHOR_OFFSET] = sel[FOCUS_OFFSET] = 0;
+        sel.anchorNode = sel.focusNode = null;
+        sel.anchorOffset = sel.focusOffset = 0;
         sel.rangeCount = 0;
         sel.isCollapsed = true;
         sel._ranges.length = 0;
@@ -284,16 +280,16 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else if (selectionHasAnchorAndFocus) {
         getSelectionRangeAt = function(sel) {
-            var doc = dom.getDocument(sel[ANCHOR_NODE]);
+            var doc = dom.getDocument(sel.anchorNode);
             var range = api.createRange(doc);
-            range.setStart(sel[ANCHOR_NODE], sel[ANCHOR_OFFSET]);
-            range.setEnd(sel[FOCUS_NODE], sel[FOCUS_OFFSET]);
+            range.setStart(sel.anchorNode, sel.anchorOffset);
+            range.setEnd(sel.focusNode, sel.focusOffset);
 
             // Handle the case when the selection was selected backwards (from the end to the start in the
             // document)
             if (range.collapsed !== this.isCollapsed) {
-                range.setStart(sel[FOCUS_NODE], sel[FOCUS_OFFSET]);
-                range.setEnd(sel[ANCHOR_NODE], sel[ANCHOR_OFFSET]);
+                range.setStart(sel.focusNode, sel.focusOffset);
+                range.setEnd(sel.anchorNode, sel.anchorOffset);
             }
 
             return range;
@@ -442,8 +438,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     // Work around failure to empty a control selection by instead selecting a TextRange and then
                     // calling empty()
                     var doc;
-                    if (this[ANCHOR_NODE]) {
-                        doc = dom.getDocument(this[ANCHOR_NODE]);
+                    if (this.anchorNode) {
+                        doc = dom.getDocument(this.anchorNode);
                     } else if (this.docSelection.type == CONTROL) {
                         var controlRange = this.docSelection.createRange();
                         if (controlRange.length) {
@@ -535,7 +531,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
         refreshSelection = function(sel) {
             var range, nativeSel = sel.nativeSelection;
-            if (nativeSel[ANCHOR_NODE]) {
+            if (nativeSel.anchorNode) {
                 range = getSelectionRangeAt(nativeSel, 0);
                 sel._ranges = [range];
                 sel.rangeCount = 1;
@@ -624,8 +620,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     if (!useDocumentSelection && selectionHasAnchorAndFocus && api.features.implementsDomRange) {
         selectionIsBackwards = function(sel) {
             var backwards = false;
-            if (sel[ANCHOR_NODE]) {
-                backwards = (dom.comparePoints(sel[ANCHOR_NODE], sel[ANCHOR_OFFSET], sel[FOCUS_NODE], sel[FOCUS_OFFSET]) == 1);
+            if (sel.anchorNode) {
+                backwards = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
             }
             return backwards;
         };
@@ -651,7 +647,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     function assertNodeInSameDocument(sel, node) {
-        if (sel[ANCHOR_NODE] && (dom.getDocument(sel[ANCHOR_NODE]) !== dom.getDocument(node))) {
+        if (sel.anchorNode && (dom.getDocument(sel.anchorNode) !== dom.getDocument(node))) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
     }
@@ -749,8 +745,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function inspect(sel) {
         var rangeInspects = [];
-        var anchor = new DomPosition(sel[ANCHOR_NODE], sel[ANCHOR_OFFSET]);
-        var focus = new DomPosition(sel[FOCUS_NODE], sel[FOCUS_OFFSET]);
+        var anchor = new DomPosition(sel.anchorNode, sel.anchorOffset);
+        var focus = new DomPosition(sel.focusNode, sel.focusOffset);
         var name = (typeof sel.getName == "function") ? sel.getName() : "Selection";
 
         if (typeof sel.rangeCount != "undefined") {
@@ -773,7 +769,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.detach = function() {
         this.win[windowPropertyName] = null;
-        this.win = this[ANCHOR_NODE] = this[FOCUS_NODE] = null;
+        this.win = this.anchorNode = this.focusNode = null;
     };
 
     WrappedSelection.inspect = inspect;
