@@ -60,6 +60,10 @@ window['rangy'] = (function() {
     var areHostObjects = createMultiplePropertyTest(isHostObject);
     var areHostProperties = createMultiplePropertyTest(isHostProperty);
 
+    function isTextRange(range) {
+        return range && areHostMethods(range, textRangeMethods) && areHostProperties(range, textRangeProperties);
+    }
+
     var api = {
         version: "%%build:version%%",
         initialized: false,
@@ -71,7 +75,8 @@ window['rangy'] = (function() {
             isHostProperty: isHostProperty,
             areHostMethods: areHostMethods,
             areHostObjects: areHostObjects,
-            areHostProperties: areHostProperties
+            areHostProperties: areHostProperties,
+            isTextRange: isTextRange
         },
 
         features: {},
@@ -139,7 +144,7 @@ window['rangy'] = (function() {
 
         if (body && isHostMethod(body, "createTextRange")) {
             testRange = body.createTextRange();
-            if (areHostMethods(testRange, textRangeMethods) && areHostProperties(testRange, textRangeProperties)) {
+            if (isTextRange(testRange)) {
                 implementsTextRange = true;
             }
         }
