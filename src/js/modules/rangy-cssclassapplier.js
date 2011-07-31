@@ -148,6 +148,28 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 (node.nodeType == 1 && inlineDisplayRegex.test(getComputedStyleProperty(node, "display")));
     }
 
+    function isCollapsedWhiteSpaceNode(node) {
+        if (node.data.length == 0) {
+            return true;
+        }
+        if (/[^\r\n\t ]/.test(node.data)) {
+            return false;
+        }
+        var cssWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
+        switch (cssWhiteSpace) {
+            case "normal":
+                return true;
+            case "pre":
+            case "pre-wrap":
+            case "-moz-pre-wrap":
+                return false;
+            case "pre-line":
+                return !/[\r\n]/.test(node.data);
+            default:
+                return true;
+        }
+    }
+
     function isSplitPoint(node, offset) {
         if (dom.isCharacterDataNode(node)) {
             if (offset == 0) {
@@ -396,8 +418,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         // White space adjacent to an unwrappable node can be ignored for wrapping
         isIgnorableWhiteSpaceNode: function(node) {
-            log.info("isIgnorableWhiteSpaceNode on " + node.nodeValue + ", this.ignoreWhiteSpace " + this.ignoreWhiteSpace, !/[^\r\n\t ]/.test(node.data), this.isUnwrappable(node.previousSibling), this.isUnwrappable(node.nextSibling));
-            return (this.ignoreWhiteSpace && node && node.nodeType == 3 && !/[^\r\n\t ]/.test(node.data)
+            return (this.ignoreWhiteSpace && node && node.nodeType == 3 && isCollapsedWhiteSpaceNode(node)
                     && (this.isUnwrappable(node.previousSibling) || this.isUnwrappable(node.nextSibling)));
         },
 

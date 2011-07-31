@@ -1,0 +1,64 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title>Search text</title>
+    <style type="text/css">
+        .searchResult {
+            position: absolute;
+            background-color: yellow;
+            font-weight: bold;
+        }
+
+        .columns {
+            width: 400px;
+            -webkit-column-count: 3;
+            -webkit-column-gap: 10px;
+            -moz-column-count: 3;
+            -moz-column-gap: 10px;
+            column-count: 3;
+            column-gap: 10px;
+        }
+    </style>
+    <script type="text/javascript">
+        function createSearchResultSpan(x, y) {
+            var span = document.createElement("span");
+
+            span.className = "searchResult";
+            span.innerHTML = "&lt;-";
+            span.style.left = x + "px";
+            span.style.top = y + "px";
+            document.body.appendChild(span);
+        }
+
+        function doSearch(text) {
+            if (window.find && window.getSelection) {
+                var sel = window.getSelection();
+                sel.collapse(document.getElementById("content"), 0);
+
+                while (window.find(text)) {
+                    var range = sel.getRangeAt(0);
+                    var rect = range.getBoundingClientRect();
+                    createSearchResultSpan(rect.left, rect.top);
+                    sel.collapseToEnd();
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+<input type="text" id="searchText" value="football">
+<input type="button" onclick="doSearch(document.getElementById('searchText').value)" value="Search">
+<div class="columns" id="content">
+    Here is some formatted text about du<b>cks</b> with some for<i>mat<b>ti</b>n</i>g
+    Here is some formatted text about du<b>cks</b> with some for<i>mat<b>ti</b>n</i>g
+    Here is some formatted text about du<b>cks</b> with some for<i>mat<b>ti</b>n</i>g
+    Here is some formatted text about du<b>cks</b> with some for<i>mat<b>ti</b>n</i>g
+    football
+</div>
+
+<p>Here is some formatted text about du<b>cks</b> with some for<i>mat<b>ti</b>n</i>g</p>
+
+
+</body>
+</html>
