@@ -1036,7 +1036,7 @@ rangy.createModule("DomRange", function(api, module) {
                         }
                     } else {
                         if (so < sc.childNodes.length) {
-                            var startNode = sc.childNodes.startOffset;
+                            var startNode = sc.childNodes[so];
                             if (startNode && dom.isCharacterDataNode(startNode)) {
                                 mergeBackward(startNode);
                             }
