@@ -427,6 +427,42 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('x<p><span class="c1">[1</span></p><span class="c1"> </span><p><span class="c1">2]</span></p>x', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test whitespace 4 (pre whitespace between paras)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {ignoreWhiteSpace: true});
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<div style="white-space: pre"><p>1</p> <p>2</p></div>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<div><p><span class="c1">[1</span></p><span class="c1"> </span><p><span class="c1">2]</span></p></div>x', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test whitespace 5 (normal whitespace between paras)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {ignoreWhiteSpace: true});
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<div style="white-space: normal"><p>1</p> <p>2</p></div>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<div><p><span class="c1">[1</span></p> <p><span class="c1">2]</span></p></div>x', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test whitespace 6 (pre-line whitespace with no line break between paras)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {ignoreWhiteSpace: true});
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<div style="white-space: pre-line"><p>1</p> <p>2</p></div>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<div><p><span class="c1">[1</span></p> <p><span class="c1">2]</span></p></div>x', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test whitespace 7 (pre-line whitespace with line break between paras)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {ignoreWhiteSpace: true});
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[<div style="white-space: pre-line"><p>1</p>\n<p>2</p></div>]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<div><p><span class="c1">[1</span></p><span class="c1">\n</span><p><span class="c1">2]</span></p></div>x', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Test link", function(t) {
         var applier = rangy.createCssClassApplier("c1", {
             elementTagName: "a",
@@ -440,4 +476,23 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         applier.applyToRange(range);
         t.assertEquals('t<a class="c1" href="http://www.google.com/">[es]</a>t', htmlAndRangeToString(testEl, range));
     });
+
+    s.test("Test range after two toggles", function(t) {
+        var applier1 = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'o[n]e');
+
+        applier1.toggleRange(range);
+        t.assertEquals('o<span class="c1">[n]</span>e', htmlAndRangeToString(testEl, range));
+
+        var t1 = testEl.firstChild, t2 = testEl.lastChild;
+        range.setStart(t1, 1);
+        range.setEnd(t2, 0);
+        t.assertEquals('o[<span class="c1">n</span>]e', htmlAndRangeToString(testEl, range));
+
+        applier1.toggleRange(range);
+        t.assertEquals('o[n]e', htmlAndRangeToString(testEl, range));
+    });
+
 }, false);

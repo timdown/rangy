@@ -83,6 +83,12 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return text != "";
     }
 
+    function getEffectiveTextNodes(range) {
+        return range.getNodes([3], function(textNode) {
+            return rangeSelectsAnyText(range, textNode);
+        });
+    }
+
     function elementsHaveSameNonClassAttributes(el1, el2) {
         if (el1.attributes.length != el2.attributes.length) return false;
         for (var i = 0, len = el1.attributes.length, attr1, attr2, name; i < len; ++i) {
@@ -538,9 +544,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         applyToRange: function(range) {
             range.splitBoundaries();
-            var textNodes = range.getNodes([3], function(textNode) {
-                return rangeSelectsAnyText(range, textNode);
-            });
+            var textNodes = getEffectiveTextNodes(range);
 
             if (textNodes.length) {
                 var textNode;
@@ -581,7 +585,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
         undoToRange: function(range) {
             log.info("undoToRange " + range.inspect());
             range.splitBoundaries();
-            var textNodes = range.getNodes( [3] ), textNode, ancestorWithClass;
+            var textNodes = getEffectiveTextNodes(range);
+            var textNode, ancestorWithClass;
             var lastTextNode = textNodes[textNodes.length - 1];
 
             if (textNodes.length) {

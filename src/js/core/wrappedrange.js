@@ -337,7 +337,6 @@ rangy.createModule("WrappedRange", function(api, module) {
                 canSetRangeStartAfterEnd = true;
 
                 rangeProto.setStart = function(node, offset) {
-                    log.info("SETTING START ON NATIVE")
                     this.nativeRange.setStart(node, offset);
                     updateRangeProperties(this);
                 };
