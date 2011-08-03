@@ -362,14 +362,7 @@ rangy.createModule("DomRange", function(api, module) {
         };
     }
 
-    function getRootContainer(node) {
-        var parent;
-        while ( (parent = node.parentNode) ) {
-            node = parent;
-        }
-        return node;
-    }
-
+    var getRootContainer = dom.getRootContainer;
     var getDocumentOrFragmentContainer = createAncestorFinder( [9, 11] );
     var getReadonlyAncestor = createAncestorFinder(readonlyNodeTypes);
     var getDocTypeNotationEntityAncestor = createAncestorFinder( [6, 10, 12] );

@@ -3,6 +3,42 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         document.getElementById("test").innerHTML = "";
     };
 
+    s.test("Editable tests", function(t) {
+        var testDiv = document.getElementById("test");
+        document.getElementById("test").innerHTML = '<div>One<div contenteditable="true">Two<span contenteditable="false">three</span></div></div>';
+        var util = rangy.CssClassApplier.util;
+
+        var container = testDiv.firstChild;
+        t.assertFalse(util.isEditingHost(container));
+        t.assertFalse(util.isEditableElement(container));
+        t.assertFalse(util.isEditable(container));
+
+        var nonEditableOuterText = container.firstChild;
+        t.assertFalse(util.isEditingHost(nonEditableOuterText));
+        t.assertFalse(util.isEditableElement(nonEditableOuterText));
+        t.assertFalse(util.isEditable(nonEditableOuterText));
+
+        var editableDiv = nonEditableOuterText.nextSibling;
+        t.assertTrue(util.isEditingHost(editableDiv));
+        t.assertTrue(util.isEditableElement(editableDiv));
+        t.assertFalse(util.isEditable(editableDiv));
+
+        var editableText = editableDiv.firstChild;
+        t.assertFalse(util.isEditingHost(editableText));
+        t.assertFalse(util.isEditableElement(editableText));
+        t.assertTrue(util.isEditable(editableText));
+
+        var nonEditableSpan = editableText.nextSibling;
+        t.assertFalse(util.isEditingHost(nonEditableSpan));
+        t.assertFalse(util.isEditableElement(nonEditableSpan));
+        t.assertFalse(util.isEditable(nonEditableSpan));
+
+        var nonEditableText = nonEditableSpan.firstChild;
+        t.assertFalse(util.isEditingHost(nonEditableText));
+        t.assertFalse(util.isEditableElement(nonEditableText));
+        t.assertFalse(util.isEditable(nonEditableText));
+    });
+
     s.test("isAppliedToRange tests", function(t) {
         var applier = rangy.createCssClassApplier("test");
 

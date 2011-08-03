@@ -136,14 +136,33 @@ rangy.createModule("CssClassApplier", function(api, module) {
         module.fail("No means of obtaining computed style properties found");
     }
 
-    function isEditableElement(node) {
-        return node && node.nodeType == 1 && node.isContentEditable;
-    }
+    var isEditableElement;
+
+    (function() {
+        var testEl = document.createElement("div");
+        if (typeof testEl.isContentEditable == "boolean") {
+            isEditableElement = function(node) {
+                return node && node.nodeType == 1 && node.isContentEditable;
+            };
+        } else {
+            isEditableElement = function(node) {
+                if (!node || node.nodeType != 1 || node.contentEditable == "false") {
+                    return false;
+                }
+                return node.contentEditable == "true" || isEditableElement(node.parentNode);
+            };
+        }
+    })();
 
     function isEditingHost(node) {
-        return node
-            && ((node.nodeType == 9 && node.designMode == "on")
+        var parent;
+        return node && node.nodeType == 1
+            && (( (parent = node.parentNode) && parent.nodeType == 9 && parent.designMode == "on")
             || (isEditableElement(node) && !isEditableElement(node.parentNode)));
+    }
+
+    function isEditable(node) {
+        return (isEditableElement(node) || (node.nodeType != 1 && isEditableElement(node.parentNode))) && !isEditingHost(node);
     }
 
     var unwrappableTagNamesRegex = /^(h[1-6]|p|hr|pre|blockquote|ol|ul|li|dl|dt|dd|div|table|caption|colgroup|col|tbody|thead|tfoot|tr|th|td|address)$/i;
@@ -405,9 +424,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
             return null;
         },
 
-        isEditable: function(node) {
-            return !this.applyToEditableOnly
-                || ( (isEditableElement(node) || isEditableElement(node.parentNode)) && !isEditingHost(node) );
+        isModifiable: function(node) {
+            return !this.applyToEditableOnly || isEditable(node);
         },
 
         isUnwrappable: function(node) {
@@ -415,7 +433,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 return false;
             }
 
-            if (!isInlineNode(node) || !this.isEditable(node)) {
+            if (!isInlineNode(node) || !this.isModifiable(node)) {
                 return true;
             }
 
@@ -515,7 +533,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     && getSortedClassName(el) == this.elementSortedClassName
                     && elementHasProps(el, this.elementProperties)
                     && !elementHasNonClassAttributes(el, this.attrExceptions)
-                    && this.isEditable(el);
+                    && this.isModifiable(el);
         },
 
         undoToTextNode: function(textNode, range, ancestorWithClass) {
@@ -553,7 +571,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     textNode = textNodes[i];
                     log.info("textnode " + textNode.data + " is ignorable: " + this.isIgnorableWhiteSpaceNode(textNode))
                     if (!this.isIgnorableWhiteSpaceNode(textNode) && !this.getSelfOrAncestorWithClass(textNode)
-                            && this.isEditable(textNode)) {
+                            && this.isModifiable(textNode)) {
                         this.applyToTextNode(textNode);
                     }
                 }
@@ -593,7 +611,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 for (var i = 0, len = textNodes.length; i < len; ++i) {
                     textNode = textNodes[i];
                     ancestorWithClass = this.getSelfOrAncestorWithClass(textNode);
-                    if (ancestorWithClass && this.isEditable(textNode)) {
+                    if (ancestorWithClass && this.isModifiable(textNode)) {
                         this.undoToTextNode(textNode, range, ancestorWithClass);
                     }
 
@@ -640,7 +658,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 var textNodes = range.getNodes( [3] );
                 for (var i = 0, textNode; textNode = textNodes[i++]; ) {
                     if (!this.isIgnorableWhiteSpaceNode(textNode) && rangeSelectsAnyText(range, textNode)
-                            && this.isEditable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
+                            && this.isModifiable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
                         return false;
                     }
                 }
@@ -693,7 +711,10 @@ rangy.createModule("CssClassApplier", function(api, module) {
         replaceWithOwnChildren: replaceWithOwnChildren,
         elementsHaveSameNonClassAttributes: elementsHaveSameNonClassAttributes,
         elementHasNonClassAttributes: elementHasNonClassAttributes,
-        splitNodeAt: splitNodeAt
+        splitNodeAt: splitNodeAt,
+        isEditableElement: isEditableElement,
+        isEditingHost: isEditingHost,
+        isEditable: isEditable
     };
 
     api.CssClassApplier = CssClassApplier;

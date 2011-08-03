@@ -744,7 +744,7 @@ function isEditingHost(node) {
 		&& (node.contentEditable == "true"
 		|| (node.parentNode
 		&& node.parentNode.nodeType == Node.DOCUMENT_NODE
-		&& node.parentNodedesignMode == "on"));
+		&& node.parentNode.designMode == "on"));
 }
 
 // "Something is editable if it is a node which is not an editing host, does
@@ -1052,7 +1052,7 @@ function movePreservingRanges(node, newParent, newIndex) {
 	}
 
 	// "If a boundary point's node is old parent and its offset is old index or
-	// old index + 1, set its node to new parent and add new index ‰öÕ old index
+	// old index + 1, set its node to new parent and add new index ï¿½ï¿½ï¿½ old index
 	// to its offset."
 	if (globalRange.startContainer == oldParent
 	&& (globalRange.startOffset == oldIndex
@@ -4368,7 +4368,7 @@ function deleteContents() {
 	if (startNode == endNode
 	&& isEditable(startNode)
 	&& startNode.nodeType == Node.TEXT_NODE) {
-		// "Call deleteData(start offset, end offset ‰öÕ start offset) on start
+		// "Call deleteData(start offset, end offset ï¿½ï¿½ï¿½ start offset) on start
 		// node."
 		startNode.deleteData(startOffset, endOffset - startOffset);
 
@@ -4386,7 +4386,7 @@ function deleteContents() {
 	}
 
 	// "If start node is an editable Text node, call deleteData() on it, with
-	// start offset as the first argument and (length of start node ‰öÕ start
+	// start offset as the first argument and (length of start node ï¿½ï¿½ï¿½ start
 	// offset) as the second argument."
 	if (isEditable(startNode)
 	&& startNode.nodeType == Node.TEXT_NODE) {
@@ -4925,7 +4925,7 @@ function canonicalizeWhitespace(node, offset) {
 
 		// "Otherwise, if start node is a Text node and its parent's resolved
 		// value for "white-space" is neither "pre" nor "pre-wrap" and start
-		// offset is not zero and the (start offset ‰öÕ 1)st element of start
+		// offset is not zero and the (start offset ï¿½ï¿½ï¿½ 1)st element of start
 		// node's data is a space (0x0020) or non-breaking space (0x00A0),
 		// subtract one from start offset."
 		} else if (startNode.nodeType == Node.TEXT_NODE
@@ -5683,7 +5683,7 @@ commands["delete"] = {
 			&& isInvisible(node.previousSibling)) {
 				node.parentNode.removeChild(node.previousSibling);
 
-			// "Otherwise, if node has a child with index offset ‰öÕ 1 and that
+			// "Otherwise, if node has a child with index offset ï¿½ï¿½ï¿½ 1 and that
 			// child is an editable invisible node, remove that child from
 			// node, then subtract one from offset."
 			} else if (0 <= offset - 1
@@ -5702,7 +5702,7 @@ commands["delete"] = {
 				offset = getNodeIndex(node);
 				node = node.parentNode;
 
-			// "Otherwise, if node has a child with index offset ‰öÕ 1 and that
+			// "Otherwise, if node has a child with index offset ï¿½ï¿½ï¿½ 1 and that
 			// child is an editable a, remove that child from node, preserving
 			// its descendants. Then abort these steps."
 			} else if (0 <= offset - 1
@@ -5712,7 +5712,7 @@ commands["delete"] = {
 				removePreservingDescendants(node.childNodes[offset - 1]);
 				return;
 
-			// "Otherwise, if node has a child with index offset ‰öÕ 1 and that
+			// "Otherwise, if node has a child with index offset ï¿½ï¿½ï¿½ 1 and that
 			// child is not a block node or a br or an img, set node to that
 			// child, then set offset to the length of node."
 			} else if (0 <= offset - 1
@@ -5730,7 +5730,7 @@ commands["delete"] = {
 
 		// "If node is a Text node and offset is not zero, call collapse(node,
 		// offset) on the Selection. Then delete the contents of the range with
-		// start (node, offset ‰öÕ 1) and end (node, offset) and abort these
+		// start (node, offset ï¿½ï¿½ï¿½ 1) and end (node, offset) and abort these
 		// steps."
 		if (node.nodeType == Node.TEXT_NODE
 		&& offset != 0) {
@@ -5745,9 +5745,9 @@ commands["delete"] = {
 			return;
 		}
 
-		// "If node has a child with index offset ‰öÕ 1 and that child is a br or
+		// "If node has a child with index offset ï¿½ï¿½ï¿½ 1 and that child is a br or
 		// hr or img, call collapse(node, offset) on the Selection. Then delete
-		// the contents of the range with start (node, offset ‰öÕ 1) and end
+		// the contents of the range with start (node, offset ï¿½ï¿½ï¿½ 1) and end
 		// (node, offset) and abort these steps."
 		if (0 <= offset - 1
 		&& offset - 1 < node.childNodes.length
@@ -5875,12 +5875,12 @@ commands["delete"] = {
 			return;
 		}
 
-		// "If start node has a child with index start offset ‰öÕ 1, and that
+		// "If start node has a child with index start offset ï¿½ï¿½ï¿½ 1, and that
 		// child is a table:"
 		if (0 <= startOffset - 1
 		&& startOffset - 1 < startNode.childNodes.length
 		&& isHtmlElement(startNode.childNodes[startOffset - 1], "table")) {
-			// "Call collapse(start node, start offset ‰öÕ 1) on the context
+			// "Call collapse(start node, start offset ï¿½ï¿½ï¿½ 1) on the context
 			// object's Selection."
 			getActiveRange().setStart(startNode, startOffset - 1);
 
@@ -5910,7 +5910,7 @@ commands["delete"] = {
 			getActiveRange().setEnd(node, offset);
 
 			// "Delete the contents of the range with start (start node, start
-			// offset ‰öÕ 1) and end (start node, start offset)."
+			// offset ï¿½ï¿½ï¿½ 1) and end (start node, start offset)."
 			deleteContents(startNode, startOffset - 1, startNode, startOffset);
 
 			// "Abort these steps."
@@ -5945,7 +5945,7 @@ commands["delete"] = {
 
 		// "If the child of start node with index start offset is an li or dt
 		// or dd, and its previousSibling is also an li or dt or dd, set start
-		// node to its child with index start offset ‰öÕ 1, then set start offset
+		// node to its child with index start offset ï¿½ï¿½ï¿½ 1, then set start offset
 		// to start node's length, then set node to start node's nextSibling,
 		// then set offset to 0."
 		if (isHtmlElement(startNode.childNodes[startOffset], ["li", "dt", "dd"])
@@ -7117,7 +7117,7 @@ commands.inserttext = {
 		var node = getActiveRange().startContainer;
 		var offset = getActiveRange().startOffset;
 
-		// "If node has a child whose index is offset ‰öÕ 1, and that child is a
+		// "If node has a child whose index is offset ï¿½ï¿½ï¿½ 1, and that child is a
 		// Text node, set node to that child, then set offset to node's
 		// length."
 		if (0 <= offset - 1
