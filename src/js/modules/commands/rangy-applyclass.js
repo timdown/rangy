@@ -71,6 +71,24 @@ rangy.createModule("ApplyClassCommand", function(api, module) {
             return new RegExp("^(" + validTagNames.join("|") + ")$", "i").test(el.tagName);
         },
 
+        isModifiableElement: function(el, context) {
+            if (!this.isValidElementForClass(el, context.options.validTagNames)) {
+                return false;
+            }
+
+            // Extract attributes once and quit if more than one is found or the attribute is not "class"
+            var hasAnyAttrs = false;
+            for (var i = 0, len = el.attributes.length; i < len; ++i) {
+                if (el.attributes[i].specified) {
+                    // If it's got more than one attribute, everything after this fails.
+                    if (hasAnyAttrs || el.attributes[i].name != "class") {
+                        return false;
+                    }
+                    hasAnyAttrs = true;
+                }
+            }
+        },
+
         isSimpleModifiableElement: function(el, context) {
             if (!this.isValidElementForClass(el, context.options.validTagNames)) {
                 return false;

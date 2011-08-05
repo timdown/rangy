@@ -165,34 +165,37 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return (isEditableElement(node) || (node.nodeType != 1 && isEditableElement(node.parentNode))) && !isEditingHost(node);
     }
 
-    var unwrappableTagNamesRegex = /^(h[1-6]|p|hr|pre|blockquote|ol|ul|li|dl|dt|dd|div|table|caption|colgroup|col|tbody|thead|tfoot|tr|th|td|address)$/i;
     var inlineDisplayRegex = /^inline(-block|-table)?$/i;
 
-    function isInlineNode(node) {
-        return dom.isCharacterDataNode(node) ||
-                (node.nodeType == 1 && inlineDisplayRegex.test(getComputedStyleProperty(node, "display")));
+    function isNonInlineElement(node) {
+        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"));
     }
 
-    function isCollapsedWhiteSpaceNode(node) {
+    // White space characters as defined by HTML 4 (http://www.w3.org/TR/html401/struct/text.html)
+    var htmlNonWhiteSpaceRegex = /[^\r\n\t\f \u200B]/;
+
+    function isUnrenderedWhiteSpaceNode(node) {
         if (node.data.length == 0) {
             return true;
         }
-        if (/[^\r\n\t ]/.test(node.data)) {
+        if (htmlNonWhiteSpaceRegex.test(node.data)) {
             return false;
         }
         var cssWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
         switch (cssWhiteSpace) {
-            case "normal":
-                return true;
             case "pre":
             case "pre-wrap":
             case "-moz-pre-wrap":
                 return false;
             case "pre-line":
-                return !/[\r\n]/.test(node.data);
-            default:
-                return true;
+                if (/[\r\n]/.test(node.data)) {
+                    return false;
+                }
         }
+
+        // We now have a whitespace-only text node that may be rendered depending on its context. If it is adjacent to a
+        // non-inline element, it will not be rendered. This seems to be a good enough definition.
+        return isNonInlineElement(node.previousSibling) || isNonInlineElement(node.nextSibling);
     }
 
     function isSplitPoint(node, offset) {
@@ -428,22 +431,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
             return !this.applyToEditableOnly || isEditable(node);
         },
 
-        isUnwrappable: function(node) {
-            if (!node || node.nodeType != 1) {
-                return false;
-            }
-
-            if (!isInlineNode(node) || !this.isModifiable(node)) {
-                return true;
-            }
-
-            return unwrappableTagNamesRegex.test(node.tagName);
-        },
-
         // White space adjacent to an unwrappable node can be ignored for wrapping
         isIgnorableWhiteSpaceNode: function(node) {
-            return (this.ignoreWhiteSpace && node && node.nodeType == 3 && isCollapsedWhiteSpaceNode(node)
-                    && (this.isUnwrappable(node.previousSibling) || this.isUnwrappable(node.nextSibling)));
+            return this.ignoreWhiteSpace && node && node.nodeType == 3 && isUnrenderedWhiteSpaceNode(node);
         },
 
         // Normalizes nodes after applying a CSS class to a Range.

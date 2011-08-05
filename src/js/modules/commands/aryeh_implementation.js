@@ -1572,8 +1572,8 @@ function isEffectivelyContained(node, range) {
 	|| range.collapsed)
 	&& (!isDescendant(range.endContainer, node)
 	|| range.endContainer.nodeType != Node.TEXT_NODE
-	|| range.endOffset == getNodeLength(range.endContainer
-	|| range.collapsed))) {
+	|| range.endOffset == getNodeLength(range.endContainer)
+	|| range.collapsed)) {
 		return true;
 	}
 

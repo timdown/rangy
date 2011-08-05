@@ -61,6 +61,18 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
+    function outerHtml(node) {
+        if (node === null) {
+            return "null";
+        } else if (node.nodeType == 3) {
+            return node.data;
+        } else {
+            var div = dom.getDocument(node).createElement("div");
+            div.appendChild(node.cloneNode(true));
+            return div.innerHTML;
+        }
+    }
+
     var nodeListToArray;
 
     // Feature detect the browser's ability or otherwise to convert a NodeList into an array using slice
@@ -156,22 +168,41 @@ rangy.createModule("Commands", function(api, module) {
             && dom.comparePoints(node, dom.getNodeLength(node), range.endContainer, range.endOffset) == -1;
     }
 
-    // "A Node is effectively contained in a Range if either it is contained in the
-    // Range; or it is the Range's start node, it is a Text node, and its length is
-    // different from the Range's start offset; or it is the Range's end node, it
-    // is a Text node, and the Range's end offset is not 0; or it has at least one
-    // child, and all its children are effectively contained in the Range."
+
+    // "A node node is effectively contained in a range range if at least one of
+    // the following holds:"
     function isEffectivelyContained(node, range) {
+        if (range.collapsed) {
+            return false;
+        }
+
+        // "node is contained in range."
         if (isContained(node, range)) {
             return true;
         }
+
+        var sc = range.startContainer, so = range.startOffset;
+        var ec = range.endContainer, eo = range.endOffset;
+
+        // "node is range's start node, it is a Text node, its length is different
+        // from range's start offset, and range is not collapsed."
         var isCharData = dom.isCharacterDataNode(node);
-        if (node == range.startContainer && isCharData && dom.getNodeLength(node) != range.startOffset) {
+        if (node == sc && isCharData && dom.getNodeLength(node) != so) {
             return true;
         }
-        if (node == range.endContainer && isCharData && range.endOffset != 0) {
+
+        // "node is range's end node, it is a Text node, range's end offset is not
+        // 0, and range is not collapsed."
+        if (node == ec && isCharData && eo != 0) {
             return true;
         }
+
+        // "node has at least one child; and all its children are effectively
+        // contained in range; and either range's start node is not a descendant of
+        // node or is not a Text node or range's start offset is zero or range is
+        // collapsed; and either range's end node is not a descendant of node or is
+        // not a Text node or range's end offset is its end node's length or range
+        // is collapsed."
         var children = node.childNodes, childCount = children.length;
         if (childCount != 0) {
             for (var i = 0; i < childCount; ++i) {
@@ -179,7 +210,10 @@ rangy.createModule("Commands", function(api, module) {
                     return false;
                 }
             }
-            return true;
+            if ((!dom.isAncestorOf(node, sc) || sc.nodeType != 3 || so == 0)
+                    && (!dom.isAncestorOf(node, ec) || ec.nodeType != 3 || eo == dom.getNodeLength(ec))) {
+                return true;
+            }
         }
         return false;
     }
@@ -209,26 +243,35 @@ rangy.createModule("Commands", function(api, module) {
         return isInlineNode(node) && node.nodeName.toLowerCase() != "br";
     }
 
-    function isCollapsedWhiteSpaceNode(node) {
+    function isNonInlineElement(node) {
+        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"));
+    }
+
+    // White space characters as defined by HTML 4 (http://www.w3.org/TR/html401/struct/text.html)
+    var htmlNonWhiteSpaceRegex = /[^\r\n\t\f \u200B]/;
+
+    function isUnrenderedWhiteSpaceNode(node) {
         if (node.data.length == 0) {
             return true;
         }
-        if (/[^\r\n\t ]/.test(node.data)) {
+        if (htmlNonWhiteSpaceRegex.test(node.data)) {
             return false;
         }
         var cssWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
         switch (cssWhiteSpace) {
-            case "normal":
-                return true;
             case "pre":
             case "pre-wrap":
             case "-moz-pre-wrap":
                 return false;
             case "pre-line":
-                return !/[\r\n]/.test(node.data);
-            default:
-                return true;
+                if (/[\r\n]/.test(node.data)) {
+                    return false;
+                }
         }
+
+        // We now have a whitespace-only text node that may be rendered depending on its context. If it is adjacent to a
+        // non-inline element, it will not be rendered. This seems to be a good enough definition.
+        return isNonInlineElement(node.previousSibling) || isNonInlineElement(node.nextSibling);
     }
 
     function isHtmlElement(node, tagNames) {
@@ -243,26 +286,6 @@ rangy.createModule("Commands", function(api, module) {
             default:
                 return true;
         }
-    }
-
-    function isIgnoredNode(node, options) {
-        // Ignore comment nodes
-        if (node.nodeType == 8) {
-            return true;
-        } else if (node.nodeType == 3) {
-            // Ignore text nodes that are within <script> and <style> elements
-            if (node.parentNode && /^(script|style)$/i.test(node.parentNode.tagName)) {
-                //log.fatal("IGNORED NODE " + dom.inspectNode(node));
-                return true;
-            }
-
-            // Ignore whitespace nodes that are next to an unwrappable element
-            if (options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)
-                    && (isUnwrappable(node.previousSibling, options) || isUnwrappable(node.nextSibling, options))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     function elementOnlyHasAttributes(el, attrs) {
@@ -289,17 +312,19 @@ rangy.createModule("Commands", function(api, module) {
         if (!isHtmlElement(node)) {
             return false;
         }
+
+        // Allow commands to define whether an element is modifiable for its purposes
         if (context && context.command.isModifiableElement) {
             return context.command.isModifiableElement(el, context);
         }
         var tagName = node.tagName.toLowerCase(), allowedAttributes;
 
         if (modifiableElementRegex.test(tagName)) {
-            allowedAttributes = ["style", "class"];
+            allowedAttributes = ["style"];
         } else if (tagName == "a") {
-            allowedAttributes = ["style", "class", "href"];
+            allowedAttributes = ["style", "href"];
         } else if (tagName == "font") {
-            allowedAttributes = ["style", "class", "color", "face", "size"];
+            allowedAttributes = ["style", "color", "face", "size"];
         } else {
             return false;
         }
@@ -316,6 +341,7 @@ rangy.createModule("Commands", function(api, module) {
             return false;
         }
 
+        // Allow commands to define whether an element is simply modifiable for its purposes
         if (context && context.command.isSimpleModifiableElement) {
             return context.command.isSimpleModifiableElement(el, context);
         }
@@ -411,6 +437,26 @@ rangy.createModule("Commands", function(api, module) {
             return true;
         }
 
+        return false;
+    }
+
+    function isIgnoredNode(node, options) {
+        // Ignore comment nodes
+        if (node.nodeType == 8) {
+            return true;
+        } else if (node.nodeType == 3) {
+            // Ignore text nodes that are within <script> and <style> elements
+            if (node.parentNode && /^(script|style)$/i.test(node.parentNode.tagName)) {
+                //log.fatal("IGNORED NODE " + dom.inspectNode(node));
+                return true;
+            }
+
+            // Ignore whitespace nodes that are next to an unwrappable element
+            if (options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)
+                    && (isUnwrappable(node.previousSibling, options) || isUnwrappable(node.nextSibling, options))) {
+                return true;
+            }
+        }
         return false;
     }
 
