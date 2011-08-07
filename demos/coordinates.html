@@ -3,6 +3,28 @@
 <head>
     <title>Rangy Coordinates Module Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
+    <style type="text/css">
+        #wholeSelection {
+            position: absolute;
+            margin: 0;
+            padding: 0;
+            border: solid red 2px;
+        }
+
+        #wholeSelectionInner {
+            margin: -2px;
+        }
+
+        #startSelection, #endSelection {
+            position: absolute;
+            margin: 0;
+            padding: 0;
+            background-color: yellow;
+            font-weight: bold;
+            font-size: 60%;
+        }
+
+    </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
     <script type="text/javascript" src="../src/js/core/dom.js"></script>
@@ -10,6 +32,7 @@
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-coordinates.js"></script>
+
 
     <script type="text/javascript">
         function gEBI(id) {
@@ -20,8 +43,63 @@
             return "(" + rect.left + ", " + rect.top + "), (" + rect.right + ", " + rect.bottom + ")";
         }
 
+        var wholeSelRectEl, startSelEl, endSelEl;
+
+        function removeSelectionIndicators() {
+            if (wholeSelRectEl) {
+                wholeSelRectEl.parentNode.removeChild(wholeSelRectEl);
+                startSelEl.parentNode.removeChild(startSelEl);
+                endSelEl.parentNode.removeChild(endSelEl);
+                startSelEl = endSelEl = wholeSelRectEl = null;
+            }
+        }
+
         function reportSelectionCoordinates() {
-            alert(rectToString(rangy.getSelection().getBoundingClientRect()));
+            // Draw an element representing the whole selection rectangle
+            var wholeSelRect = rangy.getSelection().getBoundingDocumentRect();
+
+            removeSelectionIndicators();
+
+            if (!wholeSelRect) {
+                return;
+            }
+
+            wholeSelRectEl = document.createElement("div");
+            wholeSelRectEl.id = "wholeSelection";
+
+            var wholeSelRectInnerEl = wholeSelRectEl.appendChild(document.createElement("div"));
+            wholeSelRectInnerEl.id = "wholeSelectionInner";
+
+            rangy.util.extend(wholeSelRectEl.style, {
+                left: wholeSelRect.left + "px",
+                top: wholeSelRect.top + "px"
+            });
+
+            rangy.util.extend(wholeSelRectInnerEl.style, {
+                width: wholeSelRect.width + "px",
+                height: wholeSelRect.height + "px"
+            });
+
+            wholeSelRectEl.onclick = removeSelectionIndicators;
+
+            document.body.appendChild(wholeSelRectEl);
+
+            // Draw elements at the start and end of the selection
+            startSelEl = document.createElement("div");
+            startSelEl.id = "startSelection";
+            startSelEl.innerHTML = "&lt;&lt;";
+            var startPos = rangy.getSelection().getStartDocumentPos();
+            startSelEl.style.left = startPos.x + "px";
+            startSelEl.style.top = startPos.y + "px";
+            document.body.appendChild(startSelEl);
+
+            endSelEl = document.createElement("div");
+            endSelEl.id = "endSelection";
+            endSelEl.innerHTML = "&gt;&gt;";
+            var endPos = rangy.getSelection().getEndDocumentPos();
+            document.body.appendChild(endSelEl);
+            endSelEl.style.left = (endPos.x - endSelEl.offsetWidth) + "px";
+            endSelEl.style.top = (endPos.y - endSelEl.offsetHeight) + "px";
         }
 
         function createButton(parentNode, clickHandler, value) {

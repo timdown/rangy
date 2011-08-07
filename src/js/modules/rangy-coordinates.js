@@ -15,7 +15,34 @@
 rangy.createModule("Coordinates", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
+    var NUMBER = "number";
     var WrappedRange = api.WrappedRange;
+    var dom = api.dom;
+
+    // Since Rangy can deal with multiple documents, we have to do the checks every time, unless we cache a
+    // getScrollPosition function in each document. This would necessarily pollute the document's global
+    // namespace, which I'm viewing as a greater evil than a slight performance hit.
+    function getScrollPosition(win) {
+        var x = 0, y = 0;
+        if (typeof win.pageXOffset == NUMBER && typeof win.pageYOffset == NUMBER) {
+            x = win.pageXOffset;
+            y = win.pageYOffset;
+        } else {
+            var doc = win.document;
+            var docEl = doc.documentElement;
+            var compatMode = doc.compatMode;
+            var scrollEl = (typeof compatMode == "string" && compatMode.indexOf("CSS") >= 0 && docEl)
+                ? docEl : dom.getBody(doc);
+
+            if (scrollEl && typeof scrollEl.scrollLeft == NUMBER && typeof scrollEl.scrollTop == NUMBER) {
+                try {
+                    x = scrollEl.scrollLeft;
+                    y = scrollEl.scrollTop;
+                } catch (ex) {}
+            }
+        }
+        return { x: x, y: y };
+    }
 
     function mergeRects(rect1, rect2) {
         var rect = {
@@ -29,6 +56,47 @@ rangy.createModule("Coordinates", function(api, module) {
 
         return rect;
     }
+
+    function Rect(top, right, bottom, left) {
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
+        this.left = left;
+        this.width = right - left;
+        this.height = bottom - top;
+    }
+
+    function clientRectToRect(rect) {
+        return new Rect(rect.top, rect.right, rect.bottom, rect.left);
+    }
+
+/*
+    Rect.prototype.init = function(top, right, bottom, left) {
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
+        this.left = left;
+        this.width = right - left;
+        this.height = bottom - top;
+    };
+
+    function DocumentRect(top, right, bottom, left) {
+        this.init(top, right, bottom, left);
+    }
+
+    DocumentRect.prototype = new Rect();
+
+    function ClientRect(top, right, bottom, left) {
+        this.init(top, right, bottom, left);
+    }
+
+    ClientRect.prototype = new Rect();
+    ClientRect.prototype.toDocumentRect = function() {
+        var scrollPos = getScrollPosition(win);
+        return new DocumentRect();
+    };
+*/
+
 
     var getRangeBoundingClientRect = (function() {
 
@@ -46,20 +114,13 @@ rangy.createModule("Coordinates", function(api, module) {
 
                 var left = textRange.boundingLeft, top = textRange.boundingTop;
                 var width = textRange.boundingWidth, height = textRange.boundingHeight;
-                return {
-                    top: top,
-                    bottom: top + height,
-                    left: left,
-                    right: left + width,
-                    width: width,
-                    height: height
-                };
+                return new Rect(top, left + width, top + height, left);
             };
 
         } else if (api.features.implementsDomRange) {
             rangeSupportsGetBoundingClientRect = api.util.isHostMethod(testRange, "getBoundingClientRect");
-            api.features.rangeSupportsGetBoundingClientRect = rangeSupportsGetBoundingClientRect;
 
+            api.features.rangeSupportsGetBoundingClientRect = rangeSupportsGetBoundingClientRect;
 
             var createWrappedRange = function(range) {
                 return (range instanceof WrappedRange) ? range : new WrappedRange(range);
@@ -67,7 +128,9 @@ rangy.createModule("Coordinates", function(api, module) {
 
             if (rangeSupportsGetBoundingClientRect) {
                 return function(range) {
-                    return createWrappedRange(range).nativeRange.getBoundingClientRect();
+                    var nativeRange = createWrappedRange(range).nativeRange;
+                    // Test for WebKit getBoundingClientRect bug (https://bugs.webkit.org/show_bug.cgi?id=65324)
+                    return clientRectToRect(nativeRange.getBoundingClientRect() || nativeRange.getClientRects()[0]);
                 };
             } else {
                 // Test that <span> elements support getBoundingClientRect
@@ -76,7 +139,7 @@ rangy.createModule("Coordinates", function(api, module) {
 
                 var getElementBoundingClientRect = elementSupportsGetBoundingClientRect ?
                     function(el) {
-                        return el.getBoundingClientRect();
+                        return clientRectToRect(el.getBoundingClientRect());
                     } :
 
                     // This implementation is very naive. There are many browser quirks that make it extremely
@@ -89,14 +152,7 @@ rangy.createModule("Coordinates", function(api, module) {
                             offsetEl = offsetEl.offsetParent;
                         }
 
-                        return {
-                            top: y,
-                            bottom: y + height,
-                            left: x,
-                            right: x + width,
-                            width: width,
-                            height: height
-                        };
+                        return new Rect(y, x + width, y + height, x);
                     };
 
                 var getRectFromBoundaries = function(range) {
@@ -128,25 +184,78 @@ rangy.createModule("Coordinates", function(api, module) {
         return getRangeBoundingClientRect(this);
     };
 
+    api.rangePrototype.getBoundingDocumentRect = function() {
+        var rect = getRangeBoundingClientRect(this);
+        var scrollPos = getScrollPosition(dom.getWindow(this.startContainer));
+        return new Rect(rect.top + scrollPos.y, rect.right + scrollPos.x, rect.bottom + scrollPos.y, rect.left + scrollPos.x);
+    };
+
     (function() {
         function createClientBoundaryPosGetter(isStart) {
             return function() {
                 var boundaryRange = this.cloneRange();
                 boundaryRange.collapse(isStart);
-                var rect = getRangeBoundingClientRect(this);
-                return { left: rect.left, top: rect.top };
+                var rect = getRangeBoundingClientRect(boundaryRange);
+                return { x: rect[isStart ? "left" : "right"], y: rect[isStart ? "top" : "bottom"] };
+            };
+        }
+
+        function createDocumentBoundaryPosGetter(isStart) {
+            return function() {
+                var pos = this["get" + (isStart ? "Start" : "End") + "ClientPos"]();
+                var scrollPos = getScrollPosition(dom.getWindow(this.startContainer));
+                return { x: pos.x + scrollPos.x, y: pos.y + scrollPos.y };
             };
         }
 
         api.rangePrototype.getStartClientPos = createClientBoundaryPosGetter(true);
         api.rangePrototype.getEndClientPos = createClientBoundaryPosGetter(false);
+
+        api.rangePrototype.getStartDocumentPos = createDocumentBoundaryPosGetter(true);
+        api.rangePrototype.getEndDocumentPos = createDocumentBoundaryPosGetter(false);
     })();
 
-    api.selectionPrototype.getBoundingClientRect = function() {
-        for (var i = 0, rect = null, rangeRect; i < this.rangeCount; ++i) {
-            rangeRect = getRangeBoundingClientRect(this.getRangeAt(i));
-            rect = rect ? mergeRects(rect, rangeRect) : rangeRect;
+    (function() {
+        function compareRanges(r1, r2) {
+            return r1.compareBoundaryPoints(r2.START_TO_START, r2);
         }
-        return rect;
-    };
+
+        function createSelectionRectGetter(isDocument) {
+            return function() {
+                var rangeMethodName = "getBounding" + (isDocument ? "Document" : "Client") + "Rect";
+                for (var i = 0, rect = null, rangeRect; i < this.rangeCount; ++i) {
+                    rangeRect = this.getRangeAt(i)[rangeMethodName]();
+                    rect = rect ? mergeRects(rect, rangeRect) : rangeRect;
+                }
+                return rect;
+            };
+        }
+
+        function createSelectionBoundaryPosGetter(isStart, isDocument) {
+            return function() {
+                if (this.rangeCount == 0) {
+                    return null;
+                }
+
+                var posType = isDocument ? "Document" : "Client";
+
+                var ranges = this.getAllRanges();
+                if (ranges.length > 1) {
+                    // Order the ranges by position within the DOM
+                    ranges.sort(compareRanges);
+                }
+
+                return isStart ? ranges[0]["getStart" + posType + "Pos"]() : ranges[ranges.length - 1]["getEnd" + posType + "Pos"]();
+            };
+        }
+
+        api.selectionPrototype.getBoundingClientRect = createSelectionRectGetter(false);
+        api.selectionPrototype.getBoundingDocumentRect = createSelectionRectGetter(true);
+
+        api.selectionPrototype.getStartClientPos = createSelectionBoundaryPosGetter(true, false);
+        api.selectionPrototype.getEndClientPos = createSelectionBoundaryPosGetter(false, false);
+
+        api.selectionPrototype.getStartDocumentPos = createSelectionBoundaryPosGetter(true, true);
+        api.selectionPrototype.getEndDocumentPos = createSelectionBoundaryPosGetter(false, true);
+    })();
 });
