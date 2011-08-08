@@ -1,0 +1,68 @@
+<html>
+  <body>
+    <iframe id="editable">
+      <html>
+        <body>
+          <div id="test">
+            Click to the right of this line -&gt;
+            <p id="par">Block Element</p>
+            <p>(On IE8 hit left arrow to move the cursor to the previous line)</p>
+          </div>
+        </body>
+      </html>
+    </iframe>
+    <input id="mytrigger" type="button" value="Then Click here to Save and Restore" />
+    <script type="text/javascript" src="lib/log4javascript.js"></script>
+    <script type="text/javascript">
+        var appender = new log4javascript.PopUpAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+        var log = log4javascript.getRootLogger();
+        log4javascript.setShowStackTraces(true);
+    </script>
+    <script type="text/javascript" src="src/js/core/core.js"></script>
+    <script type="text/javascript" src="src/js/core/dom.js"></script>
+    <script type="text/javascript" src="src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript">
+        window.onload = function() {
+            var iframe = document.getElementById('editable');
+            var doc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // An IFRAME without a source points to a blank document.  Here we'll
+            // copy the content we stored in between the IFRAME tags into that
+            // document.  It's a hack to allow us to use only one HTML file for this
+            // test.
+            doc.body.innerHTML = iframe.textContent || iframe.innerHTML;
+
+            // Marke the IFRAME as an editable document
+            if (doc.body.contentEditable) {
+                doc.body.contentEditable = true;
+            } else {
+                doc.designMode = 'On';
+            }
+
+            // A function to demonstrate the bug.
+            var myhandler = function() {
+                // Step 1 Get the current selection
+                var selection = rangy.getIframeSelection(iframe);
+                var range = selection.getRangeAt(0);
+
+                // Step 2 Restore the selection
+                selection.removeAllRanges();
+                selection.addRange(range);
+                doc.body.focus();
+            }
+
+            // Set up the button to perform the test code.
+            var button = document.getElementById('mytrigger');
+            if (button.addEventListener) {
+                button.addEventListener('click', myhandler, false);
+            } else {
+                button.attachEvent('onclick', myhandler);
+            }
+          }
+    </script>
+  </body>
+</html>
+

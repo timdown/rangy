@@ -23,7 +23,7 @@ window['rangy'] = (function() {
 
     // Subset of TextRange's full set of methods that we're interested in
     var textRangeMethods = ["collapse", "compareEndPoints", "duplicate", "getBookmark", "moveToBookmark",
-        "moveToElementText", "parentElement", "pasteHTML", "select", "setEndPoint"];
+        "moveToElementText", "parentElement", "pasteHTML", "select", "setEndPoint", "getBoundingClientRect"];
 
     /*----------------------------------------------------------------------------------------------------------------*/
 

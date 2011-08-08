@@ -1,14 +1,14 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-    <title>Rangy Coordinates Module Demo</title>
+    <title>Rangy Position Module Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
     <style type="text/css">
         #wholeSelection {
             position: absolute;
             margin: 0;
             padding: 0;
-            border: solid red 2px;
+            border: dotted red 2px;
         }
 
         #wholeSelectionInner {
@@ -24,6 +24,15 @@
             font-size: 60%;
         }
 
+        #footer {
+            position: fixed;
+            background-color: lightgoldenrodyellow;
+            border-top: solid darkblue 1px;
+            bottom: 0;
+            padding: 5px 0;
+            width: 100%;
+        }
+
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -31,7 +40,7 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-coordinates.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-position.js"></script>
 
 
     <script type="text/javascript">
@@ -54,7 +63,7 @@
             }
         }
 
-        function reportSelectionCoordinates() {
+        function showSelectionPosition() {
             // Draw an element representing the whole selection rectangle
             var wholeSelRect = rangy.getSelection().getBoundingDocumentRect();
 
@@ -126,7 +135,7 @@
 
             // Create selection buttons
             var selectionButtonsContainer = gEBI("selectionButtons");
-            createButton(selectionButtonsContainer, reportSelectionCoordinates, "Get selection rectangle");
+            createButton(selectionButtonsContainer, showSelectionPosition, "Show selection position");
 
             // Create Range buttons
             var rangeButtonsContainer = gEBI("rangeButtons");
@@ -140,20 +149,19 @@
 </head>
 <body>
     <div id="buttons">
-        <h3>Selection methods</h3>
-        <p>The following buttons act on the whole selection:</p>
+        <h3>Selection position</h3>
+        <p>
+            Press the following button to display an outline of the selection's bounding rectange and arrows showing
+            the positions at the start and end of the selection:
+        </p>
         <div id="selectionButtons"></div>
-
-        <h3>Range methods</h3>
-        <p>The following buttons act on the first range in the current selection:</p>
-        <div id="rangeButtons"></div>
     </div>
     <div id="content">
-    <h1>Rangy Coordinates Module Demo</h1>
+    <h1>Rangy Position Module Demo</h1>
 
     <p id="intro">
-        Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
-        the right hand size to show range/selection coordinates.
+        Please use your mouse and/or keyboard to make selections from the sample content below and use the button on
+        the left hand size to show range/selection postion.
     </p>
 
     <p>
@@ -185,15 +193,43 @@ It is played by both males and females.
 
 
 </pre>
+    <h2>Famous clubs <span class="smaller">(this section is editable)</span></h2>
+    <table border="1" contenteditable="true">
+        <thead>
+            <tr>
+                <th>Nation</th>
+                <th>Teams</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>England</td>
+                <td>Manchester United, Arsenal, Chelsea, Liverpool</td>
+            </tr>
+            <tr>
+                <td>Spain</td>
+                <td>Barcelona, Real Madrid</td>
+            </tr>
+            <tr>
+                <td>Italy</td>
+                <td>AC Milan, Internazionale, Juventus</td>
+            </tr>
+        </tbody>
+    </table>
+    <h2>Miscellaneous</h2>
     <p id="controlRange" style="display: none" contenteditable="true">
         Some controls to put in a ControlRange in IE: <input> and <input> and <input>
     </p>
 
-    <p class="small">
-        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
-        Association Football</a>, licensed under the
-        <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
-            Commons Attribution/Share-Alike License</a>.
-    </p></div>
+    </div>
+    <br style="clear: both">
+    <div id="footer">
+        <p class="small">
+            Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
+            Association Football</a>, licensed under the
+            <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
+                Commons Attribution/Share-Alike License</a>.
+        </p>
+    </div>
 </body>
 </html>

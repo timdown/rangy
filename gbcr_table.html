@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title>Range getBoundingClientRect in table test</title>
+    <script type="text/javascript">
+        function rectToString(rect) {
+            if (rect) {
+                return "(" + rect.left + ", " + rect.top + "), (" + rect.right + ", " + rect.bottom + ")";
+            } else {
+                return "No rect";
+            }
+        }
+
+        window.onload = function() {
+            var log = document.getElementById("log");
+            log.value = "";
+            var tds = document.getElementsByTagName("td"), td1 = tds[0], td2 = tds[1];
+            var td1Text = td1.firstChild;
+
+            function logRect(name, range) {
+                log.value += name + ": " + rectToString(range.getClientRects()[0]) + "\n";
+            }
+
+            log.value += "TD rect: " + rectToString(td1.getBoundingClientRect()) + "\n";
+
+            var range = document.createRange();
+            range.setStart(td1, 0);
+            range.collapse(true);
+            logRect("collapsed at offset 0 in TD", range);
+
+            range.setStart(td1, 1);
+            range.collapse(true);
+            logRect("collapsed at offset 1 in TD", range);
+
+            range.setStart(td1, 2);
+            range.collapse(true);
+            logRect("collapsed at offset 2 in TD", range);
+
+            range.setStart(td1Text, 0);
+            range.collapse(true);
+            logRect("collapsed at TD text char 0", range);
+
+            range.setStart(td1Text, 1);
+            range.collapse(true);
+            logRect("collapsed at TD text char 1", range);
+
+            var p = document.getElementsByTagName("p")[0];
+            range.setStart(p, 1);
+            range.collapse(true);
+            logRect("collapsed at offset 1 in P", range);
+        };
+    </script>
+</head>
+<body>
+    <p>A para</p>
+    <textarea id="log" rows="10" cols="80"></textarea>
+    <table border="1">
+        <tr><td>One <b>two</b></td></tr>
+        <tr><td>Three</td></tr>
+    </table>
+</body>
+</html>
