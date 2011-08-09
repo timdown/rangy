@@ -89,7 +89,7 @@
                 height: wholeSelRect.height + "px"
             });
 
-            wholeSelRectEl.onclick = removeSelectionIndicators;
+            wholeSelRectEl.onmousedown = removeSelectionIndicators;
 
             document.body.appendChild(wholeSelRectEl);
 
@@ -191,31 +191,50 @@ United Nations.
 
 It is played by both males and females.
 
-
 </pre>
     <h2>Famous clubs <span class="smaller">(this section is editable)</span></h2>
-    <table border="1" contenteditable="true">
-        <thead>
-            <tr>
-                <th>Nation</th>
-                <th>Teams</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>England</td>
-                <td>Manchester United, Arsenal, Chelsea, Liverpool</td>
-            </tr>
-            <tr>
-                <td>Spain</td>
-                <td>Barcelona, Real Madrid</td>
-            </tr>
-            <tr>
-                <td>Italy</td>
-                <td>AC Milan, Internazionale, Juventus</td>
-            </tr>
-        </tbody>
-    </table>
+    <div contenteditable="true">
+        Here's a few examples:
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Nation</th>
+                    <th>Teams</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>England</td>
+                    <td>Manchester United, Arsenal, Chelsea, Liverpool, Watford</td>
+                </tr>
+                <tr>
+                    <td>Spain</td>
+                    <td>Barcelona, Real Madrid</td>
+                </tr>
+                <tr>
+                    <td>Italy</td>
+                    <td>AC Milan, Internazionale, Juventus</td>
+                </tr>
+            </tbody>
+        </table>
+        There you go. And here are some more teams from different places and here is some text to bulk out this
+        line:
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Nation</th>
+                    <th>Teams</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Germany</td>
+                    <td>Bayern Munich</td>
+                </tr>
+            </tbody>
+        </table>
+        That's it.
+    </div>
     <h2>Miscellaneous</h2>
     <p id="controlRange" style="display: none" contenteditable="true">
         Some controls to put in a ControlRange in IE: <input> and <input> and <input>

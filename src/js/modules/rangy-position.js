@@ -44,17 +44,15 @@ rangy.createModule("Coordinates", function(api, module) {
         return { x: x, y: y };
     }
 
-    function mergeRects(rect1, rect2) {
-        var rect = {
-            top: Math.min(rect1.top, rect2.top),
-            bottom: Math.max(rect1.bottom, rect2.bottom),
-            left: Math.min(rect1.left, rect2.left),
-            right: Math.max(rect1.right, rect2.right)
-        };
-        rect.width = rect.right - rect.left;
-        rect.height = rect.bottom - rect.top;
-
-        return rect;
+    function getAncestorElement(node, tagName) {
+        tagName = tagName.toLowerCase();
+        while (node) {
+            if (node.nodeType == 1 && node.tagName.toLowerCase() == tagName) {
+                return node;
+            }
+            node = node.parentNode;
+        }
+        return null;
     }
 
     function Rect(top, right, bottom, left) {
@@ -83,6 +81,25 @@ rangy.createModule("Coordinates", function(api, module) {
             dy = -clientTop;
         }
         return createRelativeRect(rect, dx, dy);
+    }
+
+    function mergeRects(rects) {
+        var tops = [], bottoms = [], lefts = [], rights = [];
+        for (var i = 0, len = rects.length, rect; i < len; ++i) {
+            rect = rects[i];
+            if (rect) {
+                tops.push(rect.top);
+                bottoms.push(rect.bottom);
+                lefts.push(rect.left);
+                rights.push(rect.right);
+            }
+        }
+        return new Rect(
+            Math.min.apply(Math, tops),
+            Math.max.apply(Math, rights),
+            Math.max.apply(Math, bottoms),
+            Math.min.apply(Math, lefts)
+        );
     }
 
     (function() {
@@ -118,15 +135,62 @@ rangy.createModule("Coordinates", function(api, module) {
 
         var rangeProto = api.rangePrototype;
 
-        if (api.features.implementsTextRange) {
+        if (api.features.implementsTextRange && elementSupportsGetBoundingClientRect) {
             rangeProto.getBoundingClientRect = function() {
                 // We need a TextRange
-                var textRange = util.isTextRange(this.nativeRange) ?
-                    this.nativeRange : WrappedRange.rangeToTextRange(this);
+                var textRange = WrappedRange.rangeToTextRange(this);
 
-                var left = textRange.boundingLeft, top = textRange.boundingTop;
-                var width = textRange.boundingWidth, height = textRange.boundingHeight;
-                var rect = textRange.getBoundingClientRect();
+                // Work around table problems (table cell bounding rects seem not to count if TextRange spans cells)
+                var cells = this.getNodes([1], function(el) {
+                    return /^t[dh]$/i.test(el.tagName);
+                });
+
+                // Merge rects for each cell selected by the range into overall rect
+                var rect, rects = [];
+                if (cells.length > 0) {
+                    var lastTable = getAncestorElement(this.startContainer, "table");
+
+                    for (var i = 0, cell, tempTextRange, table, subRange, subRect; cell = cells[i]; ++i) {
+                        // Handle non-table sections of the range
+                        table = getAncestorElement(cell, "table");
+                        if (!lastTable || table != lastTable) {
+                            // There is a section of the range prior to the current table, or lying between tables.
+                            // Merge in its rect
+                            subRange = this.cloneRange();
+                            if (lastTable) {
+                                subRange.setStartAfter(lastTable);
+                            }
+                            subRange.setEndBefore(table);
+                            rects.push(WrappedRange.rangeToTextRange(subRange).getBoundingClientRect());
+                        }
+
+                        if (this.containsNode(cell)) {
+                            rects.push(cell.getBoundingClientRect());
+                        } else {
+                            tempTextRange = textRange.duplicate();
+                            tempTextRange.moveToElementText(cell);
+                            if (tempTextRange.compareEndPoints("StartToStart", textRange) == -1) {
+                                tempTextRange.setEndPoint("StartToStart", textRange);
+                            } else if (tempTextRange.compareEndPoints("EndToEnd", textRange) == 1) {
+                                tempTextRange.setEndPoint("EndToEnd", textRange);
+                            }
+                            rects.push(tempTextRange.getBoundingClientRect());
+                        }
+                        lastTable = table;
+                    }
+
+                    // Merge in the rect for any content lying after the final table
+                    var endTable = getAncestorElement(this.endContainer, "table");
+                    if (!endTable && lastTable) {
+                        subRange = this.cloneRange();
+                        subRange.setStartAfter(lastTable);
+                        rects.push(WrappedRange.rangeToTextRange(subRange).getBoundingClientRect());
+                    }
+                    rect = mergeRects(rects);
+                } else {
+                    rect = textRange.getBoundingClientRect();
+                }
+
                 return adjustClientRect(rect, dom.getDocument(this.startContainer));
             };
         } else if (api.features.implementsDomRange) {
@@ -203,15 +267,17 @@ rangy.createModule("Coordinates", function(api, module) {
                         span.parentNode.removeChild(span);
 
                         // Merge the start and end rects
-                        rect = mergeRects(startRect, endRect);
+                        var rects = [startRect, endRect];
 
                         // Merge in rectangles for all elements in the range
                         var elements = range.getNodes([1], function(el) {
                             return range.containsNode(el);
                         });
+
                         for (var i = 0, len = elements.length; i < len; ++i) {
-                            rect = mergeRects(rect, getElementBoundingClientRect(elements[i]));
+                            rects.push(getElementBoundingClientRect(elements[i]));
                         }
+                        rect = mergeRects(rects)
                     }
 
                     // Clean up
@@ -232,7 +298,6 @@ rangy.createModule("Coordinates", function(api, module) {
                 };
             }
         }
-        //alert("BLAHA")
 
         util.extend(rangeProto, {
             getBoundingDocumentRect: function() {
@@ -248,44 +313,6 @@ rangy.createModule("Coordinates", function(api, module) {
         });
     })();
 
-/*    // Add Range methods
-    (function() {
-        function createClientBoundaryPosGetter(isStart) {
-            return function() {
-                var boundaryRange = this.cloneRange();
-                boundaryRange.collapse(isStart);
-                var rect = getRangeBoundingClientRect(boundaryRange);
-                console.log(rect, isStart);
-                return { x: rect[isStart ? "left" : "right"], y: rect[isStart ? "top" : "bottom"] };
-            };
-        }
-
-        function createDocumentBoundaryPosGetter(isStart) {
-            return function() {
-                var pos = this["get" + (isStart ? "Start" : "End") + "ClientPos"]();
-                var scrollPos = getScrollPosition(dom.getWindow(this.startContainer));
-                return { x: pos.x + scrollPos.x, y: pos.y + scrollPos.y };
-            };
-        }
-
-        util.extend(api.rangePrototype, {
-            getBoundingClientRect: function() {
-                return getRangeBoundingClientRect(this);
-            },
-
-            getBoundingDocumentRect: function() {
-                var scrollPos = getScrollPosition(dom.getWindow(this.startContainer));
-                return createRelativeRect(getRangeBoundingClientRect(this), scrollPos.x, scrollPos.y);
-            },
-
-            getStartClientPos: createClientBoundaryPosGetter(true),
-            getEndClientPos: createClientBoundaryPosGetter(false),
-
-            getStartDocumentPos: createDocumentBoundaryPosGetter(true),
-            getEndDocumentPos: createDocumentBoundaryPosGetter(false)
-        });
-    })();*/
-
     // Add Selection methods
     (function() {
         function compareRanges(r1, r2) {
@@ -295,11 +322,11 @@ rangy.createModule("Coordinates", function(api, module) {
         function createSelectionRectGetter(isDocument) {
             return function() {
                 var rangeMethodName = "getBounding" + (isDocument ? "Document" : "Client") + "Rect";
+                var rects = [];
                 for (var i = 0, rect = null, rangeRect; i < this.rangeCount; ++i) {
-                    rangeRect = this.getRangeAt(i)[rangeMethodName]();
-                    rect = rect ? mergeRects(rect, rangeRect) : rangeRect;
+                    rects.push(this.getRangeAt(i)[rangeMethodName]());
                 }
-                return rect;
+                return mergeRects(rects);
             };
         }
 
