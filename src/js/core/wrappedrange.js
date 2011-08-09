@@ -139,7 +139,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             }
             boundaryPosition = new DomPosition(boundaryNode, offset);
         } else {
-            log.debug("Range boundary is between is at node boundary");
+            log.debug("Range boundary is at node boundary");
 
             // If the boundary immediately follows a character data node and this is the end boundary, we should favour
             // a position within that, and likewise for a start boundary preceding a character data node
@@ -488,19 +488,6 @@ rangy.createModule("WrappedRange", function(api, module) {
             this.setEnd(end.node, end.offset);
         };
 
-        WrappedRange.rangeToTextRange = function(range) {
-            if (range.collapsed) {
-                return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
-            } else {
-                var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
-                var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
-                var textRange = dom.getDocument(range.startContainer).body.createTextRange();
-                textRange.setEndPoint("StartToStart", startRange);
-                textRange.setEndPoint("EndToEnd", endRange);
-                return textRange;
-            }
-        };
-
         DomRange.copyComparisonConstants(WrappedRange);
 
         // Add WrappedRange as the Range property of the global object to allow expression like Range.END_TO_END to work
@@ -512,6 +499,27 @@ rangy.createModule("WrappedRange", function(api, module) {
         api.createNativeRange = function(doc) {
             doc = doc || document;
             return doc.body.createTextRange();
+        };
+    }
+
+    if (api.features.implementsTextRange) {
+        WrappedRange.rangeToTextRange = function(range) {
+            if (range.collapsed) {
+                var tr = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+
+                log.info(dom.inspectNode(tr.parentElement()), tr.getBoundingClientRect())
+
+                return tr;
+
+                //return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+            } else {
+                var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+                var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
+                var textRange = dom.getDocument(range.startContainer).body.createTextRange();
+                textRange.setEndPoint("StartToStart", startRange);
+                textRange.setEndPoint("EndToEnd", endRange);
+                return textRange;
+            }
         };
     }
 
