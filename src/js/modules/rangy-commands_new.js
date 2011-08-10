@@ -452,8 +452,7 @@ rangy.createModule("Commands", function(api, module) {
             }
 
             // Ignore whitespace nodes that are next to an unwrappable element
-            if (options.ignoreWhiteSpace && !/[^\r\n\t ]/.test(node.data)
-                    && (isUnwrappable(node.previousSibling, options) || isUnwrappable(node.nextSibling, options))) {
+            if (options.ignoreWhiteSpace && isUnrenderedWhiteSpaceNode(node)) {
                 return true;
             }
         }
@@ -544,57 +543,6 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-    function decomposeSubtree(rangeIterator, nodes) {
-        nodes = nodes || [];
-        for (var node, subRangeIterator; node = rangeIterator.next(); ) {
-            if (rangeIterator.isPartiallySelectedSubtree()) {
-                // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of the
-                // node selected by the Range.
-                subRangeIterator = rangeIterator.getSubtreeIterator();
-                decomposeSubtree(subRangeIterator, nodes);
-                subRangeIterator.detach(true);
-            } else {
-                nodes.push(node);
-            }
-        }
-        return nodes;
-    }
-
-    function decomposeRange(range, rangesToPreserve) {
-        // "If range's start and end are the same, return an empty list."
-        if (range.startContainer == range.endContainer && range.startOffset == range.endOffset) {
-            return [];
-        }
-
-        range.splitBoundaries(rangesToPreserve);
-
-        // "Let cloned range be the result of calling cloneRange() on range."
-        var clonedRange = range.cloneRange();
-
-        // "While the start offset of cloned range is 0, and the parent of cloned
-        // range's start node is not null, set the start of cloned range to (parent
-        // of start node, index of start node)."
-        while (clonedRange.startOffset == 0 && clonedRange.startContainer.parentNode) {
-            clonedRange.setStart(clonedRange.startContainer.parentNode, dom.getNodeIndex(clonedRange.startContainer));
-        }
-
-        // "While the end offset of cloned range equals the length of its end node,
-        // and the parent of clone range's end node is not null, set the end of
-        // cloned range to (parent of end node, 1 + index of end node)."
-        while (clonedRange.endOffset == dom.getNodeLength(clonedRange.endContainer) && clonedRange.endContainer.parentNode) {
-            clonedRange.setEnd(clonedRange.endContainer.parentNode, 1 + dom.getNodeIndex(clonedRange.endContainer));
-        }
-
-        // "Return a list consisting of every Node contained in cloned range in
-        // tree order, omitting any whose parent is also contained in cloned
-        // range."
-
-        var iterator = new rangy.DomRange.RangeIterator(clonedRange, false);
-        var nodes = decomposeSubtree(iterator);
-        iterator.detach();
-        return nodes;
-    }
-
     function moveChildrenPreservingRanges(node, newParent, newIndex, removeNode, rangesToPreserve) {
         var child, children = [];
         while ( (child = node.firstChild) ) {
@@ -626,4 +574,523 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
+    /**
+     * "effective value" per edit command spec
+     */
+    function getEffectiveCommandValue(node, context) {
+        var isElement = (node.nodeType == 1);
+
+        // "If neither node nor its parent is an Element, return null."
+        if (!isElement && (!node.parentNode || node.parentNode.nodeType != 1)) {
+            return null;
+        }
+
+        // "If node is not an Element, return the effective command value of its parent for command."
+        if (!isElement) {
+            return getEffectiveCommandValue(node.parentNode, context);
+        }
+
+        return context.command.getEffectiveValue(node, context);
+    }
+
+    // "An extraneous line break is a br that has no visual effect, in that
+    // removing it from the DOM would not change layout, except that a br that is
+    // the sole child of an li is not extraneous."
+    function isExtraneousLineBreak(br) {
+        if (!isHtmlElement(br, "br")) {
+            return false;
+        }
+
+        var ref = br.parentNode;
+        if (isHtmlElement(ref, "li") && ref.childNodes.length == 1) {
+            return false;
+        }
+
+        while (isInlineNode(ref)) {
+            ref = ref.parentNode;
+        }
+
+        var origHeight = ref.offsetHeight;
+        if (origHeight == 0) {
+            throw "isExtraneousLineBreak: original height is zero, bug?";
+        }
+        var styleAttr = br.attributes["style"];
+        var originalStyle = null;
+        if (styleAttr && styleAttr.specified) {
+            originalStyle = br.style.cssText;
+        }
+        br.style.display = "none";
+        var finalHeight = ref.offsetHeight;
+        if (originalStyle === null) {
+            br.style.cssText = "";
+            br.removeAttribute("style");
+        } else {
+            br.style.cssText = originalStyle;
+        }
+
+        return origHeight == finalHeight;
+    }
+
+    // "Something is visible if it is a node that either is a block node, or a Text
+    // node whose data is not empty, or an img, or a br that is not an extraneous
+    // line break, or any node with a visible descendant."
+    function isVisible(node) {
+        if (!node) {
+            return false;
+        }
+        if (isBlockNode(node) && (node.nodeType == 3 && node.length) || isHtmlElement(node, "img")
+                || (isHtmlElement(node, "br") && !isExtraneousLineBreak(node))) {
+            return true;
+        }
+        for (var i = 0; i < node.childNodes.length; i++) {
+            if (isVisible(node.childNodes[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // "Something is invisible if it is a node that is not visible."
+    function isInvisible(node) {
+        return node && !isVisible(node);
+    }
+
+    function removeExtraneousLineBreaksBefore(node) {
+        var ref;
+
+        // "Let ref be the previousSibling of node. If ref is null, abort these steps."
+        if (!node || !(ref = node.previousSibling)) {
+            return;
+        }
+
+        // "While ref has children, set ref to its lastChild."
+        while (ref.hasChildNodes()) {
+            ref = ref.lastChild;
+        }
+
+        // "While ref is invisible but not an extraneous line break, and ref does
+        // not equal node's parent, set ref to the node before it in tree order."
+        while (isInvisible(ref)
+        && !isExtraneousLineBreak(ref)
+        && ref != node.parentNode) {
+            ref = previousNode(ref);
+        }
+
+        // "If ref is an editable extraneous line break, remove it from its
+        // parent."
+        if (isEditable(ref)
+        && isExtraneousLineBreak(ref)) {
+            ref.parentNode.removeChild(ref);
+        }
+
+        
+
+        // "If node is not an Element, or it is an inline node, do nothing and
+        // abort these steps."
+        if (!node || node.nodeType != 1 || isInlineNode(node)) {
+            return;
+        }
+
+        // "If the previousSibling of node is a br, and the previousSibling of the
+        // previousSibling of node is an inline node that is not a br, remove the
+        // previousSibling of node from its parent."
+        var previousSibling = node.previousSibling, previousSiblingPreviousSibling;
+        if (isHtmlElement(previousSibling, "br")
+                && isInlineNode( (previousSiblingPreviousSibling = node.previousSibling.previousSibling) )
+                && !isHtmlElement(previousSiblingPreviousSibling, "br")) {
+            node.parentNode.removeChild(previousSibling);
+        }
+    }
+
+    function removeExtraneousLineBreaksAtTheEndOf(node) {
+        // "If node is not an Element, or it is an inline node, do nothing and
+        // abort these steps."
+        if (!node || node.nodeType != 1 || isInlineNode(node)) {
+            return;
+        }
+
+        // "If node has at least two children, and its last child is a br, and its
+        // second-to-last child is an inline node that is not a br, remove the last
+        // child of node from node."
+        var lastChild = node.lastChild, lastChildPreviousSibling;
+        if (node.childNodes.length >= 2 && isHtmlElement(node.lastChild, "br")
+                && isInlineNode( (lastChildPreviousSibling = node.lastChild.previousSibling) )
+                && !isHtmlElement(lastChildPreviousSibling, "br")) {
+            node.removeChild(lastChild);
+        }
+    }
+
+    // "To remove extraneous line breaks from a node, first remove extraneous line
+    // breaks before it, then remove extraneous line breaks at the end of it."
+    function removeExtraneousLineBreaksFrom(node) {
+        removeExtraneousLineBreaksBefore(node);
+        removeExtraneousLineBreaksAtTheEndOf(node);
+    }
+
+    function setTagName(element, newName, rangesToPreserve) {
+        // "If element is an HTML element with local name equal to new name, return element."
+        // "If element's parent is null, return element."
+        if (isHtmlElement(element, newName) || !element.parentNode) {
+            return element;
+        }
+
+        // "Let replacement element be the result of calling createElement(new
+        // name) on the ownerDocument of element."
+        var replacementElement = dom.getDocument(element).createElement(newName);
+
+        // "Insert replacement element into element's parent immediately before
+        // element."
+        element.parentNode.insertBefore(replacementElement, element);
+
+        // "Copy all attributes of element to replacement element, in order."
+        copyAttributes(element, replacementElement);
+
+        // "While element has children, append the first child of element as the
+        // last child of replacement element, preserving ranges."
+        moveChildrenPreservingRanges(element, replacementElement, 0, true, rangesToPreserve);
+
+        // "Remove element from its parent."
+        element.parentNode.removeChild(element);
+
+        // "Return replacement element."
+        return replacementElement;
+    }
+
+    function clearValue(element, context) {
+        var command = context.command, rangesToPreserve = context.rangesToPreserve;
+
+        // "If element is not editable, return the empty list."
+        if (!isEditable(element, context.options)) {
+            return [];
+        }
+
+        // "If element's specified value for command is null, return the empty
+        // list."
+        if (command.getSpecifiedValue(element, context) === null) {
+            return [];
+        }
+
+        // "If element is a simple modifiable element:"
+        if (isSimpleModifiableElement(element, context)) {
+            return replaceWithOwnChildren(element, rangesToPreserve);
+        }
+
+        // Do command-specific clearing
+        if (command.clearValue) {
+            command.clearValue(element, context);
+        }
+
+        // "If element's specified value for command is null, return the empty
+        // list."
+        if (command.getSpecifiedValue(element, context) === null) {
+            return [];
+        }
+
+        // "Set the tag name of element to "span", and return the one-node list
+        // consisting of the result."
+        return [setTagName(element, "span", rangesToPreserve)];
+    }
+
+    var defaultSiblingCriteria = function() { return false };
+    var defaultNewParentInstructions = function() { return null };
+
+    function wrap(nodeList, context, siblingCriteria, newParentInstructions) {
+        // "If not provided, sibling criteria match nothing and new parent
+        // instructions return null."
+        siblingCriteria = siblingCriteria || defaultSiblingCriteria;
+        newParentInstructions = newParentInstructions || defaultNewParentInstructions;
+
+        var firstNode = nodeList[0];
+        var options = context.options, rangesToPreserve = context.rangesToPreserve;
+        var i, len, range;
+
+        // "If node list is empty, or the first member of node list is not
+        // editable, return null and abort these steps."
+        if (!nodeList.length || !isEditable(firstNode, options)) {
+            return null;
+        }
+
+        var lastNode = nodeList[nodeList.length - 1];
+
+        // "If node list's last member is an inline node that's not a br, and node
+        // list's last member's nextSibling is a br, append that br to node list."
+        if (isInlineNode(lastNode) && !isHtmlElement(lastNode, "br") && isHtmlElement(lastNode.nextSibling, "br")) {
+            nodeList.push(lastNode.nextSibling);
+        }
+
+        // "If the previousSibling of the first member of node list is editable and
+        // meets the sibling criteria, let new parent be the previousSibling of the
+        // first member of node list."
+        var newParent, nodePriorToFirstNode = firstNode.previousSibling, nodeAfterLastNode = lastNode.nextSibling;
+
+        if (isEditable(nodePriorToFirstNode, options) && siblingCriteria(nodePriorToFirstNode)) {
+            newParent = nodePriorToFirstNode;
+
+        // "Otherwise, if the nextSibling of the last member of node list is
+        // editable and meets the sibling criteria, let new parent be the
+        // nextSibling of the last member of node list."
+        } else if (isEditable(nodeAfterLastNode, options) && siblingCriteria(nodeAfterLastNode)) {
+            newParent = nodeAfterLastNode;
+
+        // "Otherwise, run the new parent instructions, and let new parent be the
+        // result."
+        } else {
+            newParent = newParentInstructions();
+        }
+
+        // "If new parent is null, abort these steps and return null."
+        if (!newParent) {
+            return null;
+        }
+
+        var doc = dom.getDocument(newParent);
+        var newParentParent = newParent.parentNode, firstNodeParent = firstNode.parentNode;
+
+        // "If new parent's parent is null:"
+        if (!newParentParent) {
+            // "Insert new parent into the parent of the first member of node list
+            // immediately before the first member of node list."
+            firstNodeParent.insertBefore(newParent, firstNode);
+
+            // "If any range has a boundary point with node equal to the parent of
+            // new parent and offset equal to the index of new parent, add one to
+            // that boundary point's offset."
+
+            // Preserve only the ranges passed in
+            var newParentNodeIndex = dom.getNodeIndex(newParent);
+            for (i = 0; range = rangesToPreserve[i++]; ) {
+                if (range.startContainer == newParentParent && range.startOffset == newParentNodeIndex) {
+                    range.setStart(range.startContainer, range.startOffset + 1);
+                }
+                if (range.endContainer == newParentParent && range.endOffset == newParentNodeIndex) {
+                    range.setEnd(range.endContainer, range.endOffset + 1);
+                }
+            }
+        }
+
+        // "Let original parent be the parent of the first member of node list."
+
+        // "If new parent is before the first member of node list in tree order:"
+        if (isBefore(newParent, firstNode)) {
+            // "If new parent is not an inline node, but the last child of new
+            // parent and the first member of node list are both inline nodes, and
+            // the last child of new parent is not a br, call createElement("br")
+            // on the ownerDocument of new parent and append the result as the last
+            // child of new parent."
+            if (!isInlineNode(newParent) && isInlineNode(newParent.lastChild) && isInlineNode(firstNode)
+                    && !isHtmlElement(newParent.lastChild, "br")) {
+                newParent.appendChild(doc.createElement("br"));
+            }
+
+            // "For each node in node list, append node as the last child of new
+            // parent, preserving ranges."
+            for (i = 0, len = nodeList.length; i < len; ++i) {
+                movePreservingRanges(nodeList[i], newParent, -1, rangesToPreserve);
+            }
+
+        // "Otherwise:"
+        } else {
+            // "If new parent is not an inline node, but the first child of new
+            // parent and the last member of node list are both inline nodes, and
+            // the last member of node list is not a br, call createElement("br")
+            // on the ownerDocument of new parent and insert the result as the
+            // first child of new parent."
+            if (!isInlineNode(newParent) && isInlineNode(newParent.firstChild) && isInlineNode(lastNode)
+                    && !isHtmlElement(lastNode, "br")) {
+                newParent.insertBefore(doc.createElement("br"), newParent.firstChild);
+            }
+
+            // "For each node in node list, in reverse order, insert node as the
+            // first child of new parent, preserving ranges."
+            for (i = nodeList.length - 1; i >= 0; i--) {
+                movePreservingRanges(nodeList[i], newParent, 0, rangesToPreserve);
+            }
+        }
+
+        // "If original parent is editable and has no children, remove it from its
+        // parent."
+        if (isEditable(firstNodeParent, options) && !firstNodeParent.hasChildNodes()) {
+            firstNodeParent.parentNode.removeChild(firstNodeParent);
+        }
+
+        // "If new parent's nextSibling is editable and meets the sibling
+        // criteria:"
+        var newParentNextSibling = newParent.nextSibling;
+        if (isEditable(newParentNextSibling, options) && siblingCriteria(newParentNextSibling)) {
+            // "If new parent is not an inline node, but new parent's last child
+            // and new parent's nextSibling's first child are both inline nodes,
+            // and new parent's last child is not a br, call createElement("br") on
+            // the ownerDocument of new parent and append the result as the last
+            // child of new parent."
+            if (!isInlineNode(newParent) && isInlineNode(newParent.lastChild)
+                    && isInlineNode(newParentNextSibling.firstChild) && !isHtmlElement(newParent.lastChild, "br")) {
+                newParent.appendChild(doc.createElement("br"));
+            }
+
+            // "While new parent's nextSibling has children, append its first child
+            // as the last child of new parent, preserving ranges."
+            while (newParentNextSibling.hasChildNodes()) {
+                movePreservingRanges(newParentNextSibling.firstChild, newParent, -1, rangesToPreserve);
+            }
+
+            // "Remove new parent's nextSibling from its parent."
+            newParent.parentNode.removeChild(newParentNextSibling);
+        }
+
+        // "Remove extraneous line breaks from new parent."
+        removeExtraneousLineBreaksFrom(newParent);
+
+        // "Return new parent."
+        return newParent;
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    function Command() {}
+
+    Command.prototype = {
+        getSpecifiedValue: function() {
+            return null;
+        },
+
+        getEffectiveValue: function(element, context) {
+            return null;
+        },
+
+        createCssElement: null,
+        createNonCssElement: null,
+        styleCssElement: null,
+        hasSpecialSpanStyling: null,
+        styleSpanChildElement: null,
+        isSimpleModifiableElement: null,
+        defaultOptions: null,
+        addDefaultOptions: null,
+
+        valuesEqual: function(val1, val2) {
+            return val1 === val2;
+        },
+
+        createContext: function(value, rangesToPreserve, options) {
+            var defaultOptions = this.defaultOptions;
+            if (defaultOptions) {
+                for (var i in defaultOptions) {
+                    if (defaultOptions.hasOwnProperty(i) && !options.hasOwnProperty(i)) {
+                        options[i] = defaultOptions[i];
+                    }
+                }
+            }
+            return {
+                command: this,
+                value: value,
+                rangesToPreserve: rangesToPreserve || [],
+                options: options || {}
+            };
+        },
+
+        getSelectionValue: function(/*sel, context*/) {
+            return null;
+        },
+
+        getNewRangeValue: function(/*range, context*/) {
+            return null;
+        },
+
+        getNewSelectionValue: function(/*sel, context*/) {
+            return null;
+        },
+
+        applyToRange: function(doc, value, options, range) {
+            var context = this.createContext(value, [range], options);
+            context.value = this.getNewRangeValue(range, context);
+            this.applyValueToRange(range, context);
+        },
+
+        applyToSelection: function(doc, value, options) {
+            var win = dom.getWindow(doc);
+            var sel = api.getSelection(win);
+            var selRanges = sel.getAllRanges();
+            var context = this.createContext(value, selRanges, options);
+            context.value = this.getNewSelectionValue(sel, context);
+
+            for (var i = 0, len = selRanges.length; i < len; ++i) {
+                this.applyValueToRange(selRanges[i], context);
+            }
+
+            sel.setRanges(selRanges);
+        }
+    };
+
+    api.Command = Command;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    function SimpleInlineCommand() {}
+
+    SimpleInlineCommand.prototype = new Command();
+
+    api.util.extend(SimpleInlineCommand.prototype, {
+        getEffectiveValue: function(element) {
+            return getComputedStyleProperty(element, this.relevantCssProperty);
+        },
+
+        clearValue: function(element) {
+            element.style[this.relevantCssProperty] = "";
+            if (element.style.cssText == "") {
+                element.removeAttribute("style");
+            }
+        }
+    });
+
+    SimpleInlineCommand.create = function(commandConstructor, properties) {
+        var proto = new Command();
+        commandConstructor.prototype = proto;
+        api.util.extend(proto, properties);
+    };
+
+    api.SimpleInlineCommand = SimpleInlineCommand;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    var commandsByName = {};
+
+    api.registerCommand = function(name, command) {
+        if (!(command instanceof Command)) {
+            throw module.createError("Object supplied is not a Command");
+        }
+        commandsByName[name.toLowerCase()] = command;
+    };
+
+    function getCommand(name) {
+        var lowerName = name.toLowerCase();
+        if (commandsByName.hasOwnProperty(lowerName)) {
+            return commandsByName[lowerName];
+        } else {
+            throw module.createError("No command registered with the name '" + name + "'");
+        }
+    }
+
+    api.execCommand = function(name, options, range) {
+        options = options || {};
+        var doc = options.hasOwnProperty("document") ? options.document : document;
+        var value = options.hasOwnProperty("value") ? options.value : null;
+        var command = getCommand(name);
+        if (range) {
+            command.applyToRange(doc, value, options, range);
+        } else {
+            command.applyToSelection(doc, value, options);
+        }
+    };
+
+    api.queryCommandValue = function(name, options, range) {
+        options = options || {};
+        var win = options.hasOwnProperty("document") ? dom.getWindow(options.document) : window;
+        var value = options.hasOwnProperty("value") ? options.value : null;
+        var command = getCommand(name);
+        var sel = api.getSelection(win);
+        var context = command.createContext(value, null, options);
+
+        return command.getSelectionValue(sel, context);
+    };
+
+    api.getCommand = getCommand;
 });
