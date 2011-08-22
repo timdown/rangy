@@ -1044,7 +1044,7 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             collapseToPoint: function(node, offset) {
-                assertRangeValid(this);
+                assertNotDetached(this);
 
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
