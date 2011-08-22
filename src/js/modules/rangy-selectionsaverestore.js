@@ -37,6 +37,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         markerEl.id = markerId;
         markerEl.style.lineHeight = "0";
         markerEl.style.display = "none";
+        markerEl.className = "rangySelectionBoundary";
         markerEl.appendChild(doc.createTextNode(markerTextChar));
 
         boundaryRange.insertNode(markerEl);
