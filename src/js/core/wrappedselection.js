@@ -271,6 +271,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var getSelectionRangeAt;
 
     if (util.isHostMethod(testSelection,  "getRangeAt")) {
+        // TODO: Why the try/catch? Find out.
         getSelectionRangeAt = function(sel, index) {
             try {
                 return sel.getRangeAt(index);

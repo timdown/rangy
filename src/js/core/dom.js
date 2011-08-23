@@ -18,6 +18,11 @@ rangy.createModule("DomUtil", function(api, module) {
         module.fail("Incomplete Element implementation");
     }
 
+    // innerHTML is required for Range's createContextualFragment method
+    if (!util.isHostProperty(el, "innerHTML")) {
+        module.fail("Element is missing innerHTML property");
+    }
+
     var textNode = document.createTextNode("test");
     if (!util.areHostMethods(textNode, ["splitText", "deleteData", "insertData", "appendData", "cloneNode"] ||
             !util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]) ||
@@ -44,6 +49,17 @@ rangy.createModule("DomUtil", function(api, module) {
             }
             return false;
         };
+
+    // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
+    function isHtmlNamespace(node) {
+        var ns;
+        return typeof node.namespaceURI == UNDEF || ((ns = node.namespaceURI) === null || ns == "http://www.w3.org/1999/xhtml");
+    }
+
+    function parentElement(node) {
+        var parent = node.parentNode;
+        return (parent.nodeType == 1) ? parent : null;
+    }
 
     function getNodeIndex(node) {
         var i = 0;
@@ -233,6 +249,14 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
+    function fragmentFromNodeChildren(node) {
+        var fragment = getDocument(node).createDocumentFragment(), child;
+        while ( (child = node.firstChild) ) {
+            fragment.appendChild(child);
+        }
+        return fragment;
+    }
+
     /**
      * @constructor
      */
@@ -318,6 +342,8 @@ rangy.createModule("DomUtil", function(api, module) {
 
     api.dom = {
         arrayContains: arrayContains,
+        isHtmlNamespace: isHtmlNamespace,
+        parentElement: parentElement,
         getNodeIndex: getNodeIndex,
         getNodeLength: getNodeLength,
         getCommonAncestor: getCommonAncestor,
@@ -334,6 +360,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getRootContainer: getRootContainer,
         comparePoints: comparePoints,
         inspectNode: inspectNode,
+        fragmentFromNodeChildren: fragmentFromNodeChildren,
         createIterator: createIterator,
         DomPosition: DomPosition
     };

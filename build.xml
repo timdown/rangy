@@ -80,7 +80,7 @@
         </antcall>
     </target>
 
-      <target name="build.module.js">
+    <target name="build.module.js">
         <!-- Params: module.js.file -->
 
         <copy file="${svn.checkout.js.modules.dir}/${module.js.file}" todir="${build.uncompressed.js.dir}"/>
@@ -89,6 +89,18 @@
             <param name="js.file" value="${module.js.file}"/>
             <param name="uncompressed.dir" value="${build.uncompressed.js.dir}"/>
             <param name="compressed.dir" value="${build.compressed.js.dir}"/>
+        </antcall>
+    </target>
+
+    <target name="build.noncore.module.js">
+        <!-- Params: module.js.file -->
+
+        <copy file="${svn.checkout.js.modules.dir}/${module.js.file}" todir="${build.dir}"/>
+
+        <antcall target="build.js.file" inheritall="true">
+            <param name="js.file" value="${module.js.file}"/>
+            <param name="uncompressed.dir" value="${build.dir}"/>
+            <param name="compressed.dir" value="${build.dir}"/>
         </antcall>
     </target>
 
@@ -128,5 +140,9 @@
         <delete file="${build.dir}/rangy-${build.version}.tar"/>
     </target>
 
-    <target name="build" description="Full build" depends="build.core.js, build.modules, build.zip, build.tar.gz"/>
+    <target name="build" description="Full build" depends="build.core.js, build.modules, build.zip, build.tar.gz">
+        <antcall target="build.noncore.module.js" inheritall="true">
+            <param name="module.js.file" value="rangy-position.js"/>
+        </antcall>
+    </target>
 </project>

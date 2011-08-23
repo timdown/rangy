@@ -899,6 +899,40 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             });
         }
 
+        if (testRange.createContextualFragment) {
+            s.test("createContextualFragment create b fragment in xmp", function(t) {
+                var range = rangeCreator(doc);
+                var el = doc.createElement("xmp");
+                var textNode =  doc.createTextNode("foo");
+                el.appendChild(textNode);
+                doc.body.appendChild(el);
+
+                range.setStart(textNode, 1);
+                range.setEnd(textNode, 2);
+                var frag = range.createContextualFragment("<b>abc</b>");
+                var nodeType = frag.firstChild.nodeType;
+                doc.body.removeChild(el);
+
+                t.assertEquals(nodeType, 3);
+            });
+
+            s.test("createContextualFragment create b fragment in div", function(t) {
+                var range = rangeCreator(doc);
+                var el = doc.createElement("div");
+                var textNode =  doc.createTextNode("foo");
+                el.appendChild(textNode);
+                doc.body.appendChild(el);
+
+                range.setStart(textNode, 1);
+                range.setEnd(textNode, 2);
+                var frag = range.createContextualFragment("<b>abc</b>");
+                var nodeType = frag.firstChild.nodeType;
+                doc.body.removeChild(el);
+
+                t.assertEquals(nodeType, 1);
+            });
+        }
+
         testRange.detach();
     }, false);
 }
