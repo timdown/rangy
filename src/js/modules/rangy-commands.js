@@ -1482,7 +1482,7 @@ rangy.createModule("Commands", function(api, module) {
 
     api.registerCommand = function(name, command) {
         if (!(command instanceof Command)) {
-            throw module.createError("Object supplied is not a Command");
+            throw module.createError("registerCommand(): Object supplied is not a Command");
         }
         commandsByName[name.toLowerCase()] = command;
     };
@@ -1492,7 +1492,7 @@ rangy.createModule("Commands", function(api, module) {
         if (commandsByName.hasOwnProperty(lowerName)) {
             return commandsByName[lowerName];
         } else {
-            throw module.createError("No command registered with the name '" + name + "'");
+            throw module.createError("getCommand(): No command registered with the name '" + name + "'");
         }
     }
 

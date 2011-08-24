@@ -1,0 +1,21 @@
+1.3
+---
+
+- [X] createContextualFragment improvement
+- [X] Allow Window, Document, iframe and DOM node as params to range/selection creation methods
+- [ ] Commands module with basic inline commands (bold, italic, colour, font face, font size, background colour, etc.)
+      (http://stackoverflow.com/questions/2887101/apply-style-to-range-of-text-with-javascript-in-uiwebview/2888969#2888969)
+- [X] Positions module
+      (http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495)
+- [ ] Simple selection save/restore (bookmark?) (is this necessary?)
+- [ ] Insert HTML
+      (http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514)
+- [X] Add rangy.features.implementsWinGetSelection and rangy.features.implementsDocSelection
+
+1.4
+---
+
+- [ ] TextRange module
+      (http://groups.google.com/group/rangy/browse_frm/thread/bd7a351e63a16474)
+- [ ] More commands (block? Insert line break? Think about this, don't want to build a WYSIWYG editor)
+- [ ] Some kind of jQuery integration module?

@@ -217,7 +217,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         var splitAtStart = (descendantOffset == 0);
 
         if (dom.isAncestorOf(descendantNode, node)) {
-            throw module.createError("descendant is ancestor of node");
+            throw module.createError("splitNodeAt(): Descendant is ancestor of node");
         }
 
         if (dom.isCharacterDataNode(descendantNode)) {
@@ -228,7 +228,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 descendantOffset = dom.getNodeIndex(descendantNode) + 1;
                 descendantNode = descendantNode.parentNode;
             } else {
-                throw module.createError("splitNodeAt should not be called with offset in the middle of a data node ("
+                throw module.createError("splitNodeAt() should not be called with offset in the middle of a data node ("
                     + descendantOffset + " in " + descendantNode.data);
             }
         }
@@ -576,7 +576,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         applyToSelection: function(win) {
             log.group("applyToSelection");
-            win = win || window;
             var sel = api.getSelection(win);
             log.info("applyToSelection " + sel.inspect());
             var range, ranges = sel.getAllRanges();
@@ -619,7 +618,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         undoToSelection: function(win) {
-            win = win || window;
             var sel = api.getSelection(win);
             var ranges = sel.getAllRanges(), range;
             sel.removeAllRanges();
@@ -657,7 +655,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isAppliedToSelection: function(win) {
-            win = win || window;
             var sel = api.getSelection(win);
             var ranges = sel.getAllRanges();
             var i = ranges.length;

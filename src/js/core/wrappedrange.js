@@ -6,10 +6,19 @@ rangy.createModule("WrappedRange", function(api, module) {
      */
     var WrappedRange;
     var dom = api.dom;
+    var util = api.util;
     var DomPosition = dom.DomPosition;
     var DomRange = api.DomRange;
 
     var log = log4javascript.getLogger("rangy.WrappedRange");
+
+    function getDocument(doc, methodName) {
+        doc = dom.getContentDocument(doc);
+        if (!doc) {
+            throw module.createError(methodName + "(): " + "Parameter must be a Document or other DOM node, or a Window object");
+        }
+        return doc;
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -255,7 +264,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             WrappedRange = function(range) {
                 if (!range) {
-                    throw new Error("Range must be specified");
+                    throw module.createError("WrappedRange: Range must be specified");
                 }
                 this.nativeRange = range;
                 updateRangeProperties(this);
@@ -450,7 +459,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             /*--------------------------------------------------------------------------------------------------------*/
 
             // Test for existence of createContextualFragment and delegate to it if it exists
-            if (api.util.isHostMethod(range, "createContextualFragment")) {
+            if (util.isHostMethod(range, "createContextualFragment")) {
                 rangeProto.createContextualFragment = function(fragmentStr) {
                     return this.nativeRange.createContextualFragment(fragmentStr);
                 };
@@ -465,7 +474,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         })();
 
         api.createNativeRange = function(doc) {
-            doc = doc || document;
+            doc = getDocument(doc, "createNativeRange");
             return doc.createRange();
         };
     } else if (api.features.implementsTextRange) {
@@ -506,7 +515,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         }
 
         api.createNativeRange = function(doc) {
-            doc = doc || document;
+            doc = getDocument(doc, "createNativeRange");
             return doc.body.createTextRange();
         };
     }
@@ -539,20 +548,22 @@ rangy.createModule("WrappedRange", function(api, module) {
     api.WrappedRange = WrappedRange;
 
     api.createRange = function(doc) {
-        doc = doc || document;
+        doc = getDocument(doc, "createRange");
         return new WrappedRange(api.createNativeRange(doc));
     };
 
     api.createRangyRange = function(doc) {
-        doc = doc || document;
+        doc = getDocument(doc, "createRangyRange");
         return new DomRange(doc);
     };
 
     api.createIframeRange = function(iframeEl) {
+        module.deprecationNotice("createIframeRange()", "createRange(iframeEl)");
         return api.createRange(dom.getIframeDocument(iframeEl));
     };
 
     api.createIframeRangyRange = function(iframeEl) {
+        module.deprecationNotice("createIframeRangyRange()", "createRangyRange(iframeEl)");
         return api.createRangyRange(dom.getIframeDocument(iframeEl));
     };
 

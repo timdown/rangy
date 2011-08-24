@@ -20,12 +20,28 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
 
+    function getWindow(win, methodName) {
+        if (!win) {
+            return window;
+        } else if (dom.isWindow(win)) {
+            return win;
+        } else if (win instanceof WrappedSelection) {
+            return win.win;
+        } else {
+            var doc = dom.getContentDocument(win);
+            if (!doc) {
+                throw module.createError(methodName + "(): " + "Parameter must be a Window object or DOM node");
+            }
+            return dom.getWindow(doc);
+        }
+    }
+
     function getWinSelection(winParam) {
-        return (winParam || window).getSelection();
+        return getWindow(winParam, "getWinSelection").getSelection();
     }
 
     function getDocSelection(winParam) {
-        return (winParam || window).document.selection;
+        return getWindow(winParam, "getDocSelection").document.selection;
     }
 
     // Test for the Range/TextRange and Selection features required
@@ -33,12 +49,15 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var implementsWinGetSelection = api.util.isHostMethod(window, "getSelection"),
         implementsDocSelection = api.util.isHostObject(document, "selection");
 
+    api.features.implementsWinGetSelection = implementsWinGetSelection;
+    api.features.implementsDocSelection = implementsDocSelection;
+
     var useDocumentSelection = implementsDocSelection && (!implementsWinGetSelection || api.config.preferTextRange);
 
     if (useDocumentSelection) {
         getSelection = getDocSelection;
         api.isSelectionValid = function(winParam) {
-            var doc = (winParam || window).document, nativeSel = doc.selection;
+            var doc = getWindow(winParam, "isSelectionValid").document, nativeSel = doc.selection;
 
             // Check whether the selection TextRange is actually contained within the correct document
             return (nativeSel.type != "None" || dom.getDocument(nativeSel.createRange().parentElement()) == doc);
@@ -201,7 +220,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     function getSingleElementFromRange(range) {
         var nodes = range.getNodes();
         if (!rangeContainsSingleElement(nodes)) {
-            throw new Error("getSingleElementFromRange: range " + range.inspect() + " did not consist of a single element");
+            throw module.createError("getSingleElementFromRange: range " + range.inspect() + " did not consist of a single element");
         }
         return nodes[0];
     }
@@ -260,7 +279,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         try {
             newControlRange.add(rangeElement);
         } catch (ex) {
-            throw new Error("addRange(): Element within the specified Range could not be added to control selection (does it have layout?)");
+            throw module.createError("addRange(): Element within the specified Range could not be added to control selection (does it have layout?)");
         }
         newControlRange.select();
 
@@ -309,13 +328,20 @@ rangy.createModule("WrappedSelection", function(api, module) {
     }
 
     api.getSelection = function(win) {
-        win = win || window;
+        // Check if the paraemter is a Rangy Selection object
+        if (win && win instanceof WrappedSelection) {
+            win.refresh();
+            return win;
+        }
+
+        win = getWindow(win, "getSelection");
+
         var sel = win[windowPropertyName];
         var nativeSel = getSelection(win), docSel = implementsDocSelection ? getDocSelection(win) : null;
         if (sel) {
             sel.nativeSelection = nativeSel;
             sel.docSelection = docSel;
-            sel.refresh(win);
+            sel.refresh();
         } else {
             sel = new WrappedSelection(nativeSel, docSel, win);
             win[windowPropertyName] = sel;
@@ -324,6 +350,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     api.getIframeSelection = function(iframeEl) {
+        module.deprecationNotice("getIframeSelection()", "getSelection(iframeEl)");
         return api.getSelection(dom.getIframeWindow(iframeEl));
     };
 
@@ -338,7 +365,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             try {
                 controlRange.add(el);
             } catch (ex) {
-                throw new Error("setRanges(): Element within the one of the specified Ranges could not be added to control selection (does it have layout?)");
+                throw module.createError("setRanges(): Element within the one of the specified Ranges could not be added to control selection (does it have layout?)");
             }
         }
         controlRange.select();
@@ -782,7 +809,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     api.addCreateMissingNativeApiListener(function(win) {
         if (typeof win.getSelection == "undefined") {
             win.getSelection = function() {
-                return api.getSelection(this);
+                return api.getSelection(win);
             };
         }
         win = null;

@@ -589,11 +589,12 @@ xn.test.suite("getIframeSelection test", function(s) {
     });
 });
 
+var iframeEl;
 xn.addEventListener(window, "load", function() {
     // Do it in an iframe
-    var iframe = document.body.appendChild(document.createElement("iframe"));
-    var win = iframe.contentWindow;
-    var doc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeEl = document.body.appendChild(document.createElement("iframe"));
+    var win = iframeEl.contentWindow;
+    var doc = iframeEl.contentDocument || iframeEl.contentWindow.document;
     doc.open();
     doc.write("<html><head><title>Rangy Selection Test</title></head><body>Content</body></html>");
     doc.close();
@@ -601,10 +602,62 @@ xn.addEventListener(window, "load", function() {
     iframeWin[0] = win;
 });
 
-xn.test.suite("Selection prototype extension", function(s) {
+xn.test.suite("Miscellaneous selection tests", function(s) {
     s.test("Selection prototype extension", function(t) {
         rangy.selectionPrototype.fooBar = "test";
 
         t.assertEquals(rangy.getSelection().fooBar, "test");
+    });
+
+    s.test("getSelection() parameter tests", function(t) {
+        var sel = rangy.getSelection();
+        t.assertEquals(sel.win, window);
+
+        sel = rangy.getSelection(window);
+        t.assertEquals(sel.win, window);
+
+        sel = rangy.getSelection(document);
+        t.assertEquals(sel.win, window);
+
+        sel = rangy.getSelection(document.body);
+        t.assertEquals(sel.win, window);
+
+        sel = rangy.getSelection(document.firstChild);
+        t.assertEquals(sel.win, window);
+
+        sel = rangy.getSelection(sel);
+        t.assertEquals(sel.win, window);
+
+        t.assertError(function() {
+            sel = rangy.getSelection({});
+        });
+
+        if (rangy.features.implementsWinGetSelection) {
+            t.assertError(function() {
+                sel = rangy.getSelection(window.getSelection());
+            });
+        }
+    });
+
+    s.test("iframe createRange() parameter tests", function(t) {
+        var win = rangy.dom.getIframeWindow(iframeEl);
+
+        var sel = rangy.getSelection(iframeEl);
+        t.assertEquals(sel.win, win);
+
+        sel = rangy.getSelection(win);
+        t.assertEquals(sel.win, win);
+
+        sel = rangy.getSelection(win.document);
+        t.assertEquals(sel.win, win);
+
+        sel = rangy.getSelection(win.document.body);
+        t.assertEquals(sel.win, win);
+
+        sel = rangy.getSelection(win.document.firstChild);
+        t.assertEquals(sel.win, win);
+
+        sel = rangy.getSelection(sel);
+        t.assertEquals(sel.win, win);
     });
 }, false);

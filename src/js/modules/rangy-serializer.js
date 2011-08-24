@@ -146,7 +146,7 @@ rangy.createModule("Serializer", function(api, module) {
             if (nodeIndex < node.childNodes.length) {
                 node = node.childNodes[parseInt(nodeIndices[i], 10)];
             } else {
-                throw module.createError("deserializePosition failed: node " + dom.inspectNode(node) +
+                throw module.createError("deserializePosition() failed: node " + dom.inspectNode(node) +
                         " has no child with index " + nodeIndex + ", " + i);
             }
         }
@@ -157,7 +157,7 @@ rangy.createModule("Serializer", function(api, module) {
     function serializeRange(range, omitChecksum, rootNode) {
         rootNode = rootNode || api.DomRange.getRangeDocument(range).documentElement;
         if (!dom.isAncestorOf(rootNode, range.commonAncestorContainer, true)) {
-            throw new Error("serializeRange: range is not wholly contained within specified root node");
+            throw module.createError("serializeRange(): range is not wholly contained within specified root node");
         }
         var serialized = serializePosition(range.startContainer, range.startOffset, rootNode) + "," +
             serializePosition(range.endContainer, range.endOffset, rootNode);
@@ -177,7 +177,7 @@ rangy.createModule("Serializer", function(api, module) {
         var result = /^([^,]+),([^,\{]+)({([^}]+)})?$/.exec(serialized);
         var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
         if (checksum && checksum !== getElementChecksum(rootNode)) {
-            throw new Error("deserializeRange: checksums of serialized range root node (" + checksum +
+            throw module.createError("deserializeRange(): checksums of serialized range root node (" + checksum +
                     ") and target root node (" + rootNodeChecksum + ") do not match");
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
@@ -200,7 +200,7 @@ rangy.createModule("Serializer", function(api, module) {
     }
 
     function serializeSelection(selection, omitChecksum, rootNode) {
-        selection = selection || api.getSelection();
+        selection = api.getSelection(selection);
         var ranges = selection.getAllRanges(), serializedRanges = [];
         for (var i = 0, len = ranges.length; i < len; ++i) {
             serializedRanges[i] = serializeRange(ranges[i], omitChecksum, rootNode);

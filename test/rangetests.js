@@ -1254,10 +1254,12 @@ if (hasNativeDomRange) {
     testRangeCreator(iframeDoc, "iframe", createNativeDomRange, "native Range");
 }
 
+var iframeEl;
+
 xn.addEventListener(window, "load", function() {
     // Do it in an iframe
-    var iframe = document.body.appendChild(document.createElement("iframe"));
-    var doc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeEl = document.body.appendChild(document.createElement("iframe"));
+    var doc = iframeEl.contentDocument || iframeEl.contentWindow.document;
     doc.open();
     doc.write("<html><head><title>Rangy Test</title></head><body>Content</body></html>");
     doc.close();
@@ -1271,12 +1273,58 @@ if (hasNativeDomRange) {
     testAcid3(createNativeDomRange, "native Range");
 }
 
-xn.test.suite("Range prototype extension", function(s) {
+xn.test.suite("Range miscellaneous", function(s) {
     s.test("Range prototype extension", function(t) {
         rangy.rangePrototype.fooBar = "test";
 
         t.assertEquals(rangy.createRange().fooBar, "test");
         t.assertEquals(rangy.createRangyRange().fooBar, "test");
+    });
 
+    function testRangeDoc(t, range, doc) {
+        t.assertEquals(rangy.dom.getDocument(range.startContainer), doc);
+    }
+
+    s.test("createRange() parameter tests", function(t) {
+        var range = rangy.createRange();
+        testRangeDoc(t, range, document);
+
+        range = rangy.createRange(document);
+        testRangeDoc(t, range, document);
+
+        range = rangy.createRange(window);
+        testRangeDoc(t, range, document);
+
+        range = rangy.createRange(document.body);
+        testRangeDoc(t, range, document);
+
+        range = rangy.createRange(document.firstChild);
+        testRangeDoc(t, range, document);
+
+        t.assertError(function() {
+            range = rangy.createRange({});
+        });
+    });
+
+    s.test("iframe createRange() parameter tests", function(t) {
+        var doc = rangy.dom.getIframeDocument(iframeEl);
+
+        var range = rangy.createRange(doc);
+        testRangeDoc(t, range, doc);
+
+        range = rangy.createRange(rangy.dom.getIframeWindow(iframeEl));
+        testRangeDoc(t, range, doc);
+
+        range = rangy.createRange(iframeEl);
+        testRangeDoc(t, range, doc);
+
+        range = rangy.createRange(doc.body);
+        testRangeDoc(t, range, doc);
+
+        range = rangy.createRange(doc.firstChild);
+        testRangeDoc(t, range, doc);
+
+        range = rangy.createRange(iframeEl.parentNode);
+        testRangeDoc(t, range, document);
     });
 }, false);

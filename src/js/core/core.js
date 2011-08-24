@@ -150,7 +150,7 @@ window['rangy'] = (function() {
         }
 
         if (!implementsDomRange && !implementsTextRange) {
-            fail("Neither Range nor TextRange are implemented");
+            fail("Neither Range nor TextRange are available");
         }
 
         api.initialized = true;
@@ -221,6 +221,11 @@ window['rangy'] = (function() {
 
     Module.prototype.warn = function(msg) {
         api.warn("Module " + this.name + ": " + msg);
+    };
+
+    Module.prototype.deprecationNotice = function(deprecated, replacement) {
+        api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use "
+            + replacement + " instead");
     };
 
     Module.prototype.createError = function(msg) {

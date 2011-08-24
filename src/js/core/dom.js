@@ -147,7 +147,7 @@ rangy.createModule("DomUtil", function(api, module) {
         } else if (node.parentNode) {
             return getDocument(node.parentNode);
         } else {
-            throw new Error("getDocument: no document found for node");
+            throw module.createError("getDocument: no document found for node");
         }
     }
 
@@ -158,7 +158,7 @@ rangy.createModule("DomUtil", function(api, module) {
         } else if (typeof doc.parentWindow != UNDEF) {
             return doc.parentWindow;
         } else {
-            throw new Error("Cannot get a window object for node");
+            throw module.createError("Cannot get a window object for node");
         }
     }
 
@@ -168,7 +168,7 @@ rangy.createModule("DomUtil", function(api, module) {
         } else if (typeof iframeEl.contentWindow != UNDEF) {
             return iframeEl.contentWindow.document;
         } else {
-            throw new Error("getIframeWindow: No Document object found for iframe element");
+            throw module.createError("getIframeDocument: No Document object found for iframe element");
         }
     }
 
@@ -178,12 +178,37 @@ rangy.createModule("DomUtil", function(api, module) {
         } else if (typeof iframeEl.contentDocument != UNDEF) {
             return iframeEl.contentDocument.defaultView;
         } else {
-            throw new Error("getIframeWindow: No Window object found for iframe element");
+            throw module.createError("getIframeWindow: No Window object found for iframe element");
         }
     }
 
     function getBody(doc) {
         return util.isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
+    }
+
+    function isWindow(obj) {
+        return obj && util.isHostMethod(obj, "setTimeout") && util.isHostObject(obj, "document");
+    }
+
+    function getContentDocument(obj) {
+        var doc;
+
+        if (!obj) {
+            doc = document;
+        }
+
+        // Test if a DOM node has been passed and obtain a document object for it if so
+        else if (util.isHostProperty(obj, "nodeType")) {
+            doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe")
+                ? getIframeDocument(obj) : getDocument(obj);
+        }
+
+        // Test if the doc parameter appears to be a Window object
+        else if (isWindow(obj)) {
+            doc = obj.document;
+        }
+
+        return doc;
     }
 
     function getRootContainer(node) {
@@ -219,7 +244,7 @@ rangy.createModule("DomUtil", function(api, module) {
             if (childA === childB) {
                 // This shouldn't be possible
                 log.warn("comparePoints got to case 4 and childA and childB are the same!", nodeA, offsetA, nodeB, offsetB);
-                throw new Error("comparePoints got to case 4 and childA and childB are the same!");
+                throw module.createError("comparePoints got to case 4 and childA and childB are the same!");
             } else {
                 n = root.firstChild;
                 while (n) {
@@ -230,7 +255,6 @@ rangy.createModule("DomUtil", function(api, module) {
                     }
                     n = n.nextSibling;
                 }
-                throw new Error("Should not be here!");
             }
         }
     }
@@ -357,6 +381,8 @@ rangy.createModule("DomUtil", function(api, module) {
         getIframeWindow: getIframeWindow,
         getIframeDocument: getIframeDocument,
         getBody: getBody,
+        isWindow: isWindow,
+        getContentDocument: getContentDocument,
         getRootContainer: getRootContainer,
         comparePoints: comparePoints,
         inspectNode: inspectNode,
