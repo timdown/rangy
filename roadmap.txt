@@ -11,6 +11,10 @@
 - [ ] Insert HTML
       (http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514)
 - [X] Add rangy.features.implementsWinGetSelection and rangy.features.implementsDocSelection
+- [ ] Add selection extend()
+- [ ] Check Range and Selection against WHATWG Range spec algorithms
+- [ ] Add Range setStartAndEnd(). Overloaded? eg. two args collapsed, three args (node, startOffset, endOffset),
+      four args (startNode, startOffset, endNode, endOffset) (consider this)
 
 1.4
 ---
