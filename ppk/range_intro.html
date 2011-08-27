@@ -1,0 +1,399 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en"><head>
+<title>Introduction to Range</title>
+<link rel="stylesheet" href="range_intro_files/quirksmode.css">
+<link rel="up" href="http://www.quirksmode.org/dom/contents.html">
+<link rel="intro" href="http://www.quirksmode.org/dom/intro.html">
+<link rel="core" href="http://www.quirksmode.org/dom/w3c_core.html">
+<link rel="html" href="http://www.quirksmode.org/dom/w3c_html.html">
+<link rel="events" href="http://www.quirksmode.org/dom/w3c_events.html">
+<script type="text/javascript" src="range_intro_files/quirksmode.js"></script><style>body {padding-top: 161px;}</style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style type="text/css">
+.userSelection {
+	background:#6374AB;
+	color:#fff;
+}
+</style>
+</head>
+
+
+<body><p id="lastModPar">Page last changed <span id="lastMod">4 years ago</span></p><div class="pageHeader"><img src="range_intro_files/header_swoosh.gif" alt="">
+
+<div class="specialMessage">
+	<a href="http://mobilism.nl/workshops">Mobilism workshops: Amsterdam, Frankfurt, Manchester, Brighton</a>
+</div>
+
+<div class="mainNav">
+	<a href="http://www.quirksmode.org/js/contents.html">JavaScript archives</a>
+	<a href="http://www.quirksmode.org/compatibility.html">Compatibility</a>
+	<a href="http://www.quirksmode.org/blog/">QuirksBlog</a>
+	<a href="http://www.quirksmode.org/donations.html">Donations</a>
+	<a href="http://www.quirksmode.org/mobile/">Mobile</a>
+	<a href="http://www.quirksmode.org/about/">About</a>
+</div>
+
+<a class="logoQuirksmode" href="http://www.quirksmode.org/" title="Home"><img src="range_intro_files/logo_quirksmode.gif" alt="QuirksMode"></a>
+
+
+<div class="extraInfo">
+	<img class="logoPPK" src="range_intro_files/logo_ppk.gif" alt="PPK">
+	<a href="http://www.quirksmode.org/sitemap.html">sitemap</a><a href="http://www.quirksmode.org/contact.html" class="rightExtraLink">contact</a>
+	<form action="http://www.google.com/search" method="get" title="Uses Google" id="mainSearch">
+		<input name="q" id="searchTop" value="Search QuirksMode.org">
+		<input id="searchSubmit" value="Search" type="submit">
+	</form>
+</div>
+
+<!--[if lte IE 6]>
+  <p class="ie6"><strong>IE6?</strong> Really? Isn&#8217;t it time to <a href="/upgrade.html">upgrade to a better browser</a>? 
+  (Unless you&#8217;re here for testing purposes, of course.)</p>
+<![endif]-->
+</div>
+
+
+<h2 id="top">Introduction to Range</h2>
+
+<div style="top: 10px; left: 0px;" id="header"><div id="TOC"><div id="innertoc"><span id="contentheader">show page contents</span><div><a href="#top" class="page">Top</a><a href="#link1" class="page">What is a Range?</a><a href="#link2" class="page">Browser compatibility - overview</a><a href="#link3" class="page">Accessing the user selection</a><a href="#link4" class="page">The contents of <code>userSelection</code></a><a href="#link5" class="page">Creating a Range object from a Selection object</a><a href="#link6" class="page indent">Programmatically creating a Range</a><a href="#link7" class="page indent">Reading out start and end of a Selection</a><a href="#link8" class="page">Continue (later)</a></div></div></div>
+<div id="siteNav">
+	<!-- span id="menuLink">show site navigation</span -->
+	<p id="waitMessageNav">Loading site navigation; please wait...</p>
+</div></div>
+
+<div class="floater">
+<p>See also the <a href="http://www.quirksmode.org/dom/w3c_range.html">Range Compatibility Table</a>.</p>
+</div>
+
+<p class="intro">This page gives an introduction to the Range objects. Using these, you can select any part of an
+HTML document and do something with this information. The most common Range is a user selection.</p>
+
+<p>This page concentrates on getting the user selection and converting this selection to a W3C Range or Microsoft Text
+Range object, although we'll treat the programmatic creation of Range objects, too.</p>
+
+<h3 id="link1">What is a Range?</h3>
+
+<p>A Range is an arbitrary part of the content of an HTML document. A Range can start and end at any point, and the start
+and end point may even be the same (in which case you have an empty Range). The most common Range is a user
+text selection. As soon as the user has selected (part of) the text on an HTML page, you can convert this selection
+to a Range. However, you can also define Ranges programmatically.</p>
+
+<p>Let's take this bit of HTML from my linklog as an example. Suppose the user selects a bit of text:</p>
+
+<pre style="margin-right: -709px;">&lt;h4 id="entry1196"&gt;&lt;a
+	href="http://radar.oreilly.com/archives/2007/03/call_for_a_blog_1.html"
+	class="external"&gt;Call for a Blogger's Code of Conduct&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;Tim O'Reilly <span class="userSelection">calls for a Blogger Code of Cond</span>uct. His proposals are:&lt;/p&gt;
+
+&lt;ol&gt;
+	&lt;li&gt;Take responsibility not just for your own words, but for the
+		comments you allow on your blog.&lt;/li&gt;
+	&lt;li&gt;Label your tolerance level for abusive comments.&lt;/li&gt;
+	&lt;li&gt;Consider eliminating anonymous comments.&lt;/li&gt;
+&lt;/ol&gt;
+</pre>
+
+<p>You can convert this user selection to a Range object (details below), which contains the bit of text the user has selected.
+Through the Range object you can find the start and end point of this Range, and if you so desire you can copy or delete it,
+or substitute it by another text, or even a bit of HTML.</p>
+
+<p>This is about the simplest Range object you can get, because it only contains text. Let's move to a more complicated
+example, where the user-generated Range spans several HTML elements:</p>
+
+<pre style="margin-right: -709px;">&lt;h4 id="entry1196"&gt;&lt;a
+	href="http://radar.oreilly.com/archives/2007/03/call_for_a_blog_1.html"
+	class="external"&gt;Call for a Blogger's Code of Conduct&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;Tim O'Reilly <span class="userSelection">calls for a Blogger Code of Conduct. His proposals are:&lt;/p&gt;
+
+&lt;ol&gt;
+	&lt;li&gt;Take responsibility not just for your own words, but for the
+		comments you allow on your blog.&lt;/li&gt;
+	&lt;li&gt;Label your toleran</span>ce level for abusive comments.&lt;/li&gt;
+	&lt;li&gt;Consider eliminating anonymous comments.&lt;/li&gt;
+&lt;/ol&gt;
+</pre>
+
+<p>Again, a Range object is created, one that contains HTML. The problem is that the user selection (and thus
+the Range) crosses a few boundaries from one HTML element to the next. Without more action, it would look like this:</p>
+
+<pre style="margin-right: -709px;">calls for a Blogger Code of Conduct. His proposals are:&lt;/p&gt;
+
+&lt;ol&gt;
+	&lt;li&gt;Take responsibility not just for your own words, but for the
+		comments you allow on your blog.&lt;/li&gt;
+	&lt;li&gt;Label your toleran
+</pre>
+
+<p>This is violently invalid HTML. Fortunately all browsers intervene: they adjust the HTML so that the snippet
+becomes valid:</p>
+
+<pre style="margin-right: -709px;"><strong>&lt;p&gt;</strong>calls for a Blogger Code of Conduct. His proposals are:&lt;/p&gt;
+
+&lt;ol&gt;
+	&lt;li&gt;Take responsibility not just for your own words, but for the
+		comments you allow on your blog.&lt;/li&gt;
+	&lt;li&gt;Label your toleran<strong>&lt;/li&gt;&lt;/ol&gt;</strong>
+</pre>
+
+<p>As you see, the browsers add the minimum amount of HTML to make the Range valid. If you copy or move the Range,
+you copy or move this valid HTML snippet.</p>
+
+<h3 id="link2">Browser compatibility - overview</h3>
+
+<p>Before continuing we have to have an overview of the rather severe browser incompatibilities in this
+part of JavaScript. The main problem is that there are no less than three Range-like objects, and you have
+to understand them all.</p>
+
+<table class="compatibility" cellspacing="7">
+
+<tbody><tr class="compheader">
+	<th>Module</th>
+	<th>Explorer 6/7</th>
+	<th>Firefox 2</th>
+	<th>Safari 1.3</th>
+	<th>Opera 9</th>
+</tr>
+
+<!-- W3C -->
+
+<tr>
+	<td id="t00" class="declaration" rowspan="2">
+		<div class="name">W3C Range</div>
+		<a href="http://www.w3.org/TR/2000/REC-DOM-Level-2-Traversal-Range-20001113/ranges.html" class="external">Specification</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">The W3C Range object is the only officially specified one. In the main it treats the Range as a
+	document fragment that contains a DOM tree.</td>
+</tr>
+
+<!-- Mozilla -->
+
+<tr>
+	<td id="t01" class="declaration" rowspan="2">
+		<div class="name">Mozilla Selection</div>
+		<a href="http://developer.mozilla.org/en/docs/DOM:range" class="external">Specification</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp incomplete">Incomplete</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">The Mozilla Selection object is a bit of a leftover. It is there to provide backward compatibility
+	with Netscape 4. (One is left to wonder why we need that at all.) It resembles the W3C Range object and is also
+	DOM tree-based.</td>
+</tr>
+
+<!-- Microsoft -->
+
+<tr>
+	<td id="t02" class="declaration" rowspan="2">
+		<div class="name">Microsoft Text Range</div>
+		<a href="http://msdn2.microsoft.com/en-us/library/ms535872.aspx" class="external">Specification</a>
+	</td>
+	<td title="Explorer 6/7" class="comp yes">Yes</td>
+	<td title="Firefox 2" class="comp no">No</td>
+	<td title="Safari 1.3" class="comp no">No</td>
+	<td title="Opera 9" class="comp incomplete">Incomplete</td>
+</tr>
+<tr>
+	<td colspan="5">The Microsoft Text Range object is profoundly different from the other two, because it's string-based.
+	In fact, it is extremely hard to jump from the string contained by Text Range to a DOM node.</td>
+</tr>
+
+</tbody><caption><select class="contents"><option selected="selected" value="">Contents of this table</option><option value="t00">W3C Range</option><option value="t01">Mozilla Selection</option><option value="t02">Microsoft Text Range</option></select>See also the <a href="http://www.quirksmode.org/key.html">key</a> to my compatibility tables.</caption></table>
+
+<p>In general the Mozilla Selection object is rather pointless; it would
+ be far better to promote any user selection
+to a full Range object immediately; possibly with a few extra methods 
+and properties to remain backward compatible with Netscape 4.
+Unfortunately all browsers save IE use this unnecessary Selection 
+object.</p>
+
+<h3 id="link3">Accessing the user selection</h3>
+
+<p>The first step in manipulating a user-generated Range is accessing the user selection. This immediately
+requires a code branch: Internet Explorer uses the Microsoft way, while the other browsers use the Mozilla way:</p>
+
+<pre style="margin-right: -709px;">var userSelection;
+if (window.getSelection) {
+	userSelection = window.getSelection();
+}
+else if (document.selection) { // <strong>should come last; Opera!</strong>
+	userSelection = document.selection.createRange();
+}
+</pre>
+
+<p>In Mozilla, Safari and Opera <code>userSelection</code> now is a Selection object, while in Internet Explorer it's
+a Text Range object. This difference will remain valid for the rest of your script: Internet Explorer's Text Ranges
+are fundamentally different from Mozilla's Selection and W3C's Range objects, and all other code that you write
+will require a branch for IE and a branch for all other browsers.</p>
+
+<p>Note the order of the branches: <em>the Mozilla Selection should come first!</em> The reason is that Opera
+supports both objects; if you use <code>window.getSelection()</code> to read out the user selection, Opera creates
+a Selection object, while if you use <code>document.selection</code> it creates a Text Range object.</p>
+
+<p>Since Opera's support for Mozilla Selection and W3C Range is excellent, but its support for the Microsoft Text Range is spotty,
+it is desirable to place Opera with the standard compliant browsers by checking <code>window.getSelection()</code>
+first.</p>
+
+<h3 id="link4">The contents of <code>userSelection</code></h3>
+
+<p>The <code>userSelection</code> variable is now either a Mozilla Selection or a Microsoft Text Range object. As
+such it grants access to all methods and properties defined on such objects.</p>
+
+<p>However, the Mozilla Selection object that <code>userSelection</code> refers to in W3C-compliant browsers
+also contains the text the user has selected (as text, not as HTML). Doing this</p>
+
+<pre style="margin-right: -709px;">alert(userSelection)
+</pre>
+
+<p>therefore alerts the following (though formatting details differ per browser):</p>
+
+<pre style="margin-right: -709px;">calls for a Blogger Code of Conduct. His proposals are: Take responsibility
+not just for your own words, but for the comments you allow on your blog.
+Label your toleran
+</pre>
+
+<p>In order to get the same information from a Microsoft Text Range object you have to use
+<code>userSelection.text</code>. So to read out the text the user has selected, do this:</p>
+
+<pre style="margin-right: -709px;">var selectedText = userSelection;
+if (userSelection.text)
+	selectedText = userSelection.text;
+</pre>
+
+<p>Now <code>selectedText</code> contains the text the user has selected. If that's enough information
+for you, you're ready now.</p>
+
+<h3 id="link5">Creating a Range object from a Selection object</h3>
+
+<p>Most of the time, though, you
+want to play around with the Range object that represents the user selection. In the Microsoft model this is
+already possible: <code>userSelection</code> is a Text Range. In the W3C-compliant browsers, though,
+<code>userSelection</code> is still a Selection object, and the time has come to create a Range object that
+spans the same content as the Selection object.</p>
+
+<p>This is done as follows:</p>
+
+<pre style="margin-right: -709px;">var rangeObject = getRangeObject(userSelection);
+
+function getRangeObject(selectionObject) {
+	if (selectionObject.getRangeAt)
+		return selectionObject.getRangeAt(0);
+	else { // Safari!
+		var range = document.createRange();
+		range.setStart(selectionObject.anchorNode,selectionObject.anchorOffset);
+		range.setEnd(selectionObject.focusNode,selectionObject.focusOffset);
+		return range;
+	}
+}
+</pre>
+
+<p>Ideally, we access the W3C Range object through the Selection object's <code>getRangeAt()</code> method. This
+method returns the Range object at the given index; and as usual in JavaScript the first Range has index 0.
+(<code>getRangeAt()</code> has been designed for situations in which there are several Ranges defined. In simpler
+scripts you'll rarely encounter such situations.)</p>
+
+<h4 id="link6">Programmatically creating a Range</h4>
+
+<p>Unfortunately Safari (1.3) does not support <code>getRangeAt()</code>. Therefore we have to create a new Range
+object that spans the same HTML selection as the user selection. This is a useful exercise; it'll teach you how to
+create your own Ranges.</p>
+
+<p>Obviously we start by creating a Range object:</p>
+
+<pre style="margin-right: -709px;">var range = document.createRange();
+</pre>
+
+<p>Now we have an empty Range that floats somewhere in DOM hyperspace. In order to insert it into the document
+we need to define its start and end points through the thoughtfully provided <code>setStart()</code> and
+<code>setEnd()</code> methods.</p>
+
+<p>These methods need two parameters:</p>
+
+<ol>
+	<li class="">In which DOM node does the Range start or end?</li>
+	<li class="odd">At which text offset does the Range start or end? The text offset is the position of the first or last
+	character in the text node that's part of the Range.</li>
+</ol>
+
+<p>Let's study the second Range example again:</p>
+
+<pre style="margin-right: -709px;">&lt;h4 id="entry1196"&gt;&lt;a
+	href="http://radar.oreilly.com/archives/2007/03/call_for_a_blog_1.html"
+	class="external"&gt;Call for a Blogger's Code of Conduct&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;Tim O'Reilly <span class="userSelection">calls for a Blogger Code of Conduct. His proposals are:&lt;/p&gt;
+
+&lt;ol&gt;
+	&lt;li&gt;Take responsibility not just for your own words, but for the
+		comments you allow on your blog.&lt;/li&gt;
+	&lt;li&gt;Label your toleran</span>ce level for abusive comments.&lt;/li&gt;
+	&lt;li&gt;Consider eliminating anonymous comments.&lt;/li&gt;
+&lt;/ol&gt;
+</pre>
+
+<p>The Range starts in the <code>&lt;p&gt;</code> node, and its text offset is 13, since the 14th character of
+the text node in the <code>&lt;p&gt;</code> is the first character in the Range. (As usual, the first character
+in a text node has index 0.)</p>
+
+<p>The Range ends in the second <code>&lt;li&gt;</code> node, and its text offset is 17, since the 18th character
+of the text node in the <code>&lt;li&gt;</code> is the last character in the Range.</p>
+
+<p>So this is the way to create this range:</p>
+
+<pre style="margin-right: -709px;">var startPar = [the p node];
+var endLi = [the second li node];
+range.setStart(startPar,13);
+range.setEnd(endLi,17);
+</pre>
+
+<p>(Note that this newly created Range is not visible to the user; it's wholly internal to the browser.)</p>
+
+<p>Now that we have created a Range, we can read out its start and end points, too. The <code>startContainer</code>
+and <code>startOffset</code> properties define the starting point of the Range, while the <code>endContainer</code> and
+<code>endOffset</code> properties define its end.</p>
+
+<h4 id="link7">Reading out start and end of a Selection</h4>
+
+<p>Unfortunately, when working with user selections you don't know which part of the page the user has selected.
+Therefore you have to read out the start and end points of the user selection first; and this has to
+be done in the Selection object,since there's no Range object yet (and yes, this is needlessly complicated).</p>
+
+<p>We just saw that any Range object has four properties that define its start and end points. A Selection objects
+has four similar properties that, however, go by other names: <code>anchorNode</code>/<code>anchorOffset</code>
+define the start of the Selection, while <code>focusNode</code>/<code>focusOffset</code> define its end. (Don't
+ask me why the Selection object use different property names.)</p>
+
+<p>Therefore, in order to create a Range that spans the same content as the user selection, we read out the start
+and end points through the Selection object and use this data to set the start and end points of the Range object:</p>
+
+<pre style="margin-right: -709px;">range.setStart(selectionObject.anchorNode,selectionObject.anchorOffset);
+range.setEnd(selectionObject.focusNode,selectionObject.focusOffset);
+</pre>
+
+<h3 id="link8">Continue (later)</h3>
+
+<p>Now we have a W3C Range object and a Microsoft Text Range object to play around with. Future pages will give
+some examples of how to use them, and how to work around the grave incompatibilities between them.</p>
+
+<div id="footer">
+<a href="http://www.quirksmode.org/index.html">Home</a>
+<a href="http://www.quirksmode.org/sitemap.html">Sitemap</a>
+<a href="http://www.quirksmode.org/contact.html">Contact</a>
+<a href="http://www.quirksmode.org/donations.html">Donations</a>
+
+<p class="conference">
+<a href="http://fronteers.nl/"><img src="range_intro_files/fronteers-180x60.png" alt="Fronteers"></a>
+</p><p class="smaller" id="validation">Invalid XHTML 1.0 because the tables use &lt;wbr /&gt;</p></div>
+
+
+
+<script src="range_intro_files/counter.js"></script></body></html>

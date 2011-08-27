@@ -1,0 +1,1212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en"><head>
+<title>W3C DOM Compatibility - Range</title>
+<link rel="stylesheet" href="w3c_range_files/quirksmode.css">
+<link rel="up" href="http://www.quirksmode.org/dom/contents.html">
+<link rel="intro" href="http://www.quirksmode.org/dom/intro.html">
+<link rel="core" href="http://www.quirksmode.org/dom/w3c_core.html">
+<link rel="html" href="http://www.quirksmode.org/dom/w3c_html.html">
+<link rel="events" href="http://www.quirksmode.org/dom/w3c_events.html">
+<script type="text/javascript" src="w3c_range_files/quirksmode.js"></script><style>body {padding-top: 161px;}</style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript">
+var sitestatCounter = 7;
+</script>
+<script src="w3c_range_files/nedstat.js" type="text/javascript"></script>
+</head>
+
+
+<body><p id="lastModPar">Page last changed <span id="lastMod">5 months ago</span></p><div class="pageHeader"><img src="w3c_range_files/header_swoosh.gif" alt="">
+
+<div class="specialMessage">
+	<a href="http://mobilism.nl/workshops">Mobilism workshops: Amsterdam, Frankfurt, Manchester, Brighton</a>
+</div>
+
+<div class="mainNav">
+	<a href="http://www.quirksmode.org/js/contents.html">JavaScript archives</a>
+	<a href="http://www.quirksmode.org/compatibility.html">Compatibility</a>
+	<a href="http://www.quirksmode.org/blog/">QuirksBlog</a>
+	<a href="http://www.quirksmode.org/donations.html">Donations</a>
+	<a href="http://www.quirksmode.org/mobile/">Mobile</a>
+	<a href="http://www.quirksmode.org/about/">About</a>
+</div>
+
+<a class="logoQuirksmode" href="http://www.quirksmode.org/" title="Home"><img src="w3c_range_files/logo_quirksmode.gif" alt="QuirksMode"></a>
+
+
+<div class="extraInfo">
+	<img class="logoPPK" src="w3c_range_files/logo_ppk.gif" alt="PPK">
+	<a href="http://www.quirksmode.org/sitemap.html">sitemap</a><a href="http://www.quirksmode.org/contact.html" class="rightExtraLink">contact</a>
+	<form action="http://www.google.com/search" method="get" title="Uses Google" id="mainSearch">
+		<input name="q" id="searchTop" value="Search QuirksMode.org">
+		<input id="searchSubmit" value="Search" type="submit">
+	</form>
+</div>
+
+<!--[if lte IE 6]>
+  <p class="ie6"><strong>IE6?</strong> Really? Isn&#8217;t it time to <a href="/upgrade.html">upgrade to a better browser</a>? 
+  (Unless you&#8217;re here for testing purposes, of course.)</p>
+<![endif]-->
+</div>
+
+
+<h2 id="top">W3C DOM Compatibility - Range</h2>
+
+<div style="top: 186px; left: 0px;" id="header"><div id="TOC"><div id="innertoc"><span id="contentheader">show page contents</span><div><a href="#top" class="page">Top</a><a href="#link1" class="page">W3C Range</a><a href="#link2" class="page">Mozilla Selection</a><a href="#link3" class="page">Microsoft TextRange</a></div></div></div>
+<div id="siteNav">
+	<!-- span id="menuLink">show site navigation</span -->
+	<p id="waitMessageNav">Loading site navigation; please wait...</p>
+</div></div>
+
+<div class="floater">
+<p>Last update <span class="lastUpdate">11 May 2007</span>.</p>
+<p>This page has been translated into <a href="http://www.costeamarian.com/translations/dom/w3c_range.html" class="external">Romanian</a>.</p>
+<p>This table is <strong>under construction</strong>. I haven't yet created test pages, and for most methods
+and properties I only tested basic support: does the browser throw an error when you use the method or property,
+or not?</p>
+<p>Note that the <code>collapse()</code> method occurs in all three models, but means something different in all
+three. Details forthcoming.</p>
+<p>See the <a href="http://www.quirksmode.org/dom/range_intro.html">Introduction to Ranges</a> for a general overview.</p>
+</div>
+
+<p class="intro">These tables detail support for handling user selections in all modern browsers. Unfortunately
+there are three important modules: W3C Range, Mozilla Selection, and Microsoft TextRange.</p>
+
+
+<h3 id="link1">W3C Range</h3>
+
+<table class="compatibility" cellspacing="7">
+
+<tbody><tr class="compheader">
+	<th>Method or property</th>
+	<th>Explorer 6/7</th>
+	<th>Firefox 2</th>
+	<th>Safari 1.3</th>
+	<th>Opera 9</th>
+</tr>
+
+<!-- cloneContents -->
+
+<tr>
+	<td id="t00" class="declaration" rowspan="2">
+		<div class="name">cloneContents()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp incomplete">Incom<wbr>plete</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5"><code>docFrag = rangeObject.cloneContents()</code><br>
+	The contents of the Range object are cloned and added to a document fragment, which is returned.<br>
+	<p>Safari problem: if the range is empty, <code>null</code> is returned instead of an empty documentFragment.
+	Possible solution:</p>
+	<code>docFrag = rangeObject.cloneContents() || document.createDocumentFragment()</code>
+
+	</td>
+</tr>
+
+<!-- cloneRange -->
+
+<tr>
+	<td id="t01" class="declaration" rowspan="2">
+		<div class="name">cloneRange()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- collapse -->
+
+<tr>
+	<td id="t02" class="declaration" rowspan="2">
+		<div class="name">collapse()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- collapsed -->
+
+<tr>
+	<td id="t03" class="declaration" rowspan="2">
+		<div class="name">collapsed</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- commonAncestorContainer -->
+
+<tr>
+	<td id="t04" class="declaration" rowspan="2">
+		<div class="name">commonAncestorContainer</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- compareBoundaryPoints -->
+
+<tr>
+	<td id="t05" class="declaration" rowspan="2">
+		<div class="name">compareBoundaryPoints()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- comparePoint -->
+
+<tr>
+	<td id="t06" class="declaration" rowspan="2">
+		<div class="name">comparePoint()</div>
+		Mozilla extension
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- createContextualFragment -->
+
+<tr>
+	<td id="t07" class="declaration" rowspan="2">
+		<div class="name">createContextualFragment()</div>
+		Mozilla extension
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- deleteContents -->
+
+<tr>
+	<td id="t08" class="declaration" rowspan="2">
+		<div class="name">deleteContents()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Deletes the contents of the Range permanently. No return value</td>
+</tr>
+
+<!-- detach -->
+
+<tr>
+	<td id="t09" class="declaration" rowspan="2">
+		<div class="name">detach()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- endContainer -->
+
+<tr>
+	<td id="t010" class="declaration" rowspan="2">
+		<div class="name">endContainer</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">The node that contains the end 	point of the user selection. Usually a text node.</td>
+</tr>
+
+<!-- endOffset -->
+
+<tr>
+	<td id="t011" class="declaration" rowspan="2">
+		<div class="name">endOffset</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp incomplete">Incom<wbr>plete</td>
+</tr>
+<tr>
+	<td colspan="5">Opera returns 0 if the selection is empty.</td>
+</tr>
+
+<!-- extractContents -->
+
+<tr>
+	<td id="t012" class="declaration" rowspan="2">
+		<div class="name">extractContents()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">
+		<code>docFrag = rangeObject.extractContents()</code><br>
+		Cuts the Range object from the DOM tree and returns it as a document fragment.
+		This fragment can be pasted into the page.
+	</td>
+</tr>
+
+<!-- insertNode -->
+
+<tr>
+	<td id="t013" class="declaration" rowspan="2">
+		<div class="name">insertNode()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- isPointInRange -->
+
+<tr>
+	<td id="t014" class="declaration" rowspan="2">
+		<div class="name">isPointInRange()</div>
+		Mozilla extension
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- selectNode -->
+
+<tr>
+	<td id="t015" class="declaration" rowspan="2">
+		<div class="name">selectNode()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- selectNodeContents -->
+
+<tr>
+	<td id="t016" class="declaration" rowspan="2">
+		<div class="name">selectNodeContents()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- setEnd -->
+
+<tr>
+	<td id="t017" class="declaration" rowspan="2">
+		<div class="name">setEnd()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- setEndAfter -->
+
+<tr>
+	<td id="t018" class="declaration" rowspan="2">
+		<div class="name">setEndAfter()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- setEndBefore -->
+
+<tr>
+	<td id="t019" class="declaration" rowspan="2">
+		<div class="name">setEndBefore()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- setStart -->
+
+<tr>
+	<td id="t020" class="declaration" rowspan="2">
+		<div class="name">setStart()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- setStartAfter -->
+
+<tr>
+	<td id="t021" class="declaration" rowspan="2">
+		<div class="name">setStartAfter()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- setStartBefore -->
+
+<tr>
+	<td id="t022" class="declaration" rowspan="2">
+		<div class="name">setStartBefore()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- startContainer -->
+
+<tr>
+	<td id="t023" class="declaration" rowspan="2">
+		<div class="name">startContainer</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">The node that contains the starting point of the user selection. Usually a text node.</td>
+</tr>
+
+<!-- startOffset -->
+
+<tr>
+	<td id="t024" class="declaration" rowspan="2">
+		<div class="name">startOffset</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp incomplete">Incom<wbr>plete</td>
+</tr>
+<tr>
+	<td colspan="5">Opera returns 0 if the selection is empty.</td>
+</tr>
+
+<!-- surroundContents -->
+
+<tr>
+	<td id="t025" class="declaration" rowspan="2">
+		<div class="name">surroundContents()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+</tbody><caption><select class="contents"><option selected="selected" value="">Contents of this table</option><option value="t00">cloneContents()</option><option value="t01">cloneRange()</option><option value="t02">collapse()</option><option value="t03">collapsed</option><option value="t04">commonAncestorContainer</option><option value="t05">compareBoundaryPoints()</option><option value="t06">comparePoint()</option><option value="t07">createContextualFragment()</option><option value="t08">deleteContents()</option><option value="t09">detach()</option><option value="t010">endContainer</option><option value="t011">endOffset</option><option value="t012">extractContents()</option><option value="t013">insertNode()</option><option value="t014">isPointInRange()</option><option value="t015">selectNode()</option><option value="t016">selectNodeContents()</option><option value="t017">setEnd()</option><option value="t018">setEndAfter()</option><option value="t019">setEndBefore()</option><option value="t020">setStart()</option><option value="t021">setStartAfter()</option><option value="t022">setStartBefore()</option><option value="t023">startContainer</option><option value="t024">startOffset</option><option value="t025">surroundContents()</option></select>See also the <a href="http://www.quirksmode.org/key.html">key</a> to my compatibility tables.</caption></table>
+
+<h3 id="link2">Mozilla Selection</h3>
+
+<table class="compatibility" cellspacing="7">
+
+<tbody><tr class="compheader">
+	<th>Method or property</th>
+	<th>Explorer 6/7</th>
+	<th>Firefox 2</th>
+	<th>Safari 1.3</th>
+	<th>Opera 9</th>
+</tr>
+
+<!-- addRange -->
+
+<tr>
+	<td id="t10" class="declaration" rowspan="2">
+		<div class="name">addRange()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- anchorNode -->
+
+<tr>
+	<td id="t11" class="declaration" rowspan="2">
+		<div class="name">anchorNode</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5"><code>userSelection.anchorNode</code><br>
+	The node that contains the starting point of the user selection. Usually a text node.
+	</td>
+</tr>
+
+<!-- anchorOffset -->
+
+<tr>
+	<td id="t12" class="declaration" rowspan="2">
+		<div class="name">anchorOffset</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp incomplete">Incom<wbr>plete</td>
+</tr>
+<tr>
+	<td colspan="5">Opera returns 0 if the selection is empty.</td>
+</tr>
+
+<!-- collapse -->
+
+<tr>
+	<td id="t13" class="declaration" rowspan="2">
+		<div class="name">collapse()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- collapseToEnd -->
+
+<tr>
+	<td id="t14" class="declaration" rowspan="2">
+		<div class="name">collapseToEnd()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- collapseToStart -->
+
+<tr>
+	<td id="t15" class="declaration" rowspan="2">
+		<div class="name">collapseToStart()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- containsNode -->
+
+<tr>
+	<td id="t16" class="declaration" rowspan="2">
+		<div class="name">containsNode()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- deleteFromDocument -->
+
+<tr>
+	<td id="t17" class="declaration" rowspan="2">
+		<div class="name">deleteFromDocument()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- extend -->
+
+<tr>
+	<td id="t18" class="declaration" rowspan="2">
+		<div class="name">extend()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- focusNode -->
+
+<tr>
+	<td id="t19" class="declaration" rowspan="2">
+		<div class="name">focusNode</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5"><code>userSelection.focusNode</code><br>
+	The node that contains the end point of the user selection. Usually a text node.
+	</td>
+</tr>
+
+<!-- focusOffset -->
+
+<tr>
+	<td id="t110" class="declaration" rowspan="2">
+		<div class="name">focusOffset</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp incomplete">Incom<wbr>plete</td>
+</tr>
+<tr>
+	<td colspan="5">Opera returns 0 if the selection is empty.</td>
+</tr>
+
+<!-- getRangeAt -->
+
+<tr>
+	<td id="t111" class="declaration" rowspan="2">
+		<div class="name">getRangeAt()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">
+	<code>rangeObject = userSelection.getRangeAt(0)</code><br>
+	Converts a Mozilla Selection to a W3C Range.</td>
+</tr>
+
+<!-- isCollapsed -->
+
+<tr>
+	<td id="t112" class="declaration" rowspan="2">
+		<div class="name">isCollapsed</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- rangeCount -->
+
+<tr>
+	<td id="t113" class="declaration" rowspan="2">
+		<div class="name">rangeCount</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- removeAllRanges -->
+
+<tr>
+	<td id="t114" class="declaration" rowspan="2">
+		<div class="name">removeAllRanges()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- removeRange -->
+
+<tr>
+	<td id="t115" class="declaration" rowspan="2">
+		<div class="name">removeRange()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- selectAllChildren -->
+
+<tr>
+	<td id="t116" class="declaration" rowspan="2">
+		<div class="name">selectAllChildren()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- selectionLanguageChange -->
+
+<tr>
+	<td id="t117" class="declaration" rowspan="2">
+		<div class="name">selectionLanguageChange()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+</tbody><caption><select class="contents"><option selected="selected" value="">Contents of this table</option><option value="t10">addRange()</option><option value="t11">anchorNode</option><option value="t12">anchorOffset</option><option value="t13">collapse()</option><option value="t14">collapseToEnd()</option><option value="t15">collapseToStart()</option><option value="t16">containsNode()</option><option value="t17">deleteFromDocument()</option><option value="t18">extend()</option><option value="t19">focusNode</option><option value="t110">focusOffset</option><option value="t111">getRangeAt()</option><option value="t112">isCollapsed</option><option value="t113">rangeCount</option><option value="t114">removeAllRanges()</option><option value="t115">removeRange()</option><option value="t116">selectAllChildren()</option><option value="t117">selectionLanguageChange()</option></select>See also the <a href="http://www.quirksmode.org/key.html">key</a> to my compatibility tables.</caption></table>
+
+<h3 id="link3">Microsoft TextRange</h3>
+
+<table class="compatibility" cellspacing="7">
+
+<tbody><tr class="compheader">
+	<th>Method or property</th>
+	<th>Explorer 6/7</th>
+	<th>Firefox 2</th>
+	<th>Safari 1.3</th>
+	<th>Opera 9</th>
+</tr>
+
+<!-- boundingHeight -->
+
+<tr>
+	<td id="t20" class="declaration" rowspan="2">
+		<div class="name">boundingHeight</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- boundingLeft -->
+
+<tr>
+	<td id="t21" class="declaration" rowspan="2">
+		<div class="name">boundingLeft</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- boundingTop -->
+
+<tr>
+	<td id="t22" class="declaration" rowspan="2">
+		<div class="name">boundingTop</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- boundingWidth -->
+
+<tr>
+	<td id="t23" class="declaration" rowspan="2">
+		<div class="name">boundingWidth</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- collapse -->
+
+<tr>
+	<td id="t24" class="declaration" rowspan="2">
+		<div class="name">collapse()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+	<td class="comp ">TBD</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- compareEndPoints -->
+
+<tr>
+	<td id="t25" class="declaration" rowspan="2">
+		<div class="name">compareEndPoints()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- duplicate -->
+
+<tr>
+	<td id="t26" class="declaration" rowspan="2">
+		<div class="name">duplicate()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- expand -->
+
+<tr>
+	<td id="t27" class="declaration" rowspan="2">
+		<div class="name">expand()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- findText -->
+
+<tr>
+	<td id="t28" class="declaration" rowspan="2">
+		<div class="name">findText()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- htmlText -->
+
+<tr>
+	<td id="t29" class="declaration" rowspan="2">
+		<div class="name">htmlText</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5"><code>htmlString = userSelection.htmlText</code><br>
+	Returns the HTML content of the TextRange as a string. Equivalent to <code>innerHTML</code>.<br>
+	Read only.
+	</td>
+</tr>
+
+<!-- move -->
+
+<tr>
+	<td id="t210" class="declaration" rowspan="2">
+		<div class="name">move()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- moveEnd -->
+
+<tr>
+	<td id="t211" class="declaration" rowspan="2">
+		<div class="name">moveEnd()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- moveStart -->
+
+<tr>
+	<td id="t212" class="declaration" rowspan="2">
+		<div class="name">moveStart()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- moveToElementText -->
+
+<tr>
+	<td id="t213" class="declaration" rowspan="2">
+		<div class="name">moveToElementText()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- moveToPoint -->
+
+<tr>
+	<td id="t214" class="declaration" rowspan="2">
+		<div class="name">moveToPoint()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- offsetLeft -->
+
+<tr>
+	<td id="t215" class="declaration" rowspan="2">
+		<div class="name">offsetLeft</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- offsetTop -->
+
+<tr>
+	<td id="t216" class="declaration" rowspan="2">
+		<div class="name">offsetTop</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- parentElement -->
+
+<tr>
+	<td id="t217" class="declaration" rowspan="2">
+		<div class="name">parentElement()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- pasteHTML -->
+
+<tr>
+	<td id="t218" class="declaration" rowspan="2">
+		<div class="name">pasteHTML()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">When pasting HTML into a text node, the text node is automatically split.</td>
+</tr>
+
+<!-- scrollIntoView -->
+
+<tr>
+	<td id="t219" class="declaration" rowspan="2">
+		<div class="name">scrollIntoView()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- select -->
+
+<tr>
+	<td id="t220" class="declaration" rowspan="2">
+		<div class="name">select()</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5">Notes</td>
+</tr>
+
+<!-- text -->
+
+<tr>
+	<td id="t221" class="declaration" rowspan="2">
+		<div class="name">text</div>
+		<br><a href="#">Test page</a>
+	</td>
+	<td class="comp yes">Yes</td>
+	<td class="comp no">No</td>
+	<td class="comp no">No</td>
+	<td class="comp yes">Yes</td>
+</tr>
+<tr>
+	<td colspan="5"><code>string = userSelection.text</code><br>
+	Returns the text of the TextRange as a string. Equivalent to <code>innerText</code>.<br>
+	Read/write.
+	</td>
+</tr>
+
+
+</tbody><caption><select class="contents"><option selected="selected" value="">Contents of this table</option><option value="t20">boundingHeight</option><option value="t21">boundingLeft</option><option value="t22">boundingTop</option><option value="t23">boundingWidth</option><option value="t24">collapse()</option><option value="t25">compareEndPoints()</option><option value="t26">duplicate()</option><option value="t27">expand()</option><option value="t28">findText()</option><option value="t29">htmlText</option><option value="t210">move()</option><option value="t211">moveEnd()</option><option value="t212">moveStart()</option><option value="t213">moveToElementText()</option><option value="t214">moveToPoint()</option><option value="t215">offsetLeft</option><option value="t216">offsetTop</option><option value="t217">parentElement()</option><option value="t218">pasteHTML()</option><option value="t219">scrollIntoView()</option><option value="t220">select()</option><option value="t221">text</option></select>See also the <a href="http://www.quirksmode.org/key.html">key</a> to my compatibility tables.</caption></table>
+
+<div id="footer">
+<a href="http://www.quirksmode.org/index.html">Home</a>
+<a href="http://www.quirksmode.org/sitemap.html">Sitemap</a>
+<a href="http://www.quirksmode.org/contact.html">Contact</a>
+<a href="http://www.quirksmode.org/donations.html">Donations</a>
+
+<p class="conference">
+<a href="http://fronteers.nl/"><img src="w3c_range_files/fronteers-180x60.png" alt="Fronteers"></a>
+</p><p class="smaller" id="validation">Invalid XHTML 1.0 because the tables use &lt;wbr /&gt;</p></div>
+
+
+
+<script src="w3c_range_files/counter.js"></script></body></html>
