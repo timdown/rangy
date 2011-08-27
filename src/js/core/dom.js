@@ -70,8 +70,16 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
     function getNodeLength(node) {
-        var childNodes;
-        return isCharacterDataNode(node) ? node.length : ((childNodes = node.childNodes) ? childNodes.length : 0);
+        switch (node.nodeType) {
+            case 7:
+            case 10:
+                return 0;
+            case 3:
+            case 8:
+                return node.length;
+            default:
+                return node.childNodes.length;
+        }
     }
 
     function getCommonAncestor(node1, node2) {
