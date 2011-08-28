@@ -126,6 +126,14 @@ rangy.createModule("DomUtil", function(api, module) {
         return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
     }
 
+    function isTextOrCommentNode(node) {
+        if (!node) {
+            return false;
+        }
+        var t = node.nodeType;
+        return t == 3 || t == 8 ; // Text or Comment
+    }
+
     function insertAfter(node, precedingNode) {
         var nextNode = precedingNode.nextSibling, parent = precedingNode.parentNode;
         if (nextNode) {
@@ -382,6 +390,7 @@ rangy.createModule("DomUtil", function(api, module) {
         isAncestorOf: isAncestorOf,
         getClosestAncestorIn: getClosestAncestorIn,
         isCharacterDataNode: isCharacterDataNode,
+        isTextOrCommentNode: isTextOrCommentNode,
         insertAfter: insertAfter,
         splitDataNode: splitDataNode,
         getDocument: getDocument,

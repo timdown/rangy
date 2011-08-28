@@ -35,7 +35,8 @@ rangy.createModule("Commands", function(api, module) {
     var defaultOptions = {
         applyToEditableOnly: false,
         styleWithCss: false,
-        ignoreWhiteSpace: true
+        ignoreWhiteSpace: true,
+        ignoreCollapsedBrs: true
     };
 
     var getComputedStyleProperty;
@@ -107,6 +108,68 @@ rangy.createModule("Commands", function(api, module) {
             root = root.parentNode;
         }
         return root;
+    }
+
+    function getAncestors(node) {
+        var ancestors = [];
+        while ( (node = node.parentNode) ) {
+            ancestors.unshift(node);
+        }
+        return ancestors;
+    }
+
+/*
+    function getAncestorsAndSelf(node) {
+        var ancestors = getAncestors(node);
+        ancestors.push(node);
+        return ancestors;
+    }
+*/
+
+    function hasAncestor(node, matcher) {
+        while ( (node = node.parentNode) ) {
+            if (matcher(node)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isOrHasAncestor(node, matcher) {
+        return matcher(node) || hasAncestor(node, matcher);
+    }
+
+    function nextNodeDescendants(node) {
+        while (node && !node.nextSibling) {
+            node = node.parentNode;
+        }
+        if (!node) {
+            return null;
+        }
+        return node.nextSibling;
+    }
+
+    function nextNode(node) {
+        if (node.hasChildNodes()) {
+            return node.firstChild;
+        }
+        return nextNodeDescendants(node);
+    }
+
+    function previousNode(node) {
+        var previous = node.previousSibling;
+        if (previous) {
+            node = previous;
+            while (node.hasChildNodes()) {
+                node = node.lastChild;
+            }
+            return node;
+        }
+        var parent = node.parentNode;
+        if (parent && parent.nodeType == 1) {
+            return parent;
+        }
+        return null;
     }
 
     var isEditableElement;
@@ -185,14 +248,14 @@ rangy.createModule("Commands", function(api, module) {
         var ec = range.endContainer, eo = range.endOffset;
 
         // "node is range's start node, it is a Text node, its length is different
-        // from range's start offset, and range is not collapsed."
+        // from range's start offset."
         var isCharData = dom.isCharacterDataNode(node);
         if (node == sc && isCharData && dom.getNodeLength(node) != so) {
             return true;
         }
 
         // "node is range's end node, it is a Text node, range's end offset is not
-        // 0, and range is not collapsed."
+        // 0."
         if (node == ec && isCharData && eo != 0) {
             return true;
         }
@@ -201,8 +264,7 @@ rangy.createModule("Commands", function(api, module) {
         // contained in range; and either range's start node is not a descendant of
         // node or is not a Text node or range's start offset is zero or range is
         // collapsed; and either range's end node is not a descendant of node or is
-        // not a Text node or range's end offset is its end node's length or range
-        // is collapsed."
+        // not a Text node or range's end offset is its end node's length."
         var children = node.childNodes, childCount = children.length;
         if (childCount != 0) {
             for (var i = 0; i < childCount; ++i) {
@@ -224,56 +286,6 @@ rangy.createModule("Commands", function(api, module) {
         return typeof (ns = node.namespaceURI) == UNDEF || (ns === null || ns == "http://www.w3.org/1999/xhtml");
     }
 
-
-    var unwrappableTagNamesRegex = /^(h[1-6]|p|hr|pre|blockquote|ol|ul|li|dl|dt|dd|div|table|caption|colgroup|col|tbody|thead|tfoot|tr|th|td|address)$/i;
-    var inlineDisplayRegex = /^inline(-block|-table)?$/i;
-
-    // "An inline node is either a Text node, or an Element whose 'display'
-    // property computes to 'inline', 'inline-block', or 'inline-table'."
-    function isInlineNode(node) {
-        return dom.isCharacterDataNode(node) ||
-                (node.nodeType == 1 && inlineDisplayRegex.test(getComputedStyleProperty(node, "display")));
-    }
-
-    function isNullOrInlineNode(node) {
-        return !node || isInlineNode(node);
-    }
-
-    function isNonBrInlineNode(node) {
-        return isInlineNode(node) && node.nodeName.toLowerCase() != "br";
-    }
-
-    function isNonInlineElement(node) {
-        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"));
-    }
-
-    // White space characters as defined by HTML 4 (http://www.w3.org/TR/html401/struct/text.html)
-    var htmlNonWhiteSpaceRegex = /[^\r\n\t\f \u200B]/;
-
-    function isUnrenderedWhiteSpaceNode(node) {
-        if (node.data.length == 0) {
-            return true;
-        }
-        if (htmlNonWhiteSpaceRegex.test(node.data)) {
-            return false;
-        }
-        var cssWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
-        switch (cssWhiteSpace) {
-            case "pre":
-            case "pre-wrap":
-            case "-moz-pre-wrap":
-                return false;
-            case "pre-line":
-                if (/[\r\n]/.test(node.data)) {
-                    return false;
-                }
-        }
-
-        // We now have a whitespace-only text node that may be rendered depending on its context. If it is adjacent to a
-        // non-inline element, it will not be rendered. This seems to be a good enough definition.
-        return isNonInlineElement(node.previousSibling) || isNonInlineElement(node.nextSibling);
-    }
-
     function isHtmlElement(node, tagNames) {
         if (!node || node.nodeType != 1 || !isHtmlNode(node)) {
             return false;
@@ -286,6 +298,261 @@ rangy.createModule("Commands", function(api, module) {
             default:
                 return true;
         }
+    }
+
+    var unwrappableTagNamesRegex = /^(h[1-6]|p|hr|pre|blockquote|ol|ul|li|dl|dt|dd|div|table|caption|colgroup|col|tbody|thead|tfoot|tr|th|td|address)$/i;
+    var inlineDisplayRegex = /^(none|inline(-block|-table)?)$/i;
+
+    // "A block node is either an Element whose "display" property does not have
+    // resolved value "inline" or "inline-block" or "inline-table" or "none", or a
+    // Document, or a DocumentFragment."
+    function isBlockNode(node) {
+        if (!node) {
+            return false;
+        }
+        var nodeType = node.nodeType;
+        return nodeType == 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"))
+            || nodeType == 9 || nodeType == 11;
+    }
+
+    // "An inline node is a node that is not a block node."
+    function isInlineNode(node) {
+        return node && !isBlockNode(node);
+    }
+
+    // "A collapsed line break is a br that begins a line box which has nothing
+    // else in it, and therefore has zero height."
+    function isCollapsedLineBreak(br) {
+        if (!isHtmlElement(br, "br")) {
+            return false;
+        }
+
+        // Add a zwsp after it and see if that changes the height of the nearest
+        // non-inline parent.  Note: this is not actually reliable, because the
+        // parent might have a fixed height or something.
+        var ref = br.parentNode;
+        while (getComputedStyleProperty(ref, "display") == "inline") {
+            ref = ref.parentNode;
+        }
+        var refStyle = ref.hasAttribute("style") ? ref.getAttribute("style") : null;
+        ref.style.height = "auto";
+        ref.style.maxHeight = "none";
+        ref.style.minHeight = "0";
+        var space = document.createTextNode("\u200b");
+        var origHeight = ref.offsetHeight;
+        if (origHeight == 0) {
+            throw "isCollapsedLineBreak: original height is zero, bug?";
+        }
+        br.parentNode.insertBefore(space, br.nextSibling);
+        var finalHeight = ref.offsetHeight;
+        space.parentNode.removeChild(space);
+        if (refStyle === null) {
+            // Without the setAttribute() line, removeAttribute() doesn't work in
+            // Chrome 14 dev.  I have no idea why.
+            ref.setAttribute("style", "");
+            ref.removeAttribute("style");
+        } else {
+            ref.setAttribute("style", refStyle);
+        }
+
+        // Allow some leeway in case the zwsp didn't create a whole new line, but
+        // only made an existing line slightly higher.  Firefox 6.0a2 shows this
+        // behavior when the first line is bold.
+        return origHeight < finalHeight - 5;
+    }
+
+    // "An extraneous line break is a br that has no visual effect, in that
+    // removing it from the DOM would not change layout, except that a br that is
+    // the sole child of an li is not extraneous."
+    //
+    // FIXME: This doesn't work in IE, since IE ignores display: none in
+    // contenteditable.
+    function isExtraneousLineBreak(br) {
+        if (!isHtmlElement(br, "br")) {
+            return false;
+        }
+
+        if (isHtmlElement(br.parentNode, "li")
+        && br.parentNode.childNodes.length == 1) {
+            return false;
+        }
+
+        // Make the line break disappear and see if that changes the block's
+        // height.  Yes, this is an absurd hack.  We have to reset height etc. on
+        // the reference node because otherwise its height won't change if it's not
+        // auto.
+        var ref = br.parentNode;
+        while (getComputedStyle(ref).display == "inline") {
+            ref = ref.parentNode;
+        }
+        var refStyle = ref.hasAttribute("style") ? ref.getAttribute("style") : null;
+        ref.style.height = "auto";
+        ref.style.maxHeight = "none";
+        ref.style.minHeight = "0";
+        var brStyle = br.hasAttribute("style") ? br.getAttribute("style") : null;
+        var origHeight = ref.offsetHeight;
+        if (origHeight == 0) {
+            throw "isExtraneousLineBreak: original height is zero, bug?";
+        }
+        br.setAttribute("style", "display:none");
+        var finalHeight = ref.offsetHeight;
+        if (refStyle === null) {
+            // Without the setAttribute() line, removeAttribute() doesn't work in
+            // Chrome 14 dev.  I have no idea why.
+            ref.setAttribute("style", "");
+            ref.removeAttribute("style");
+        } else {
+            ref.setAttribute("style", refStyle);
+        }
+        if (brStyle === null) {
+            br.removeAttribute("style");
+        } else {
+            br.setAttribute("style", brStyle);
+        }
+
+        return origHeight == finalHeight;
+    }
+
+    // "A whitespace node is either a Text node whose data is the empty string; or
+    // a Text node whose data consists only of one or more tabs (0x0009), line
+    // feeds (0x000A), carriage returns (0x000D), and/or spaces (0x0020), and whose
+    // parent is an Element whose resolved value for "white-space" is "normal" or
+    // "nowrap"; or a Text node whose data consists only of one or more tabs
+    // (0x0009), carriage returns (0x000D), and/or spaces (0x0020), and whose
+    // parent is an Element whose resolved value for "white-space" is "pre-line"."
+    function isWhitespaceNode(node) {
+        if (!node || node.nodeType != 3) {
+            return false;
+        }
+        var text = node.data
+        if (text == "") {
+            return true;
+        }
+        var parent = node.parentNode;
+        if (!parent || parent.nodeType != 1) {
+            return false;
+        }
+        var computedWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
+
+        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace))
+            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
+    }
+
+    // "node is a collapsed whitespace node if the following algorithm returns
+    // true:"
+    function isCollapsedWhitespaceNode(node) {
+        // "If node is not a whitespace node, return false."
+        if (!isWhitespaceNode(node)) {
+            return false;
+        }
+
+        // "If node's data is the empty string, return true."
+        if (node.data == "") {
+            return true;
+        }
+
+        // "Let ancestor be node's parent."
+        var ancestor = node.parentNode;
+
+        // "If ancestor is null, return true."
+        if (!ancestor) {
+            return true;
+        }
+
+        // "If the "display" property of some ancestor of node has resolved value
+        // "none", return true."
+        if (hasAncestor(node, function(ancestor) {
+            return ancestor.nodeType == 1 && getComputedStyleProperty(ancestor, "display") == "none";
+        })) {
+            return true;
+        }
+
+        // "While ancestor is not a block node and its parent is not null, set
+        // ancestor to its parent."
+        while (!isBlockNode(ancestor) && (ancestor = ancestor.parentNode) ) {}
+
+        // "Let reference be node."
+        var reference = node;
+
+        // "While reference is a descendant of ancestor:"
+        while (reference != ancestor) {
+            // "Let reference be the node before it in tree order."
+            reference = previousNode(reference);
+
+            // "If reference is a block node or a br, return true."
+            if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+                return true;
+            }
+
+            // "If reference is a Text node that is not a whitespace node, or is an
+            // img, break from this loop."
+            if ((reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+                break;
+            }
+        }
+
+        // "Let reference be node."
+        reference = node;
+
+        // "While reference is a descendant of ancestor:"
+        var stop = nextNodeDescendants(ancestor);
+        while (reference != stop) {
+            // "Let reference be the node after it in tree order, or null if there
+            // is no such node."
+            reference = nextNode(reference);
+
+            // "If reference is a block node or a br, return true."
+            if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+                return true;
+            }
+
+            // "If reference is a Text node that is not a whitespace node, or is an
+            // img, break from this loop."
+            if ((reference && reference.nodeType == 3 && !isWhitespaceNode(reference))
+            || isHtmlElement(reference, "img")) {
+                break;
+            }
+        }
+
+        // "Return false."
+        return false;
+    }
+
+    // "Something is visible if it is a node that either is a block node, or a Text
+    // node that is not a collapsed whitespace node, or an img, or a br that is not
+    // an extraneous line break, or any node with a visible descendant; excluding
+    // any node with an ancestor container Element whose "display" property has
+    // resolved value "none"."
+    function isVisible(node) {
+        if (!node) {
+            return false;
+        }
+
+        if (isOrHasAncestor(node, function(node) {
+            return node.nodeType == 1 && getComputedStyleProperty(node, "display") == "none";
+        })) {
+            return false;
+        }
+
+        if (isBlockNode(node)
+        || (node.nodeType == 3 && !isCollapsedWhitespaceNode(node))
+        || isHtmlElement(node, "img")
+        || (isHtmlElement(node, "br") && !isExtraneousLineBreak(node))) {
+            return true;
+        }
+
+        for (var i = 0, childNodes = node.childNodes, len = childNodes.length; i < len; ++i) {
+            if (isVisible(childNodes[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // "Something is invisible if it is a node that is not visible."
+    function isInvisible(node) {
+        return node && !isVisible(node);
     }
 
     function elementOnlyHasAttributes(el, attrs) {
@@ -440,6 +707,7 @@ rangy.createModule("Commands", function(api, module) {
         return false;
     }
 
+/*
     function isIgnoredNode(node, options) {
         // Ignore comment nodes
         if (node.nodeType == 8) {
@@ -458,6 +726,7 @@ rangy.createModule("Commands", function(api, module) {
         }
         return false;
     }
+*/
 
     function addRangeMove(rangeMoves, range, oldParent, oldIndex, newParent, newIndex) {
         var sc = range.startContainer, so = range.startOffset,
@@ -593,6 +862,7 @@ rangy.createModule("Commands", function(api, module) {
         return context.command.getEffectiveValue(node, context);
     }
 
+/*
     // "An extraneous line break is a br that has no visual effect, in that
     // removing it from the DOM would not change layout, except that a br that is
     // the sole child of an li is not extraneous."
@@ -630,30 +900,7 @@ rangy.createModule("Commands", function(api, module) {
 
         return origHeight == finalHeight;
     }
-
-    // "Something is visible if it is a node that either is a block node, or a Text
-    // node whose data is not empty, or an img, or a br that is not an extraneous
-    // line break, or any node with a visible descendant."
-    function isVisible(node) {
-        if (!node) {
-            return false;
-        }
-        if (isBlockNode(node) && (node.nodeType == 3 && node.length) || isHtmlElement(node, "img")
-                || (isHtmlElement(node, "br") && !isExtraneousLineBreak(node))) {
-            return true;
-        }
-        for (var i = 0; i < node.childNodes.length; i++) {
-            if (isVisible(node.childNodes[i])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // "Something is invisible if it is a node that is not visible."
-    function isInvisible(node) {
-        return node && !isVisible(node);
-    }
+*/
 
     function removeExtraneousLineBreaksBefore(node) {
         var ref;
