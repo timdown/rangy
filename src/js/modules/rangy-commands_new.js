@@ -35,8 +35,7 @@ rangy.createModule("Commands", function(api, module) {
     var defaultOptions = {
         applyToEditableOnly: false,
         styleWithCss: false,
-        ignoreWhiteSpace: true,
-        ignoreCollapsedBrs: true
+        ignoreInvisibleNodes: true
     };
 
     var getComputedStyleProperty;
@@ -555,6 +554,18 @@ rangy.createModule("Commands", function(api, module) {
         return node && !isVisible(node);
     }
 
+    function getEffectiveTextNodes(range, context) {
+        return range.getNodes([3], function(node) {
+            return isEffectivelyContained(node, range) && (!context.options.ignoreInvisibleNodes || isInvisible(node));
+        });
+    }
+
+    function getEffectivelyContainedElements(range, context) {
+        return range.getNodes([1], function(node) {
+            return isEffectivelyContained(node, range) && (!context.options.ignoreInvisibleNodes || isInvisible(node));
+        });
+    }
+
     function elementOnlyHasAttributes(el, attrs) {
         log.debug("elementOnlyHasAttributes. attr length: " + el.attributes.length);
         for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
@@ -660,8 +671,7 @@ rangy.createModule("Commands", function(api, module) {
         }
 
         // Check style attribute and bail out if it has more than one property
-        if ( attrName != "style" || (typeof el.style.length == "number" && el.style.length > 1) ||
-                !/^[a-z\-]+:[^;]+;?\s?$/i.test(el.style.cssText)) {
+        if (attrName != "style" || !/^[a-z\-]+:[^;]+;?\s?$/i.test(el.style.cssText)) {
             return false;
         }
 
@@ -994,10 +1004,8 @@ rangy.createModule("Commands", function(api, module) {
 
         // "While element has children, append the first child of element as the
         // last child of replacement element, preserving ranges."
-        moveChildrenPreservingRanges(element, replacementElement, 0, true, rangesToPreserve);
-
         // "Remove element from its parent."
-        element.parentNode.removeChild(element);
+        moveChildrenPreservingRanges(element, replacementElement, 0, true, rangesToPreserve);
 
         // "Return replacement element."
         return replacementElement;
@@ -1005,6 +1013,8 @@ rangy.createModule("Commands", function(api, module) {
 
     function clearValue(element, context) {
         var command = context.command, rangesToPreserve = context.rangesToPreserve;
+
+        log.info("clearValue", outerHtml(element), command.getSpecifiedValue(element, context))
 
         // "If element is not editable, return the empty list."
         if (!isEditable(element, context.options)) {
@@ -1266,6 +1276,38 @@ rangy.createModule("Commands", function(api, module) {
             sel.setRanges(selRanges);
         }
     };
+
+    Command.util = {
+        getComputedStyleProperty: getComputedStyleProperty,
+        getFurthestAncestor: getFurthestAncestor,
+        isContained: isContained,
+        isEffectivelyContained: isEffectivelyContained,
+        isHtmlNode: isHtmlNode,
+        isHtmlElement: isHtmlElement,
+        isBlockNode: isBlockNode,
+        isInlineNode: isInlineNode,
+/*
+        blockExtend: blockExtend,
+*/
+        isModifiableElement: isModifiableElement,
+        isSimpleModifiableElement: isSimpleModifiableElement,
+        moveChildrenPreservingRanges: moveChildrenPreservingRanges,
+        replaceWithOwnChildren: replaceWithOwnChildren,
+        copyAttributes: copyAttributes,
+        clearValue: clearValue,
+        getEffectiveTextNodes: getEffectiveTextNodes,
+        getEffectivelyContainedElements: getEffectivelyContainedElements,
+/*
+        getEffectiveValue: getEffectiveValue,
+        setNodeValue: setNodeValue,
+*/
+        wrap: wrap
+/*
+        decomposeRange: decomposeRange,
+*/
+
+    };
+
 
     api.Command = Command;
 

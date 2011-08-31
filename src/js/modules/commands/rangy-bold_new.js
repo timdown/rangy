@@ -26,8 +26,7 @@ rangy.createModule("BoldCommand", function(api, module) {
         relevantCssProperty: "fontWeight",
 
         defaultOptions: {
-            tagName: "b",
-            ignoreWhiteSpace: true
+            tagName: "b"
         },
 
         getSpecifiedValue: function(element) {
