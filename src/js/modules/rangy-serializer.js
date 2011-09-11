@@ -157,7 +157,8 @@ rangy.createModule("Serializer", function(api, module) {
     function serializeRange(range, omitChecksum, rootNode) {
         rootNode = rootNode || api.DomRange.getRangeDocument(range).documentElement;
         if (!dom.isAncestorOf(rootNode, range.commonAncestorContainer, true)) {
-            throw module.createError("serializeRange(): range is not wholly contained within specified root node");
+            throw new Error("serializeRange(): range " + range.inspect() +
+                " is not wholly contained within specified root node " + dom.inspectNode(rootNode));
         }
         var serialized = serializePosition(range.startContainer, range.startOffset, rootNode) + "," +
             serializePosition(range.endContainer, range.endOffset, rootNode);
@@ -297,4 +298,5 @@ rangy.createModule("Serializer", function(api, module) {
     api.saveSelectionCookie = saveSelectionCookie;
 
     api.getElementChecksum = getElementChecksum;
+    api.nodeToInfoString = nodeToInfoString;
 });

@@ -205,6 +205,7 @@ xn.test.suite("Commands module tests", function(s) {
         testRangeClearValue("bold", {}, '[1<span id="cheese" style="font-weight: bold">2</span>3]', '[1<span id="cheese" style="font-weight: bold;">2</span>3]');
         testRangeClearValue("bold", {}, "1<b>[2]</b>3", "1<b>[2]</b>3");
 
+
 /*
         testSelectionCommand("bold", { styleWithCss: false }, "1[2]3", "1<b>[2]</b>3");
         testSelectionCommand("bold", { styleWithCss: true }, "1[2]3", '1<span style="font-weight: bold;">[2]</span>3');

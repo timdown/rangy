@@ -225,6 +225,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return nodes[0];
     }
 
+    // Simple, quick test which only needs to distinguish between a TextRange and a ControlRange
     function isTextRange(range) {
         return !!range && typeof range.text != "undefined";
     }
