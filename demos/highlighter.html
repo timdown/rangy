@@ -89,9 +89,11 @@
         <input type="button" onclick="highlightSelectedText();" value="Highlight selection">
         <input type="button" onclick="noteSelectedText();" value="Add note to selection">
         <input type="button" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
+<!--
         <input type="button" onclick="highlighter.deserialize(highlighter.serialize())" value="Serialize and deserialize">
+-->
 
-        <h3>Preserving the selection between page requests</h3>
+        <h3>Preserving highlights between page requests</h3>
         <form action="highlighter.html" method="get">
             Highlights can be preserved between page requests. Press the following button to reload the page with the
             highlights preserved:
