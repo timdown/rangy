@@ -86,24 +86,6 @@
     <div id="buttons">
         <h3>Highlighter</h3>
         <p>Make a selection in the document and use the buttons below to highlight and unhighlight.</p>
-
-<!--
-        <h3>Serialize selection</h3>
-        Click the button to serialize the selection. The serialized selection will appear in the text box.
-        <input type="text" disabled id="serializedSelection" size="30">
-        <input type="button" disabled id="serializeButton" value="Serialize selection" unselectable="on" class="unselectable">
-
-        <h3>Deserialize selection</h3>
-        Paste a serialized selection into the text box below and click the button to restore the serialized selection.
-        <input type="text" disabled id="selectionToDeserialize" size="30">
-        <input type="button" disabled id="deserializeButton" value="Restore selection" unselectable="on" class="unselectable">
-
-        <h3>Preserving the selection between page requests</h3>
-        The selection on this page will be preserved between page requests. Press the following button or your browser's
-        refresh button to refresh the page
-        <br>
--->
-
         <input type="button" onclick="highlightSelectedText();" value="Highlight selection">
         <input type="button" onclick="noteSelectedText();" value="Add note to selection">
         <input type="button" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
@@ -120,16 +102,11 @@
     </div>
 
     <div id="content">
-        <h1>Rangy Serializer Module Demo</h1>
-
-        <!-- A comment -->
-
+        <h1>Rangy Highlighter Module Demo</h1>
         <p id="intro">
-            Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
-            the left hand size to serialize and deserialize the selection. Also, the selection will be preserved when you
-            refresh the page.
+            Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons
+            on the left hand size to create and remove highlights.
         </p>
-
         <p>
             <b>Association football</b> is a sport played between two teams. It is usually called <b>football</b>, but in
             some countries, such as the United States, it is called <b>soccer</b>. In
