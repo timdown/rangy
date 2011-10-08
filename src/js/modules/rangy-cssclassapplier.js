@@ -217,7 +217,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
         var splitAtStart = (descendantOffset == 0);
 
         if (dom.isAncestorOf(descendantNode, node)) {
-            throw module.createError("splitNodeAt(): Descendant is ancestor of node");
+            log.info("splitNodeAt(): Descendant is ancestor of node");
+            return node;
         }
 
         if (dom.isCharacterDataNode(descendantNode)) {

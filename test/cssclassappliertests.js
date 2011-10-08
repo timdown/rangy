@@ -531,4 +531,22 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('o[n]e', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test issue 73 (range ending in element)", function(t) {
+        var applier = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = '<span class="c1">one</span>two';
+        var range = rangy.createRange();
+        var span = testEl.childNodes[0];
+        range.setStart(span.firstChild, 0);
+        range.setEnd(testEl, 1);
+        try {
+            applier.toggleRange(range);
+        } catch (ex) {
+            t.fail("Error thrown: " + ex);
+        }
+        //t.assertEquals('<span class="c1">[one]</span><br><br> two', htmlAndRangeToString(testEl, range));
+    });
+
+
 }, false);
