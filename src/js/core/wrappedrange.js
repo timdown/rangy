@@ -215,7 +215,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     if (api.features.implementsDomRange && (!api.features.implementsTextRange || !api.config.preferTextRange)) {
         // This is a wrapper around the browser's native DOM Range. It has two aims:
         // - Provide workarounds for specific browser bugs
-        // - provide convenient extensions, as found in Rangy's DomRange
+        // - provide convenient extensions, which are inherited from Rangy's DomRange
 
         (function() {
             var rangeProto;
@@ -444,6 +444,15 @@ rangy.createModule("WrappedRange", function(api, module) {
             } else {
                 rangeProto.compareBoundaryPoints = function(type, range) {
                     return this.nativeRange.compareBoundaryPoints(type, range.nativeRange || range);
+                };
+            }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            // Test for existence of createContextualFragment and delegate to it if it exists
+            if (api.util.isHostMethod(range, "createContextualFragment")) {
+                rangeProto.createContextualFragment = function(fragmentStr) {
+                    return this.nativeRange.createContextualFragment(fragmentStr);
                 };
             }
 
