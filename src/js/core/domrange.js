@@ -5,7 +5,7 @@ rangy.createModule("DomRange", function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var DOMException = api.DOMException;
-    
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Utility functions
@@ -783,7 +783,7 @@ rangy.createModule("DomRange", function(api, module) {
         },
 
         containsRange: function(range) {
-            return this.intersection(range).equals(range);
+            return range.equals(this.intersection(range));
         },
 
         containsNodeText: function(node) {

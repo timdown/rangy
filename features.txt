@@ -26,7 +26,7 @@ Core features
 Utility module features
 -----------------------
 
-- insertHtml?
+- insertHtml? http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div/6691294#6691294
 - getElementText?
 - get range/selection coordinates: http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495
 - Get range start/end container element
