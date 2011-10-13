@@ -580,18 +580,16 @@ var xn = new Object();
 	Test.prototype._run = function() {
 		this.log("starting test [%s]", this.name);
 		this.startTime = new Date();
-		//try {
+		try {
 			this.callback(this);
 			if (!this.completed && !this.isAsync) {
 				this.succeed();
 			}
-/*
 		} catch (e) {
 			this.log("test [%s] threw exception [%s]", this.name, e);
 			var s = (this.assertCount === 1) ? "" : "s";
 			this.fail("Exception thrown after " + this.assertCount + " successful assertion" + s + ": " + getExceptionStringRep(e), e);
 		}
-*/
 	};
 
 	/**

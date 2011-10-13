@@ -933,6 +933,30 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             });
         }
 
+        if (testRange.containsRange) {
+            s.test("containsRange positive test", function(t) {
+                var range1 = rangeCreator(doc);
+                range1.selectNode(t.nodes.b);
+
+                var range2 = rangeCreator(doc);
+                range2.selectNode(t.nodes.i);
+
+                t.assert(range1.containsRange(range2));
+                t.assertFalse(range2.containsRange(range1));
+            });
+
+            s.test("containsRange negative test", function(t) {
+                var range1 = rangeCreator(doc);
+                range1.selectNode(t.nodes.plainText);
+
+                var range2 = rangeCreator(doc);
+                range2.selectNode(t.nodes.i);
+
+                t.assertFalse(range1.containsRange(range2));
+                t.assertFalse(range2.containsRange(range1));
+            });
+        }
+
         testRange.detach();
     }, false);
 }
