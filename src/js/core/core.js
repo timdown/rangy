@@ -7,7 +7,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-window['rangy'] = (function() {
+window["rangy"] = (function() {
     var log = log4javascript.getLogger("rangy.core");
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
@@ -84,26 +84,30 @@ window['rangy'] = (function() {
 
         modules: {},
         config: {
+            alertOnFail: true,
             alertOnWarn: false,
             preferTextRange: false
         }
     };
 
+    function alertOrLog(msg, shouldAlert) {
+        if (shouldAlert) {
+            window.alert(msg);
+        } else if (typeof window.console != UNDEFINED && typeof window.console.log != UNDEFINED) {
+            window.console.log(msg);
+        }
+    }
+
     function fail(reason) {
-        window.alert("Rangy not supported in your browser. Reason: " + reason);
         api.initialized = true;
         api.supported = false;
+        alertOrLog("Rangy is not supported on this page in your browser. Reason: " + reason, api.config.alertOnFail);
     }
 
     api.fail = fail;
 
     function warn(msg) {
-        var warningMessage = "Rangy warning: " + msg;
-        if (api.config.alertOnWarn) {
-            window.alert(warningMessage);
-        } else if (typeof window.console != UNDEFINED && typeof window.console.log != UNDEFINED) {
-            window.console.log(warningMessage);
-        }
+        alertOrLog("Rangy warning: " + msg, api.config.alertOnWarn);
     }
 
     api.warn = warn;

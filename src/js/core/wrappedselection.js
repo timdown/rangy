@@ -106,29 +106,31 @@ rangy.createModule("WrappedSelection", function(api, module) {
             iframeDoc.close();
 
             var sel = dom.getIframeWindow(iframe).getSelection();
-            var docEl = iframeDoc.documentElement;
-            var iframeBody = docEl.lastChild, textNode = iframeBody.firstChild;
+            if (sel) {
+                var docEl = iframeDoc.documentElement;
+                var iframeBody = docEl.lastChild, textNode = iframeBody.firstChild;
 
-            // Test whether the native selection will allow a collapsed selection within a non-editable element
-            var r1 = iframeDoc.createRange();
-            r1.setStart(textNode, 1);
-            r1.collapse(true);
-            sel.addRange(r1);
-            collapsedNonEditableSelectionsSupported = (sel.rangeCount == 1);
-            sel.removeAllRanges();
+                // Test whether the native selection will allow a collapsed selection within a non-editable element
+                var r1 = iframeDoc.createRange();
+                r1.setStart(textNode, 1);
+                r1.collapse(true);
+                sel.addRange(r1);
+                collapsedNonEditableSelectionsSupported = (sel.rangeCount == 1);
+                sel.removeAllRanges();
 
-            // Test whether the native selection is capable of supporting multiple ranges
-            var r2 = r1.cloneRange();
-            r1.setStart(textNode, 0);
-            r2.setEnd(textNode, 2);
-            sel.addRange(r1);
-            sel.addRange(r2);
+                // Test whether the native selection is capable of supporting multiple ranges
+                var r2 = r1.cloneRange();
+                r1.setStart(textNode, 0);
+                r2.setEnd(textNode, 2);
+                sel.addRange(r1);
+                sel.addRange(r2);
 
-            selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                selectionSupportsMultipleRanges = (sel.rangeCount == 2);
 
-            // Clean up
-            r1.detach();
-            r2.detach();
+                // Clean up
+                r1.detach();
+                r2.detach();
+            }
 
             body.removeChild(iframe);
         })();
