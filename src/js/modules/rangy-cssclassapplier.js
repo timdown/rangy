@@ -535,11 +535,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 var ancestorRange = range.cloneRange();
                 ancestorRange.selectNode(ancestorWithClass);
                 log.info("range end in ancestor " + ancestorRange.isPointInRange(range.endContainer, range.endOffset) + ", isSplitPoint " + isSplitPoint(range.endContainer, range.endOffset));
-                if (ancestorRange.isPointInRange(range.endContainer, range.endOffset)/* && isSplitPoint(range.endContainer, range.endOffset)*/) {
+                if (ancestorRange.isPointInRange(range.endContainer, range.endOffset)) {
                     splitNodeAt(ancestorWithClass, range.endContainer, range.endOffset, [range]);
                     range.setEndAfter(ancestorWithClass);
                 }
-                if (ancestorRange.isPointInRange(range.startContainer, range.startOffset)/* && isSplitPoint(range.startContainer, range.startOffset)*/) {
+                if (ancestorRange.isPointInRange(range.startContainer, range.startOffset)) {
                     ancestorWithClass = splitNodeAt(ancestorWithClass, range.startContainer, range.startOffset, [range]);
                 }
             }
