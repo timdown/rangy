@@ -144,7 +144,7 @@ rangy.createModule("Serializer", function(api, module) {
         while (i--) {
             nodeIndex = parseInt(nodeIndices[i], 10);
             if (nodeIndex < node.childNodes.length) {
-                node = node.childNodes[parseInt(nodeIndices[i], 10)];
+                node = node.childNodes[nodeIndex];
             } else {
                 throw module.createError("deserializePosition() failed: node " + dom.inspectNode(node) +
                         " has no child with index " + nodeIndex + ", " + i);
