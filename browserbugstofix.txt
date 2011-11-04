@@ -1,3 +1,0 @@
-- Firefox 2: setting end before start or vice versa
-- Old WebKit: EndToStart/StartToEnd confusion in compareBoundaryPoints (https://bugs.webkit.org/show_bug.cgi?id=20738)
-- Firefox 2: selectNodeContents on text node collapses range to 0th character of text node

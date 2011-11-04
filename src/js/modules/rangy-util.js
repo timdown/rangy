@@ -59,5 +59,31 @@ rangy.createModule("Util", function(api, module) {
         this.insertNode(frag);
     };
 
-    
+    /**
+     * Convenience method to set a range's start and end boundaries. Overloaded as follows:
+     * - Two parameters (node, offset) creates a collapsed range at that position
+     * - three parameters (node, startOffset, endOffset) creates a range contained with node starting at startOffset
+     *   and ending at endOffset
+     * - Four parameters (startNode, startOffset, endNode, endOffset) creates a range starting at startOffset in
+     *   startNode and ending at endOffset in endNode
+     */
+    rangeProto.setStartAndEnd = function() {
+        var args = arguments;
+        switch (args.length) {
+            case 2:
+                this.setStart(args[0], args[1]);
+                this.collapse(true);
+                break;
+            case 3:
+                this.setStart(args[0], args[1]);
+                this.setEnd(args[0], args[2]);
+                break;
+            case 4:
+                this.setStart(args[0], args[1]);
+                this.setEnd(args[2], args[3]);
+                break;
+        }
+    };
+
+    // TODO: simple selection save/restore
 });
