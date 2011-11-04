@@ -45,7 +45,11 @@ rangy.createModule("Util", function(api, module) {
         this.deleteFromDocument();
         var range = this.getRangeAt(0);
         var frag = this.createContextualFragment(html);
+        var lastNode = frag.lastChild;
         range.insertNode(frag);
+        if (lastNode) {
+            range.setStartAfter(lastNode)
+        }
         this.setSingleRange(range);
     };
 
