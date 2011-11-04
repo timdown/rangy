@@ -69,17 +69,15 @@ rangy.createModule("Util", function(api, module) {
      */
     rangeProto.setStartAndEnd = function() {
         var args = arguments;
+        this.setStart(args[0], args[1]);
         switch (args.length) {
             case 2:
-                this.setStart(args[0], args[1]);
                 this.collapse(true);
                 break;
             case 3:
-                this.setStart(args[0], args[1]);
                 this.setEnd(args[0], args[2]);
                 break;
             case 4:
-                this.setStart(args[0], args[1]);
                 this.setEnd(args[2], args[3]);
                 break;
         }
