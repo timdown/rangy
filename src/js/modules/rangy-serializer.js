@@ -247,7 +247,6 @@ rangy.createModule("Serializer", function(api, module) {
         return true;
     }
 
-
     var cookieName = "rangySerializedSelection";
 
     function getSerializedSelectionFromCookie(cookie) {
