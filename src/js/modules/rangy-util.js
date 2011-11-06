@@ -83,5 +83,11 @@ rangy.createModule("Util", function(api, module) {
         }
     };
 
+    selProto.selectNodeContents = function(node) {
+        var range = api.createRange(this.win);
+        range.selectNodeContents(node);
+        this.setSingleRange(range);
+    };
+
     // TODO: simple selection save/restore
 });
