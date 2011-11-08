@@ -65,21 +65,21 @@
 
                 var toggleBoldRedButton = gEBI("toggleBoldRedButton");
                 toggleBoldRedButton.disabled = false;
-                toggleBoldRedButton.onmousedown = function() {
+                toggleBoldRedButton.ontouchstart = toggleBoldRedButton.onmousedown = function() {
                     toggleBoldRed();
                     return false;
                 };
 
                 var toggleItalicYellowBgButton = gEBI("toggleItalicYellowBgButton");
                 toggleItalicYellowBgButton.disabled = false;
-                toggleItalicYellowBgButton.onmousedown = function() {
+                toggleItalicYellowBgButton.ontouchstart = toggleItalicYellowBgButton.onmousedown = function() {
                     toggleItalicYellowBg();
                     return false;
                 };
 
                 var togglePinkLinkButton = gEBI("togglePinkLinkButton");
                 togglePinkLinkButton.disabled = false;
-                togglePinkLinkButton.onmousedown = function() {
+                togglePinkLinkButton.ontouchstart = togglePinkLinkButton.onmousedown = function() {
                     togglePinkLink();
                     return false;
                 };

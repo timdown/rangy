@@ -54,13 +54,13 @@
             if (rangy.supported && saveRestoreModule && saveRestoreModule.supported) {
                 var saveButton = gEBI("saveButton");
                 saveButton.disabled = false;
-                saveButton.onmousedown = function() {
+                saveButton.ontouchstart = saveButton.onmousedown = function() {
                     saveSelection();
                     return false;
                 };
 
                 var restoreButton = gEBI("restoreButton");
-                restoreButton.onmousedown = function() {
+                restoreButton.ontouchstart = restoreButton.onmousedown = function() {
                     restoreSelection();
                     return false;
                 };

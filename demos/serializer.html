@@ -48,12 +48,12 @@
                 gEBI("serializedSelection").disabled = false;
                 var serializeButton = gEBI("serializeButton");
                 serializeButton.disabled = false;
-                serializeButton.onclick = serializeSelection;
+                serializeButton.ontouchstart = serializeButton.onclick = serializeSelection;
 
                 gEBI("selectionToDeserialize").disabled = false;
                 var deserializeButton = gEBI("deserializeButton");
                 deserializeButton.disabled = false;
-                deserializeButton.onclick = deserializeSelection;
+                deserializeButton.ontouchstart = deserializeButton.onclick = deserializeSelection;
 
                 // Display the control range element in IE
                 if (rangy.features.implementsControlRange) {

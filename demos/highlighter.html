@@ -86,9 +86,9 @@
     <div id="buttons">
         <h3>Highlighter</h3>
         <p>Make a selection in the document and use the buttons below to highlight and unhighlight.</p>
-        <input type="button" onclick="highlightSelectedText();" value="Highlight selection">
-        <input type="button" onclick="noteSelectedText();" value="Add note to selection">
-        <input type="button" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
+        <input type="button" ontouchstart="highlightSelectedText();" onclick="highlightSelectedText();" value="Highlight selection">
+        <input type="button" ontouchstart="noteSelectedText();" onclick="noteSelectedText();" value="Add note to selection">
+        <input type="button" ontouchstart="removeHighlightFromSelectedText();" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
 <!--
         <input type="button" onclick="highlighter.deserialize(highlighter.serialize())" value="Serialize and deserialize">
 -->

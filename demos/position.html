@@ -116,7 +116,7 @@
             button.type = "button";
             button.unselectable = true;
             button.className = "unselectable";
-            button.onmousedown = function() {
+            button.ontouchstart = button.onmousedown = function() {
                 clickHandler();
                 return false;
             };

@@ -34,7 +34,7 @@
             if (rangy.supported && textCommandsModule && textCommandsModule.supported) {
                 var toggleBoldButton = gEBI("toggleBoldButton");
                 toggleBoldButton.disabled = false;
-                toggleBoldButton.onmousedown = function() {
+                toggleBoldButton.ontouchstart = toggleBoldButton.onmousedown = function() {
                     //alert(rangy.querySelectionCommandValue("bold"));
                     rangy.execSelectionCommand("bold");
                     return false;
