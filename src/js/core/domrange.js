@@ -908,7 +908,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         function setRangeStart(range, node, offset) {
             var ec = range.endContainer, eo = range.endOffset;
-            if (node !== range.startContainer || offset !== this.startOffset) {
+            if (node !== range.startContainer || offset !== range.startOffset) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
                 if (getRootContainer(node) != getRootContainer(ec) || dom.comparePoints(node, offset, ec, eo) == 1) {
@@ -921,7 +921,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         function setRangeEnd(range, node, offset) {
             var sc = range.startContainer, so = range.startOffset;
-            if (node !== range.endContainer || offset !== this.endOffset) {
+            if (node !== range.endContainer || offset !== range.endOffset) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
                 if (getRootContainer(node) != getRootContainer(sc) || dom.comparePoints(node, offset, sc, so) == -1) {
@@ -933,7 +933,7 @@ rangy.createModule("DomRange", function(api, module) {
         }
 
         function setRangeStartAndEnd(range, node, offset) {
-            if (node !== range.startContainer || offset !== this.startOffset || node !== range.endContainer || offset !== this.endOffset) {
+            if (node !== range.startContainer || offset !== range.startOffset || node !== range.endContainer || offset !== range.endOffset) {
                 boundaryUpdater(range, node, offset, node, offset);
             }
         }
