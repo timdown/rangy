@@ -207,16 +207,44 @@ rangy.createModule("Coordinates", function(api, module) {
                 };
 
                 if (rangeSupportsGetClientRects) {
+                    var getElementRectsForPosition = function(node, offset) {
+                        var children = node.childNodes;
+                        //if (offset < children.length)
+                    };
+
                     createClientBoundaryPosGetter = function(isStart) {
                         return function() {
                             var rect, nativeRange = createWrappedRange(this).nativeRange;
-                            if (isStart) {
-                                rect = nativeRange.getClientRects()[0];
-                                return { x: rect.left, y: rect.top };
+                            var rects = nativeRange.getClientRects();
+
+                            if (rects.length == 0 && elementSupportsGetBoundingClientRect) {
+                                if (isStart) {
+
+
+                                }
+
+                                console.log(nativeRange, nativeRange.getClientRects(), nativeRange.getBoundingClientRect());
+                                if (this.collapsed
+                                        && this.startContainer.nodeType == 1
+                                        && this.startOffset < this.startContainer.childNodes.length) {
+                                    var n = this.startContainer.childNodes[this.startOffset];
+                                    if (n.getClientRects) {
+                                        console.log(n, n.getClientRects(), this.startContainer.getClientRects())
+                                    }
+
+                                }
+                            }
+
+                            if (rects.length > 0) {
+                                if (isStart) {
+                                    rect = rects[0];
+                                    return { x: rect.left, y: rect.top };
+                                } else {
+                                    rect = rects[rects.length - 1];
+                                    return { x: rect.right, y: rect.bottom };
+                                }
                             } else {
-                                var rects = nativeRange.getClientRects();
-                                rect = rects[rects.length - 1];
-                                return { x: rect.right, y: rect.bottom };
+                                throw module.createError("Cannot get position for range " + this.inspect());
                             }
                         };
                     }

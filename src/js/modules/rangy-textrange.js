@@ -37,7 +37,7 @@
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
-    var dom = api.dom, util = api.util;
+    var dom = api.dom, util = api.util, DomPostion = dom.DomPosition;
 
     var log = log4javascript.getLogger("rangy.textrange");
 
