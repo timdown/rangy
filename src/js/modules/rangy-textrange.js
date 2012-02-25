@@ -37,7 +37,7 @@
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
-    var dom = api.dom, util = api.util, DomPostion = dom.DomPosition;
+    var dom = api.dom, util = api.util, DomPosition = dom.DomPosition;
 
     var log = log4javascript.getLogger("rangy.textrange");
 
@@ -160,10 +160,116 @@ rangy.createModule("TextRange", function(api, module) {
         }
     }
 
+    function containsPositions(node) {
+        return dom.isCharacterDataNode(node)
+            || !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
+    }
+
     var isFirstVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(false);
     var isLastVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(true);
 
     var breakingSpaceRegex = /^[\u0009-\u000d\u0020\u0085\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]$/;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+
+    function PositionIterator(node, offset) {
+        if (node instanceof DomPosition) {
+            offset = node.offset;
+            node = node.node;
+        }
+        this.current = new DomPosition(node, offset);
+    }
+
+    PositionIterator.prototype = {
+        peekNext: function() {
+            if (typeof this._next != "undefined") {
+                return this._next;
+            }
+            var current = this.current, node = current.node, offset = current.offset;
+            if (!node) {
+                return null;
+            }
+            var nextNode, nextOffset, child;
+            if (offset == dom.getNodeLength(node)) {
+                // Move onto the next node
+                nextNode = node.parentNode;
+                nextOffset = nextNode ? dom.getNodeIndex(node) + 1 : 0;
+            } else {
+                if (dom.isCharacterDataNode(node)) {
+                    nextNode = node;
+                    nextOffset = offset + 1;
+                } else {
+                    child = node.childNodes[offset];
+                    // Go into the children next, if children there are
+                    if (containsPositions(child)) {
+                        nextNode = child;
+                        nextOffset = 0;
+                    } else {
+                        nextNode = node;
+                        nextOffset = offset + 1;
+                    }
+                }
+            }
+            return this._next = nextNode ? new DomPosition(nextNode, nextOffset) : null;
+        },
+
+        hasNext: function() {
+            return !!this.peekNext();
+        },
+
+        next: function() {
+            this.current = this.peekNext();
+            delete this._next;
+            return this.current;
+        },
+
+        peekPrevious: function() {
+            if (typeof this._previous != "undefined") {
+                return this._previous;
+            }
+            var current = this.current, node = current.node, offset = current.offset;
+            if (!node) {
+                return null;
+            }
+
+            var previousNode, previousOffset, child;
+            if (offset == 0) {
+                previousNode = node.parentNode;
+                previousOffset = previousNode ? dom.getNodeIndex(node) : 0;
+            } else {
+                if (dom.isCharacterDataNode(node)) {
+                    previousNode = node;
+                    previousOffset = offset - 1;
+                } else {
+                    child = node.childNodes[offset - 1];
+                    // Go into the children next, if children there are
+                    if (containsPositions(child)) {
+                        previousNode = child;
+                        previousOffset = dom.getNodeLength(child);
+                    } else {
+                        previousNode = node;
+                        previousOffset = offset - 1;
+                    }
+                }
+            }
+            return this._previous = previousNode ? new DomPosition(previousNode, previousOffset) : null;
+        },
+
+        hasPrevious: function() {
+            return !!this.peekPrevious();
+        },
+
+        previous: function() {
+            this.current = this.peekPrevious();
+            delete this._previous;
+            return this.current;
+        }
+    };
+
+    api.PositionIterator = PositionIterator;
+
+
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -300,8 +406,6 @@ rangy.createModule("TextRange", function(api, module) {
         }
     };
 
-    function create
-
     util.extend(dom, {
         nextNode: nextNode,
         previousNode: previousNode
@@ -335,7 +439,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     util.extend(api.rangePrototype, {
         text: function() {
-            var iterator = new TextIterator(this.startContainer, this.startOffset);
+            //var iterator = new TextIterator(this.startContainer, this.startOffset);
 
 
         },
