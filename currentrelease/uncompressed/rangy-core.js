@@ -1452,7 +1452,8 @@ rangy.createModule("DomUtil", function(api, module) {
         },
 
         containsRange: function(range) {
-            return this.intersection(range).equals(range);
+            var intersection = this.intersection(range);
+            return intersection !== null && range.equals(intersection);
         },
 
         containsNodeText: function(node) {
