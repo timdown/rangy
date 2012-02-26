@@ -8,10 +8,10 @@
 
  Depends on Rangy core.
 
- Copyright 2011, Tim Down
+ Copyright 2012, Tim Down
  Licensed under the MIT license.
- Version: 1.2.2
- Build date: 13 November 2011
+ Version: 1.2.3
+ Build date: 26 February 2012
 */
 rangy.createModule("Serializer",function(g,n){function o(c,a){a=a||[];var b=c.nodeType,e=c.childNodes,d=e.length,f=[b,c.nodeName,d].join(":"),h="",k="";switch(b){case 3:h=c.nodeValue.replace(/</g,"&lt;").replace(/>/g,"&gt;");break;case 8:h="<!--"+c.nodeValue.replace(/</g,"&lt;").replace(/>/g,"&gt;")+"--\>";break;default:h="<"+f+">";k="</>";break}h&&a.push(h);for(b=0;b<d;++b)o(e[b],a);k&&a.push(k);return a}function j(c){c=o(c).join("");return u(c).toString(16)}function l(c,a,b){var e=[],d=c;for(b=
 b||i.getDocument(c).documentElement;d&&d!=b;){e.push(i.getNodeIndex(d,true));d=d.parentNode}return e.join("/")+":"+a}function m(c,a,b){if(a)b||i.getDocument(a);else{b=b||document;a=b.documentElement}c=c.split(":");a=a;b=c[0]?c[0].split("/"):[];for(var e=b.length,d;e--;){d=parseInt(b[e],10);if(d<a.childNodes.length)a=a.childNodes[parseInt(b[e],10)];else throw n.createError("deserializePosition failed: node "+i.inspectNode(a)+" has no child with index "+d+", "+e);}return new i.DomPosition(a,parseInt(c[1],
