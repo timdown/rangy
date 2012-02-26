@@ -417,12 +417,18 @@ rangy.createModule("DomRange", function(api, module) {
         return offset <= (dom.isCharacterDataNode(node) ? node.length : node.childNodes.length);
     }
 
+    function isRangeValid(range) {
+        return (!!range.startContainer && !!range.endContainer
+                && !isOrphan(range.startContainer)
+                && !isOrphan(range.endContainer)
+                && isValidOffset(range.startContainer, range.startOffset)
+                && isValidOffset(range.endContainer, range.endOffset));
+    }
+
     function assertRangeValid(range) {
         assertNotDetached(range);
-        if (isOrphan(range.startContainer) || isOrphan(range.endContainer) ||
-                !isValidOffset(range.startContainer, range.startOffset) ||
-                !isValidOffset(range.endContainer, range.endOffset)) {
-            throw module.createError("Range is no longer valid after DOM mutation (" + range.inspect() + ")");
+        if (!isRangeValid(range)) {
+            throw new Error("Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
         }
     }
 
@@ -837,6 +843,10 @@ rangy.createModule("DomRange", function(api, module) {
 
         equals: function(range) {
             return Range.rangesEqual(this, range);
+        },
+
+        isValid: function() {
+            return isRangeValid(this);
         },
 
         inspect: function() {

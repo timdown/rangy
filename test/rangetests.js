@@ -73,6 +73,52 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquivalent(range.endOffset, 0);
         });
 
+        if (testRange.isValid) {
+            s.test("isValid: remove common container node", function(t) {
+                var range = rangeCreator(doc);
+                range.selectNodeContents(t.nodes.plainText);
+                t.assert(range.isValid());
+                t.nodes.plainText.parentNode.removeChild(t.nodes.plainText);
+                t.assertFalse(range.isValid());
+            });
+
+            s.test("isValid: remove start container node", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 0);
+                range.setEnd(t.nodes.boldAndItalicText, 1);
+                t.assert(range.isValid());
+                t.nodes.plainText.parentNode.removeChild(t.nodes.plainText);
+                t.assertFalse(range.isValid());
+            });
+
+            s.test("isValid: remove end container node", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 0);
+                range.setEnd(t.nodes.boldAndItalicText, 1);
+                t.assert(range.isValid());
+                t.nodes.boldAndItalicText.parentNode.removeChild(t.nodes.boldAndItalicText);
+                t.assertFalse(range.isValid());
+            });
+
+            s.test("isValid: truncate start container node", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 2);
+                range.setEnd(t.nodes.boldAndItalicText, 1);
+                t.assert(range.isValid());
+                t.nodes.plainText.data = "1";
+                t.assertFalse(range.isValid());
+            });
+
+            s.test("isValid: truncate end container node", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 2);
+                range.setEnd(t.nodes.boldAndItalicText, 2);
+                t.assert(range.isValid());
+                t.nodes.boldAndItalicText.data = "1";
+                t.assertFalse(range.isValid());
+            });
+        }
+
         s.test("setStart after end test", function(t) {
             var range = rangeCreator(doc);
             //log.info(range);
