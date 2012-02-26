@@ -79,6 +79,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
         (function() {
             var iframe = document.createElement("iframe");
+            iframe.frameBorder = 0;
+            iframe.style.position = "absolute";
+            iframe.style.left = "-10000px";
             body.appendChild(iframe);
 
             var iframeDoc = dom.getIframeDocument(iframe);
