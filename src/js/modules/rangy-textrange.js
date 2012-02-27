@@ -32,6 +32,14 @@
  * Range additions
  *
  * -
+ *
+ *
+ * References
+ *
+ * https://www.w3.org/Bugs/Public/show_bug.cgi?id=13145
+ * http://aryeh.name/spec/innertext/innertext.html
+ * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
+ *
  */
 
 rangy.createModule("TextRange", function(api, module) {
@@ -59,12 +67,23 @@ rangy.createModule("TextRange", function(api, module) {
         normalizeWhiteSpace: false
     };
 
+/*
     function isVisibleElement(el) {
         return !!el &&
             el.nodeType == 1 &&
             !/^(script|style)$/.test(el.tagName) &&
             getComputedStyleProperty(el, "visibility") != "hidden" &&
             getComputedStyleProperty(el, "display") != "none";
+    }
+*/
+
+    // "A block node is either an Element whose "display" property does not have
+    // resolved value "inline" or "inline-block" or "inline-table" or "none", or a
+    // Document, or a DocumentFragment."
+    function isBlockNode(node) {
+        return node
+            && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedStyleProperty(node, "display")))
+            || node.nodeType == 9 || node.nodeType == 11);
     }
 
     function isTextNodePre(textNode) {
@@ -116,7 +135,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     var beforeFirstNode = {}, afterLastNode = {};
 
-    function nextNode(node, excludeChildren) {
+/*    function nextNode(node, excludeChildren) {
         if (node == beforeFirstNode) {
             return document;
         }
@@ -160,18 +179,316 @@ rangy.createModule("TextRange", function(api, module) {
         }
     }
 
+    var isFirstVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(false);
+    var isLastVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(true);*/
+
     function containsPositions(node) {
         return dom.isCharacterDataNode(node)
             || !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
     }
 
-    var isFirstVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(false);
-    var isLastVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(true);
-
     var breakingSpaceRegex = /^[\u0009-\u000d\u0020\u0085\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]$/;
+
+    function getAncestors(node) {
+    	var ancestors = [];
+    	while (node.parentNode) {
+    		ancestors.unshift(node.parentNode);
+    		node = node.parentNode;
+    	}
+    	return ancestors;
+    }
+
+    function getAncestorsAndSelf(node) {
+        return getAncestors(node) . concat([node]);
+    }
+
+    // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
+    function isHtmlNode(node) {
+        var ns;
+        return typeof (ns = node.namespaceURI) == "undefined" || (ns === null || ns == "http://www.w3.org/1999/xhtml");
+    }
+
+    function isHtmlElement(node, tagNames) {
+        if (!node || node.nodeType != 1 || !isHtmlNode(node)) {
+            return false;
+        }
+        switch (typeof tagNames) {
+            case "string":
+                return node.tagName.toLowerCase() == tagNames.toLowerCase();
+            case "object":
+                return new RegExp("^(" + tagNames.join("|S") + ")$", "i").test(node.tagName);
+            default:
+                return true;
+        }
+    }
+
+    function nextNodeDescendants(node) {
+        while (node && !node.nextSibling) {
+            node = node.parentNode;
+        }
+        if (!node) {
+            return null;
+        }
+        return node.nextSibling;
+    }
+
+    function nextNode(node, excludeChildren) {
+        if (!excludeChildren && node.hasChildNodes()) {
+            return node.firstChild;
+        }
+        return nextNodeDescendants(node);
+    }
+
+    function previousNode(node) {
+        var previous = node.previousSibling;
+        if (previous) {
+            node = previous;
+            while (node.hasChildNodes()) {
+                node = node.lastChild;
+            }
+            return node;
+        }
+        var parent = node.parentNode;
+        if (parent && parent.nodeType == 1) {
+            return parent;
+        }
+        return null;
+    }
+
+    function isHidden(node) {
+        var ancestors = getAncestorsAndSelf(node);
+        for (var i = 0, len = ancestors.length; i < len; ++i) {
+            if (ancestors[i].nodeType == 1 && getComputedStyleProperty(ancestors[i], "display") == "none") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // "A whitespace node is either a Text node whose data is the empty string; or
+    // a Text node whose data consists only of one or more tabs (0x0009), line
+    // feeds (0x000A), carriage returns (0x000D), and/or spaces (0x0020), and whose
+    // parent is an Element whose resolved value for "white-space" is "normal" or
+    // "nowrap"; or a Text node whose data consists only of one or more tabs
+    // (0x0009), carriage returns (0x000D), and/or spaces (0x0020), and whose
+    // parent is an Element whose resolved value for "white-space" is "pre-line"."
+    function isWhitespaceNode(node) {
+        if (!node || node.nodeType != 3) {
+            return false;
+        }
+        var text = node.data;
+        if (text == "") {
+            return true;
+        }
+        var parent = node.parentNode;
+        if (!parent || parent.nodeType != 1) {
+            return false;
+        }
+        var computedWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
+
+        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace))
+            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
+    }
+
+    // "node is a collapsed whitespace node if the following algorithm returns
+    // true:"
+    function isCollapsedWhitespaceNode(node) {
+    	// "If node's data is the empty string, return true."
+    	if (node.data == "") {
+    		return true;
+    	}
+
+    	// "If node is not a whitespace node, return false."
+    	if (!isWhitespaceNode(node)) {
+    		return false;
+    	}
+
+    	// "Let ancestor be node's parent."
+    	var ancestor = node.parentNode;
+
+    	// "If ancestor is null, return true."
+    	if (!ancestor) {
+    		return true;
+    	}
+
+    	// "If the "display" property of some ancestor of node has resolved value "none", return true."
+        if (isHidden(node)) {
+            return true;
+        }
+
+    	// "While ancestor is not a block node and its parent is not null, set
+    	// ancestor to its parent."
+    	while (!isBlockNode(ancestor) && ancestor.parentNode) {
+    		ancestor = ancestor.parentNode;
+    	}
+
+    	// "Let reference be node."
+    	var reference = node;
+
+    	// "While reference is a descendant of ancestor:"
+    	while (reference != ancestor) {
+    		// "Let reference be the node before it in tree order."
+    		reference = previousNode(reference);
+
+    		// "If reference is a block node or a br, return true."
+    		if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+    			return true;
+    		}
+
+    		// "If reference is a Text node that is not a whitespace node, or is an
+    		// img, break from this loop."
+    		if ((reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+    			break;
+    		}
+    	}
+
+    	// "Let reference be node."
+    	reference = node;
+
+    	// "While reference is a descendant of ancestor:"
+    	var stop = nextNodeDescendants(ancestor);
+    	while (reference != stop) {
+    		// "Let reference be the node after it in tree order, or null if there
+    		// is no such node."
+    		reference = nextNode(reference);
+
+    		// "If reference is a block node or a br, return true."
+    		if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+    			return true;
+    		}
+
+    		// "If reference is a Text node that is not a whitespace node, or is an
+    		// img, break from this loop."
+    		if ((reference && reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+    			break;
+    		}
+    	}
+
+    	// "Return false."
+    	return false;
+    }
+
+    function isVisibleTextNode(node) {
+        return node
+            && node.nodeType == 3
+            && !isHidden(node)
+            && !isCollapsedWhitespaceNode(node)
+            && !/^(script|style)$/i.test(node.parentNode.nodeName);
+    }
+
+/*
+    function isCollapsedBr(node) {
+        log.debug("isCollapsedBr", dom.inspectNode(node))
+        if (!node || node.nodeType != 1 || !isHtmlElement(node, "br")) {
+            return false;
+        }
+
+        // Check if this br is the last visible text in the containing block
+
+    	// "Let ancestor be node's parent."
+    	var ancestor = node.parentNode;
+
+    	// "If ancestor is null, return true."
+    	if (!ancestor) {
+    		return true;
+    	}
+
+    	// "If the "display" property of some ancestor of node has resolved value "none", return true."
+        if (isHidden(node)) {
+            return true;
+        }
+
+    	// "While ancestor is not a block node and its parent is not null, set
+    	// ancestor to its parent."
+    	while (!isBlockNode(ancestor) && ancestor.parentNode) {
+    		ancestor = ancestor.parentNode;
+    	}
+
+    	// "Let reference be node."
+    	var reference = nextNode(node), afterAncestor = nextNode(ancestor, true);
+
+    	// "While reference is a descendant of ancestor:"
+    	//while (reference != afterAncestor) {
+        while (dom.isAncestorOf(ancestor, reference)) {
+            // Work from the node to the end of the current block, trying to find something rendered after the br
+            log.debug(dom.inspectNode(reference), dom.inspectNode(ancestor), dom.inspectNode(afterAncestor), isVisibleTextNode(reference), isHtmlElement(reference, ["br", "img"]))
+            if (isVisibleTextNode(reference) || isHtmlElement(reference, ["br", "img"])) {
+                return false;
+            }
+            reference = nextNode(reference);
+    	}
+
+        return true;
+    }
+*/
+
+
+
+
+    function isVisibleElement(el) {
+
+    }
+
+    function isRenderedWhiteSpace(textNode) {
+
+    }
+
+
+    function hasNoVisibleText(node) {
+        log.debug("hasNoVisibleText", isHidden(node), /^(script|style)$/.test(node.nodeName), isCollapsedWhitespaceNode(node))
+        return isHidden(node)
+            || /^(script|style)$/.test(node.nodeName)
+            || isCollapsedWhitespaceNode(node)
+/*
+            || isCollapsedBr(node);
+*/
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    function Iterator() {}
+
+    Iterator.prototype = {
+        peekNext: function() {
+            return (typeof this._next != "undefined") ? this._next : (this._next = this._getNext());
+        },
+
+        hasNext: function() {
+            return !!this.peekNext();
+        },
+
+        next: function() {
+            this.current = this.peekNext();
+            delete this._next;
+            return this.current;
+        },
+
+        peekPrevious: function() {
+            return (typeof this._previous != "undefined") ? this._previous : (this._previous = this._getPrevious());
+        },
+
+        hasPrevious: function() {
+            return !!this.peekPrevious();
+        },
+
+        setCurrent: function(item) {
+            this.current = item;
+            delete this._previous;
+            delete this._next;
+        },
+
+        previous: function() {
+            this.current = this.peekPrevious();
+            delete this._previous;
+            return this.current;
+        }
+    };
+
+    function extendIterator(constructor, props) {
+        constructor.prototype = new Iterator();
+        util.extend(constructor.prototype, props);
+    }
 
     function PositionIterator(node, offset) {
         if (node instanceof DomPosition) {
@@ -181,11 +498,8 @@ rangy.createModule("TextRange", function(api, module) {
         this.current = new DomPosition(node, offset);
     }
 
-    PositionIterator.prototype = {
-        peekNext: function() {
-            if (typeof this._next != "undefined") {
-                return this._next;
-            }
+    extendIterator(PositionIterator, {
+        _getNext: function() {
             var current = this.current, node = current.node, offset = current.offset;
             if (!node) {
                 return null;
@@ -211,28 +525,14 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                 }
             }
-            return this._next = nextNode ? new DomPosition(nextNode, nextOffset) : null;
+            return nextNode ? new DomPosition(nextNode, nextOffset) : null;
         },
 
-        hasNext: function() {
-            return !!this.peekNext();
-        },
-
-        next: function() {
-            this.current = this.peekNext();
-            delete this._next;
-            return this.current;
-        },
-
-        peekPrevious: function() {
-            if (typeof this._previous != "undefined") {
-                return this._previous;
-            }
+        _getPrevious: function() {
             var current = this.current, node = current.node, offset = current.offset;
             if (!node) {
                 return null;
             }
-
             var previousNode, previousOffset, child;
             if (offset == 0) {
                 previousNode = node.parentNode;
@@ -253,23 +553,75 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                 }
             }
-            return this._previous = previousNode ? new DomPosition(previousNode, previousOffset) : null;
-        },
-
-        hasPrevious: function() {
-            return !!this.peekPrevious();
-        },
-
-        previous: function() {
-            this.current = this.peekPrevious();
-            delete this._previous;
-            return this.current;
+            return previousNode ? new DomPosition(previousNode, previousOffset) : null;
         }
-    };
+    });
 
     api.PositionIterator = PositionIterator;
 
+    /*----------------------------------------------------------------------------------------------------------------*/
 
+    /*
+    Create filtered iterator that skips
+
+    - Whole whitespace nodes that do not affect rendering
+    - Hidden (CSS visibility/display) elements
+    - Script and style elements
+    - <br> elements that do not affect rendering
+    - collapsed whitespace characters
+
+    We also need to consider implicit text characters between elements (line breaks between blocks, tabs between table
+    cells etc.)
+
+    Final iterator will move between text positions, including those between elements. For example, in
+    <td>1</td>    <td>2</td>, text position for the tab character at will be <td>1</td>|    <td>2</td>
+
+
+
+
+     */
+
+    // This iterator iterates over positions within visible nodes
+    function VisiblePositionIterator(node, offset) {
+        if (node instanceof DomPosition) {
+            offset = node.offset;
+            node = node.node;
+        }
+        this._positionIterator = new PositionIterator(node, offset);
+        this.current = new DomPosition(node, offset);
+    }
+
+    extendIterator(VisiblePositionIterator, {
+        _getNext: function() {
+            var iterator = this._positionIterator;
+            iterator.setCurrent(this.current);
+            var node = iterator.next().node;
+            log.debug("node: " + dom.inspectNode(node) + ", hasNoVisibleText(node): " + hasNoVisibleText(node))
+            if (hasNoVisibleText(node)) {
+                // We're skipping this node and all its descendants
+                node = node.parentNode;
+                var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node) + 1);
+                iterator.setCurrent(newPos);
+                log.info("New pos: " + newPos.inspect() + ", old: " + this.current.inspect())
+            }
+            return iterator.current;
+        },
+
+        _getPrevious: function() {
+            var iterator = this._positionIterator;
+            iterator.setCurrent(this.current);
+            var node = iterator.previous().node;
+            if (hasNoVisibleText(node)) {
+                // We're skipping this node and all its descendants
+                node = node.parentNode;
+                var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node));
+                iterator.setCurrent(newPos);
+            }
+            return iterator.current;
+        }
+    });
+
+    api.VisiblePositionIterator = VisiblePositionIterator;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -487,5 +839,17 @@ rangy.createModule("TextRange", function(api, module) {
         var text = range.text();
         range.detach();
         return text;
-    }
+    };
+
+    api.textRange = {
+        isBlockNode: isBlockNode,
+/*
+        isCollapsedBr: isCollapsedBr,
+*/
+        isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
+        PositionIterator: PositionIterator,
+        VisiblePositionIterator: VisiblePositionIterator
+
+    };
+
 });
