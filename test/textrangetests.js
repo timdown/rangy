@@ -87,24 +87,24 @@ xn.test.suite("Text Range module tests", function(s) {
     });
 
     s.test("isCollapsedWhitespaceNode", function(t) {
-/*
-        t.el.innerHTML = "<div><br><i><br><br></i></div><br><div><i><br></i></div><div><i><br></i>x</div>";
-        var brs = t.el.getElementsByTagName("br");
-        var collapsed = [false, false, true, false, false];
-        for (var i = 0; i < collapsed.length; ++i) {
-            t.assertEquals(rangy.textRange.isCollapsedBr(brs[i]), collapsed[i]);
+        t.el.innerHTML = '<div>1</div> <div>2</div>';
+        if (t.el.childNodes[1].nodeType == 3) {
+            t.assert(rangy.textRange.isCollapsedWhitespaceNode(t.el.childNodes[1]));
+
+        } else {
+            // IE < 9 case
+            t.assertEquals(t.el.childNodes.length, 2);
         }
-*/
     });
 
     s.test("VisiblePositionIterator", function(t) {
-        t.el.innerHTML = '<div>1<b style="display: none">2<br></b><script>var foo = 1</script><span></span><br></div>   <div>2</div>';
+        t.el.innerHTML = '<div>1<b style="display: none">2<br></b><script>var foo = 1</script><span></span><br></div><div>2</div>';
 
         var div1 = t.el.getElementsByTagName("div")[0];
         var text1 = div1.firstChild;
         var b = text1.nextSibling;
         var br = t.el.getElementsByTagName("br")[0];
-        var span = br.previousSibling;
+        var span = t.el.getElementsByTagName("span")[0];
         var div2 = t.el.getElementsByTagName("div")[1];
         var text2 = div2.firstChild;
 
@@ -119,7 +119,6 @@ xn.test.suite("Text Range module tests", function(s) {
             [div1, 4],
             [div1, 5],
             [t.el, 1],
-            [t.el, 2],
             [div2, 0],
             [text2, 0],
             [text2, 1],

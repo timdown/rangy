@@ -82,7 +82,7 @@ rangy.createModule("TextRange", function(api, module) {
     // Document, or a DocumentFragment."
     function isBlockNode(node) {
         return node
-            && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedStyleProperty(node, "display")))
+            && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node)))
             || node.nodeType == 9 || node.nodeType == 11);
     }
 
@@ -96,9 +96,10 @@ rangy.createModule("TextRange", function(api, module) {
     var inlineDisplayRegex = /^inline(-block|-table)?$/i;
 
     function isNonInlineElement(node) {
-        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"));
+        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedDisplay(node));
     }
 
+/*
     function getBlockContainerOrSelf(node) {
         var nodeType;
         while (node) {
@@ -128,12 +129,11 @@ rangy.createModule("TextRange", function(api, module) {
         return "";
     }
 
+*/
     function getLastDescendantOrSelf(node) {
         var lastChild = node.lastChild;
         return lastChild ? getLastDescendantOrSelf(lastChild) : node;
     }
-
-    var beforeFirstNode = {}, afterLastNode = {};
 
 /*    function nextNode(node, excludeChildren) {
         if (node == beforeFirstNode) {
@@ -258,12 +258,19 @@ rangy.createModule("TextRange", function(api, module) {
     function isHidden(node) {
         var ancestors = getAncestorsAndSelf(node);
         for (var i = 0, len = ancestors.length; i < len; ++i) {
-            if (ancestors[i].nodeType == 1 && getComputedStyleProperty(ancestors[i], "display") == "none") {
+            if (ancestors[i].nodeType == 1 && getComputedDisplay(ancestors[i]) == "none") {
                 return true;
             }
         }
 
         return false;
+    }
+
+    function isVisibilityHiddenTextNode(textNode) {
+        var el;
+        return textNode.nodeType == 3
+            && (el = textNode.parentNode)
+            && getComputedStyleProperty(el, "visibility") == "hidden";
     }
 
     // "A whitespace node is either a Text node whose data is the empty string; or
@@ -373,6 +380,7 @@ rangy.createModule("TextRange", function(api, module) {
         return node
             && node.nodeType == 3
             && !isHidden(node)
+            && !isVisibilityHiddenTextNode(node)
             && !isCollapsedWhitespaceNode(node)
             && !/^(script|style)$/i.test(node.parentNode.nodeName);
     }
@@ -430,19 +438,102 @@ rangy.createModule("TextRange", function(api, module) {
 
     }
 
-    function isRenderedWhiteSpace(textNode) {
+    // Corrects IE's "block" value for table-related elements
+    function getComputedDisplay(el) {
+        var display = getComputedStyleProperty(el, "display");
+        if (display == "block") {
+            switch (el.tagName.toLowerCase()) {
+                case "table":
+                    return "table";
+                case "caption":
+                    return "table-caption";
+                case "colgroup":
+                    return "table-column-group";
+                case "col":
+                    return "table-column";
+                case "thead":
+                    return "table-header-group";
+                case "tbody":
+                    return "table-row-group";
+                case "tfoot":
+                    return "table-footer-group";
+                case "tr":
+                    return "table-header-group";
+                case "td":
+                case "th":
+                    return "table-cell";
+            }
+        }
+        return display;
+    }
+
+    function isCollapsedNode(node) {
+        var type = node.nodeType;
+        log.debug("isCollapsedNode", isHidden(node), /^(script|style)$/i.test(node.nodeName), isCollapsedWhitespaceNode(node))
+        return type == 7 /* PROCESSING_INSTRUCTION */
+            || type == 8 /* COMMENT */
+            || isHidden(node)
+            || /^(script|style)$/i.test(node.nodeName)
+            || isVisibilityHiddenTextNode(node)
+            || isCollapsedWhitespaceNode(node);
+    }
+
+    function isIgnoredNode(node) {
+        var type = node.nodeType;
+        return type == 7 /* PROCESSING_INSTRUCTION */
+            || type == 8 /* COMMENT */
+            || (type == 1 && getComputedDisplay(node) == "none");
+    }
+
+    function innerText(el) {
 
     }
 
+    function getLeadingSpace(el) {
+        switch (getComputedDisplay(el)) {
+            case "inline":
+                var child = el.firstChild;
+                while (child) {
+                    if (!isIgnoredNode(child)) {
+                        return child.nodeType == 1 ? getLeadingSpace(child) : ""
+                    }
+                    child = child.nextSibling;
+                }
+                return "";
+            case "inline-block":
+            case "inline-table":
+            case "none":
+            case "table-cell":
+            case "table-column":
+            case "table-column-group":
+                return "";
+            default:
+                return "\n";
+        }
+    }
 
-    function hasNoVisibleText(node) {
-        log.debug("hasNoVisibleText", isHidden(node), /^(script|style)$/.test(node.nodeName), isCollapsedWhitespaceNode(node))
-        return isHidden(node)
-            || /^(script|style)$/.test(node.nodeName)
-            || isCollapsedWhitespaceNode(node)
-/*
-            || isCollapsedBr(node);
-*/
+    function getTrailingSpace(el) {
+        switch (getComputedDisplay(el)) {
+            case "inline":
+                var child = el.lastChild;
+                while (child) {
+                    if (!isIgnoredNode(child)) {
+                        return child.nodeType == 1 ? getTrailingSpace(child) : ""
+                    }
+                    child = child.previousSibling;
+                }
+                return "";
+            case "inline-block":
+            case "inline-table":
+            case "none":
+            case "table-column":
+            case "table-column-group":
+                return "";
+            case "table-cell":
+                return "\t";
+            default:
+                return "\n";
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -567,7 +658,7 @@ rangy.createModule("TextRange", function(api, module) {
     - Whole whitespace nodes that do not affect rendering
     - Hidden (CSS visibility/display) elements
     - Script and style elements
-    - <br> elements that do not affect rendering
+    - <br> elements that do not affect rendering (No. Too difficult. All non-hidden <br>s are counted).
     - collapsed whitespace characters
 
     We also need to consider implicit text characters between elements (line breaks between blocks, tabs between table
@@ -575,10 +666,6 @@ rangy.createModule("TextRange", function(api, module) {
 
     Final iterator will move between text positions, including those between elements. For example, in
     <td>1</td>    <td>2</td>, text position for the tab character at will be <td>1</td>|    <td>2</td>
-
-
-
-
      */
 
     // This iterator iterates over positions within visible nodes
@@ -587,19 +674,18 @@ rangy.createModule("TextRange", function(api, module) {
             offset = node.offset;
             node = node.node;
         }
-        this._positionIterator = new PositionIterator(node, offset);
+        this._iterator = new PositionIterator(node, offset);
         this.current = new DomPosition(node, offset);
     }
 
     extendIterator(VisiblePositionIterator, {
         _getNext: function() {
-            var iterator = this._positionIterator;
+            var iterator = this._iterator;
             iterator.setCurrent(this.current);
             var node = iterator.next().node;
-            log.debug("node: " + dom.inspectNode(node) + ", hasNoVisibleText(node): " + hasNoVisibleText(node))
-            if (hasNoVisibleText(node)) {
+            log.debug("node: " + dom.inspectNode(node) + ", isCollapsedNode(node): " + isCollapsedNode(node), iterator.current.inspect())
+            if (isCollapsedNode(node)) {
                 // We're skipping this node and all its descendants
-                node = node.parentNode;
                 var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node) + 1);
                 iterator.setCurrent(newPos);
                 log.info("New pos: " + newPos.inspect() + ", old: " + this.current.inspect())
@@ -608,12 +694,11 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         _getPrevious: function() {
-            var iterator = this._positionIterator;
+            var iterator = this._iterator;
             iterator.setCurrent(this.current);
             var node = iterator.previous().node;
-            if (hasNoVisibleText(node)) {
+            if (isCollapsedNode(node)) {
                 // We're skipping this node and all its descendants
-                node = node.parentNode;
                 var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node));
                 iterator.setCurrent(newPos);
             }
@@ -624,6 +709,77 @@ rangy.createModule("TextRange", function(api, module) {
     api.VisiblePositionIterator = VisiblePositionIterator;
 
     /*----------------------------------------------------------------------------------------------------------------*/
+
+    /*
+
+    Now, the final iterator which iterates over text positions. Each text position is separated by exactly one
+    character.
+
+    To get to this, this iterator iterates over visible positions using an underlying VisiblePositionIterator and
+    performs the following steps:
+
+    - Ellision of spaces, including between nodes
+    - Inclusion of spaces between nodes
+
+
+     */
+
+    function TextPositionIterator(node, offset) {
+        if (node instanceof DomPosition) {
+            offset = node.offset;
+            node = node.node;
+        }
+        this._iterator = new VisiblePositionIterator(node, offset);
+        this.current = new DomPosition(node, offset);
+    }
+
+    extendIterator(TextPositionIterator, {
+        _getNext: function() {
+            var iterator = this._iterator;
+            iterator.setCurrent(this.current);
+            var node = iterator.next().node, currentNode = this.current.node;
+            var cssWhitespace;
+
+            if (node.nodeType == 3) {
+                // Check CSS white-space
+                if (node != currentNode || !(cssWhitespace = this.currentCssWhitespace)) {
+                    cssWhitespace = this.currentCssWhitespace = getComputedStyleProperty(node.parentNode, "white-space");
+                }
+
+
+            }
+
+/*
+            log.debug("node: " + dom.inspectNode(node) + ", isCollapsedNode(node): " + isCollapsedNode(node), iterator.current.inspect())
+            if (isCollapsedNode(node)) {
+                // We're skipping this node and all its descendants
+                var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node) + 1);
+                iterator.setCurrent(newPos);
+                log.info("New pos: " + newPos.inspect() + ", old: " + this.current.inspect())
+            }
+            return iterator.current;
+*/
+        },
+
+        _getPrevious: function() {
+/*
+            var iterator = this._iterator;
+            iterator.setCurrent(this.current);
+            var node = iterator.previous().node;
+            if (isCollapsedNode(node)) {
+                // We're skipping this node and all its descendants
+                var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node));
+                iterator.setCurrent(newPos);
+            }
+            return iterator.current;
+*/
+        }
+    });
+
+    api.TextPositionIterator = TextPositionIterator;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
 
     function VisibleTextPosition(node, offset) {
         // Convert the node and offset into a node and offset within a visible text node
