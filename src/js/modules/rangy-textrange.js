@@ -67,16 +67,6 @@ rangy.createModule("TextRange", function(api, module) {
         normalizeWhiteSpace: false
     };
 
-/*
-    function isVisibleElement(el) {
-        return !!el &&
-            el.nodeType == 1 &&
-            !/^(script|style)$/.test(el.tagName) &&
-            getComputedStyleProperty(el, "visibility") != "hidden" &&
-            getComputedStyleProperty(el, "display") != "none";
-    }
-*/
-
     // "A block node is either an Element whose "display" property does not have
     // resolved value "inline" or "inline-block" or "inline-table" or "none", or a
     // Document, or a DocumentFragment."
@@ -99,88 +89,10 @@ rangy.createModule("TextRange", function(api, module) {
         return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedDisplay(node));
     }
 
-/*
-    function getBlockContainerOrSelf(node) {
-        var nodeType;
-        while (node) {
-            nodeType = node.nodeType;
-            if (nodeType == 9 || nodeType == 11 || (isNonInlineElement(node) && isVisibleElement(node))) {
-                return node;
-            }
-            node = node.parentNode;
-        }
-        return null;
-    }
-
-    var charsBetweenElements = {
-        "td|td": "\t"
-    };
-
-    function getCharBetweenElements(el1, el2) {
-        var tagName1 = el1.tagName.toLowerCase();
-        var key = tagName1 + "|" + el2.tagName.toLowerCase();
-        if (charsBetweenElements.hasOwnProperty(key)) {
-            return charsBetweenElements[key];
-        } else if (tagName1 == "br") {
-            return "\n";
-        } else if (isNonInlineElement(el1)) {
-            return "\n";
-        }
-        return "";
-    }
-
-*/
     function getLastDescendantOrSelf(node) {
         var lastChild = node.lastChild;
         return lastChild ? getLastDescendantOrSelf(lastChild) : node;
     }
-
-/*    function nextNode(node, excludeChildren) {
-        if (node == beforeFirstNode) {
-            return document;
-        }
-        var parent, next;
-        if ( (!excludeChildren && (next = node.firstChild)) || (next = node.nextSibling) ) {
-            return next;
-        }
-        return (parent = node.parentNode) ? nextNode(parent, true) : null;
-    }
-
-    function previousNode(node) {
-        if (node == afterLastNode) {
-            return document.lastChild ? getLastDescendantOrSelf(document.lastChild) : document;
-        }
-        var parent = node.parentNode, sibling = node.previousSibling;
-        return sibling ? getLastDescendantOrSelf(sibling) : parent;
-    }
-
-    function isVisibleTextNode(node) {
-        return node.nodeType == 3 && isVisibleElement(node.parentNode);
-    }
-
-    function createNextPreviousVisibleTextNodeGetter(isNext) {
-        return function(node) {
-            while ( (node = (isNext ? nextNode : previousNode)(node)) ) {
-                if (isVisibleTextNode(node)) {
-                    return node;
-                }
-            }
-            return null;
-        }
-    }
-
-    var nextVisibleTextNode = createNextPreviousVisibleTextNodeGetter(true);
-    var previousVisibleTextNode = createNextPreviousVisibleTextNodeGetter(false);
-
-    function createFirstLastVisibleTextNodeInBlockGetter(isLast) {
-        return function(textNode) {
-            var adjacentTextNode = (isLast ? nextVisibleTextNode : previousVisibleTextNode)(textNode);
-            return !adjacentTextNode || (getBlockContainerOrSelf(textNode) !== getBlockContainerOrSelf(adjacentTextNode));
-        }
-    }
-
-    var isFirstVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(false);
-    var isLastVisibleTextNodeInBlock = createFirstLastVisibleTextNodeInBlockGetter(true);*/
 
     function containsPositions(node) {
         return dom.isCharacterDataNode(node)
@@ -188,6 +100,9 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     var breakingSpaceRegex = /^[\u0009-\u000d\u0020\u0085\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]$/;
+
+    var spacesRegex = /^[ \t\f\r\n]$/;
+    var spacesMinusLineBreaksRegex = /^[ \t\f\r]$/;
 
     function getAncestors(node) {
     	var ancestors = [];
@@ -385,63 +300,25 @@ rangy.createModule("TextRange", function(api, module) {
             && !/^(script|style)$/i.test(node.parentNode.nodeName);
     }
 
-/*
-    function isCollapsedBr(node) {
-        log.debug("isCollapsedBr", dom.inspectNode(node))
-        if (!node || node.nodeType != 1 || !isHtmlElement(node, "br")) {
-            return false;
-        }
-
-        // Check if this br is the last visible text in the containing block
-
-    	// "Let ancestor be node's parent."
-    	var ancestor = node.parentNode;
-
-    	// "If ancestor is null, return true."
-    	if (!ancestor) {
-    		return true;
-    	}
-
-    	// "If the "display" property of some ancestor of node has resolved value "none", return true."
-        if (isHidden(node)) {
-            return true;
-        }
-
-    	// "While ancestor is not a block node and its parent is not null, set
-    	// ancestor to its parent."
-    	while (!isBlockNode(ancestor) && ancestor.parentNode) {
-    		ancestor = ancestor.parentNode;
-    	}
-
-    	// "Let reference be node."
-    	var reference = nextNode(node), afterAncestor = nextNode(ancestor, true);
-
-    	// "While reference is a descendant of ancestor:"
-    	//while (reference != afterAncestor) {
-        while (dom.isAncestorOf(ancestor, reference)) {
-            // Work from the node to the end of the current block, trying to find something rendered after the br
-            log.debug(dom.inspectNode(reference), dom.inspectNode(ancestor), dom.inspectNode(afterAncestor), isVisibleTextNode(reference), isHtmlElement(reference, ["br", "img"]))
-            if (isVisibleTextNode(reference) || isHtmlElement(reference, ["br", "img"])) {
-                return false;
-            }
-            reference = nextNode(reference);
-    	}
-
-        return true;
-    }
-*/
-
-
-
-
     function isVisibleElement(el) {
 
     }
 
+    // Test for old IE's incorrect display properties
+    var tableCssDisplayBlock;
+    (function() {
+        var table = document.createElement("table");
+        document.body.appendChild(table);
+        tableCssDisplayBlock = (getComputedStyleProperty(table, "display") == "block");
+        document.body.removeChild(table);
+    })();
+
+    api.features.tableCssDisplayBlock = tableCssDisplayBlock;
+
     // Corrects IE's "block" value for table-related elements
     function getComputedDisplay(el) {
         var display = getComputedStyleProperty(el, "display");
-        if (display == "block") {
+        if (display == "block" && tableCssDisplayBlock) {
             switch (el.tagName.toLowerCase()) {
                 case "table":
                     return "table";
@@ -469,7 +346,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function isCollapsedNode(node) {
         var type = node.nodeType;
-        log.debug("isCollapsedNode", isHidden(node), /^(script|style)$/i.test(node.nodeName), isCollapsedWhitespaceNode(node))
+        log.debug("isCollapsedNode", isHidden(node), /^(script|style)$/i.test(node.nodeName), isCollapsedWhitespaceNode(node));
         return type == 7 /* PROCESSING_INSTRUCTION */
             || type == 8 /* COMMENT */
             || isHidden(node)
@@ -485,8 +362,19 @@ rangy.createModule("TextRange", function(api, module) {
             || (type == 1 && getComputedDisplay(node) == "none");
     }
 
-    function innerText(el) {
-
+    function hasInnerText(node) {
+        if (!isCollapsedNode(node)) {
+            if (node.nodeType == 3) {
+                return true;
+            } else {
+                for (var child = node.firstChild; child; child = child.nextSibling) {
+                    if (hasInnerText(child)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     function getLeadingSpace(el) {
@@ -532,7 +420,7 @@ rangy.createModule("TextRange", function(api, module) {
             case "table-cell":
                 return "\t";
             default:
-                return "\n";
+                return hasInnerText(el) ? "\n" : "";
         }
     }
 
@@ -730,7 +618,10 @@ rangy.createModule("TextRange", function(api, module) {
             node = node.node;
         }
         this._iterator = new VisiblePositionIterator(node, offset);
-        this.current = new DomPosition(node, offset);
+        this.current = {
+            position: new DomPosition(node, offset),
+            lastChar: ""
+        };
     }
 
     extendIterator(TextPositionIterator, {
@@ -739,12 +630,14 @@ rangy.createModule("TextRange", function(api, module) {
             iterator.setCurrent(this.current);
             var node = iterator.next().node, currentNode = this.current.node;
             var cssWhitespace;
+            var lastChar = "";
 
             if (node.nodeType == 3) {
                 // Check CSS white-space
                 if (node != currentNode || !(cssWhitespace = this.currentCssWhitespace)) {
                     cssWhitespace = this.currentCssWhitespace = getComputedStyleProperty(node.parentNode, "white-space");
                 }
+
 
 
             }
@@ -916,7 +809,11 @@ rangy.createModule("TextRange", function(api, module) {
 
     util.extend(dom, {
         nextNode: nextNode,
-        previousNode: previousNode
+        previousNode: previousNode,
+        hasInnerText: hasInnerText,
+        innerText: function(node) {
+
+        }
     });
 
     util.extend(api.selectionPrototype, {
@@ -989,7 +886,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     };
 
-    api.elementText = function(el) {
+    api.innerText = function(el) {
         var range = api.createRange(el);
         range.selectNodeContents(el);
         var text = range.text();

@@ -145,6 +145,15 @@ xn.test.suite("Text Range module tests", function(s) {
         }
     });
 
+    s.test("hasInnerText", function(t) {
+        t.el.innerHTML = '<div></div><div> </div><div>1</div><div style="display: none">2</div><div class="xn_test_hidden">3</div>';
+        var divs = t.el.getElementsByTagName("div");
+        t.assertFalse(rangy.dom.hasInnerText(divs[0]));
+        t.assertFalse(rangy.dom.hasInnerText(divs[1]));
+        t.assertTrue(rangy.dom.hasInnerText(divs[2]));
+        t.assertFalse(rangy.dom.hasInnerText(divs[3]));
+        t.assertFalse(rangy.dom.hasInnerText(divs[4]));
+    });
 
 /*
     s.test("isCollapsedBr", function(t) {

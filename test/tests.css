@@ -86,3 +86,7 @@ code.xn_test_stacktrace {
 	color: red;
 	overflow: scroll;
 }
+
+*.xn_test_hidden {
+    display: none;
+}
