@@ -172,4 +172,22 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.elementText(t.el), "One");
     });
 */
+    var str = new Array(1e4).join(" \r\n\tabcdefabcdef");
+
+    s.test("regex test", function(t) {
+        var a = [];
+        for (var i = 0, len = str.length, c; i < len; ++i) {
+            c = str.charAt(i);
+            a[i] = /^[ \t\f\r]$/.test(c);
+        }
+    });
+
+    s.test("Non-regex test", function(t) {
+        var a = [];
+        for (var i = 0, len = str.length, c; i < len; ++i) {
+            c = str.charAt(i);
+            a[i] = (c == " " || c == "\t" || c == "\f" || c == "\r");
+        }
+    });
+
 }, false);

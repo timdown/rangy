@@ -17,7 +17,7 @@
  *
  * - Add ability to move range boundaries by character or word offsets
  * - Ignore text nodes inside <script> or <style> elements
- * - Do not ignore hidden text nodes or those outside normal document flow
+ * - Do not ignore text nodes that are outside normal document flow
  * - Add a find method to search for text (optionally case sensitive, default insensitive) within the range
  * - Add ability to add custom word boundary finder (regex?)
  * - Add method to range to return a boundary as a text offset within a node
@@ -609,6 +609,9 @@ rangy.createModule("TextRange", function(api, module) {
     - Ellision of spaces, including between nodes
     - Inclusion of spaces between nodes
 
+    Rules:
+    - In <b>1 </b><i> 2</i>, the visible space is inside the earlier (<b>) element.
+    - In <div>1 </div>, the final space is ignored.
 
      */
 
@@ -620,52 +623,145 @@ rangy.createModule("TextRange", function(api, module) {
         this._iterator = new VisiblePositionIterator(node, offset);
         this.current = {
             position: new DomPosition(node, offset),
-            lastChar: ""
+            previousChar: "",
+            previousCharCollapsible: false,
+            trailingSpace: false
         };
     }
 
     extendIterator(TextPositionIterator, {
+        _getTextNodeProperties: function(textNode) {
+            if (!this.textNodeProperties || this.textNodeProperties.node != textNode) {
+                var spaceRegex = null, elideSpaces = false;
+                var cssWhitespace = getComputedStyleProperty(node.parentNode, "whiteSpace");
+                if (cssWhitespace == "pre-line") {
+                    spaceRegex = spacesMinusLineBreaksRegex;
+                    elideSpaces = true;
+                } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
+                    spaceRegex = spacesRegex;
+                    elideSpaces = true;
+                }
+
+                this.textNodeProperties = {
+                    node: textNode,
+                    text: textNode.data,
+                    spaceRegex: spaceRegex,
+                    elideSpaces: elideSpaces
+                };
+            }
+            return this.textNodeProperties;
+        },
+
+        _nextPosition: function() {
+/*            var iterator = this._iterator;
+            iterator.setCurrent(this.current);
+            var next = iterator.next(), currentNode = this.current.node, nextNode = next.node, nextOffset = next.offset;
+            var props, character, isCharacterCollapsible, trailingSpace = false;
+
+            if (nextNode == currentNode) {
+                if (nextNode.nodeType == 3) {
+                    // Advance to the next position within the text node, eliding spaces as necessary
+                    props = this._getTextNodeProperties(nextNode);
+                    if (props.elideSpaces) {
+                        while ( props.spaceRegex.test(props.text.charAt(nextOffset)) ) {
+                            ++nextOffset;
+                        }
+                        // Check if we're at the end and therefore may need to skip this
+                        if (nextOffset == props.text.length) {
+                            trailingSpace = true;
+                            character = "";
+                        } else {
+                            character = " ";
+                        }
+                        isCharacterCollapsible = true;
+                    } else {
+                        character = props.text.charAt(nextOffset);
+                        isCharacterCollapsible = false;
+                        ++nextOffset;
+                    }
+                } else {
+                    // The offset is a child node offset. Check the node we've just passed.
+                    var previousNode = nextNode.childNodes[nextOffset - 1];
+                    if (previousNode) {
+                        if (previousNode.nodeType == 1) {
+                            // Special case for <br> elements
+                            if (previousNode.tagName.toLowerCase() == "br") {
+                                character = "\n";
+                                isCharacterCollapsible = false;
+                            } else {
+                                character = getTrailingSpace(previousNode);
+                            }
+                        }
+
+                    } else {
+                        throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
+                    }
+                }
+            } else {
+
+            }*/
+        },
+
         _getNext: function() {
             var iterator = this._iterator;
             iterator.setCurrent(this.current);
-            var node = iterator.next().node, currentNode = this.current.node;
-            var cssWhitespace;
-            var lastChar = "";
+            var next = iterator.next(), currentNode = this.current.node, nextNode = next.node, nextOffset = next.offset;
+            var props, character, isCharacterCollapsible, trailingSpace = false;
 
-            if (node.nodeType == 3) {
-                // Check CSS white-space
-                if (node != currentNode || !(cssWhitespace = this.currentCssWhitespace)) {
-                    cssWhitespace = this.currentCssWhitespace = getComputedStyleProperty(node.parentNode, "white-space");
+            if (nextNode == currentNode) {
+                if (nextNode.nodeType == 3) {
+                    // Advance to the next position within the text node, eliding spaces as necessary
+                    props = this._getTextNodeProperties(nextNode);
+                    if (props.elideSpaces) {
+                        while ( props.spaceRegex.test(props.text.charAt(nextOffset)) ) {
+                            ++nextOffset;
+                        }
+                        // Check if we're at the end and therefore may need to skip this
+                        if (nextOffset == props.text.length) {
+                            // Look ahead...
+
+                            trailingSpace = true;
+                            character = "";
+                        } else {
+                            character = " ";
+                        }
+                        isCharacterCollapsible = true;
+                    } else {
+                        character = props.text.charAt(nextOffset);
+                        isCharacterCollapsible = false;
+                        ++nextOffset;
+                    }
+                } else {
+                    // The offset is a child node offset. Check the node we've just passed.
+                    var previousNode = nextNode.childNodes[nextOffset - 1];
+                    if (previousNode) {
+                        if (previousNode.nodeType == 1) {
+                            // Special case for <br> elements
+                            if (previousNode.tagName.toLowerCase() == "br") {
+                                character = "\n";
+                                isCharacterCollapsible = false;
+                            } else {
+                                character = getTrailingSpace(previousNode);
+                            }
+                        }
+
+                    } else {
+                        throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
+                    }
                 }
-
-
+            } else {
 
             }
-
 /*
-            log.debug("node: " + dom.inspectNode(node) + ", isCollapsedNode(node): " + isCollapsedNode(node), iterator.current.inspect())
-            if (isCollapsedNode(node)) {
-                // We're skipping this node and all its descendants
-                var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node) + 1);
-                iterator.setCurrent(newPos);
-                log.info("New pos: " + newPos.inspect() + ", old: " + this.current.inspect())
+            var next = this._nextPosition();
+            while (next && !next.previousChar) {
+                next = this._nextPosition();
             }
-            return iterator.current;
+            return next;
 */
         },
 
         _getPrevious: function() {
-/*
-            var iterator = this._iterator;
-            iterator.setCurrent(this.current);
-            var node = iterator.previous().node;
-            if (isCollapsedNode(node)) {
-                // We're skipping this node and all its descendants
-                var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node));
-                iterator.setCurrent(newPos);
-            }
-            return iterator.current;
-*/
         }
     });
 
