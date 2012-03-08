@@ -652,56 +652,6 @@ rangy.createModule("TextRange", function(api, module) {
             return this.textNodeProperties;
         },
 
-        _nextPosition: function() {
-/*            var iterator = this._iterator;
-            iterator.setCurrent(this.current);
-            var next = iterator.next(), currentNode = this.current.node, nextNode = next.node, nextOffset = next.offset;
-            var props, character, isCharacterCollapsible, trailingSpace = false;
-
-            if (nextNode == currentNode) {
-                if (nextNode.nodeType == 3) {
-                    // Advance to the next position within the text node, eliding spaces as necessary
-                    props = this._getTextNodeProperties(nextNode);
-                    if (props.elideSpaces) {
-                        while ( props.spaceRegex.test(props.text.charAt(nextOffset)) ) {
-                            ++nextOffset;
-                        }
-                        // Check if we're at the end and therefore may need to skip this
-                        if (nextOffset == props.text.length) {
-                            trailingSpace = true;
-                            character = "";
-                        } else {
-                            character = " ";
-                        }
-                        isCharacterCollapsible = true;
-                    } else {
-                        character = props.text.charAt(nextOffset);
-                        isCharacterCollapsible = false;
-                        ++nextOffset;
-                    }
-                } else {
-                    // The offset is a child node offset. Check the node we've just passed.
-                    var previousNode = nextNode.childNodes[nextOffset - 1];
-                    if (previousNode) {
-                        if (previousNode.nodeType == 1) {
-                            // Special case for <br> elements
-                            if (previousNode.tagName.toLowerCase() == "br") {
-                                character = "\n";
-                                isCharacterCollapsible = false;
-                            } else {
-                                character = getTrailingSpace(previousNode);
-                            }
-                        }
-
-                    } else {
-                        throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
-                    }
-                }
-            } else {
-
-            }*/
-        },
-
         _getNext: function() {
             var iterator = this._iterator;
             iterator.setCurrent(this.current);
@@ -719,7 +669,6 @@ rangy.createModule("TextRange", function(api, module) {
                         // Check if we're at the end and therefore may need to skip this
                         if (nextOffset == props.text.length) {
                             // Look ahead...
-
                             trailingSpace = true;
                             character = "";
                         } else {
@@ -727,6 +676,7 @@ rangy.createModule("TextRange", function(api, module) {
                         }
                         isCharacterCollapsible = true;
                     } else {
+                        // No space elision in this case
                         character = props.text.charAt(nextOffset);
                         isCharacterCollapsible = false;
                         ++nextOffset;
@@ -750,15 +700,34 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                 }
             } else {
+                // We're at the start of a new node
+                if (nextNode.nodeType == 3) {
+
+                } else {
+
+                }
+
 
             }
-/*
-            var next = this._nextPosition();
-            while (next && !next.previousChar) {
-                next = this._nextPosition();
+
+            if (character == "") {
+                // No character has definitely been traversed over, so skip forward until we do
+                var tempNext;
+                while ( (tempNext = this._getNext()) && tempNext.previousChar === "" ) {}
+                if (trailingSpace && tempNext && tempNext.previousCharCollapsible) {
+                    // The next character is collapsible space, so the trailing space is rendered
+                    character = " ";
+                } else {
+                    return tempNext;
+                }
             }
-            return next;
-*/
+
+            return {
+                position: new DomPosition(nextNode, nextOffset),
+                previousChar: character,
+                previousCharCollapsible: isCharacterCollapsible,
+                trailingSpace: trailingSpace
+            };
         },
 
         _getPrevious: function() {
