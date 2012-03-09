@@ -630,6 +630,10 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     extendIterator(TextPositionIterator, {
+        _adjustPosition: function(node, offset) {
+
+        },
+
         _getTextNodeProperties: function(textNode) {
             if (!this.textNodeProperties || this.textNodeProperties.node != textNode) {
                 var spaceRegex = null, elideSpaces = false;
@@ -656,65 +660,62 @@ rangy.createModule("TextRange", function(api, module) {
             var iterator = this._iterator;
             iterator.setCurrent(this.current);
             var next = iterator.next(), currentNode = this.current.node, nextNode = next.node, nextOffset = next.offset;
-            var props, character, isCharacterCollapsible, trailingSpace = false;
+            var props, character, isCharacterCollapsible, isTrailingSpace = false, leadingSpace;
 
-            if (nextNode == currentNode) {
-                if (nextNode.nodeType == 3) {
-                    // Advance to the next position within the text node, eliding spaces as necessary
-                    props = this._getTextNodeProperties(nextNode);
-                    if (props.elideSpaces) {
-                        while ( props.spaceRegex.test(props.text.charAt(nextOffset)) ) {
-                            ++nextOffset;
-                        }
-                        // Check if we're at the end and therefore may need to skip this
-                        if (nextOffset == props.text.length) {
-                            // Look ahead...
-                            trailingSpace = true;
-                            character = "";
-                        } else {
-                            character = " ";
-                        }
-                        isCharacterCollapsible = true;
-                    } else {
-                        // No space elision in this case
-                        character = props.text.charAt(nextOffset);
-                        isCharacterCollapsible = false;
+            if (nextNode.nodeType == 3) {
+                // Advance to the next position within the text node, eliding spaces as necessary
+                props = this._getTextNodeProperties(nextNode);
+                if (props.elideSpaces) {
+                    while ( props.spaceRegex.test(props.text.charAt(nextOffset)) ) {
                         ++nextOffset;
                     }
-                } else {
-                    // The offset is a child node offset. Check the node we've just passed.
-                    var previousNode = nextNode.childNodes[nextOffset - 1];
-                    if (previousNode) {
-                        if (previousNode.nodeType == 1) {
-                            // Special case for <br> elements
-                            if (previousNode.tagName.toLowerCase() == "br") {
-                                character = "\n";
-                                isCharacterCollapsible = false;
-                            } else {
-                                character = getTrailingSpace(previousNode);
-                            }
-                        }
-
+                    // Check if we're at the end and therefore may need to skip this
+                    if (nextOffset == props.text.length) {
+                        // Need to look ahead later to check whether this character is rendered or not
+                        isTrailingSpace = true;
+                        character = "";
                     } else {
-                        throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
+                        character = " ";
                     }
+                    isCharacterCollapsible = true;
+                } else {
+                    // No space elision in this case
+                    character = props.text.charAt(nextOffset);
+                    isCharacterCollapsible = false;
+                    ++nextOffset;
                 }
-            } else {
-                // We're at the start of a new node
-                if (nextNode.nodeType == 3) {
+            } else if (nextNode == currentNode) {
+                // The offset is a child node offset. Check the node we've just passed.
+                var previousNode = nextNode.childNodes[nextOffset - 1];
+                if (previousNode) {
+                    if (previousNode.nodeType == 1) {
+                        // Special case for <br> elements
+                        if (previousNode.tagName.toLowerCase() == "br") {
+                            character = "\n";
+                            isCharacterCollapsible = false;
+                        } else {
+                            character = getTrailingSpace(previousNode);
+                        }
+                    }
 
                 } else {
-
+                    throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
                 }
-
-
+            } else if (nextNode.nodeType == 1
+                    && nextOffset == 0
+                    && this.current.previousChar !== "\n"
+                    && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
+                character = leadingSpace;
             }
 
-            if (character == "") {
+            // Check if we need to skip forward to pass a character, or to check if the next character is rendered
+            if (character === "") {
                 // No character has definitely been traversed over, so skip forward until we do
+                // TODO: Need to set current or something
+
                 var tempNext;
                 while ( (tempNext = this._getNext()) && tempNext.previousChar === "" ) {}
-                if (trailingSpace && tempNext && tempNext.previousCharCollapsible) {
+                if (isTrailingSpace && tempNext && tempNext.previousCharCollapsible) {
                     // The next character is collapsible space, so the trailing space is rendered
                     character = " ";
                 } else {
@@ -726,160 +727,18 @@ rangy.createModule("TextRange", function(api, module) {
                 position: new DomPosition(nextNode, nextOffset),
                 previousChar: character,
                 previousCharCollapsible: isCharacterCollapsible,
-                trailingSpace: trailingSpace
+                trailingSpace: isTrailingSpace
             };
         },
 
         _getPrevious: function() {
+
         }
     });
 
     api.TextPositionIterator = TextPositionIterator;
 
     /*----------------------------------------------------------------------------------------------------------------*/
-
-
-    function VisibleTextPosition(node, offset) {
-        // Convert the node and offset into a node and offset within a visible text node
-        var nextStartNode, previousStartNode;
-        if (dom.isCharacterDataNode(node)) {
-            if (!isVisibleTextNode(node)) {
-                nextStartNode = previousStartNode = node;
-            }
-        } else {
-            var children = node.childNodes;
-            if (offset < children.length) {
-                nextStartNode = children[offset];
-                previousStartNode = offset > 0 ? nextStartNode : children[0];
-            } else if (offset > 0) {
-                nextStartNode = children[offset - 1];
-                previousStartNode = nextNode(nextStartNode); // What if this is null?
-            } else {
-                // This case is offset zero in a node with no children
-                nextStartNode = previousStartNode = node;
-            }
-        }
-
-        //if (next)
-
-/*
-        if (dom.isCharacterDataNode(node)) {
-            if (!isVisibleTextNode(node)) {
-                node = nextVisibleTextNode(node);
-                if (node) {
-                    offset = 0;
-                } else {
-                    node = previousVisibleTextNode(node);
-                    if (node) {
-                        offset = node.data.length
-                    }
-                }
-            }
-        } else {
-            var children = node.childNodes;
-            var childNode = (offset < children.length) ? children[offset] : nextNode(node, false);
-            node = nextVisibleTextNode(childNode);
-            offset = 0;
-        }
-*/
-
-        this.node = node;
-        this.offset = offset;
-    }
-
-    VisibleTextPosition.prototype = {
-
-    };
-
-    /*
-    Rules for white-space normal:
-    - Consecutive breaking spaces render as single space. Only the first space is counted.
-    - Breaking spaces at the start of a block level element are not rendered at all
-    - Moving from a visible block to a new element adds a line break
-    - A visible <br> is collapsible if it is the last visible element in a block and is followed by no rendered text
-     */
-
-    function TextIterator(node, offset, endNode, endOffset, options) {
-        // Convert the node and offset into a node and offset within a visible text node
-        if (dom.isCharacterDataNode(node)) {
-            if (!isVisibleTextNode(node)) {
-                node = nextVisibleTextNode(node);
-                offset = 0;
-            }
-        } else {
-            var children = node.childNodes;
-            node = nextVisibleTextNode( (offset < children.length) ? children[offset] : nextNode(node, false) );
-            offset = 0;
-        }
-
-        this.endNode = endNode;
-        this.endOffset = endOffset;
-
-        // Convert the node and offset into a valid text position
-        // TODO: Implement
-
-        this.current = {
-            node: node,
-            offset: offset,
-            pre: isTextNodePre(node),
-            isFirstInBlock: isFirstVisibleTextNodeInBlock(node),
-            isLastInBlock: isLastVisibleTextNodeInBlock(node)
-        };
-    }
-
-    var nullTextPosition = {};
-
-    TextIterator.prototype = {
-        current: null,
-        _previous: null,
-        _next: null,
-
-        next: function() {
-            var next = this._next || this.peekNext();
-            this.current = next;
-            this._next = null;
-            return next;
-        },
-
-        previous: function() {
-            var previous = this._previous || this.peekPrevious();
-            this.current = previous;
-            this._previous = null;
-            return previous;
-        },
-
-        peekPrevious: function() {
-
-        },
-
-        peekNext: function() {
-            var current = this.current, offset = current.offset, node = current.node, text = node.data;
-            var isFirstInBlock = current.isFirstInBlock;
-
-            while ( breakingSpaceRegex.test(text.charAt(offset)) ) {
-                offset++;
-                if (offset == text.length) {
-                    // Move onto the next text node
-                    node = nextVisibleTextNode(node);
-                    if (node) {
-                        offset = 0;
-                        isFirstInBlock = isFirstVisibleTextNodeInBlock(node);
-                    } else {
-                        return (this._next = nullTextPosition);
-                    }
-                }
-            }
-        }
-    };
-
-    util.extend(dom, {
-        nextNode: nextNode,
-        previousNode: previousNode,
-        hasInnerText: hasInnerText,
-        innerText: function(node) {
-
-        }
-    });
 
     util.extend(api.selectionPrototype, {
         modify: function() {
