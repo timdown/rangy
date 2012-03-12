@@ -315,33 +315,27 @@ rangy.createModule("TextRange", function(api, module) {
 
     api.features.tableCssDisplayBlock = tableCssDisplayBlock;
 
+    var defaultDisplayValueForTag = {
+        table: "table",
+        caption: "table-caption",
+        colgroup: "table-column-group",
+        col: "table-column",
+        thead: "table-header-group",
+        tbody: "table-row-group",
+        tfoot: "table-footer-group",
+        tr: "table-row",
+        td: "table-cell",
+        th: "table-cell"
+    };
+
     // Corrects IE's "block" value for table-related elements
     function getComputedDisplay(el) {
         var display = getComputedStyleProperty(el, "display");
-        if (display == "block" && tableCssDisplayBlock) {
-            switch (el.tagName.toLowerCase()) {
-                case "table":
-                    return "table";
-                case "caption":
-                    return "table-caption";
-                case "colgroup":
-                    return "table-column-group";
-                case "col":
-                    return "table-column";
-                case "thead":
-                    return "table-header-group";
-                case "tbody":
-                    return "table-row-group";
-                case "tfoot":
-                    return "table-footer-group";
-                case "tr":
-                    return "table-header-group";
-                case "td":
-                case "th":
-                    return "table-cell";
-            }
-        }
-        return display;
+        var tagName = el.tagName.toLowerCase();
+        return (display == "block"
+                && tableCssDisplayBlock
+                && defaultDisplayValueForTag.hasOwnProperty(tagName))
+            ? defaultDisplayValueForTag[tagName] : display;
     }
 
     function isCollapsedNode(node) {
@@ -430,7 +424,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     Iterator.prototype = {
         peekNext: function() {
-            return (typeof this._next != "undefined") ? this._next : (this._next = this._getNext());
+            return (typeof this._next != "undefined") ? this._next : (this._next = this._getNext(this.current));
         },
 
         hasNext: function() {
@@ -444,7 +438,7 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         peekPrevious: function() {
-            return (typeof this._previous != "undefined") ? this._previous : (this._previous = this._getPrevious());
+            return (typeof this._previous != "undefined") ? this._previous : (this._previous = this._getPrevious(this.current));
         },
 
         hasPrevious: function() {
@@ -478,8 +472,8 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     extendIterator(PositionIterator, {
-        _getNext: function() {
-            var current = this.current, node = current.node, offset = current.offset;
+        _getNext: function(current) {
+            var node = current.node, offset = current.offset;
             if (!node) {
                 return null;
             }
@@ -507,8 +501,8 @@ rangy.createModule("TextRange", function(api, module) {
             return nextNode ? new DomPosition(nextNode, nextOffset) : null;
         },
 
-        _getPrevious: function() {
-            var current = this.current, node = current.node, offset = current.offset;
+        _getPrevious: function(current) {
+            var node = current.node, offset = current.offset;
             if (!node) {
                 return null;
             }
@@ -567,23 +561,23 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     extendIterator(VisiblePositionIterator, {
-        _getNext: function() {
+        _getNext: function(current) {
             var iterator = this._iterator;
-            iterator.setCurrent(this.current);
+            iterator.setCurrent(current);
             var node = iterator.next().node;
             log.debug("node: " + dom.inspectNode(node) + ", isCollapsedNode(node): " + isCollapsedNode(node), iterator.current.inspect())
             if (isCollapsedNode(node)) {
                 // We're skipping this node and all its descendants
                 var newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node) + 1);
                 iterator.setCurrent(newPos);
-                log.info("New pos: " + newPos.inspect() + ", old: " + this.current.inspect())
+                log.info("New pos: " + newPos.inspect() + ", old: " + current.inspect())
             }
             return iterator.current;
         },
 
-        _getPrevious: function() {
+        _getPrevious: function(current) {
             var iterator = this._iterator;
-            iterator.setCurrent(this.current);
+            iterator.setCurrent(current);
             var node = iterator.previous().node;
             if (isCollapsedNode(node)) {
                 // We're skipping this node and all its descendants
@@ -656,10 +650,10 @@ rangy.createModule("TextRange", function(api, module) {
             return this.textNodeProperties;
         },
 
-        _getNext: function() {
+        _getNext: function(current) {
             var iterator = this._iterator;
-            iterator.setCurrent(this.current);
-            var next = iterator.next(), currentNode = this.current.node, nextNode = next.node, nextOffset = next.offset;
+            iterator.setCurrent(current.position);
+            var next = iterator.next(), currentNode = current.position.node, nextNode = next.node, nextOffset = next.offset;
             var props, character, isCharacterCollapsible, isTrailingSpace = false, leadingSpace;
 
             if (nextNode.nodeType == 3) {
@@ -703,40 +697,51 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             } else if (nextNode.nodeType == 1
                     && nextOffset == 0
-                    && this.current.previousChar !== "\n"
+                    && current.previousChar !== "\n"
                     && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
                 character = leadingSpace;
             }
 
-            // Check if we need to skip forward to pass a character, or to check if the next character is rendered
-            if (character === "") {
-                // No character has definitely been traversed over, so skip forward until we do
-                // TODO: Need to set current or something
-
-                var tempNext;
-                while ( (tempNext = this._getNext()) && tempNext.previousChar === "" ) {}
-                if (isTrailingSpace && tempNext && tempNext.previousCharCollapsible) {
-                    // The next character is collapsible space, so the trailing space is rendered
-                    character = " ";
-                } else {
-                    return tempNext;
-                }
-            }
-
-            return {
+            var next = {
                 position: new DomPosition(nextNode, nextOffset),
                 previousChar: character,
                 previousCharCollapsible: isCharacterCollapsible,
                 trailingSpace: isTrailingSpace
             };
+
+            // Check if we need to skip forward to pass a character, or to check if the next character is rendered
+            if (character === "" && nextNode) {
+                // No character has definitely been traversed over, so skip forward recursively until we do
+
+                //var tempNext;
+                //while ( (tempNext = this._getNext()) && tempNext.previousChar === "" ) {}
+                var tempNext = this._getNext(next);
+                if (isTrailingSpace && tempNext && tempNext.previousCharCollapsible) {
+                    // The next character is collapsible space, so the trailing space is rendered
+                    next.character = " ";
+                } else {
+                    return tempNext;
+                }
+            }
+
+            return next;
         },
 
-        _getPrevious: function() {
+        _getPrevious: function(current) {
 
         }
     });
 
     api.TextPositionIterator = TextPositionIterator;
+
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    util.extend(dom, {
+        nextNode: nextNode,
+        previousNode: previousNode,
+        hasInnerText: hasInnerText
+    });
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
