@@ -609,25 +609,14 @@ rangy.createModule("TextRange", function(api, module) {
 
      */
 
-    function TextPositionIterator(node, offset) {
-        if (node instanceof DomPosition) {
-            offset = node.offset;
-            node = node.node;
-        }
-        this._iterator = new VisiblePositionIterator(node, offset);
-        this.current = {
-            position: new DomPosition(node, offset),
-            previousChar: "",
-            previousCharCollapsible: false,
-            trailingSpace: false
-        };
+    function TextPositionIterator(position, start, end) {
+        this.start = start;
+        this.end = end;
+        this._iterator = new VisiblePositionIterator(position.node, position.offset);
+        this.current = position;
     }
 
     extendIterator(TextPositionIterator, {
-        _adjustPosition: function(node, offset) {
-
-        },
-
         _getTextNodeProperties: function(textNode) {
             if (!this.textNodeProperties || this.textNodeProperties.node != textNode) {
                 var spaceRegex = null, elideSpaces = false;
@@ -652,17 +641,34 @@ rangy.createModule("TextRange", function(api, module) {
 
         _getNext: function(current) {
             var iterator = this._iterator;
-            iterator.setCurrent(current.position);
-            var next = iterator.next(), currentNode = current.position.node, nextNode = next.node, nextOffset = next.offset;
-            var props, character, isCharacterCollapsible, isTrailingSpace = false, leadingSpace;
+            iterator.setCurrent(current);
+
+            var nextPosition = iterator.next(),
+                currentNode = current.node,
+                nextNode = nextPosition.node,
+                nextOffset = nextPosition.offset;
+
+/*
+            if (this.end && nextPosition.equals(this.end)) {
+
+            }
+
+*/
+            var props, character, isCharacterCollapsible = false, isTrailingSpace = false, leadingSpace, previous;
 
             if (nextNode.nodeType == 3) {
                 // Advance to the next position within the text node, eliding spaces as necessary
                 props = this._getTextNodeProperties(nextNode);
                 if (props.elideSpaces) {
+                    --nextOffset;
                     while ( props.spaceRegex.test(props.text.charAt(nextOffset)) ) {
+                        isCharacterCollapsible = true;
                         ++nextOffset;
                     }
+                }
+
+                // Handle space
+                if (isCharacterCollapsible) {
                     // Check if we're at the end and therefore may need to skip this
                     if (nextOffset == props.text.length) {
                         // Need to look ahead later to check whether this character is rendered or not
@@ -671,56 +677,50 @@ rangy.createModule("TextRange", function(api, module) {
                     } else {
                         character = " ";
                     }
-                    isCharacterCollapsible = true;
                 } else {
                     // No space elision in this case
-                    character = props.text.charAt(nextOffset);
+                    character = props.text.charAt(nextOffset - 1);
                     isCharacterCollapsible = false;
-                    ++nextOffset;
                 }
             } else if (nextNode == currentNode) {
                 // The offset is a child node offset. Check the node we've just passed.
-                var previousNode = nextNode.childNodes[nextOffset - 1];
-                if (previousNode) {
-                    if (previousNode.nodeType == 1) {
+                var nodePassed = nextNode.childNodes[nextOffset - 1];
+                if (nodePassed) {
+                    if (nodePassed.nodeType == 1) {
                         // Special case for <br> elements
-                        if (previousNode.tagName.toLowerCase() == "br") {
+                        if (nodePassed.tagName.toLowerCase() == "br") {
                             character = "\n";
                             isCharacterCollapsible = false;
                         } else {
-                            character = getTrailingSpace(previousNode);
+                            character = getTrailingSpace(nodePassed);
                         }
                     }
-
                 } else {
                     throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
                 }
             } else if (nextNode.nodeType == 1
                     && nextOffset == 0
+                    && ( !(previous = this._getPrevious(current)) || previous.previousChar !== "\n")
+/*
                     && current.previousChar !== "\n"
+*/
                     && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
                 character = leadingSpace;
             }
 
-            var next = {
-                position: new DomPosition(nextNode, nextOffset),
-                previousChar: character,
-                previousCharCollapsible: isCharacterCollapsible,
-                trailingSpace: isTrailingSpace
-            };
+            var next = new DomPosition(nextNode, nextOffset);
+            next.previousChar = character;
+            next.previousCharCollapsible = isCharacterCollapsible;
 
             // Check if we need to skip forward to pass a character, or to check if the next character is rendered
             if (character === "" && nextNode) {
                 // No character has definitely been traversed over, so skip forward recursively until we do
-
-                //var tempNext;
-                //while ( (tempNext = this._getNext()) && tempNext.previousChar === "" ) {}
                 var tempNext = this._getNext(next);
                 if (isTrailingSpace && tempNext && tempNext.previousCharCollapsible) {
                     // The next character is collapsible space, so the trailing space is rendered
                     next.character = " ";
                 } else {
-                    return tempNext;
+                    next = tempNext;
                 }
             }
 
@@ -728,7 +728,30 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         _getPrevious: function(current) {
+            var iterator = this._iterator;
+            iterator.setCurrent(current.position);
+            var previous = current, nextAfterPrevious, nextPrevious;
 
+            // Search back until we hit a position that does not go next to the current position, then return the final
+            // position reached before that position
+            while (previous) {
+                nextPrevious = iterator.previous();
+                if (!nextPrevious) {
+                    return null;
+                }
+                nextAfterPrevious = this._getNext(nextPrevious);
+                if (nextAfterPrevious.equals(current)) {
+                    previous = nextPrevious;
+                } else {
+                    previous.previousChar = nextAfterPrevious.previousChar;
+                    previous.previousCharCollapsible = nextAfterPrevious.previousCharCollapsible;
+                    return previous;
+                }
+            }
+        },
+
+        adjustPosition: function(node, offset) {
+            return this._getNext(this._getPrevious(new DomPosition(node, offset)));
         }
     });
 
