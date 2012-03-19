@@ -101,8 +101,8 @@ rangy.createModule("TextRange", function(api, module) {
 
     var breakingSpaceRegex = /^[\u0009-\u000d\u0020\u0085\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]$/;
 
-    var spacesRegex = /^[ \t\f\r\n]$/;
-    var spacesMinusLineBreaksRegex = /^[ \t\f\r]$/;
+    var spacesRegex = /^[ \t\f\r\n]+$/;
+    var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
 
     function getAncestors(node) {
     	var ancestors = [];
@@ -609,18 +609,22 @@ rangy.createModule("TextRange", function(api, module) {
 
      */
 
-    function TextPositionIterator(position, start, end) {
+    function TextPositionIterator(start, end, position) {
+        log.info("TextPositionIterator", start.inspect(), end.inspect())
+        this._iterator = new VisiblePositionIterator();
+        start = start ? this.adjustPosition(start) : null;
+        end = end ? this.adjustPosition(end) : null;
+        position = position ? this.adjustPosition(position) : start;
+        this.current = position;
         this.start = start;
         this.end = end;
-        this._iterator = new VisiblePositionIterator(position.node, position.offset);
-        this.current = position;
     }
 
     extendIterator(TextPositionIterator, {
         _getTextNodeProperties: function(textNode) {
             if (!this.textNodeProperties || this.textNodeProperties.node != textNode) {
                 var spaceRegex = null, elideSpaces = false;
-                var cssWhitespace = getComputedStyleProperty(node.parentNode, "whiteSpace");
+                var cssWhitespace = getComputedStyleProperty(textNode.parentNode, "whiteSpace");
                 if (cssWhitespace == "pre-line") {
                     spaceRegex = spacesMinusLineBreaksRegex;
                     elideSpaces = true;
@@ -639,7 +643,101 @@ rangy.createModule("TextRange", function(api, module) {
             return this.textNodeProperties;
         },
 
+        // TODO: Make this return {character, collapsible}
+        getCharacterBetween: function(position, nextPosition) {
+            log.info("getCharacterAfter on " + position.inspect());
+
+            if (!nextPosition || !position) {
+                var iterator = this._iterator;
+                iterator.setCurrent(position);
+                if (!nextPosition) {
+                    nextPosition = iterator.next();
+                } else {
+                    iterator.setCurrent(nextPosition);
+                    position = iterator.previous();
+                }
+            }
+
+            var currentNode = position.node,
+                nextNode = nextPosition.node,
+                nextOffset = nextPosition.offset;
+
+            var props, character, isCharacterCollapsible = false, isTrailingSpace = false, leadingSpace, previousPosition;
+
+            if (nextNode.nodeType == 3) {
+                // Advance to the next position within the text node, eliding spaces as necessary
+                props = this._getTextNodeProperties(nextNode);
+                if (props.elideSpaces) {
+                    if (nextOffset > 0 && props.spaceRegex.test(props.text.charAt(nextOffset - 1))) {
+                        isCharacterCollapsible = true;
+                        if (nextOffset > 1 && props.spaceRegex.test(props.text.slice(nextOffset - 2, nextOffset - 1))) {
+                            // Character is a collapsible space preceded by another collapsible space, so should be skipped
+                            return "";
+                        }
+                    }
+                }
+
+                // Handle space
+                if (isCharacterCollapsible) {
+                    // Check if we're at the end and therefore may need to skip this
+                    if (nextOffset == props.text.length) {
+                        // Need to look ahead later to check whether this character is rendered or not
+                        isTrailingSpace = true;
+                        character = "";
+                    } else {
+                        return " ";
+                    }
+                } else {
+                    // No space elision in this case
+                    return props.text.charAt(nextOffset - 1);
+                }
+            } else if (nextNode == currentNode) {
+                // The offset is a child node offset. Check the node we've just passed.
+                var nodePassed = nextNode.childNodes[nextOffset - 1];
+                if (nodePassed) {
+                    if (nodePassed.nodeType == 1) {
+                        // Special case for <br> elements
+                        return (nodePassed.tagName.toLowerCase() == "br") ? "\n" : getTrailingSpace(nodePassed);
+                    }
+                } else {
+                    throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
+                }
+            } else if (nextNode.nodeType == 1
+                    && nextOffset == 0
+                    && ( !(previousPosition = (iterator.setCurrent(position), iterator.previous()))
+                        || this.getCharacterBetween(previousPosition, position) !== "\n")
+                    && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
+                return leadingSpace;
+            }
+
+/*
+            var next = new DomPosition(nextNode, nextOffset);
+            next.previousChar = character;
+            next.previousCharCollapsible = isCharacterCollapsible;
+*/
+
+            // Now we as yet have no character. Check if we need to skip forward to pass a character, or to check if the
+            // next character is rendered
+            if (nextNode) {
+                // No character has definitely been traversed over, so skip forward recursively until we do
+                var tempNext = this.getCharacterBetween(nextPosition, null);
+                if (isTrailingSpace && tempNext && tempNext.previousCharCollapsible) {
+                    // The next character is collapsible space, so the trailing space is rendered
+                    next.character = " ";
+                } else {
+                    next = tempNext;
+                }
+            }
+
+            return next;
+        },
+
         _getNext: function(current) {
+            log.info("_getNext on " + current.inspect());
+            if (this.end && current.equals(this.end)) {
+                return null;
+            }
+
             var iterator = this._iterator;
             iterator.setCurrent(current);
 
@@ -648,12 +746,6 @@ rangy.createModule("TextRange", function(api, module) {
                 nextNode = nextPosition.node,
                 nextOffset = nextPosition.offset;
 
-/*
-            if (this.end && nextPosition.equals(this.end)) {
-
-            }
-
-*/
             var props, character, isCharacterCollapsible = false, isTrailingSpace = false, leadingSpace, previous;
 
             if (nextNode.nodeType == 3) {
@@ -728,13 +820,19 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         _getPrevious: function(current) {
+            log.info("_getPrevious on " + current.inspect());
+            if (this.start && current.equals(this.start)) {
+                return null;
+            }
             var iterator = this._iterator;
-            iterator.setCurrent(current.position);
+            iterator.setCurrent(current);
             var previous = current, nextAfterPrevious, nextPrevious;
 
             // Search back until we hit a position that does not go next to the current position, then return the final
             // position reached before that position
-            while (previous) {
+            var limit = 0;
+            while (previous && limit++ < 10) {
+                log.info("previous: " + previous.inspect());
                 nextPrevious = iterator.previous();
                 if (!nextPrevious) {
                     return null;
@@ -750,8 +848,10 @@ rangy.createModule("TextRange", function(api, module) {
             }
         },
 
-        adjustPosition: function(node, offset) {
-            return this._getNext(this._getPrevious(new DomPosition(node, offset)));
+        adjustPosition: function(position) {
+            log.info("adjustPosition on " + position.inspect());
+            var previous = this._getPrevious(position);
+            return previous ? this._getNext(previous) : position;
         }
     });
 
@@ -796,9 +896,14 @@ rangy.createModule("TextRange", function(api, module) {
 
     util.extend(api.rangePrototype, {
         text: function() {
-            //var iterator = new TextIterator(this.startContainer, this.startOffset);
-
-
+            log.info("text called on range " + this.inspect());
+            var iterator = new TextPositionIterator(new DomPosition(this.startContainer, this.startOffset),
+                new DomPosition(this.endContainer, this.endOffset));
+            var chars = [], pos, limit = 0;
+            while ( (pos = iterator.next()) && limit++ < 20 ) {
+                chars.push(pos.previousChar);
+            }
+            return chars.join("");
         },
 
         htmlText: function() {

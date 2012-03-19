@@ -155,6 +155,12 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertFalse(rangy.dom.hasInnerText(divs[4]));
     });
 
+    s.test("innerText 1", function(t) {
+        t.el.innerHTML = '<p>One</p><p>Two</p>';
+        t.assertEquals(rangy.innerText(t.el), "One\nTwo");
+    });
+
+    
 /*
     s.test("isCollapsedBr", function(t) {
         t.el.innerHTML = "<div><br><i><br><br></i></div><br><div><i><br></i></div><div><i><br></i>x</div>";
@@ -172,6 +178,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.elementText(t.el), "One");
     });
 */
+/*
     var str = new Array(1e4).join(" \r\n\tabcdefabcdef");
 
     s.test("regex test", function(t) {
@@ -189,5 +196,6 @@ xn.test.suite("Text Range module tests", function(s) {
             a[i] = (c == " " || c == "\t" || c == "\f" || c == "\r");
         }
     });
+*/
 
 }, false);
