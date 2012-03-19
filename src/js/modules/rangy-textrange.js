@@ -45,17 +45,18 @@
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
+    var UNDEF = "undefined";
     var dom = api.dom, util = api.util, DomPosition = dom.DomPosition;
 
     var log = log4javascript.getLogger("rangy.textrange");
 
     var getComputedStyleProperty;
 
-    if (typeof window.getComputedStyle != "undefined") {
+    if (typeof window.getComputedStyle != UNDEF) {
         getComputedStyleProperty = function(el, propName) {
             return dom.getWindow(el).getComputedStyle(el, null)[propName];
         };
-    } else if (typeof document.documentElement.currentStyle != "undefined") {
+    } else if (typeof document.documentElement.currentStyle != UNDEF) {
         getComputedStyleProperty = function(el, propName) {
             return el.currentStyle[propName];
         };
@@ -120,7 +121,7 @@ rangy.createModule("TextRange", function(api, module) {
     // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
     function isHtmlNode(node) {
         var ns;
-        return typeof (ns = node.namespaceURI) == "undefined" || (ns === null || ns == "http://www.w3.org/1999/xhtml");
+        return typeof (ns = node.namespaceURI) == UNDEF || (ns === null || ns == "http://www.w3.org/1999/xhtml");
     }
 
     function isHtmlElement(node, tagNames) {
@@ -424,21 +425,24 @@ rangy.createModule("TextRange", function(api, module) {
 
     Iterator.prototype = {
         peekNext: function() {
-            return (typeof this._next != "undefined") ? this._next : (this._next = this._getNext(this.current));
+            return (typeof this._next != UNDEF) ? this._next : (this._next = this._getNext(this.current));
         },
 
         hasNext: function() {
             return !!this.peekNext();
         },
 
-        next: function() {
+        next: function(item) {
+            if (typeof item != UNDEF) {
+                this.setCurrent(item);
+            }
             this.current = this.peekNext();
             delete this._next;
             return this.current;
         },
 
         peekPrevious: function() {
-            return (typeof this._previous != "undefined") ? this._previous : (this._previous = this._getPrevious(this.current));
+            return (typeof this._previous != UNDEF) ? this._previous : (this._previous = this._getPrevious(this.current));
         },
 
         hasPrevious: function() {
@@ -451,7 +455,10 @@ rangy.createModule("TextRange", function(api, module) {
             delete this._next;
         },
 
-        previous: function() {
+        previous: function(item) {
+            if (typeof item != UNDEF) {
+                this.setCurrent(item);
+            }
             this.current = this.peekPrevious();
             delete this._previous;
             return this.current;
@@ -643,7 +650,6 @@ rangy.createModule("TextRange", function(api, module) {
             return this.textNodeProperties;
         },
 
-        // TODO: Make this return {character, collapsible}
         getCharacterBetween: function(position, nextPosition) {
             log.info("getCharacterAfter on " + position.inspect());
 
@@ -662,7 +668,8 @@ rangy.createModule("TextRange", function(api, module) {
                 nextNode = nextPosition.node,
                 nextOffset = nextPosition.offset;
 
-            var props, character, isCharacterCollapsible = false, isTrailingSpace = false, leadingSpace, previousPosition;
+            var props, character, isCharacterCollapsible = false, isTrailingSpace = false, leadingSpace;
+            var previousPosition, previousChar;
 
             if (nextNode.nodeType == 3) {
                 // Advance to the next position within the text node, eliding spaces as necessary
@@ -672,7 +679,7 @@ rangy.createModule("TextRange", function(api, module) {
                         isCharacterCollapsible = true;
                         if (nextOffset > 1 && props.spaceRegex.test(props.text.slice(nextOffset - 2, nextOffset - 1))) {
                             // Character is a collapsible space preceded by another collapsible space, so should be skipped
-                            return "";
+                            return ["", false];
                         }
                     }
                 }
@@ -685,11 +692,11 @@ rangy.createModule("TextRange", function(api, module) {
                         isTrailingSpace = true;
                         character = "";
                     } else {
-                        return " ";
+                        return [" ", true];
                     }
                 } else {
                     // No space elision in this case
-                    return props.text.charAt(nextOffset - 1);
+                    return [props.text.charAt(nextOffset - 1), false];
                 }
             } else if (nextNode == currentNode) {
                 // The offset is a child node offset. Check the node we've just passed.
@@ -704,17 +711,12 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             } else if (nextNode.nodeType == 1
                     && nextOffset == 0
-                    && ( !(previousPosition = (iterator.setCurrent(position), iterator.previous()))
-                        || this.getCharacterBetween(previousPosition, position) !== "\n")
+                    && ( !(previousPosition = iterator.previous(position))
+                        || !(previousChar = this.getCharacterBetween(previousPosition, position))
+                        || previousChar[0] !== "\n")
                     && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
-                return leadingSpace;
+                return [leadingSpace, false];
             }
-
-/*
-            var next = new DomPosition(nextNode, nextOffset);
-            next.previousChar = character;
-            next.previousCharCollapsible = isCharacterCollapsible;
-*/
 
             // Now we as yet have no character. Check if we need to skip forward to pass a character, or to check if the
             // next character is rendered
@@ -723,13 +725,13 @@ rangy.createModule("TextRange", function(api, module) {
                 var tempNext = this.getCharacterBetween(nextPosition, null);
                 if (isTrailingSpace && tempNext && tempNext.previousCharCollapsible) {
                     // The next character is collapsible space, so the trailing space is rendered
-                    next.character = " ";
+                    return [" ", true];
                 } else {
-                    next = tempNext;
+                    return tempNext;
                 }
             }
 
-            return next;
+            return null;
         },
 
         _getNext: function(current) {
