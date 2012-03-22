@@ -628,9 +628,12 @@ rangy.createModule("TextRange", function(api, module) {
     function TextPositionIterator(start, end, position) {
         log.info("TextPositionIterator", start.inspect(), end.inspect())
         this._iterator = new VisiblePositionIterator();
+/*
         start = start ? this.adjustPosition(start) : null;
         end = end ? this.adjustPosition(end) : null;
         position = position ? this.adjustPosition(position) : start;
+*/
+        position = position || start;
         this.current = position;
         this.start = start;
         this.end = end;
@@ -727,7 +730,7 @@ rangy.createModule("TextRange", function(api, module) {
                     && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
 
                 log.warn("*** IN DODGY CASE. previousPosition: " + iterator.previous(position))
-                return [leadingSpace, false];
+                return [leadingSpace, true];
             }
 
             // Now we as yet have no character. Check if the next character is rendered
@@ -772,11 +775,10 @@ rangy.createModule("TextRange", function(api, module) {
                 if (!nextPosition || currentPosition.equals(this.end)) {
                     return null;
                 }
-                character = this.getCharacterBetween(currentPosition, nextPosition)[0];
-                log.info("Got character '" + character + "'" + ", next position " + nextPosition
-                    + ", " + this.end + ", equal: " + nextPosition.equals(this.end));
-                if (character) {
-                    nextPosition.character = character;
+                character = this.getCharacterBetween(currentPosition, nextPosition);
+                if (character[0]) {
+                    nextPosition.character = character[0];
+                    nextPosition.collapsible = character[1];
                     return nextPosition;
                 }
                 currentPosition = nextPosition;
@@ -793,10 +795,10 @@ rangy.createModule("TextRange", function(api, module) {
                 if (!nextPosition || nextPosition.equals(this.start)) {
                     return null;
                 }
-                character = this.getCharacterBetween(currentPosition, nextPosition)[0];
-                log.info("Got character '" + character + "'");
-                if (character) {
-                    nextPosition.character = character;
+                character = this.getCharacterBetween(currentPosition, nextPosition);
+                if (character[0]) {
+                    nextPosition.character = character[0];
+                    nextPosition.collapsible = character[1];
                     return nextPosition;
                 }
                 currentPosition = nextPosition;
@@ -848,9 +850,12 @@ rangy.createModule("TextRange", function(api, module) {
             log.info("text called on range " + this.inspect());
             var iterator = new TextPositionIterator(new DomPosition(this.startContainer, this.startOffset),
                 new DomPosition(this.endContainer, this.endOffset));
-            var chars = [], pos;
+            var chars = [], pos, first = true;
             while ( (pos = iterator.next()) ) {
-                chars.push(pos.character);
+                if (!first || !pos.collapsible) {
+                    chars.push(pos.character);
+                }
+                first = false;
             }
             return chars.join("");
         },
