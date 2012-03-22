@@ -155,7 +155,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertFalse(rangy.dom.hasInnerText(divs[4]));
     });
 
-    s.test("innerText 1", function(t) {
+    s.test("innerText on two paragraphs", function(t) {
         t.el.innerHTML = '<p>One</p><p>Two</p>';
         t.assertEquals(rangy.innerText(t.el), "One\nTwo");
     });
