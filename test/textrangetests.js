@@ -185,6 +185,11 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "One Two");
     });
 
+    s.test("innerText on simple text with two trailing spaces", function(t) {
+        t.el.innerHTML = '1  ';
+        t.assertEquals(rangy.innerText(t.el), "1");
+    });
+
     s.test("innerText on simple text with leading space in span", function(t) {
         t.el.innerHTML = '<span> </span>One Two';
         t.assertEquals(rangy.innerText(t.el), "One Two");
@@ -196,23 +201,28 @@ xn.test.suite("Text Range module tests", function(s) {
     });
 
     s.test("innerText on simple text with non-breaking space in span", function(t) {
-        t.el.innerHTML = 'One <span>&nbsp; </span>Two';
-        t.assertEquals(rangy.innerText(t.el), "One \u00a0 Two");
+        t.el.innerHTML = '1 <span>&nbsp; </span>2';
+        t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
     });
 
     s.test("innerText on simple text with non-breaking space in span 2", function(t) {
-        t.el.innerHTML = 'One<span> &nbsp; </span>Two';
-        t.assertEquals(rangy.innerText(t.el), "One \u00a0 Two");
+        t.el.innerHTML = '1<span> &nbsp; </span>2';
+        t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
     });
 
     s.test("innerText on simple text with non-breaking space in span 3", function(t) {
-        t.el.innerHTML = 'One<span> &nbsp;</span> Two';
-        t.assertEquals(rangy.innerText(t.el), "One \u00a0 Two");
+        t.el.innerHTML = '1<span> &nbsp;</span> 2';
+        t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
     });
 
     s.test("innerText on two paragraphs", function(t) {
-        t.el.innerHTML = '<p>One</p><p>Two</p>';
-        t.assertEquals(rangy.innerText(t.el), "One\nTwo");
+        t.el.innerHTML = '<p>1</p><p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on table", function(t) {
+        t.el.innerHTML = '<table><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>';
+        t.assertEquals(rangy.innerText(t.el), "1\t2\n3\t4");
     });
 
 

@@ -664,8 +664,6 @@ rangy.createModule("TextRange", function(api, module) {
 
         // TODO: This method is getting in an inifite loop. Fix.
         getCharacterBetween: function(position, nextPosition) {
-            log.info("getCharacterBetween on " + position + ", " + nextPosition);
-
             var iterator = this._iterator;
 
             if (!nextPosition || !position) {
@@ -675,6 +673,7 @@ rangy.createModule("TextRange", function(api, module) {
                     position = iterator.previous(position);
                 }
             }
+            log.info("getCharacterBetween on " + position + ", " + nextPosition);
 
             var currentNode = position.node,
                 nextNode = nextPosition.node,
@@ -691,6 +690,7 @@ rangy.createModule("TextRange", function(api, module) {
                         isCharacterCollapsible = true;
                         if (nextOffset > 1 && props.spaceRegex.test(props.text.slice(nextOffset - 2, nextOffset - 1))) {
                             // Character is a collapsible space preceded by another collapsible space, so should be skipped
+                            log.debug("Character is a collapsible space preceded by another collapsible space, skipping");
                             return ["", false];
                         }
                     }
@@ -699,27 +699,19 @@ rangy.createModule("TextRange", function(api, module) {
                 // Handle space
                 if (isCharacterCollapsible) {
                     // Check if we're at the end and therefore may need to skip this
-                    if (nextOffset == props.text.length) {
+                    if (nextOffset == props.text.length || props.spaceRegex.test(props.text.slice(nextOffset))) {
                         // Need to look ahead later to check whether this character is rendered or not
+                        log.debug("Character is a collapsible space at the end of a text node. Checking next character.");
                         isTrailingSpace = true;
                         character = "";
                     } else {
+                        log.debug("Character is a collapsible space mid-text node NOT preceded by another collapsible space, returning as collapsible space.");
                         return [" ", true];
                     }
                 } else {
                     // No space elision in this case
+                    log.debug("Character is non-collapsible, returning as non-collapsible.");
                     return [props.text.charAt(nextOffset - 1), false];
-                }
-            } else if (nextNode == currentNode) {
-                // The offset is a child node offset. Check the node we've just passed.
-                var nodePassed = nextNode.childNodes[nextOffset - 1];
-                if (nodePassed) {
-                    if (nodePassed.nodeType == 1) {
-                        // Special case for <br> elements
-                        return (nodePassed.tagName.toLowerCase() == "br") ? "\n" : getTrailingSpace(nodePassed);
-                    }
-                } else {
-                    throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
                 }
             } else if (nextNode.nodeType == 1
                     && nextOffset == 0
@@ -729,20 +721,68 @@ rangy.createModule("TextRange", function(api, module) {
                         //|| previousChar[0] !== "\n")
                     && (leadingSpace = getLeadingSpace(nextNode)) !== "") {
 
-                log.warn("*** IN DODGY CASE. previousPosition: " + iterator.previous(position))
+                log.warn("*** IN DODGY CASE. leadingSpace: '" + leadingSpace + "', previousPosition: " + iterator.previous(position))
                 return [leadingSpace, true];
+            } else if (nextNode == currentNode)/* if (nextNode.childNodes[nextOffset - 1])*/  {
+                // The offset is a child node offset. Check the node we've just passed.
+                var nodePassed = nextNode.childNodes[nextOffset - 1];
+                if (nodePassed) {
+                    if (nodePassed.nodeType == 1) {
+                        // Special case for <br> elements
+                        log.debug("Passed the end of an element");
+                        return (nodePassed.tagName.toLowerCase() == "br")
+                            ? (log.debug("br, returning line break"), "\n")
+                            : (log.debug("Non-br, returning trailing space '" + getTrailingSpace(nodePassed) + "'"), getTrailingSpace(nodePassed));
+                    } else {
+                        log.debug("Passed the end of a non-element node, returning empty");
+                        return ["", false];
+                    }
+                } else {
+                    throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
+                }
             }
 
-            // Now we as yet have no character. Check if the next character is rendered
+            // Now we have no character as yet. Check if the next character is rendered
             if (nextNode) {
                 // No character has definitely been traversed over, so skip forward recursively until we do
-                var tempNext = this.getCharacterBetween(nextPosition, null);
-                if (isTrailingSpace && tempNext && tempNext[1]) {
-                    // The next character is collapsible space, so the trailing space is rendered
-                    return [" ", true];
+                //var tempNext = this.getCharacterBetween(nextPosition, null);
+                if (isTrailingSpace) {
+                    var tempNext;
+                    log.info("GOT TRAILING SPACE, GETTING NEXT CHAR");
+                    while ( (nextPosition && (tempNext = this.getCharacterBetween(nextPosition, null)) && !tempNext[0]) ) {
+                        nextPosition = iterator.next(nextPosition);
+                        log.info("nextPosition: " + nextPosition);
+                    }
+                    log.info("GOT NEXT CHAR POSITION " + nextPosition, tempNext);
+                    if (tempNext) {
+                        /*if (tempNext[0] === " ") {
+                            log.debug("Next char is collapsible space so returning space");
+                            return [" ", false];
+                        } else*/ if (tempNext[0] === "\n") {
+                            log.debug("Next char is line break so returning empty");
+                            return ["", false];
+                        } else {
+                            log.debug("Next char is not line break so returning space");
+                            return [" ", false];
+                        }
+                    }
+                    log.debug("No further character found, so returning empty")
+                    return ["", false];
                 } else {
+                    log.debug("Between nodes. Returning empty.");
                     return ["", false];
                 }
+
+/*
+                if (isTrailingSpace && tempNext && tempNext[1]) {
+                    // The next character is collapsible space, so the trailing space is rendered
+                    log.debug("Next char is collapsible space so returning collapsible space");
+                    return [" ", true];
+                } else {
+                    log.debug("Next char is not collapsible space so returning empty")
+                    return ["", false];
+                }
+*/
             }
 
             return null;
@@ -850,12 +890,15 @@ rangy.createModule("TextRange", function(api, module) {
             log.info("text called on range " + this.inspect());
             var iterator = new TextPositionIterator(new DomPosition(this.startContainer, this.startOffset),
                 new DomPosition(this.endContainer, this.endOffset));
-            var chars = [], pos, first = true;
+            var chars = [], pos;
             while ( (pos = iterator.next()) ) {
-                if (!first || !pos.collapsible) {
+                log.info("*** GOT CHAR " + pos.character + "[" + pos.character.charCodeAt(0) + "], collapsible " + pos.collapsible);
+                if (chars.length > 0 || !pos.collapsible) {
+                    log.info("*** INCLUDED CHAR");
                     chars.push(pos.character);
+                } else {
+                    log.info("*** IGNORED COLLAPSIBLE LEADING SPACE CHAR");
                 }
-                first = false;
             }
             return chars.join("");
         },
