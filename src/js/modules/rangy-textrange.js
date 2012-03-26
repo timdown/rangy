@@ -723,16 +723,35 @@ rangy.createModule("TextRange", function(api, module) {
 
                 log.warn("*** IN DODGY CASE. leadingSpace: '" + leadingSpace + "', previousPosition: " + iterator.previous(position))
                 return [leadingSpace, true];
-            } else if (nextNode == currentNode)/* if (nextNode.childNodes[nextOffset - 1])*/  {
+
+            } else if (!dom.isCharacterDataNode(nextNode)) {
                 // The offset is a child node offset. Check the node we've just passed.
                 var nodePassed = nextNode.childNodes[nextOffset - 1];
                 if (nodePassed) {
+                    if (nodePassed.nodeType == 1 && !isCollapsedNode(nodePassed)) {
+                        // Special case for <br> elements
+                        log.debug("Passed the end of an element");
+                        return (nodePassed.tagName.toLowerCase() == "br")
+                            ? (log.debug("br, returning line break"), ["\n", true])
+                            : (log.debug("Non-br, returning trailing space '" + getTrailingSpace(nodePassed) + "'"), [getTrailingSpace(nodePassed), true]);
+                    } else {
+                        log.debug("Passed the end of a non-element or collapsed node, returning empty");
+                        return ["", false];
+                    }
+                }
+
+/*
+            } else if (nextNode == currentNode)  {
+                // The offset is a child node offset. Check the node we've just passed.
+                var nodePassed = nextNode.childNodes[nextOffset - 1];
+                if (nodePassed) {
+                    log.info("nodePassed: " + dom.inspectNode(nodePassed))
                     if (nodePassed.nodeType == 1) {
                         // Special case for <br> elements
                         log.debug("Passed the end of an element");
                         return (nodePassed.tagName.toLowerCase() == "br")
-                            ? (log.debug("br, returning line break"), "\n")
-                            : (log.debug("Non-br, returning trailing space '" + getTrailingSpace(nodePassed) + "'"), getTrailingSpace(nodePassed));
+                            ? (log.debug("br, returning line break"), ["\n", true])
+                            : (log.debug("Non-br, returning trailing space '" + getTrailingSpace(nodePassed) + "'"), [getTrailingSpace(nodePassed), true]);
                     } else {
                         log.debug("Passed the end of a non-element node, returning empty");
                         return ["", false];
@@ -740,6 +759,7 @@ rangy.createModule("TextRange", function(api, module) {
                 } else {
                     throw new Error("No child node at index " + (nextOffset - 1) + " in " + dom.inspectNode(nextNode));
                 }
+*/
             }
 
             // Now we have no character as yet. Check if the next character is rendered
@@ -753,8 +773,8 @@ rangy.createModule("TextRange", function(api, module) {
                         nextPosition = iterator.next(nextPosition);
                         log.info("nextPosition: " + nextPosition);
                     }
-                    log.info("GOT NEXT CHAR POSITION " + nextPosition, tempNext);
                     if (tempNext) {
+                        log.info("GOT NEXT CHAR POSITION " + nextPosition + ", char '" + tempNext[0] + "'", tempNext[0].length);
                         /*if (tempNext[0] === " ") {
                             log.debug("Next char is collapsible space so returning space");
                             return [" ", false];
