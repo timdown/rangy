@@ -372,6 +372,15 @@ rangy.createModule("TextRange", function(api, module) {
         return false;
     }
 
+    function TextPosition(character, position) {
+        this.character = character;
+        this.position = position;
+    }
+
+    TextPosition.prototype.toString = function() {
+        return this.character;
+    };
+
     function getLeadingSpace(el) {
         switch (getComputedDisplay(el)) {
             case "inline":
@@ -391,32 +400,38 @@ rangy.createModule("TextRange", function(api, module) {
             case "table-column-group":
                 return "";
             default:
-                return "\n";
+                return new TextPosition("\n", new DomPosition(el.parentNode, dom.getNodeIndex(el)));
         }
     }
 
     function getTrailingSpace(el) {
+        var trailingSpaceChar = "";
         switch (getComputedDisplay(el)) {
             case "inline":
                 var child = el.lastChild;
                 while (child) {
                     if (!isIgnoredNode(child)) {
-                        return child.nodeType == 1 ? getTrailingSpace(child) : ""
+                        trailingSpaceChar = (child.nodeType == 1) ? getTrailingSpace(child) : "";
+                        break;
                     }
                     child = child.previousSibling;
                 }
-                return "";
+                break;
             case "inline-block":
             case "inline-table":
             case "none":
             case "table-column":
             case "table-column-group":
-                return "";
+                break;
             case "table-cell":
-                return "\t";
+                trailingSpaceChar = "\t";
+                break;
             default:
-                return hasInnerText(el) ? "\n" : "";
+                trailingSpaceChar = hasInnerText(el) ? "\n" : "";
+                break;
         }
+        return trailingSpaceChar ?
+            new TextPosition(trailingSpaceChar, new DomPosition(el.parentNode, dom.getNodeIndex(el) + 1)) : "";
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -868,6 +883,140 @@ rangy.createModule("TextRange", function(api, module) {
 
     api.TextPositionIterator = TextPositionIterator;
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    function addTextNodeText(textNode, spaceRegex, elideSpaces, chars, trailingSpace) {
+        var text = textNode.data, textNodeChars = [], position, lastCharWasSpace = false, charCount;
+        for (var i = 0, len = text.length, textChar; i < len; ++i) {
+            textChar = text.charAt(i);
+            log.debug("At index " + i + " in text node " + text + ", char is " + textChar);
+            position = new DomPosition(textNode, i);
+
+            if (elideSpaces) {
+                if (spaceRegex.test(textChar)) {
+                    // "If the character at position is from set, append a single space (U+0020) to newdata and advance
+                    // position until the character at position is not from set."
+                    if (lastCharWasSpace) {
+                        log.debug("Character is a collapsible space preceded by another collapsible space, skipping");
+                    } else {
+                        log.debug("Character is a collapsible space not preceded by another collapsible space, adding");
+                        textNodeChars.push( new TextPosition(" ", position) );
+                        lastCharWasSpace = true;
+                    }
+                } else {
+                    if (textChar == "\n") {
+                        // "Otherwise, if the character at position is a line feed (U+000A), delete the last character
+                        // of newdata if it's a space (U+0020), then append a line feed (U+000A) to newdata, then advance
+                        // position until the character at position is not from set."
+                        log.debug("Character is a line break in pre-line element");
+                        if (lastCharWasSpace) {
+                            textNodeChars.pop();
+                        }
+                        textNodeChars.push( new TextPosition("\n", position) );
+                    } else {
+                        log.debug("Character is not a space, adding");
+                        textNodeChars.push( new TextPosition(textChar, position) );
+                    }
+                    lastCharWasSpace = false;
+                }
+            } else {
+                log.debug("No collapsible spaces, so adding");
+                textNodeChars.push( new TextPosition(textChar, position) );
+            }
+        }
+
+        // "If trailing space is true and data does not begin with a space character, append a space to the end of s."
+        // This is adapted somewhat: trailingSpace is either null or the trailing space from the preceding node
+        if (trailingSpace && textNodeChars[0].character != " ") {
+            chars.push(trailingSpace);
+        }
+
+        // "If s is empty or ends with a space character, and data begins with a space (U+0020), and whitespace is
+        // "normal", "no-wrap", or "pre-line", delete the space from the beginning of data."
+        if (elideSpaces
+                && (textNodeChars.length > 0)
+                && (textNodeChars[0].character == " ")
+                && (chars.length == 0 || chars[chars.length - 1].character == " ")) {
+            log.debug("Plain text os empty or ends with space, data begins with space, spaces are elided, deleting leading space");
+            textNodeChars.shift();
+        }
+
+        // "If whitespace is "normal", "no-wrap", or "pre-line", and the last character of data is a space (U+0020),
+        // delete the last character of data and set trailing space to true. Otherwise, set trailing space to false."
+        var newTrailingSpace = (elideSpaces && (charCount = textNodeChars.length) > 0 && textNodeChars[charCount - 1].character == " ") ?
+            textNodeChars.pop() : null;
+
+        // "If the computed value of node's "text-transform" property is not "normal", apply the appropriate
+        // transformation to data."
+        // TODO: Consider whether to implement this
+
+        // "Append data to s."
+        chars.push.apply(chars, textNodeChars);
+
+        return newTrailingSpace;
+    }
+
+    function hasSubsequentNonIgnoredSibling(node) {
+        var sibling = node;
+        while (sibling = sibling.nextSibling) {
+            if (!isCollapsedNode(node)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function getPlainText(el, trailingSpace) {
+        var chars = [], spaceRegex, elideSpaces, nodeType, leadingSpace, plainText, childTrailingSpace;
+        if (isCollapsedNode(el)) {
+            return chars;
+        }
+        var child = el.firstChild;
+        var cssWhitespace = getComputedStyleProperty(child.parentNode, "whiteSpace");
+        if (cssWhitespace == "pre-line") {
+            spaceRegex = spacesMinusLineBreaksRegex;
+            elideSpaces = true;
+        } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
+            spaceRegex = spacesRegex;
+            elideSpaces = true;
+        }
+
+        while (child) {
+            if (!isCollapsedNode(child)) {
+                nodeType = child.nodeType;
+                if (nodeType == 3) {
+                    trailingSpace = addTextNodeText(child, spaceRegex, elideSpaces, chars, trailingSpace);
+                } else if (nodeType == 1) {
+                    // "If the last character of s is not a newline (U+000A), and the leading whitespace for child is
+                    // not the empty string, append the leading whitespace for child to s and set trailing space to
+                    // false."
+                    if ( (chars.length == 0 || chars[chars.length - 1].character != "\n")
+                            && (leadingSpace = getLeadingSpace(child)) != "") {
+                        chars.push(leadingSpace);
+                        trailingSpace = null;
+                    }
+
+                    // "Append the plaintext of child to s with flag trailing space, and assign the result to
+                    // (s, trailing space)."
+                    plainText = getPlainText(child, trailingSpace);
+                    chars.push.apply(chars, plainText[0]);
+                    trailingSpace = plainText[1];
+
+                    // "If node has another child after child that is not an ignored node, and the trailing whitespace
+                    // of child is not the empty string, append the trailing whitespace of child to s and set trailing
+                    // space to false."
+                    if (hasSubsequentNonIgnoredSibling(child) && (childTrailingSpace = getTrailingSpace(child)) != "") {
+                        chars.push(childTrailingSpace);
+                        trailingSpace = false;
+                    }
+                }
+            }
+
+            child = child.nextSibling;
+        }
+
+        return [chars, trailingSpace];
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -961,11 +1110,14 @@ rangy.createModule("TextRange", function(api, module) {
     };
 
     api.innerText = function(el) {
+/*
         var range = api.createRange(el);
         range.selectNodeContents(el);
         var text = range.text();
         range.detach();
         return text;
+*/
+        return getPlainText(el)[0].join("");
     };
 
     api.textRange = {
