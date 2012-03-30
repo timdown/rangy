@@ -887,6 +887,8 @@ rangy.createModule("TextRange", function(api, module) {
 
     function addTextNodeText(textNode, spaceRegex, elideSpaces, chars, trailingSpace) {
         var text = textNode.data, textNodeChars = [], position, lastCharWasSpace = false, charCount;
+        log.debug("addTextNodeText '" + text + "', existing chars: " + chars.join(""));
+
         for (var i = 0, len = text.length, textChar; i < len; ++i) {
             textChar = text.charAt(i);
             log.debug("At index " + i + " in text node " + text + ", char is " + textChar);
@@ -928,6 +930,7 @@ rangy.createModule("TextRange", function(api, module) {
         // "If trailing space is true and data does not begin with a space character, append a space to the end of s."
         // This is adapted somewhat: trailingSpace is either null or the trailing space from the preceding node
         if (trailingSpace && textNodeChars[0].character != " ") {
+            log.debug("Appending trailing space from previous node");
             chars.push(trailingSpace);
         }
 
@@ -937,7 +940,8 @@ rangy.createModule("TextRange", function(api, module) {
                 && (textNodeChars.length > 0)
                 && (textNodeChars[0].character == " ")
                 && (chars.length == 0 || chars[chars.length - 1].character == " ")) {
-            log.debug("Plain text os empty or ends with space, data begins with space, spaces are elided, deleting leading space");
+            log.debug("Plain text '" + chars.join("") + "' is empty or ends with space, data '" + textNodeChars.join("")
+                + "' begins with space, spaces are elided, deleting leading space");
             textNodeChars.shift();
         }
 
@@ -966,11 +970,12 @@ rangy.createModule("TextRange", function(api, module) {
         return false;
     }
 
-    function getPlainText(el, trailingSpace) {
-        var chars = [], spaceRegex, elideSpaces, nodeType, leadingSpace, plainText, childTrailingSpace;
+    function appendPlainText(el, trailingSpace, chars) {
+        var spaceRegex, elideSpaces, nodeType, leadingSpace, plainText, childTrailingSpace;
         if (isCollapsedNode(el)) {
-            return chars;
+            return;
         }
+        chars = chars || [];
         var child = el.firstChild;
         var cssWhitespace = getComputedStyleProperty(child.parentNode, "whiteSpace");
         if (cssWhitespace == "pre-line") {
@@ -986,6 +991,7 @@ rangy.createModule("TextRange", function(api, module) {
                 nodeType = child.nodeType;
                 if (nodeType == 3) {
                     trailingSpace = addTextNodeText(child, spaceRegex, elideSpaces, chars, trailingSpace);
+                    log.debug("Added text node " + dom.inspectNode(child) + ", chars is now " + chars.join(""));
                 } else if (nodeType == 1) {
                     // "If the last character of s is not a newline (U+000A), and the leading whitespace for child is
                     // not the empty string, append the leading whitespace for child to s and set trailing space to
@@ -993,13 +999,13 @@ rangy.createModule("TextRange", function(api, module) {
                     if ( (chars.length == 0 || chars[chars.length - 1].character != "\n")
                             && (leadingSpace = getLeadingSpace(child)) != "") {
                         chars.push(leadingSpace);
+                        log.debug("Appending leading whitespace for " + dom.inspectNode(child));
                         trailingSpace = null;
                     }
 
                     // "Append the plaintext of child to s with flag trailing space, and assign the result to
                     // (s, trailing space)."
-                    plainText = getPlainText(child, trailingSpace);
-                    chars.push.apply(chars, plainText[0]);
+                    plainText = appendPlainText(child, trailingSpace, chars);
                     trailingSpace = plainText[1];
 
                     // "If node has another child after child that is not an ignored node, and the trailing whitespace
@@ -1007,6 +1013,7 @@ rangy.createModule("TextRange", function(api, module) {
                     // space to false."
                     if (hasSubsequentNonIgnoredSibling(child) && (childTrailingSpace = getTrailingSpace(child)) != "") {
                         chars.push(childTrailingSpace);
+                        log.debug("Appending trailing whitespace '" + childTrailingSpace + "' for " + dom.inspectNode(child));
                         trailingSpace = false;
                     }
                 }
@@ -1117,7 +1124,7 @@ rangy.createModule("TextRange", function(api, module) {
         range.detach();
         return text;
 */
-        return getPlainText(el)[0].join("");
+        return appendPlainText(el)[0].join("");
     };
 
     api.textRange = {
