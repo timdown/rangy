@@ -220,9 +220,29 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1\n2");
     });
 
+    s.test("innerText on two paragraphs separated by spaces", function(t) {
+        t.el.innerHTML = '<p>1</p>\n<p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two paragraphs with container", function(t) {
+        t.el.innerHTML = '<div><p>1</p><p>2</p></div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
     s.test("innerText on table", function(t) {
         t.el.innerHTML = '<table><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>';
         t.assertEquals(rangy.innerText(t.el), "1\t2\n3\t4");
+    });
+
+    s.test("innerText with hidden p element", function(t) {
+        t.el.innerHTML = '<p>1</p><p style="display: none">2</p><p>3</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n3");
+    });
+
+    s.test("innerText with invisible p", function(t) {
+        t.el.innerHTML = '<p>1</p><p style="visibility: hidden">2</p><p>3</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n3");
     });
 
 

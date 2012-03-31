@@ -996,7 +996,9 @@ rangy.createModule("TextRange", function(api, module) {
                     // "If the last character of s is not a newline (U+000A), and the leading whitespace for child is
                     // not the empty string, append the leading whitespace for child to s and set trailing space to
                     // false."
-                    if ( (chars.length == 0 || chars[chars.length - 1].character != "\n")
+                    // Amendment: if s is empty, do not add the leading white space
+                    if (chars.length > 0
+                            && chars[chars.length - 1].character != "\n"
                             && (leadingSpace = getLeadingSpace(child)) != "") {
                         chars.push(leadingSpace);
                         log.debug("Appending leading whitespace for " + dom.inspectNode(child));
