@@ -245,6 +245,26 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1\n3");
     });
 
+    s.test("innerText on paragraph with uncollapsed br", function(t) {
+        t.el.innerHTML = '<p>1<br>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on paragraph with two uncollapsed brs", function(t) {
+        t.el.innerHTML = '<p>1<br><br>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n\n2");
+    });
+
+    s.test("innerText on paragraph with uncollapsed br preceded by space", function(t) {
+        t.el.innerHTML = '<p>1 <br>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two paragraphs with collapsed br", function(t) {
+        t.el.innerHTML = '<p>1<br></p><p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
 
 /*
     s.test("isCollapsedBr", function(t) {

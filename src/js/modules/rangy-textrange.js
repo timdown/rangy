@@ -406,29 +406,33 @@ rangy.createModule("TextRange", function(api, module) {
 
     function getTrailingSpace(el) {
         var trailingSpaceChar = "";
-        switch (getComputedDisplay(el)) {
-            case "inline":
-                var child = el.lastChild;
-                while (child) {
-                    if (!isIgnoredNode(child)) {
-                        trailingSpaceChar = (child.nodeType == 1) ? getTrailingSpace(child) : "";
-                        break;
+        if (el.tagName.toLowerCase() == "br") {
+            trailingSpaceChar = "\n";
+        } else {
+            switch (getComputedDisplay(el)) {
+                case "inline":
+                    var child = el.lastChild;
+                    while (child) {
+                        if (!isIgnoredNode(child)) {
+                            trailingSpaceChar = (child.nodeType == 1) ? getTrailingSpace(child) : "";
+                            break;
+                        }
+                        child = child.previousSibling;
                     }
-                    child = child.previousSibling;
-                }
-                break;
-            case "inline-block":
-            case "inline-table":
-            case "none":
-            case "table-column":
-            case "table-column-group":
-                break;
-            case "table-cell":
-                trailingSpaceChar = "\t";
-                break;
-            default:
-                trailingSpaceChar = hasInnerText(el) ? "\n" : "";
-                break;
+                    break;
+                case "inline-block":
+                case "inline-table":
+                case "none":
+                case "table-column":
+                case "table-column-group":
+                    break;
+                case "table-cell":
+                    trailingSpaceChar = "\t";
+                    break;
+                default:
+                    trailingSpaceChar = hasInnerText(el) ? "\n" : "";
+                    break;
+            }
         }
         return trailingSpaceChar ?
             new TextPosition(trailingSpaceChar, new DomPosition(el.parentNode, dom.getNodeIndex(el) + 1)) : "";
@@ -976,8 +980,7 @@ rangy.createModule("TextRange", function(api, module) {
             return;
         }
         chars = chars || [];
-        var child = el.firstChild;
-        var cssWhitespace = getComputedStyleProperty(child.parentNode, "whiteSpace");
+        var cssWhitespace = getComputedStyleProperty(el, "whiteSpace");
         if (cssWhitespace == "pre-line") {
             spaceRegex = spacesMinusLineBreaksRegex;
             elideSpaces = true;
@@ -986,37 +989,58 @@ rangy.createModule("TextRange", function(api, module) {
             elideSpaces = true;
         }
 
-        while (child) {
+        for (var childIndex = 0, len = el.childNodes.length, child; childIndex < len; ++childIndex) {
+            child = el.childNodes[childIndex];
             if (!isCollapsedNode(child)) {
                 nodeType = child.nodeType;
                 if (nodeType == 3) {
                     trailingSpace = addTextNodeText(child, spaceRegex, elideSpaces, chars, trailingSpace);
-                    log.debug("Added text node " + dom.inspectNode(child) + ", chars is now " + chars.join(""));
+                    log.debug("Added text node " + dom.inspectNode(child) + ", chars is now " + chars.join("") + " (length: " + chars.length + ")");
                 } else if (nodeType == 1) {
-                    // "If the last character of s is not a newline (U+000A), and the leading whitespace for child is
-                    // not the empty string, append the leading whitespace for child to s and set trailing space to
-                    // false."
-                    // Amendment: if s is empty, do not add the leading white space
-                    if (chars.length > 0
-                            && chars[chars.length - 1].character != "\n"
-                            && (leadingSpace = getLeadingSpace(child)) != "") {
-                        chars.push(leadingSpace);
-                        log.debug("Appending leading whitespace for " + dom.inspectNode(child));
-                        trailingSpace = null;
-                    }
+                    if (child.tagName.toLowerCase() == "br") {
+                        //trailingSpace = new TextPosition("\n", new DomPosition(el, childIndex));
+                        // "If trailing space is true and data does not begin with a space character, append a space to the end of s."
+                        // This is adapted somewhat: trailingSpace is either null or the trailing space from the preceding node
+                        if (trailingSpace) {
+                            log.debug("Appending trailing space from previous node before br");
+                            chars.push(trailingSpace);
+                            trailingSpace = null;
+                        }
+                        // Delete the last character of s if it's a space (U+0020), then append a line feed (U+000A) to
+                        // s
+                        log.debug("br element, adding line break. preceding char: '" + (chars[chars.length - 1] || {}).character + "'");
+                        if (chars.length > 0 && chars[chars.length - 1].character == " ") {
+                            log.debug("deleting space character preceding br");
+                            chars.pop();
+                        }
+                        chars.push(new TextPosition("\n", new DomPosition(el, childIndex)));
+                        log.debug("Adding line break for br now " + chars.map(function(ch) { return "[" + ch.character.charCodeAt(0) + "]";}).join(""));
+                    } else {
+                        // "If the last character of s is not a newline (U+000A), and the leading whitespace for child is
+                        // not the empty string, append the leading whitespace for child to s and set trailing space to
+                        // false."
+                        // Amendment: if s is empty, do not add the leading white space
+                        if (chars.length > 0
+                                && chars[chars.length - 1].character != "\n"
+                                && (leadingSpace = getLeadingSpace(child)) != "") {
+                            chars.push(leadingSpace);
+                            log.debug("Appending leading whitespace for " + dom.inspectNode(child));
+                            trailingSpace = null;
+                        }
 
-                    // "Append the plaintext of child to s with flag trailing space, and assign the result to
-                    // (s, trailing space)."
-                    plainText = appendPlainText(child, trailingSpace, chars);
-                    trailingSpace = plainText[1];
+                        // "Append the plaintext of child to s with flag trailing space, and assign the result to
+                        // (s, trailing space)."
+                        plainText = appendPlainText(child, trailingSpace, chars);
+                        trailingSpace = plainText[1];
 
-                    // "If node has another child after child that is not an ignored node, and the trailing whitespace
-                    // of child is not the empty string, append the trailing whitespace of child to s and set trailing
-                    // space to false."
-                    if (hasSubsequentNonIgnoredSibling(child) && (childTrailingSpace = getTrailingSpace(child)) != "") {
-                        chars.push(childTrailingSpace);
-                        log.debug("Appending trailing whitespace '" + childTrailingSpace + "' for " + dom.inspectNode(child));
-                        trailingSpace = false;
+                        // "If node has another child after child that is not an ignored node, and the trailing whitespace
+                        // of child is not the empty string, append the trailing whitespace of child to s and set trailing
+                        // space to false."
+                        if (hasSubsequentNonIgnoredSibling(child) && (childTrailingSpace = getTrailingSpace(child)) != "") {
+                            chars.push(childTrailingSpace);
+                            log.debug("Appending trailing whitespace '" + childTrailingSpace + "' for " + dom.inspectNode(child));
+                            trailingSpace = false;
+                        }
                     }
                 }
             }
@@ -1126,7 +1150,10 @@ rangy.createModule("TextRange", function(api, module) {
         range.detach();
         return text;
 */
-        return appendPlainText(el)[0].join("");
+
+        var innerText = appendPlainText(el)[0];
+        log.debug("chars: " + innerText.map(function(ch) { return "[" + ch.character.charCodeAt(0) + "]";}).join(""));
+        return innerText.join("");
     };
 
     api.textRange = {
