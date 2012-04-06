@@ -382,26 +382,33 @@ rangy.createModule("TextRange", function(api, module) {
     };
 
     function getLeadingSpace(el) {
+        var leadingSpaceChar = "";
         switch (getComputedDisplay(el)) {
             case "inline":
-                var child = el.firstChild;
-                while (child) {
-                    if (!isIgnoredNode(child)) {
-                        return child.nodeType == 1 ? getLeadingSpace(child) : ""
+                if (el.tagName.toLowerCase() == "br") {
+                    //leadingSpaceChar = "\n";
+                } else {
+                    var child = el.firstChild;
+                    while (child) {
+                        if (!isIgnoredNode(child)) {
+                            return child.nodeType == 1 ? getLeadingSpace(child) : ""
+                        }
+                        child = child.nextSibling;
                     }
-                    child = child.nextSibling;
                 }
-                return "";
             case "inline-block":
             case "inline-table":
             case "none":
             case "table-cell":
             case "table-column":
             case "table-column-group":
-                return "";
+                break;
             default:
-                return new TextPosition("\n", new DomPosition(el.parentNode, dom.getNodeIndex(el)));
+                leadingSpaceChar = "\n";
+                break;
         }
+        return leadingSpaceChar ?
+            new TextPosition(leadingSpaceChar, new DomPosition(el.parentNode, dom.getNodeIndex(el))) : "";
     }
 
     function getTrailingSpace(el) {
@@ -889,7 +896,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    function addTextNodeText(textNode, spaceRegex, elideSpaces, chars, trailingSpace) {
+    function appendTextNodeText(textNode, spaceRegex, collapseSpaces, chars, trailingSpace) {
         var text = textNode.data, textNodeChars = [], position, lastCharWasSpace = false, charCount;
         log.debug("addTextNodeText '" + text + "', existing chars: " + chars.join(""));
 
@@ -898,7 +905,7 @@ rangy.createModule("TextRange", function(api, module) {
             log.debug("At index " + i + " in text node " + text + ", char is " + textChar);
             position = new DomPosition(textNode, i);
 
-            if (elideSpaces) {
+            if (collapseSpaces) {
                 if (spaceRegex.test(textChar)) {
                     // "If the character at position is from set, append a single space (U+0020) to newdata and advance
                     // position until the character at position is not from set."
@@ -940,7 +947,7 @@ rangy.createModule("TextRange", function(api, module) {
 
         // "If s is empty or ends with a space character, and data begins with a space (U+0020), and whitespace is
         // "normal", "no-wrap", or "pre-line", delete the space from the beginning of data."
-        if (elideSpaces
+        if (collapseSpaces
                 && (textNodeChars.length > 0)
                 && (textNodeChars[0].character == " ")
                 && (chars.length == 0 || chars[chars.length - 1].character == " ")) {
@@ -951,7 +958,7 @@ rangy.createModule("TextRange", function(api, module) {
 
         // "If whitespace is "normal", "no-wrap", or "pre-line", and the last character of data is a space (U+0020),
         // delete the last character of data and set trailing space to true. Otherwise, set trailing space to false."
-        var newTrailingSpace = (elideSpaces && (charCount = textNodeChars.length) > 0 && textNodeChars[charCount - 1].character == " ") ?
+        var newTrailingSpace = (collapseSpaces && (charCount = textNodeChars.length) > 0 && textNodeChars[charCount - 1].character == " ") ?
             textNodeChars.pop() : null;
 
         // "If the computed value of node's "text-transform" property is not "normal", apply the appropriate
@@ -994,9 +1001,10 @@ rangy.createModule("TextRange", function(api, module) {
             if (!isCollapsedNode(child)) {
                 nodeType = child.nodeType;
                 if (nodeType == 3) {
-                    trailingSpace = addTextNodeText(child, spaceRegex, elideSpaces, chars, trailingSpace);
+                    trailingSpace = appendTextNodeText(child, spaceRegex, elideSpaces, chars, trailingSpace);
                     log.debug("Added text node " + dom.inspectNode(child) + ", chars is now " + chars.join("") + " (length: " + chars.length + ")");
                 } else if (nodeType == 1) {
+/*
                     if (child.tagName.toLowerCase() == "br") {
                         //trailingSpace = new TextPosition("\n", new DomPosition(el, childIndex));
                         // "If trailing space is true and data does not begin with a space character, append a space to the end of s."
@@ -1016,6 +1024,7 @@ rangy.createModule("TextRange", function(api, module) {
                         chars.push(new TextPosition("\n", new DomPosition(el, childIndex)));
                         log.debug("Adding line break for br now " + chars.map(function(ch) { return "[" + ch.character.charCodeAt(0) + "]";}).join(""));
                     } else {
+*/
                         // "If the last character of s is not a newline (U+000A), and the leading whitespace for child is
                         // not the empty string, append the leading whitespace for child to s and set trailing space to
                         // false."
@@ -1036,12 +1045,12 @@ rangy.createModule("TextRange", function(api, module) {
                         // "If node has another child after child that is not an ignored node, and the trailing whitespace
                         // of child is not the empty string, append the trailing whitespace of child to s and set trailing
                         // space to false."
-                        if (hasSubsequentNonIgnoredSibling(child) && (childTrailingSpace = getTrailingSpace(child)) != "") {
+                        if (hasSubsequentNonIgnoredSibling(child) && (childTrailingSpace = getTrailingSpace(child)) != ""/* && child.tagName.toLowerCase() != "br"*/) {
                             chars.push(childTrailingSpace);
                             log.debug("Appending trailing whitespace '" + childTrailingSpace + "' for " + dom.inspectNode(child));
                             trailingSpace = false;
                         }
-                    }
+                    //}
                 }
             }
 
@@ -1049,6 +1058,77 @@ rangy.createModule("TextRange", function(api, module) {
         }
 
         return [chars, trailingSpace];
+    }
+
+    function getTextNodeProperties(textNode) {
+        var spaceRegex = null, collapseSpaces = false;
+        var cssWhitespace = getComputedStyleProperty(textNode.parentNode, "whiteSpace");
+        var preLine = (cssWhitespace == "pre-line");
+        if (preLine) {
+            spaceRegex = spacesMinusLineBreaksRegex;
+            collapseSpaces = true;
+        } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
+            spaceRegex = spacesRegex;
+            collapseSpaces = true;
+        }
+
+        return {
+            node: textNode,
+            text: textNode.data,
+            spaceRegex: spaceRegex,
+            collapseSpaces: collapseSpaces,
+            preLine: preLine
+        };
+    }
+
+    /*
+    Current plan: getCharacterAt returns character that could possibly be at a position.
+    When iterating forward with preceding string, ???
+     */
+    function getPossibleCharacterAt(pos, nodeInfo) {
+        var node = pos.node, offset = pos.offset;
+        var visibleChar = "";
+        if (node.nodeType == 3) {
+            var text = node.data;
+            if (text.length < offset) {
+                var textChar = text.charAt(offset);
+                var spaceRegex = nodeInfo.spaceRegex;
+                if (nodeInfo.collapseSpaces) {
+                    if (spaceRegex.test(textChar)) {
+                        // "If the character at position is from set, append a single space (U+0020) to newdata and advance
+                        // position until the character at position is not from set."
+
+                        // We also need to check for the case where we're in a pre-line and we have a space preceding a
+                        // line break, because such spaces are collapsed
+                        if (spaceRegex.test(text.charAt(offset - 1))) {
+                            log.debug("Character is a collapsible space preceded by another collapsible space, skipping");
+                        } else if (nodeInfo.preLine && text.charAt(offset + 1) == "\n") {
+                            log.debug("Character is a collapsible space which is followed by a line break in a pre-line element, skipping");
+                        } else {
+                            log.debug("Character is a collapsible space not preceded by another collapsible space, adding");
+                            visibleChar = " ";
+                        }
+                    } else {
+                        log.debug("In a pre-line element, character is not a space, adding");
+                        visibleChar = textChar;
+                    }
+                } else {
+                    log.debug("Spaces are not collapsible, so adding");
+                    visibleChar = textChar;
+                }
+            }
+        } else {
+            var nodePassed = node.childNodes[offset];
+            if (nodePassed && nodePassed.nodeType == 1 && !isCollapsedNode(nodePassed)) {
+                visibleChar = getTrailingSpace(nodePassed).character;
+            }
+        }
+        return visibleChar;
+    }
+
+    function getCharacterAt(pos, nodeInfo, precedingText) {
+        var possibleChar = getPossibleCharacterAt(pos, nodeInfo);
+
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
