@@ -372,9 +372,11 @@ rangy.createModule("TextRange", function(api, module) {
         return false;
     }
 
-    function TextPosition(character, position) {
+    function TextPosition(character, position, isTrailingSpace, isCollapsible) {
         this.character = character;
         this.position = position;
+        this.isTrailingSpace = isTrailingSpace;
+        this.isCollapsible = isCollapsible;
     }
 
     TextPosition.prototype.toString = function() {
@@ -1087,14 +1089,18 @@ rangy.createModule("TextRange", function(api, module) {
      */
     function getPossibleCharacterAt(pos, nodeInfo) {
         var node = pos.node, offset = pos.offset;
-        var visibleChar = "";
+        var visibleChar = "", isTrailingSpace = false, isCollapsible = false;
         if (node.nodeType == 3) {
             var text = node.data;
-            if (text.length < offset) {
-                var textChar = text.charAt(offset);
+            if (offset > 0) {
+                var textChar = text.charAt(offset - 1);
+                if (!nodeInfo) {
+                    nodeInfo = getTextNodeProperties(node);
+                }
                 var spaceRegex = nodeInfo.spaceRegex;
                 if (nodeInfo.collapseSpaces) {
                     if (spaceRegex.test(textChar)) {
+                        isCollapsible = true;
                         // "If the character at position is from set, append a single space (U+0020) to newdata and advance
                         // position until the character at position is not from set."
 
@@ -1120,15 +1126,80 @@ rangy.createModule("TextRange", function(api, module) {
         } else {
             var nodePassed = node.childNodes[offset];
             if (nodePassed && nodePassed.nodeType == 1 && !isCollapsedNode(nodePassed)) {
-                visibleChar = getTrailingSpace(nodePassed).character;
+                if (nodePassed.tagName.toLowerCase() == "br") {
+                    visibleChar = "\n";
+                } else {
+                    visibleChar = getTrailingSpace(nodePassed).character;
+                }
             }
         }
-        return visibleChar;
+        return new TextPosition(visibleChar, pos, isTrailingSpace, isCollapsible);
     }
 
-    function getCharacterAt(pos, nodeInfo, precedingText) {
-        var possibleChar = getPossibleCharacterAt(pos, nodeInfo);
+    function getNextPossibleCharacter(pos, nodeInfo) {
+        var iterator = new VisiblePositionIterator(pos.node, pos.offset);
+        var nextPos, next, nextPossibleChar;
+        while ( (nextPos = iterator.previous()) ) {
+            next = getPossibleCharacterAt(nextPos);
+            if (next.character !== "") {
+                return next;
+            }
+        }
+        return null;
+    }
 
+    function getCharacterAt(pos, nodeInfo, precedingChars) {
+        var possible = getPossibleCharacterAt(pos, nodeInfo);
+        var possibleChar = possible.character;
+        if (!possibleChar) {
+            return "";
+        }
+        if (possibleChar == " " || possibleChar == "\n") {
+            if (!precedingChars) {
+                // Work backwards until we have a non-space character
+                var iterator = new VisiblePositionIterator(pos.node, pos.offset);
+                var previousPos, previous, previousPossibleChar;
+                precedingChars = [];
+                while ( (previousPos = iterator.previous()) ) {
+                    previous = getPossibleCharacterAt(previousPos);
+                    previousPossibleChar = previous.character;
+                    if (previousPossibleChar !== "") {
+                        precedingChars.unshift(previous);
+                        if (previousPossibleChar != " " && previousPossibleChar != "\n") {
+                            break;
+                        }
+                    }
+                }
+            }
+            // TODO: Implement tedious checks
+            var preceding = precedingChars[precedingChars.length - 1];
+
+            // Disallow a space that follows a trailing space and is collapsible
+            if (preceding.isTrailingSpace && possible.isCollapsible) {
+                possible.character = "";
+            }
+            /*
+            // "If s is empty or ends with a space character, and data begins with a space (U+0020), and whitespace is
+            // "normal", "no-wrap", or "pre-line", delete the space from the beginning of data."
+            if (collapseSpaces
+                    && (textNodeChars.length > 0)
+                    && (textNodeChars[0].character == " ")
+                    && (chars.length == 0 || chars[chars.length - 1].character == " ")) {
+                log.debug("Plain text '" + chars.join("") + "' is empty or ends with space, data '" + textNodeChars.join("")
+                    + "' begins with space, spaces are elided, deleting leading space");
+                textNodeChars.shift();
+            }
+
+            // "If whitespace is "normal", "no-wrap", or "pre-line", and the last character of data is a space (U+0020),
+            // delete the last character of data and set trailing space to true. Otherwise, set trailing space to false."
+            var newTrailingSpace = (collapseSpaces && (charCount = textNodeChars.length) > 0 && textNodeChars[charCount - 1].character == " ") ?
+                textNodeChars.pop() : null;
+
+             */
+            return possible;
+        } else {
+            return possible;
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
