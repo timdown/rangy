@@ -416,7 +416,7 @@ rangy.createModule("TextRange", function(api, module) {
     function getTrailingSpace(el) {
         var trailingSpaceChar = "";
         if (el.tagName.toLowerCase() == "br") {
-            trailingSpaceChar = "\n";
+            //trailingSpaceChar = "\n";
         } else {
             switch (getComputedDisplay(el)) {
                 case "inline":
@@ -444,7 +444,7 @@ rangy.createModule("TextRange", function(api, module) {
             }
         }
         return trailingSpaceChar ?
-            new TextPosition(trailingSpaceChar, new DomPosition(el.parentNode, dom.getNodeIndex(el) + 1)) : "";
+            new TextPosition(trailingSpaceChar, new DomPosition(el.parentNode, dom.getNodeIndex(el) + 1), true, true) : "";
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -1090,10 +1090,11 @@ rangy.createModule("TextRange", function(api, module) {
     function getPossibleCharacterAt(pos, nodeInfo) {
         var node = pos.node, offset = pos.offset;
         var visibleChar = "", isTrailingSpace = false, collapsible = false;
-        if (node.nodeType == 3) {
-            var text = node.data;
-            if (offset > 0) {
+        if (offset > 0) {
+            if (node.nodeType == 3) {
+                var text = node.data;
                 var textChar = text.charAt(offset - 1);
+                log.debug("Got char '" + textChar + "' in data '" + text + "'");
                 if (!nodeInfo) {
                     nodeInfo = getTextNodeProperties(node);
                 }
@@ -1106,30 +1107,30 @@ rangy.createModule("TextRange", function(api, module) {
 
                         // We also need to check for the case where we're in a pre-line and we have a space preceding a
                         // line break, because such spaces are collapsed
-                        if (spaceRegex.test(text.charAt(offset - 1))) {
+                        if (offset > 1 && spaceRegex.test(text.charAt(offset - 2))) {
                             log.debug("Character is a collapsible space preceded by another collapsible space, skipping");
-                        } else if (nodeInfo.preLine && text.charAt(offset + 1) == "\n") {
+                        } else if (nodeInfo.preLine && text.charAt(offset) === "\n") {
                             log.debug("Character is a collapsible space which is followed by a line break in a pre-line element, skipping");
                         } else {
                             log.debug("Character is a collapsible space not preceded by another collapsible space, adding");
                             visibleChar = " ";
                         }
                     } else {
-                        log.debug("In a pre-line element, character is not a space, adding");
+                        log.debug("Character is not a space, adding");
                         visibleChar = textChar;
                     }
                 } else {
                     log.debug("Spaces are not collapsible, so adding");
                     visibleChar = textChar;
                 }
-            }
-        } else {
-            var nodePassed = node.childNodes[offset];
-            if (nodePassed && nodePassed.nodeType == 1 && !isCollapsedNode(nodePassed)) {
-                if (nodePassed.tagName.toLowerCase() == "br") {
-                    visibleChar = "\n";
-                } else {
-                    visibleChar = getTrailingSpace(nodePassed).character;
+            } else {
+                var nodePassed = node.childNodes[offset - 1];
+                if (nodePassed && nodePassed.nodeType == 1 && !isCollapsedNode(nodePassed)) {
+                    if (nodePassed.tagName.toLowerCase() == "br") {
+                        visibleChar = "\n";
+                    } else {
+                        visibleChar = getTrailingSpace(nodePassed).character || "";
+                    }
                 }
             }
         }
@@ -1162,12 +1163,13 @@ rangy.createModule("TextRange", function(api, module) {
 
     function getCharacterAt(pos, nodeInfo, precedingChars) {
         var possible = getPossibleCharacterAt(pos, nodeInfo);
-        log.debug("getCharacterAt got possible char " + possible.character);
         var possibleChar = possible.character;
+        var next, preceding;
+        log.debug("*** getCharacterAt got possible char '" + possibleChar + "' at position " + pos);
         if (!possibleChar) {
             return possible;
         }
-        if (possibleChar == " " || possibleChar == "\n") {
+        if (spacesRegex.test(possibleChar)) {
             if (!precedingChars) {
                 // Work backwards until we have a non-space character
                 var iterator = new VisiblePositionIterator(pos.node, pos.offset);
@@ -1177,6 +1179,7 @@ rangy.createModule("TextRange", function(api, module) {
                     previous = getPossibleCharacterAt(previousPos);
                     previousPossibleChar = previous.character;
                     if (previousPossibleChar !== "") {
+                        log.debug("Found preceding character '" + previousPossibleChar + "' at position " + previousPos);
                         precedingChars.unshift(previous);
                         if (previousPossibleChar != " " && previousPossibleChar != "\n") {
                             break;
@@ -1185,12 +1188,22 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             }
             // TODO: Implement tedious checks
-            var preceding = precedingChars[precedingChars.length - 1];
+            preceding = precedingChars[precedingChars.length - 1];
 
-            // Disallow a space that follows a trailing space and is collapsible
-            if (preceding.isTrailingSpace && possible.collapsible) {
+            log.info("possible.collapsible: " + possible.collapsible + ", preceding: '" + preceding + "', next: '" + getNextPossibleCharacter(pos) + "'");
+
+            // Disallow a collapsible space that follows a trailing space or line break, or is the first character
+            if (possibleChar === " " && possible.collapsible && (!preceding || preceding.isTrailingSpace || preceding.character === "\n")) {
+                log.info("Preceding character is a trailing space or non-existent and current possible character is a collapsible space, so space is collapsed");
                 possible.character = "";
             }
+
+            // Disallow a collapsible space that is followed by a line break or is the last character
+            else if ( !(next = getNextPossibleCharacter(pos)) || (next.character == "\n"/* && possible.collapsible*/)) {
+                log.debug("Character is a space which is followed by a line break or nothing, collapsing");
+                possible.character = "";
+            }
+
             return possible;
         } else {
             return possible;
