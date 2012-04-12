@@ -1,4 +1,7 @@
 xn.test.suite("Text Range module tests", function(s) {
+    var DomPosition = rangy.dom.DomPosition;
+    var textRange = rangy.textRange;
+
     s.setUp = function(t) {
         t.el = document.getElementById("test");
     };
@@ -31,7 +34,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertArraysEquivalent(previouses.slice(0, 6), [text3, i2, text2, b1, text1_1, div0]);
     });
 
-    s.test("PositionIterator", function(t) {
+    s.test("nextPosition and previousPosition", function(t) {
         t.el.innerHTML = "<div>1<b>2<br><span></span>33</b>4</div>";
 
         var div = t.el.getElementsByTagName("div")[0];
@@ -66,24 +69,21 @@ xn.test.suite("Text Range module tests", function(s) {
             [t.el, 1]
         ];
 
-        var positionIterator = new rangy.PositionIterator(t.el, 0);
+        var pos = new DomPosition(t.el, 0);
 
         // First forwards...
-        for (var i = 0, itPos; i < positions.length; ++i) {
-            t.assert(positionIterator.hasNext());
-            itPos = positionIterator.next();
-            t.assertEquals(itPos.node, positions[i][0]);
-            t.assertEquals(itPos.offset, positions[i][1]);
+        for (var i = 0; i < positions.length; ++i) {
+            pos = textRange.nextPosition(pos);
+            t.assertEquals(pos.node, positions[i][0]);
+            t.assertEquals(pos.offset, positions[i][1]);
         }
 
         // ... now backwards
         for (i = positions.length - 2; i >= 0; --i) {
-            t.assert(positionIterator.hasPrevious());
-            itPos = positionIterator.previous();
-            t.assertEquals(itPos.node, positions[i][0]);
-            t.assertEquals(itPos.offset, positions[i][1]);
+            pos = textRange.previousPosition(pos);
+            t.assertEquals(pos.node, positions[i][0]);
+            t.assertEquals(pos.offset, positions[i][1]);
         }
-
     });
 
     s.test("isCollapsedWhitespaceNode", function(t) {
@@ -126,22 +126,20 @@ xn.test.suite("Text Range module tests", function(s) {
             [t.el, 2]
         ];
 
-        var positionIterator = new rangy.VisiblePositionIterator(t.el, 0);
+        var pos = new DomPosition(t.el, 0);
 
         // First forwards...
-        for (var i = 0, itPos; i < positions.length; ++i) {
-            t.assert(positionIterator.hasNext());
-            itPos = positionIterator.next();
-            t.assertEquals(itPos.node, positions[i][0]);
-            t.assertEquals(itPos.offset, positions[i][1]);
+        for (var i = 0; i < positions.length; ++i) {
+            pos = textRange.nextVisiblePosition(pos);
+            t.assertEquals(pos.node, positions[i][0]);
+            t.assertEquals(pos.offset, positions[i][1]);
         }
 
         // ... now backwards
         for (i = positions.length - 2; i >= 0; --i) {
-            t.assert(positionIterator.hasPrevious());
-            itPos = positionIterator.previous();
-            t.assertEquals(itPos.node, positions[i][0]);
-            t.assertEquals(itPos.offset, positions[i][1]);
+            pos = textRange.previousVisiblePosition(pos);
+            t.assertEquals(pos.node, positions[i][0]);
+            t.assertEquals(pos.offset, positions[i][1]);
         }
     });
 
@@ -265,42 +263,58 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1\n2");
     });
 
-
-/*
-    s.test("isCollapsedBr", function(t) {
-        t.el.innerHTML = "<div><br><i><br><br></i></div><br><div><i><br></i></div><div><i><br></i>x</div>";
-        var brs = t.el.getElementsByTagName("br");
-        var collapsed = [false, false, true, true, false];
-        for (var i = 0; i < collapsed.length; ++i) {
-            t.assertEquals(rangy.textRange.isCollapsedBr(brs[i]), collapsed[i]);
-        }
-    });
-*/
-
-/*
-    s.test("elementText", function(t) {
-        t.el.innerHTML = "One";
-        t.assertEquals(rangy.elementText(t.el), "One");
-    });
-*/
-/*
-    var str = new Array(1e4).join(" \r\n\tabcdefabcdef");
-
-    s.test("regex test", function(t) {
-        var a = [];
-        for (var i = 0, len = str.length, c; i < len; ++i) {
-            c = str.charAt(i);
-            a[i] = /^[ \t\f\r]$/.test(c);
-        }
+    s.test("innerText one paragraph with collapsed br ", function(t) {
+        t.el.innerHTML = '<p>1<br></p>';
+        t.assertEquals(rangy.innerText(t.el), "1");
     });
 
-    s.test("Non-regex test", function(t) {
-        var a = [];
-        for (var i = 0, len = str.length, c; i < len; ++i) {
-            c = str.charAt(i);
-            a[i] = (c == " " || c == "\t" || c == "\f" || c == "\r");
-        }
+    s.test("range text() on simple text", function(t) {
+        t.el.innerHTML = '12345';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.selectNodeContents(t.el);
+        t.assertEquals(range.text(), "12345");
+
+        range.setStart(textNode, 1);
+        range.setEnd(textNode, 4);
+        t.assertEquals(range.text(), "234");
     });
-*/
+
+    s.test("moveStart on text node", function(t) {
+        t.el.innerHTML = 'One Two';
+        var range = rangy.createRange();
+        range.selectNodeContents(t.el);
+
+        var charsMoved = range.moveStart("character", 2);
+        t.assertEquals(charsMoved, 2);
+        t.assertEquals(range.startContainer, t.el.firstChild);
+        t.assertEquals(range.startOffset, 2);
+        t.assertEquals(range.text(), "e Two");
+
+        charsMoved = range.moveStart("character", 2);
+        t.assertEquals(charsMoved, 2);
+        t.assertEquals(range.startContainer, t.el.firstChild);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.text(), "Two");
+    });
+
+    s.test("moveStart on text node, negative move", function(t) {
+        t.el.innerHTML = 'One Two';
+        var range = rangy.createRange();
+        var textNode = t.el.firstChild;
+        range.collapseToPoint(textNode, 7);
+
+        var charsMoved = range.moveStart("character", -2);
+        t.assertEquals(charsMoved, -2);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 5);
+        t.assertEquals(range.text(), "wo");
+
+        charsMoved = range.moveStart("character", -2);
+        t.assertEquals(charsMoved, -2);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 3);
+        t.assertEquals(range.text(), " Two");
+    });
 
 }, false);
