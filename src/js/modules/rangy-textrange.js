@@ -693,7 +693,7 @@ rangy.createModule("TextRange", function(api, module) {
                         while ( (pos = nextVisiblePosition(pos)) && charsMoved < count) {
                             textPos = getCharacterAt(pos, transaction);
                             if (textPos.character !== "") {
-                                log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+                                log.info("*** movePositionBy forward GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
                                 ++charsMoved;
                                 newPos = pos;
                             }
@@ -702,7 +702,7 @@ rangy.createModule("TextRange", function(api, module) {
                         while (pos && charsMoved > count) {
                             textPos = getCharacterAt(pos, transaction);
                             if (textPos.character !== "") {
-                                log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+                                log.info("*** movePositionBy backward GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
                                 --charsMoved;
                                 pos = previousVisiblePosition(pos);
                                 newPos = pos;
@@ -720,6 +720,32 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
+    function getRangeCharacters(range) {
+        log.info("getRangeCharacters called on range " + range.inspect());
+        var startPos = new DomPosition(range.startContainer, range.startOffset);
+        var transaction = {};
+
+        // Adjust the end position to ensure that it is actually reached
+        var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
+        endPos = nextVisiblePosition(endPos);
+
+        var chars = [], pos = startPos, textPos;
+
+        while ( (pos = nextVisiblePosition(pos)) ) {
+            textPos = getCharacterAt(pos, transaction);
+            if (textPos.character !== "") {
+                log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+                chars.push(textPos);
+            }
+            if (pos.equals(endPos)) {
+                break;
+            }
+            //pos = nextVisiblePosition(pos);
+        }
+
+        return chars;
+    }
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     util.extend(dom, {
@@ -732,29 +758,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     util.extend(api.rangePrototype, {
         text: function() {
-            log.info("text called on range " + this.inspect());
-            var startPos = new DomPosition(this.startContainer, this.startOffset);
-            var transaction = {};
-
-            // Adjust the end position to ensure that it is actually reached
-            var endPos = getPreviousPossibleCharacter(new DomPosition(this.endContainer, this.endOffset), transaction).position;
-            endPos = nextVisiblePosition(endPos);
-
-            var chars = [], pos = startPos, textPos;
-
-            while ( (pos = nextVisiblePosition(pos)) ) {
-                textPos = getCharacterAt(pos, transaction);
-                if (textPos.character !== "") {
-                    log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                    chars.push(textPos.character);
-                }
-                if (pos.equals(endPos)) {
-                    break;
-                }
-                //pos = nextVisiblePosition(pos);
-            }
-
-            return chars.join("");
+            return getRangeCharacters(this).join("");
         },
 
         // Unit can be "character" or "word"
@@ -784,6 +788,14 @@ rangy.createModule("TextRange", function(api, module) {
             this.moveStart(unit, startCount);
         },
 
+        toNodePosition: function(node) {
+            var range = this.cloneRange();
+            range.setStart(node, 0);
+            range.setEnd();
+
+
+        },
+
         htmlText: function() {
 
         },
@@ -792,12 +804,54 @@ rangy.createModule("TextRange", function(api, module) {
 
         },
 
-        findText: function() {
+        findText: function(text, options) {
+
 
         },
 
         move: function() {
 
+        },
+
+        // Search term can be string or regex. Returns array of ranges matching the search term
+        match: function(searchTerm, caseSensitive) {
+            var that = this;
+            var rangeChars = getRangeCharacters(this), rangeText = rangeChars.join("");
+            var matchRanges = [], matchRange;
+
+            function createMatchRange(startIndex, endIndex) {
+                var matchRange = that.cloneRange();
+                var startPos = previousVisiblePosition(rangeChars[startIndex].position);
+                var endPos = rangeChars[endIndex - 1].position;
+
+                matchRange.setStart(startPos.node, startPos.offset);
+                matchRange.setEnd(endPos.node, endPos.offset);
+
+                return matchRange;
+            }
+
+            if (typeof searchTerm == "string") {
+                if (!caseSensitive) {
+                    rangeText = rangeText.toLowerCase();
+                    searchTerm = searchTerm.toLowerCase();
+                }
+                var index = 0, searchTermLength = searchTerm.length, endIndex;
+                while ( (index = rangeText.indexOf(searchTerm, index)) != -1 ) {
+                    endIndex = index + searchTermLength;
+                    matchRanges.push( createMatchRange(index, endIndex) );
+                    index = endIndex;
+                }
+            } else {
+                var result;
+                while ( (result = searchTerm.exec(rangeText)) ) {
+                    endIndex = result.index + result[0].length;
+                    matchRanges.push( createMatchRange(result.index, endIndex) );
+                    if (!searchTerm.global) {
+                        break;
+                    }
+                }
+            }
+            return matchRanges;
         },
 
         pasteHTML: function() {
@@ -844,7 +898,7 @@ rangy.createModule("TextRange", function(api, module) {
     });
 
     // Returns array of Ranges
-    api.findAll = function() {
+    api.findAll = function(text, options) {
 
     };
 

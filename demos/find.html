@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title>Rangy CSS Find Demo</title>
+    <link href="demo.css" rel="stylesheet" type="text/css">
+    <style type="text/css">
+        *.searchResult {
+            font-weight: bold;
+            background-color: yellow;
+        }
+    </style>
+    <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript" src="../src/js/core/core.js"></script>
+    <script type="text/javascript" src="../src/js/core/dom.js"></script>
+    <script type="text/javascript" src="../src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-textrange.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript">
+        function gEBI(id) {
+            return document.getElementById(id);
+        }
+
+        var searchResultApplier;
+
+        function toggleItalicYellowBg() {
+            searchResultApplier.toggleSelection();
+        }
+
+        window.onload = function() {
+            rangy.init();
+
+            // Enable buttons
+            var cssClassApplierModule = rangy.modules.CssClassApplier;
+            if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
+                searchResultApplier = rangy.createCssClassApplier("searchResult", true);
+
+                var searchBox = gEBI("search"),
+                    regexCheckBox = gEBI("regex"),
+                    caseSensitiveCheckBox = gEBI("caseSensitive"),
+                    timer;
+
+                function doSearch() {
+                    // Remove existing highlights
+                    var range = rangy.createRange();
+                    var caseSensitive = caseSensitiveCheckBox.checked;
+
+                    range.selectNodeContents(document.body);
+                    searchResultApplier.undoToRange(range);
+
+                    // Create search term
+                    var searchTerm = searchBox.value;
+
+                    if (searchTerm !== "") {
+                        if (regexCheckBox.checked) {
+                            searchTerm = new RegExp(searchTerm, caseSensitive ? "g" : "gi");
+                        }
+
+                        // Get matching ranges
+                        var matchRanges = range.match(searchTerm, caseSensitive);
+                        for (var i = 0, len = matchRanges.length; i < len; ++i) {
+                            searchResultApplier.applyToRange(matchRanges[i]);
+                        }
+                    }
+
+                    timer = null;
+                }
+
+                function scheduleSearch() {
+                    if (timer) {
+                        window.clearTimeout(timer);
+                    }
+                    timer = window.setTimeout(doSearch, 500);
+                }
+
+                searchBox.onpropertychange = function() {
+                    if (window.event.propertyName == "value") {
+                        scheduleSearch();
+                    }
+                };
+
+                searchBox.oninput = function() {
+                    if (searchBox.onpropertychange) {
+                        searchBox.onpropertychange = null;
+                    }
+                    scheduleSearch();
+                };
+
+                regexCheckBox.onclick = scheduleSearch;
+
+                caseSensitiveCheckBox.onclick = scheduleSearch;
+            }
+        };
+
+    </script>
+</head>
+<body>
+    <div id="buttons">
+        <h3>Find</h3>
+        Enter search term in the box below. Search results will be highlighted as you type.
+        <br><br>
+        <label for="search">Find: </label><input type="text" size="20" id="search">
+        <br>
+        <label for="regex">Regex: </label><input type="checkbox" id="regex">
+        <br>
+        <label for="caseSensitive">Case sensitive: </label><input type="checkbox" id="caseSensitive">
+    </div>
+
+    <div id="content">
+        <h1>Rangy Find Demo</h1>
+
+        <!-- A comment -->
+
+        <p id="intro">
+            Enter search term in the search box on the left. Search results will be highlighted as you type. This uses
+            Rangy's TextRange and CSS Class Applier modules.
+        </p>
+
+        <p>
+            <b>Association football</b> is a sport played between two teams. It is usually called football, but in
+            some countries, such as the United States, it is called <b>soccer</b>. In
+            <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
+            Republic of Ireland, both words are commonly used.
+        </p>
+        <p>
+            Each team has 11 players on the field. One of these players is the <i>goalkeeper</i>, and the other ten are
+            known as <i>"outfield players."</i> The game is played by <b>kicking a ball into the opponent's goal</b>. A
+            match has 90 minutes of play, with a break of 15 minutes in the middle. The break in the middle is called
+            half-time.
+        </p>
+        <h2>Competitions <span class="smaller">(this section is editable)</span></h2>
+        <p contenteditable="true">
+            There are many competitions for football, for both football clubs and countries. Football clubs usually play
+            other teams in their own country, with a few exceptions. <b>Cardiff City F.C.</b> from Wales for example, play
+            in the English leagues and in the English FA Cup.
+        </p>
+        <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
+        <pre contenteditable="true">
+Football is the world's most popular sport. It is played in more
+countries than any other game. In fact, FIFA (the Federation
+Internationale de Football Association) has more members than the
+United Nations.
+
+It is played by both males and females.
+
+  <p>First para</p>
+  <p>Second para</p>
+
+</pre>
+    </div>
+
+    <p class="small">
+        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
+        Association Football</a>, licensed under the
+        <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
+            Commons Attribution/Share-Alike License</a>.
+    </p>
+</body>
+</html>
