@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-    <title>Rangy CSS Find Demo</title>
+    <title>Rangy Find Demo</title>
     <link href="demo.css" rel="stylesheet" type="text/css">
     <style type="text/css">
         *.searchResult {
@@ -57,16 +57,14 @@
                             searchTerm = new RegExp(searchTerm, caseSensitive ? "g" : "gi");
                         }
 
-                        // Get matching ranges
-                        var start = new Date();
-                        var matchRanges = range.match(searchTerm, caseSensitive);
-                        //alert(new Date() - start);
+                        // Iterate over matches
+                        while (range.findText(searchTerm, caseSensitive)) {
+                            // range now encompasses the first text match
+                            searchResultApplier.applyToRange(range);
 
-                        // Apply search result class to each range, in reverse order so that ranges are not affected
-                        // by changes to ranges earlier in the document
-                        var i = matchRanges.length;
-                        while (i--) {
-                            searchResultApplier.applyToRange(matchRanges[i]);
+                            // Move the range to start after the match and end at the end of the document
+                            range.collapse(false);
+                            range.setEndAfter(document.body);
                         }
                     }
 
