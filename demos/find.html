@@ -58,8 +58,14 @@
                         }
 
                         // Get matching ranges
+                        var start = new Date();
                         var matchRanges = range.match(searchTerm, caseSensitive);
-                        for (var i = 0, len = matchRanges.length; i < len; ++i) {
+                        //alert(new Date() - start);
+
+                        // Apply search result class to each range, in reverse order so that ranges are not affected
+                        // by changes to ranges earlier in the document
+                        var i = matchRanges.length;
+                        while (i--) {
                             searchResultApplier.applyToRange(matchRanges[i]);
                         }
                     }

@@ -51,11 +51,12 @@ rangy.createModule("TextRange", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.textrange");
 
-    var getComputedStyleProperty;
+    var elementsHaveUniqueId = util.isHostProperty(document.documentElement, "uniqueID");
 
+    var getComputedStyleProperty;
     if (typeof window.getComputedStyle != UNDEF) {
-        getComputedStyleProperty = function(el, propName) {
-            return dom.getWindow(el).getComputedStyle(el, null)[propName];
+        getComputedStyleProperty = function(el, propName, win) {
+            return (win || dom.getWindow(el)).getComputedStyle(el, null)[propName];
         };
     } else if (typeof document.documentElement.currentStyle != UNDEF) {
         getComputedStyleProperty = function(el, propName) {
@@ -65,10 +66,6 @@ rangy.createModule("TextRange", function(api, module) {
         module.fail("No means of obtaining computed style properties found");
     }
 
-    var defaultOptions = {
-        normalizeWhiteSpace: false
-    };
-
     // "A block node is either an Element whose "display" property does not have
     // resolved value "inline" or "inline-block" or "inline-table" or "none", or a
     // Document, or a DocumentFragment."
@@ -76,19 +73,6 @@ rangy.createModule("TextRange", function(api, module) {
         return node
             && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node)))
             || node.nodeType == 9 || node.nodeType == 11);
-    }
-
-    function isTextNodePre(textNode) {
-        var el = textNode.parentNode;
-        return !!el &&
-            el.nodeType == 1 &&
-            !/^(pre|(-moz-)?pre-wrap)$/.test(getComputedStyleProperty(el, "whiteSpace"))
-    }
-
-    var inlineDisplayRegex = /^inline(-block|-table)?$/i;
-
-    function isNonInlineElement(node) {
-        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedDisplay(node));
     }
 
     function getLastDescendantOrSelf(node) {
@@ -100,8 +84,6 @@ rangy.createModule("TextRange", function(api, module) {
         return dom.isCharacterDataNode(node)
             || !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
     }
-
-    var breakingSpaceRegex = /^[\u0009-\u000d\u0020\u0085\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]$/;
 
     var spacesRegex = /^[ \t\f\r\n]+$/;
     var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
@@ -116,7 +98,7 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function getAncestorsAndSelf(node) {
-        return getAncestors(node) . concat([node]);
+        return getAncestors(node).concat([node]);
     }
 
     // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
@@ -293,21 +275,6 @@ rangy.createModule("TextRange", function(api, module) {
     	return false;
     }
 
-/*
-    function isVisibleTextNode(node) {
-        return node
-            && node.nodeType == 3
-            && !isHidden(node)
-            && !isVisibilityHiddenTextNode(node)
-            && !isCollapsedWhitespaceNode(node)
-            && !/^(script|style)$/i.test(node.parentNode.nodeName);
-    }
-
-    function isVisibleElement(el) {
-
-    }
-*/
-
     // Test for old IE's incorrect display properties
     var tableCssDisplayBlock;
     (function() {
@@ -333,8 +300,8 @@ rangy.createModule("TextRange", function(api, module) {
     };
 
     // Corrects IE's "block" value for table-related elements
-    function getComputedDisplay(el) {
-        var display = getComputedStyleProperty(el, "display");
+    function getComputedDisplay(el, win) {
+        var display = getComputedStyleProperty(el, "display", win);
         var tagName = el.tagName.toLowerCase();
         return (display == "block"
                 && tableCssDisplayBlock
@@ -353,11 +320,11 @@ rangy.createModule("TextRange", function(api, module) {
             || isCollapsedWhitespaceNode(node);
     }
 
-    function isIgnoredNode(node) {
+    function isIgnoredNode(node, win) {
         var type = node.nodeType;
         return type == 7 /* PROCESSING_INSTRUCTION */
             || type == 8 /* COMMENT */
-            || (type == 1 && getComputedDisplay(node) == "none");
+            || (type == 1 && getComputedDisplay(node, win) == "none");
     }
 
     function hasInnerText(node) {
@@ -511,6 +478,52 @@ rangy.createModule("TextRange", function(api, module) {
             newPos = new DomPosition(node.parentNode, dom.getNodeIndex(node));
         }
         return newPos;
+    }
+
+    function createTransaction(win) {
+/*
+        var doc = win.document;
+        var elementInfoCache = {};
+
+        function getElementInfo(el) {
+            var id = elementsHaveUniqueId ? el.uniqueID : el.id || "";
+            var elementInfo, display;
+            if (id && elementInfoCache.hasOwnProperty(id)) {
+                elementInfo = elementInfoCache[id];
+            }
+            if (!elementInfo) {
+                display = getComputedDisplay(el, win);
+                elementInfo = {
+                    display: display,
+                    hidden: false
+                };
+                if (id) {
+                    elementInfoCache[id] = elementInfo;
+                }
+            }
+
+            return elementInfo;
+        }
+
+
+
+        return {
+            win: win,
+
+            isHidden: function(node) {
+                var ancestors = getAncestorsAndSelf(node);
+                for (var i = 0, len = ancestors.length; i < len; ++i) {
+                    if (ancestors[i].nodeType == 1 && getComputedDisplay(ancestors[i]) == "none") {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+        }
+*/
+        return {};
     }
 
     function getTextNodeProperties(textNode) {
@@ -685,7 +698,7 @@ rangy.createModule("TextRange", function(api, module) {
     function movePositionBy(pos, unit, count) {
         var charsMoved = 0, newPos = pos;
         if (count !== 0) {
-            var transaction = {};
+            var transaction = createTransaction(dom.getWindow(pos.node));
             switch (unit) {
                 case CHARACTER:
                     var textPos;
@@ -723,7 +736,7 @@ rangy.createModule("TextRange", function(api, module) {
     function getRangeCharacters(range) {
         log.info("getRangeCharacters called on range " + range.inspect());
         var startPos = new DomPosition(range.startContainer, range.startOffset);
-        var transaction = {};
+        var transaction = createTransaction(dom.getWindow(range.startContainer));
 
         // Adjust the end position to ensure that it is actually reached
         var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
@@ -817,7 +830,7 @@ rangy.createModule("TextRange", function(api, module) {
         match: function(searchTerm, caseSensitive) {
             var that = this;
             var rangeChars = getRangeCharacters(this), rangeText = rangeChars.join("");
-            var matchRanges = [], matchRange;
+            var matchRanges = [];
 
             function createMatchRange(startIndex, endIndex) {
                 var matchRange = that.cloneRange();
