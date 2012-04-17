@@ -651,7 +651,6 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                 }
             }
-            // TODO: Implement tedious checks
             preceding = precedingChars[precedingChars.length - 1];
 
             log.info("possible.collapsible: " + possible.collapsible + ", trailing space: " + possible.isTrailingSpace + ", preceding: '" + preceding + "'");
@@ -733,7 +732,13 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function getRangeCharacters(range) {
+    function getAdjustedRangeEnd(range, transaction) {
+        // Adjust the end position to ensure that it is actually reached
+        var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
+        return nextVisiblePosition(endPos);
+    }
+
+    function createRangeCharacterIterator(range) {
         log.info("getRangeCharacters called on range " + range.inspect());
         var startPos = new DomPosition(range.startContainer, range.startOffset);
         var transaction = createTransaction(dom.getWindow(range.startContainer));
@@ -742,18 +747,46 @@ rangy.createModule("TextRange", function(api, module) {
         var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
         endPos = nextVisiblePosition(endPos);
 
-        var chars = [], pos = startPos, textPos;
+        var pos = startPos, finished = false;
 
-        while ( (pos = nextVisiblePosition(pos)) ) {
-            textPos = getCharacterAt(pos, transaction);
-            if (textPos.character !== "") {
-                log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                chars.push(textPos);
+        function next() {
+            var textPos = null;
+            if (!finished) {
+                pos = nextVisiblePosition(pos);
+                if (pos) {
+                    textPos = getCharacterAt(pos, transaction);
+                    if (textPos.character !== "") {
+                        log.info("*** next GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+                    }
+                    if (pos.equals(endPos)) {
+                        finished = true;
+                    }
+                } else {
+                    finished = true;
+                }
             }
-            if (pos.equals(endPos)) {
-                break;
+            return textPos;
+        }
+
+        return {
+            next: function() {
+                var textPos;
+                while ( (textPos = next()) ) {
+                    if (textPos.character) {
+                        return textPos;
+                    }
+                }
             }
-            //pos = nextVisiblePosition(pos);
+        };
+    }
+
+    function getRangeCharacters(range) {
+        log.info("getRangeCharacters called on range " + range.inspect());
+
+        var chars = [], it = createRangeCharacterIterator(range), textPos;
+        while ( (textPos = it.next()) ) {
+            log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+            chars.push(textPos);
         }
 
         return chars;
@@ -802,9 +835,11 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         toNodePosition: function(node) {
+/*
             var range = this.cloneRange();
             range.setStart(node, 0);
             range.setEnd();
+*/
 
 
         },
@@ -814,11 +849,6 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         expand: function() {
-
-        },
-
-        findText: function(text, options) {
-
 
         },
 
@@ -865,6 +895,66 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             }
             return matchRanges;
+        },
+
+        findText: function(searchTerm, caseSensitive) {
+            var that = this;
+            var it = createRangeCharacterIterator(this);
+            var text = "", chars = [], textPos, currentChar, matchStartIndex, matchEndIndex;
+            var isRegex = false, result, insideRegexMatch;
+
+            function moveToMatch(startIndex, endIndex) {
+                var startPos = previousVisiblePosition(chars[startIndex].position);
+                var endPos = chars[endIndex - 1].position;
+                that.setStart(startPos.node, startPos.offset);
+                that.setEnd(endPos.node, endPos.offset);
+            }
+
+            if (typeof searchTerm == "string") {
+                if (!caseSensitive) {
+                    searchTerm = searchTerm.toLowerCase();
+                }
+            } else {
+                isRegex = true;
+            }
+
+            while ( (textPos = it.next()) ) {
+                chars.push(textPos);
+                currentChar = textPos.character;
+                if (!isRegex && !caseSensitive) {
+                    currentChar = currentChar.toLowerCase();
+                }
+                text += currentChar;
+
+                if (isRegex) {
+                    result = searchTerm.exec(text);
+                    if (result) {
+                        if (insideRegexMatch) {
+                            // Check whether the match is now over
+                            matchStartIndex = result.index;
+                            matchEndIndex = matchStartIndex + result[0].length;
+                            if (matchEndIndex < text.length) {
+                                moveToMatch(matchStartIndex, matchEndIndex);
+                                return true;
+                            }
+                        } else {
+                            insideRegexMatch = true;
+                        }
+                    }
+                } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1) {
+                    // A text match has been found, so adjust the range
+                    moveToMatch(matchStartIndex, matchStartIndex + searchTerm.length);
+                    return true;
+                }
+            }
+
+            // Check whether regex match extends to the end of the range
+            if (insideRegexMatch) {
+                moveToMatch(matchStartIndex, matchEndIndex);
+                return true;
+            }
+
+            return false;
         },
 
         pasteHTML: function() {
