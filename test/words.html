@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript">
+        document.onmouseup = function() {
+            var sel, range;
+            if (window.getSelection && (sel = window.getSelection()).modify) {
+                sel.modify("extend", "forward", "word");
+            } else if ( (sel = document.selection) && sel.type != "Control") {
+                range = sel.createRange();
+                range.expand("word");
+                range.select();
+            }
+        }
+    </script>
+</head>
+<body contenteditable="true">
+
+    This is a sentence. This is another sentence. Look! Another, one don't 50:50 !yes! 70%% 70%%.
+</body>
+</html>

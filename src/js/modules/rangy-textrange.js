@@ -1,5 +1,5 @@
 /**
- * @license Text Commands module for Rangy.
+ * @license Text range module for Rangy.
  * A generic framework for creating text mutation commands for Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
@@ -694,52 +694,8 @@ rangy.createModule("TextRange", function(api, module) {
     }
 */
 
-    function movePositionBy(pos, unit, count) {
-        var charsMoved = 0, newPos = pos;
-        if (count !== 0) {
-            var transaction = createTransaction(dom.getWindow(pos.node));
-            switch (unit) {
-                case CHARACTER:
-                    var textPos;
-                    if (count > 0) {
-                        while ( (pos = nextVisiblePosition(pos)) && charsMoved < count) {
-                            textPos = getCharacterAt(pos, transaction);
-                            if (textPos.character !== "") {
-                                log.info("*** movePositionBy forward GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                                ++charsMoved;
-                                newPos = pos;
-                            }
-                        }
-                    } else {
-                        while (pos && charsMoved > count) {
-                            textPos = getCharacterAt(pos, transaction);
-                            if (textPos.character !== "") {
-                                log.info("*** movePositionBy backward GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                                --charsMoved;
-                                pos = previousVisiblePosition(pos);
-                                newPos = pos;
-                            }
-                        }
-                    }
-                    break;
-                default:
-                    throw new Error("movePositionBy: unit '" + unit + "' not implemented");
-            }
-        }
-        return {
-            position: newPos,
-            charsMoved: charsMoved
-        };
-    }
-
-    function getAdjustedRangeEnd(range, transaction) {
-        // Adjust the end position to ensure that it is actually reached
-        var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
-        return nextVisiblePosition(endPos);
-    }
-
     function createRangeCharacterIterator(range) {
-        log.info("getRangeCharacters called on range " + range.inspect());
+        log.info("createRangeCharacterIterator called on range " + range.inspect());
         var startPos = new DomPosition(range.startContainer, range.startOffset);
         var transaction = createTransaction(dom.getWindow(range.startContainer));
 
@@ -755,9 +711,6 @@ rangy.createModule("TextRange", function(api, module) {
                 pos = nextVisiblePosition(pos);
                 if (pos) {
                     textPos = getCharacterAt(pos, transaction);
-                    if (textPos.character !== "") {
-                        log.info("*** next GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                    }
                     if (pos.equals(endPos)) {
                         finished = true;
                     }
@@ -768,23 +721,104 @@ rangy.createModule("TextRange", function(api, module) {
             return textPos;
         }
 
-        return {
-            next: function() {
-                var textPos;
-                while ( (textPos = next()) ) {
-                    if (textPos.character) {
-                        return textPos;
-                    }
+        return function() {
+            var textPos;
+            while ( (textPos = next()) ) {
+                if (textPos.character) {
+                    return textPos;
                 }
             }
         };
     }
 
+    function createRangeBackwardsCharacterIterator(range) {
+        log.info("createRangeBackwardsCharacterIterator called on range " + range.inspect());
+        var startPos = new DomPosition(range.endContainer, range.endOffset);
+        var transaction = createTransaction(dom.getWindow(range.startContainer));
+
+        // Adjust the end position to ensure that it is actually reached
+        var endPos = getNextPossibleCharacter(new DomPosition(range.startContainer, range.startOffset), transaction).position;
+        endPos = previousVisiblePosition(endPos);
+
+        var pos = startPos, finished = false;
+
+        function next() {
+            var textPos = null;
+            if (!finished) {
+                if (pos) {
+                    textPos = getCharacterAt(pos, transaction);
+                    if (pos.equals(endPos)) {
+                        finished = true;
+                    }
+                } else {
+                    finished = true;
+                }
+                pos = previousVisiblePosition(pos);
+            }
+            return textPos;
+        }
+
+        return function() {
+            var textPos;
+            while ( (textPos = next()) ) {
+                log.info("textPos " + textPos.position.inspect(), textPos.character);
+
+                if (textPos.character) {
+                    return textPos;
+                }
+            }
+        };
+    }
+
+    function movePositionBy(pos, unit, count) {
+        log.info("movePositionBy called " + count);
+        var charsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
+        if (count !== 0) {
+            var win = dom.getWindow(pos.node);
+            var range = api.createRange(win.document);
+            range.selectNodeContents(win.document.body);
+            var backwards = (count < 0);
+            if (backwards) {
+                range.setEnd(pos.node, pos.offset);
+            } else {
+                range.setStart(pos.node, pos.offset);
+            }
+            log.info("Range: " + range);
+            var it = backwards ? createRangeBackwardsCharacterIterator(range) : createRangeCharacterIterator(range);
+
+            switch (unit) {
+                case CHARACTER:
+                    while ( (textPos = it()) && charsMoved < absCount ) {
+                        log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+                        ++charsMoved;
+                        newPos = textPos.position;
+                        if (backwards) {
+                            newPos = previousVisiblePosition(newPos);
+                        }
+                    }
+                    if (backwards) {
+                        charsMoved = -charsMoved;
+                    }
+                    break;
+                case WORD:
+                    break;
+                default:
+                    throw new Error("movePositionBy: unit '" + unit + "' not implemented");
+            }
+        }
+        return {
+            position: newPos,
+            charsMoved: charsMoved
+        };
+    }
+
+
+
     function getRangeCharacters(range) {
         log.info("getRangeCharacters called on range " + range.inspect());
 
         var chars = [], it = createRangeCharacterIterator(range), textPos;
-        while ( (textPos = it.next()) ) {
+        while ( (textPos = it()) ) {
             log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
             chars.push(textPos);
         }
@@ -848,53 +882,12 @@ rangy.createModule("TextRange", function(api, module) {
 
         },
 
-        expand: function() {
+        expand: function(unit) {
 
         },
 
         move: function() {
 
-        },
-
-        // Search term can be string or regex. Returns array of ranges matching the search term
-        match: function(searchTerm, caseSensitive) {
-            var that = this;
-            var rangeChars = getRangeCharacters(this), rangeText = rangeChars.join("");
-            var matchRanges = [];
-
-            function createMatchRange(startIndex, endIndex) {
-                var matchRange = that.cloneRange();
-                var startPos = previousVisiblePosition(rangeChars[startIndex].position);
-                var endPos = rangeChars[endIndex - 1].position;
-
-                matchRange.setStart(startPos.node, startPos.offset);
-                matchRange.setEnd(endPos.node, endPos.offset);
-
-                return matchRange;
-            }
-
-            if (typeof searchTerm == "string") {
-                if (!caseSensitive) {
-                    rangeText = rangeText.toLowerCase();
-                    searchTerm = searchTerm.toLowerCase();
-                }
-                var index = 0, searchTermLength = searchTerm.length, endIndex;
-                while ( (index = rangeText.indexOf(searchTerm, index)) != -1 ) {
-                    endIndex = index + searchTermLength;
-                    matchRanges.push( createMatchRange(index, endIndex) );
-                    index = endIndex;
-                }
-            } else {
-                var result;
-                while ( (result = searchTerm.exec(rangeText)) ) {
-                    endIndex = result.index + result[0].length;
-                    matchRanges.push( createMatchRange(result.index, endIndex) );
-                    if (!searchTerm.global) {
-                        break;
-                    }
-                }
-            }
-            return matchRanges;
         },
 
         findText: function(searchTerm, caseSensitive) {
@@ -918,7 +911,7 @@ rangy.createModule("TextRange", function(api, module) {
                 isRegex = true;
             }
 
-            while ( (textPos = it.next()) ) {
+            while ( (textPos = it()) ) {
                 chars.push(textPos);
                 currentChar = textPos.character;
                 if (!isRegex && !caseSensitive) {
