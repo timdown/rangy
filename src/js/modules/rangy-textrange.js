@@ -694,101 +694,72 @@ rangy.createModule("TextRange", function(api, module) {
     }
 */
 
-    function createRangeCharacterIterator(range) {
-        log.info("createRangeCharacterIterator called on range " + range.inspect());
-        var startPos = new DomPosition(range.startContainer, range.startOffset);
-        var transaction = createTransaction(dom.getWindow(range.startContainer));
+    function createCharacterIterator(startPos, backwards, endPos) {
+        log.info("createCharacterIterator called backwards " + backwards + " and with endPos " + (endPos ? endPos.inspect() : ""));
+        var transaction = createTransaction(dom.getWindow(startPos.node));
 
         // Adjust the end position to ensure that it is actually reached
-        var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
-        endPos = nextVisiblePosition(endPos);
+        if (endPos) {
+            if (backwards) {
+                if (isCollapsedNode(endPos.node)) {
+                    endPos = previousVisiblePosition(endPos);
+                }
+            } else {
+                if (isCollapsedNode(endPos.node)) {
+                    endPos = nextVisiblePosition(endPos);
+                }
+            }
+        }
+        log.info("endPos now " + (endPos ? endPos.inspect() : ""));
 
         var pos = startPos, finished = false;
 
         function next() {
             var textPos = null;
             if (!finished) {
-                pos = nextVisiblePosition(pos);
+                if (!backwards) {
+                    pos = nextVisiblePosition(pos);
+                }
                 if (pos) {
                     textPos = getCharacterAt(pos, transaction);
-                    if (pos.equals(endPos)) {
+                    if (endPos && pos.equals(endPos)) {
                         finished = true;
                     }
                 } else {
                     finished = true;
                 }
+                if (backwards) {
+                    pos = previousVisiblePosition(pos);
+                }
             }
             return textPos;
         }
 
-        return function() {
-            var textPos;
-            while ( (textPos = next()) ) {
-                if (textPos.character) {
-                    return textPos;
-                }
-            }
-        };
-    }
-
-    function createRangeBackwardsCharacterIterator(range) {
-        log.info("createRangeBackwardsCharacterIterator called on range " + range.inspect());
-        var startPos = new DomPosition(range.endContainer, range.endOffset);
-        var transaction = createTransaction(dom.getWindow(range.startContainer));
-
-        // Adjust the end position to ensure that it is actually reached
-        var endPos = getNextPossibleCharacter(new DomPosition(range.startContainer, range.startOffset), transaction).position;
-        endPos = previousVisiblePosition(endPos);
-
-        var pos = startPos, finished = false;
-
-        function next() {
-            var textPos = null;
-            if (!finished) {
-                if (pos) {
-                    textPos = getCharacterAt(pos, transaction);
-                    if (pos.equals(endPos)) {
-                        finished = true;
+        return {
+            next: function() {
+                var textPos;
+                while ( (textPos = next()) ) {
+                    if (textPos.character) {
+                        return textPos;
                     }
-                } else {
-                    finished = true;
                 }
-                pos = previousVisiblePosition(pos);
-            }
-            return textPos;
-        }
+            },
 
-        return function() {
-            var textPos;
-            while ( (textPos = next()) ) {
-                log.info("textPos " + textPos.position.inspect(), textPos.character);
-
-                if (textPos.character) {
-                    return textPos;
-                }
+            dispose: function() {
+                startPos = endPos = transaction = null;
             }
         };
     }
-
-    function movePositionBy(pos, unit, count) {
+    function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
         var charsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
         if (count !== 0) {
-            var win = dom.getWindow(pos.node);
-            var range = api.createRange(win.document);
-            range.selectNodeContents(win.document.body);
             var backwards = (count < 0);
-            if (backwards) {
-                range.setEnd(pos.node, pos.offset);
-            } else {
-                range.setStart(pos.node, pos.offset);
-            }
-            log.info("Range: " + range);
-            var it = backwards ? createRangeBackwardsCharacterIterator(range) : createRangeCharacterIterator(range);
+            var it = createCharacterIterator(pos, backwards);
 
             switch (unit) {
                 case CHARACTER:
-                    while ( (textPos = it()) && charsMoved < absCount ) {
+                    while ( (textPos = it.next()) && charsMoved < absCount ) {
                         log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
                         ++charsMoved;
                         newPos = textPos.position;
@@ -805,6 +776,7 @@ rangy.createModule("TextRange", function(api, module) {
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
             }
+            it.dispose();
         }
         return {
             position: newPos,
@@ -812,17 +784,24 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-
+    function createRangeCharacterIterator(range) {
+        return createCharacterIterator(
+            new DomPosition(range.startContainer, range.startOffset),
+            false,
+            new DomPosition(range.endContainer, range.endOffset)
+        );
+    }
 
     function getRangeCharacters(range) {
         log.info("getRangeCharacters called on range " + range.inspect());
 
         var chars = [], it = createRangeCharacterIterator(range), textPos;
-        while ( (textPos = it()) ) {
+        while ( (textPos = it.next()) ) {
             log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
             chars.push(textPos);
         }
 
+        it.dispose();
         return chars;
     }
 
@@ -842,44 +821,58 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         // Unit can be "character" or "word"
-        moveStart: function(unit, count) {
+        moveStart: function(unit, count, options) {
             if (arguments.length == 1) {
+                count = unit;
                 unit = CHARACTER;
             }
-            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count);
+            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count, options);
             var newPos = moveResult.position;
             this.setStart(newPos.node, newPos.offset);
             return moveResult.charsMoved;
         },
 
-        moveEnd: function(unit, count) {
+        // Unit can be "character" or "word"
+        moveEnd: function(unit, count, options) {
             if (arguments.length == 1) {
+                count = unit;
                 unit = CHARACTER;
             }
-            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count);
+            var moveResult = movePositionBy(new DomPosition(this.endContainer, this.endOffset), unit, count, options);
             var newPos = moveResult.position;
             this.setEnd(newPos.node, newPos.offset);
             return moveResult.charsMoved;
         },
 
-        moveToNodePosition: function(node, unit, startCount, endCount) {
-            this.selectNodeContents();
-            this.moveEnd(unit, endCount);
-            this.moveStart(unit, startCount);
+        selectCharacters: function(containerNode, startIndex, endIndex) {
+            this.selectNodeContents(containerNode);
+            this.collapse(true);
+            this.moveStart(startIndex);
+            this.collapse(true);
+            this.moveEnd(endIndex - startIndex);
         },
 
-        toNodePosition: function(node) {
-/*
-            var range = this.cloneRange();
-            range.setStart(node, 0);
-            range.setEnd();
-*/
+        // Character indexes are relative to the start of node
+        toCharacterRange: function(node) {
+            var parent = node.parentNode, nodeIndex = dom.getNodeIndex(node);
+            var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
+            var rangeBetween = this.cloneRange();
+            var startIndex, endIndex;
+            if (rangeStartsBeforeNode) {
+                rangeBetween.setStart(this.startContainer, this.startOffset);
+                rangeBetween.setEnd(parent, nodeIndex);
+                startIndex = -rangeBetween.text().length;
+            } else {
+                rangeBetween.setStart(parent, nodeIndex);
+                rangeBetween.setEnd(this.startContainer, this.startOffset);
+                startIndex = rangeBetween.text().length;
+            }
+            endIndex = startIndex + this.text().length;
 
-
-        },
-
-        htmlText: function() {
-
+            return {
+                start: startIndex,
+                end: endIndex
+            };
         },
 
         expand: function(unit) {
@@ -895,6 +888,7 @@ rangy.createModule("TextRange", function(api, module) {
             var it = createRangeCharacterIterator(this);
             var text = "", chars = [], textPos, currentChar, matchStartIndex, matchEndIndex;
             var isRegex = false, result, insideRegexMatch;
+            var found = false;
 
             function moveToMatch(startIndex, endIndex) {
                 var startPos = previousVisiblePosition(chars[startIndex].position);
@@ -911,7 +905,7 @@ rangy.createModule("TextRange", function(api, module) {
                 isRegex = true;
             }
 
-            while ( (textPos = it()) ) {
+            while ( (textPos = it.next()) ) {
                 chars.push(textPos);
                 currentChar = textPos.character;
                 if (!isRegex && !caseSensitive) {
@@ -928,7 +922,8 @@ rangy.createModule("TextRange", function(api, module) {
                             matchEndIndex = matchStartIndex + result[0].length;
                             if (matchEndIndex < text.length) {
                                 moveToMatch(matchStartIndex, matchEndIndex);
-                                return true;
+                                found = true;
+                                break;
                             }
                         } else {
                             insideRegexMatch = true;
@@ -937,17 +932,19 @@ rangy.createModule("TextRange", function(api, module) {
                 } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1) {
                     // A text match has been found, so adjust the range
                     moveToMatch(matchStartIndex, matchStartIndex + searchTerm.length);
-                    return true;
+                    found = true;
+                    break;
                 }
             }
 
             // Check whether regex match extends to the end of the range
             if (insideRegexMatch) {
                 moveToMatch(matchStartIndex, matchEndIndex);
-                return true;
+                found = true;
             }
+            it.dispose();
 
-            return false;
+            return found;
         },
 
         pasteHTML: function() {
@@ -992,11 +989,6 @@ rangy.createModule("TextRange", function(api, module) {
 
         }
     });
-
-    // Returns array of Ranges
-    api.findAll = function(text, options) {
-
-    };
 
     api.innerText = function(el) {
         var range = api.createRange(el);
