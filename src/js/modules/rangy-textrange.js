@@ -799,18 +799,24 @@ rangy.createModule("TextRange", function(api, module) {
                      - Moving to word end: if char is space/non-mid-word-punct/end, word ends. If mid-word punct, check
                        preceding char and next char
                      */
-                    var precedingChar = null, isWordChar, isTerminatorChar,  previousCharIsMidWordPunctuation = false;
+                    var precedingChar = null, isWordChar, isTerminatorChar, isSpaceChar, isPunctuationChar;
+                    var previousCharIsMidWordPunctuation = false;
                     var precedingIterator, precedingTextPos, ch, lastTextPosInWord;
-                    var charIsSpaceOrPunctuation = function(ch) {
-                        return options.punctuationRegex.test(ch) || spacesRegex.test(ch);
+
+                    var endWord = function() {
+                        newPos = lastTextPosInWord.position;
+                        lastTextPosInWord = null;
+                        ++unitsMoved;
                     };
 
                     while ( (textPos = it.next()) && unitsMoved < absCount ) {
                         ch = textPos.character;
                         log.info("**** TESTING CHAR " + ch);
                         isWordChar = isTerminatorChar = false;
+                        isSpaceChar = spacesRegex.test(ch);
+                        isPunctuationChar = options.punctuationRegex.test(ch);
 
-                        if (charIsSpaceOrPunctuation(ch)) {
+                        if (isSpaceChar || isPunctuationChar) {
                             // If no word characters yet encountered, we just skip forward until we meet some.
                             // Otherwise, we're done, unless this was a mid-word punctuation character
 
@@ -821,13 +827,15 @@ rangy.createModule("TextRange", function(api, module) {
                                     precedingTextPos = precedingIterator.next();
                                     precedingChar = precedingTextPos ? precedingTextPos.character : "";
                                     precedingIterator.dispose();
-                                    if (precedingChar && !charIsSpaceOrPunctuation(precedingChar)) {
+                                    if (precedingChar && !options.punctuationRegex.test(precedingChar) && !spacesRegex.test(precedingChar)) {
                                         previousCharIsMidWordPunctuation = true;
                                     } else {
                                         previousCharIsMidWordPunctuation = false;
                                         isTerminatorChar = true;
                                     }
                                 }
+                            } else if (!backwards && isPunctuationChar && lastTextPosInWord && options.includeTrailingPunctuation) {
+                                isWordChar = true;
                             } else {
                                 isTerminatorChar = true;
                                 previousCharIsMidWordPunctuation = false;
@@ -845,7 +853,9 @@ rangy.createModule("TextRange", function(api, module) {
 
                         if (isTerminatorChar) {
                             if (lastTextPosInWord) {
-                                newPos = lastTextPosInWord.position;
+                                newPos = (!backwards && options.includeTrailingSpace && ch == " ")
+                                    ? textPos.position : lastTextPosInWord.position;
+
                                 lastTextPosInWord = null;
                                 ++unitsMoved;
                                 log.info("**** FOUND TERMINATOR AFTER WORD. unitsMoved NOW " + unitsMoved);
@@ -873,6 +883,7 @@ rangy.createModule("TextRange", function(api, module) {
             }
             it.dispose();
         }
+
         return {
             position: newPos,
             unitsMoved: unitsMoved

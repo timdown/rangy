@@ -377,6 +377,24 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.text(), "Two");
     });
 
+    s.test("moveStart with no unit on text node", function(t) {
+        t.el.innerHTML = 'One Two';
+        var range = rangy.createRange();
+        range.selectNodeContents(t.el);
+
+        var charsMoved = range.moveStart(2);
+        t.assertEquals(charsMoved, 2);
+        t.assertEquals(range.startContainer, t.el.firstChild);
+        t.assertEquals(range.startOffset, 2);
+        t.assertEquals(range.text(), "e Two");
+
+        charsMoved = range.moveStart(2);
+        t.assertEquals(charsMoved, 2);
+        t.assertEquals(range.startContainer, t.el.firstChild);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.text(), "Two");
+    });
+
     s.test("moveStart on text node, negative move", function(t) {
         t.el.innerHTML = 'One Two';
         var range = rangy.createRange();
@@ -411,6 +429,29 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.text(), "One T");
 
         charsMoved = range.moveEnd("character", -2);
+        t.assertEquals(charsMoved, -2);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 0);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 3);
+        t.assertEquals(range.text(), "One");
+    });
+
+    s.test("moveEnd with no unit on text node", function(t) {
+        t.el.innerHTML = 'One Two';
+        var range = rangy.createRange();
+        var textNode = t.el.firstChild;
+        range.selectNodeContents(textNode);
+
+        var charsMoved = range.moveEnd(-2);
+        t.assertEquals(charsMoved, -2);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 0);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 5);
+        t.assertEquals(range.text(), "One T");
+
+        charsMoved = range.moveEnd(-2);
         t.assertEquals(charsMoved, -2);
         t.assertEquals(range.startContainer, textNode);
         t.assertEquals(range.startOffset, 0);
@@ -532,6 +573,62 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startOffset, 7);
         t.assert(range.collapsed);
         t.assertEquals(range.text(), "");
+    });
+
+    s.test("moveEnd including trailing space on text node", function(t) {
+        t.el.innerHTML = 'one two. three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 0);
+
+        var wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 4);
+        t.assertEquals(range.text(), "one ");
+
+        wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 7);
+        t.assertEquals(range.text(), "one two");
+
+        wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 14);
+        t.assertEquals(range.text(), "one two. three");
+    });
+
+    s.test("moveEnd including trailing punctuation on text node", function(t) {
+        t.el.innerHTML = 'one!! two!! three!! four!!';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 0);
+
+        var wordsMoved = range.moveEnd("word", 1, { includeTrailingPunctuation: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 5);
+        t.assertEquals(range.text(), "one!!");
+
+        wordsMoved = range.moveEnd("word", 1, { includeTrailingPunctuation: true, includeTrailingSpace: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 12);
+        t.assertEquals(range.text(), "one!! two!! ");
+
+        wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 17);
+        t.assertEquals(range.text(), "one!! two!! three");
+
+        wordsMoved = range.moveEnd("word", 1, { includeTrailingPunctuation: true });
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 26);
+        t.assertEquals(range.text(), "one!! two!! three!! four!!");
     });
 
     s.test("moveStart characters with br", function(t) {
