@@ -3,6 +3,7 @@
 <head>
     <title></title>
     <script type="text/javascript">
+/*
         document.onmouseup = function() {
             var sel, range;
             if (window.getSelection && (sel = window.getSelection()).modify) {
@@ -13,10 +14,33 @@
                 range.select();
             }
         }
+*/
+
+function moveWordStart() {
+    if (document.selection) {
+        var range = document.selection.createRange();
+        range.moveStart("word", -1);
+        range.select();
+    } else {
+        window.getSelection().modify("move", "backward", "word");
+    }
+}
+
+        function moveWordEnd() {
+            if (document.selection) {
+                var range = document.selection.createRange();
+                range.moveEnd("word", 1);
+                range.select();
+            } else {
+                window.getSelection().modify("move", "forward", "word");
+            }
+        }
     </script>
 </head>
-<body contenteditable="true">
-
-    This is a sentence. This is another sentence. Look! Another, one don't 50:50 !yes! 70%% 70%%.
-</body>
+<body>
+<input type="button" onmousedown="moveWordStart(); return false" value="move start">
+<input type="button" onmousedown="moveWordEnd(); return false" value="move end">
+<div contenteditable="true">
+    This 'is' a sentence. This' is "another" tip-top amazing fun&nbsp;&nbsp;&nbsp;sentence. Look! Another, one" don't 50:50 !yes! %%70%% 70%% cheese.
+</div></body>
 </html>

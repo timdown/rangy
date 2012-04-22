@@ -53,6 +53,16 @@ rangy.createModule("TextRange", function(api, module) {
 
     var elementsHaveUniqueId = util.isHostProperty(document.documentElement, "uniqueID");
 
+    var defaultWordOptions = {
+        "en": {
+            punctuationRegex: /[.,-/#!$%^&*;:{}=-_`~()'"]/,
+            midWordPunctuationRegex: /'/,
+            includeTrailingSpace: false,
+            includeTrailingPunctuation: false
+        }
+    };
+    var defaultLanguage = "en";
+
     var getComputedStyleProperty;
     if (typeof window.getComputedStyle != UNDEF) {
         getComputedStyleProperty = function(el, propName, win) {
@@ -89,12 +99,12 @@ rangy.createModule("TextRange", function(api, module) {
     var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
 
     function getAncestors(node) {
-    	var ancestors = [];
-    	while (node.parentNode) {
-    		ancestors.unshift(node.parentNode);
-    		node = node.parentNode;
-    	}
-    	return ancestors;
+        var ancestors = [];
+        while (node.parentNode) {
+            ancestors.unshift(node.parentNode);
+            node = node.parentNode;
+        }
+        return ancestors;
     }
 
     function getAncestorsAndSelf(node) {
@@ -200,79 +210,79 @@ rangy.createModule("TextRange", function(api, module) {
     // "node is a collapsed whitespace node if the following algorithm returns
     // true:"
     function isCollapsedWhitespaceNode(node) {
-    	// "If node's data is the empty string, return true."
-    	if (node.data == "") {
-    		return true;
-    	}
+        // "If node's data is the empty string, return true."
+        if (node.data == "") {
+            return true;
+        }
 
-    	// "If node is not a whitespace node, return false."
-    	if (!isWhitespaceNode(node)) {
-    		return false;
-    	}
+        // "If node is not a whitespace node, return false."
+        if (!isWhitespaceNode(node)) {
+            return false;
+        }
 
-    	// "Let ancestor be node's parent."
-    	var ancestor = node.parentNode;
+        // "Let ancestor be node's parent."
+        var ancestor = node.parentNode;
 
-    	// "If ancestor is null, return true."
-    	if (!ancestor) {
-    		return true;
-    	}
+        // "If ancestor is null, return true."
+        if (!ancestor) {
+            return true;
+        }
 
-    	// "If the "display" property of some ancestor of node has resolved value "none", return true."
+        // "If the "display" property of some ancestor of node has resolved value "none", return true."
         if (isHidden(node)) {
             return true;
         }
 
-    	// "While ancestor is not a block node and its parent is not null, set
-    	// ancestor to its parent."
-    	while (!isBlockNode(ancestor) && ancestor.parentNode) {
-    		ancestor = ancestor.parentNode;
-    	}
+        // "While ancestor is not a block node and its parent is not null, set
+        // ancestor to its parent."
+        while (!isBlockNode(ancestor) && ancestor.parentNode) {
+            ancestor = ancestor.parentNode;
+        }
 
-    	// "Let reference be node."
-    	var reference = node;
+        // "Let reference be node."
+        var reference = node;
 
-    	// "While reference is a descendant of ancestor:"
-    	while (reference != ancestor) {
-    		// "Let reference be the node before it in tree order."
-    		reference = previousNode(reference);
+        // "While reference is a descendant of ancestor:"
+        while (reference != ancestor) {
+            // "Let reference be the node before it in tree order."
+            reference = previousNode(reference);
 
-    		// "If reference is a block node or a br, return true."
-    		if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
-    			return true;
-    		}
+            // "If reference is a block node or a br, return true."
+            if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+                return true;
+            }
 
-    		// "If reference is a Text node that is not a whitespace node, or is an
-    		// img, break from this loop."
-    		if ((reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
-    			break;
-    		}
-    	}
+            // "If reference is a Text node that is not a whitespace node, or is an
+            // img, break from this loop."
+            if ((reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+                break;
+            }
+        }
 
-    	// "Let reference be node."
-    	reference = node;
+        // "Let reference be node."
+        reference = node;
 
-    	// "While reference is a descendant of ancestor:"
-    	var stop = nextNodeDescendants(ancestor);
-    	while (reference != stop) {
-    		// "Let reference be the node after it in tree order, or null if there
-    		// is no such node."
-    		reference = nextNode(reference);
+        // "While reference is a descendant of ancestor:"
+        var stop = nextNodeDescendants(ancestor);
+        while (reference != stop) {
+            // "Let reference be the node after it in tree order, or null if there
+            // is no such node."
+            reference = nextNode(reference);
 
-    		// "If reference is a block node or a br, return true."
-    		if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
-    			return true;
-    		}
+            // "If reference is a block node or a br, return true."
+            if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+                return true;
+            }
 
-    		// "If reference is a Text node that is not a whitespace node, or is an
-    		// img, break from this loop."
-    		if ((reference && reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
-    			break;
-    		}
-    	}
+            // "If reference is a Text node that is not a whitespace node, or is an
+            // img, break from this loop."
+            if ((reference && reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+                break;
+            }
+        }
 
-    	// "Return false."
-    	return false;
+        // "Return false."
+        return false;
     }
 
     // Test for old IE's incorrect display properties
@@ -417,10 +427,10 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function previousPosition(pos) {
-        var node = pos.node, offset = pos.offset;
-        if (!node) {
+        if (!pos) {
             return null;
         }
+        var node = pos.node, offset = pos.offset;
         var previousNode, previousOffset, child;
         if (offset == 0) {
             previousNode = node.parentNode;
@@ -750,37 +760,122 @@ rangy.createModule("TextRange", function(api, module) {
             }
         };
     }
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            util.extend(defaults, options);
+            return defaults;
+        }
+    }
+
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
-        var charsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
+        var unitsMoved = 0, chars, newPos = pos, textPos, absCount = Math.abs(count);
         if (count !== 0) {
             var backwards = (count < 0);
             var it = createCharacterIterator(pos, backwards);
 
             switch (unit) {
                 case CHARACTER:
-                    while ( (textPos = it.next()) && charsMoved < absCount ) {
+                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
                         log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                        ++charsMoved;
+                        ++unitsMoved;
                         newPos = textPos.position;
-                        if (backwards) {
-                            newPos = previousVisiblePosition(newPos);
-                        }
-                    }
-                    if (backwards) {
-                        charsMoved = -charsMoved;
                     }
                     break;
                 case WORD:
+                    /*
+                     - If first char is space, move on until non-space/punct encountered, then on until word end
+                     - If first char is mid-word punct, check next and preceding chars. If both non-punct and non-space,
+                       treat as word char, otherwise as punct
+                     - If first char is other punct, move on until non-space/punct encountered, then on until word end
+                     - Otherwise, move on until word end.
+                     - Moving to word end: if char is space/non-mid-word-punct/end, word ends. If mid-word punct, check
+                       preceding char and next char
+                     */
+                    var precedingChar = null, isWordChar, isTerminatorChar,  previousCharIsMidWordPunctuation = false;
+                    var precedingIterator, precedingTextPos, ch, lastTextPosInWord;
+                    var charIsSpaceOrPunctuation = function(ch) {
+                        return options.punctuationRegex.test(ch) || spacesRegex.test(ch);
+                    };
+
+                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
+                        ch = textPos.character;
+                        log.info("**** TESTING CHAR " + ch);
+                        isWordChar = isTerminatorChar = false;
+
+                        if (charIsSpaceOrPunctuation(ch)) {
+                            // If no word characters yet encountered, we just skip forward until we meet some.
+                            // Otherwise, we're done, unless this was a mid-word punctuation character
+
+                            if (!previousCharIsMidWordPunctuation && options.midWordPunctuationRegex.test(ch)) {
+                                if (precedingChar === null) {
+                                    // Check preceding character
+                                    precedingIterator = createCharacterIterator(pos, !backwards);
+                                    precedingTextPos = precedingIterator.next();
+                                    precedingChar = precedingTextPos ? precedingTextPos.character : "";
+                                    precedingIterator.dispose();
+                                    if (precedingChar && !charIsSpaceOrPunctuation(precedingChar)) {
+                                        previousCharIsMidWordPunctuation = true;
+                                    } else {
+                                        previousCharIsMidWordPunctuation = false;
+                                        isTerminatorChar = true;
+                                    }
+                                }
+                            } else {
+                                isTerminatorChar = true;
+                                previousCharIsMidWordPunctuation = false;
+                            }
+                        } else {
+                            previousCharIsMidWordPunctuation = false;
+                            isWordChar = true;
+                        }
+
+                        log.info("**** TESTING CHAR " + ch + ". is word char: " + isWordChar + ", is terminator: " + isTerminatorChar);
+
+                        if (isWordChar) {
+                            lastTextPosInWord = textPos;
+                        }
+
+                        if (isTerminatorChar) {
+                            if (lastTextPosInWord) {
+                                newPos = lastTextPosInWord.position;
+                                lastTextPosInWord = null;
+                                ++unitsMoved;
+                                log.info("**** FOUND TERMINATOR AFTER WORD. unitsMoved NOW " + unitsMoved);
+                            }
+                        }
+
+                        precedingChar = ch;
+                    }
+
+                    // If we've run out of positions before the required number of words were navigated, check whether
+                    // there was a last word and include it if so
+                    if (lastTextPosInWord && unitsMoved < absCount) {
+                        newPos = lastTextPosInWord.position;
+                        ++unitsMoved;
+                        log.info("**** FOUND EOF AFTER WORD. unitsMoved NOW " + unitsMoved);
+                    }
+
                     break;
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
+            }
+            if (backwards) {
+                newPos = previousVisiblePosition(newPos);
+                unitsMoved = -unitsMoved;
             }
             it.dispose();
         }
         return {
             position: newPos,
-            charsMoved: charsMoved
+            unitsMoved: unitsMoved
         };
     }
 
@@ -817,7 +912,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     util.extend(api.rangePrototype, {
         text: function() {
-            return getRangeCharacters(this).join("");
+            return this.collapsed ? "" : getRangeCharacters(this).join("");
         },
 
         // Unit can be "character" or "word"
@@ -826,10 +921,13 @@ rangy.createModule("TextRange", function(api, module) {
                 count = unit;
                 unit = CHARACTER;
             }
+            if (unit == WORD) {
+                options = createWordOptions(options);
+            }
             var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count, options);
             var newPos = moveResult.position;
             this.setStart(newPos.node, newPos.offset);
-            return moveResult.charsMoved;
+            return moveResult.unitsMoved;
         },
 
         // Unit can be "character" or "word"
@@ -838,10 +936,13 @@ rangy.createModule("TextRange", function(api, module) {
                 count = unit;
                 unit = CHARACTER;
             }
+            if (unit == WORD) {
+                options = createWordOptions(options);
+            }
             var moveResult = movePositionBy(new DomPosition(this.endContainer, this.endOffset), unit, count, options);
             var newPos = moveResult.position;
             this.setEnd(newPos.node, newPos.offset);
-            return moveResult.charsMoved;
+            return moveResult.unitsMoved;
         },
 
         selectCharacters: function(containerNode, startIndex, endIndex) {
@@ -1000,9 +1101,6 @@ rangy.createModule("TextRange", function(api, module) {
 
     api.textRange = {
         isBlockNode: isBlockNode,
-/*
-        isCollapsedBr: isCollapsedBr,
-*/
         isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
         nextPosition: nextPosition,
         previousPosition: previousPosition,

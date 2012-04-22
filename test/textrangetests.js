@@ -272,6 +272,27 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1");
     });
 
+    s.test("innerText on empty element", function(t) {
+        t.el.innerHTML = '';
+        t.assertEquals(rangy.innerText(t.el), "");
+    });
+
+    s.test("range text() on collapsed range", function(t) {
+        t.el.innerHTML = '12345';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 1);
+        t.assertEquals(range.text(), "");
+    });
+
+    s.test("range text() on empty range", function(t) {
+        t.el.innerHTML = '<span style="display: none">one</span>';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.selectNodeContents(t.el);
+        t.assertEquals(range.text(), "");
+    });
+
     s.test("range text() on simple text", function(t) {
         t.el.innerHTML = '12345';
         var textNode = t.el.firstChild;
@@ -292,6 +313,49 @@ xn.test.suite("Text Range module tests", function(s) {
             range.setStart(textNode, 1);
             range.setEnd(textNode, 5);
             t.assertEquals(range.text(), "2 3");
+        });
+    }
+
+    s.test("selectCharacters on text node", function(t) {
+        t.el.innerHTML = 'One Two';
+        var range = rangy.createRange();
+        var textNode = t.el.firstChild;
+
+        range.selectCharacters(t.el, 2, 5);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 2);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 5);
+        t.assertEquals(range.text(), "e T");
+    });
+
+    if (!textNodeSpacesCollapsed) {
+        s.test("selectCharacters on text node with double space", function(t) {
+            t.el.innerHTML = 'One  Two';
+            var range = rangy.createRange();
+            var textNode = t.el.firstChild;
+
+            range.selectCharacters(t.el, 2, 5);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 2);
+            t.assertEquals(range.endContainer, textNode);
+            t.assertEquals(range.endOffset, 6);
+            t.assertEquals(range.text(), "e T");
+        });
+    }
+
+    if (!textNodeSpacesCollapsed) {
+        s.test("toCharacterRange in text node with collapsed spaces", function(t) {
+            t.el.innerHTML = ' One  Two';
+            var range = rangy.createRange();
+            var textNode = t.el.firstChild;
+
+            range.setStart(textNode, 3);
+            range.setEnd(textNode, 7);
+
+            var charRange = range.toCharacterRange(t.el);
+            t.assertEquals(charRange.start, 2);
+            t.assertEquals(charRange.end, 5);
         });
     }
 
@@ -355,48 +419,145 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.text(), "One");
     });
 
-    s.test("selectCharacters on text node", function(t) {
-        t.el.innerHTML = 'One Two';
-        var range = rangy.createRange();
+    s.test("moveStart, moveEnd words on text node", function(t) {
+        t.el.innerHTML = 'one two three';
         var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStart(textNode, 5);
+        range.setEnd(textNode, 6);
 
-        range.selectCharacters(t.el, 2, 5);
+        var wordsMoved = range.moveStart("word", -1);
+        t.assertEquals(wordsMoved, -1);
         t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 2);
+        t.assertEquals(range.startOffset, 4);
         t.assertEquals(range.endContainer, textNode);
-        t.assertEquals(range.endOffset, 5);
-        t.assertEquals(range.text(), "e T");
+        t.assertEquals(range.endOffset, 6);
+        t.assertEquals(range.text(), "tw");
+
+        wordsMoved = range.moveEnd("word", 1);
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 7);
+        t.assertEquals(range.text(), "two");
     });
 
-    if (!textNodeSpacesCollapsed) {
-        s.test("selectCharacters on text node with double space", function(t) {
-            t.el.innerHTML = 'One  Two';
-            var range = rangy.createRange();
-            var textNode = t.el.firstChild;
+    s.test("moveStart words with apostrophe on text node", function(t) {
+        t.el.innerHTML = "one don't two";
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStart(textNode, 5);
+        range.setEnd(textNode, 9);
 
-            range.selectCharacters(t.el, 2, 5);
-            t.assertEquals(range.startContainer, textNode);
-            t.assertEquals(range.startOffset, 2);
-            t.assertEquals(range.endContainer, textNode);
-            t.assertEquals(range.endOffset, 6);
-            t.assertEquals(range.text(), "e T");
-        });
-    }
+        var wordsMoved = range.moveStart("word", -1);
+        t.assertEquals(wordsMoved, -1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 9);
+        t.assertEquals(range.text(), "don't");
+
+        wordsMoved = range.moveEnd("word", 1);
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 13);
+        t.assertEquals(range.text(), "don't two");
+    });
+
+    s.test("moveStart words on text node", function(t) {
+        t.el.innerHTML = 'one two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 1);
+
+        var wordsMoved = range.moveStart("word", 1);
+
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 3);
+        t.assert(range.collapsed);
+        //t.assertEquals(range.text(), "");
+
+        wordsMoved = range.moveStart("word", 1);
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 7);
+        //t.assertEquals(range.text(), "");
+
+        wordsMoved = range.moveStart("word", 1);
+        t.assertEquals(wordsMoved, 1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 13);
+        //t.assertEquals(range.text(), "");
+    });
+
+    s.test("moveEnd negative words on text node", function(t) {
+        t.el.innerHTML = 'one two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 9);
+
+        var wordsMoved = range.moveEnd("word", -1);
+
+        t.assertEquals(wordsMoved, -1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 8);
+        t.assert(range.collapsed);
+
+        wordsMoved = range.moveEnd("word", -1);
+        t.assertEquals(wordsMoved, -1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        //t.assertEquals(range.text(), "");
+
+        wordsMoved = range.moveEnd("word", -1);
+        t.assertEquals(wordsMoved, -1);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 0);
+        //t.assertEquals(range.text(), "");
+    });
+
+    s.test("moveStart two words on text node", function(t) {
+        t.el.innerHTML = 'one two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 1);
+
+        var wordsMoved = range.moveStart("word", 2);
+        t.assertEquals(wordsMoved, 2);
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 7);
+        t.assert(range.collapsed);
+        t.assertEquals(range.text(), "");
+    });
+
+    s.test("moveStart characters with br", function(t) {
+        t.el.innerHTML = '1<br>2';
+        var textNode1 = t.el.firstChild, textNode2 = t.el.lastChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode1, 0);
+
+        var charsMoved = range.moveStart("character", 1);
+        t.assertEquals(charsMoved, 1);
+        t.assertEquals(range.startContainer, textNode1);
+        t.assertEquals(range.startOffset, 1);
+        t.assert(range.collapsed);
+
+        charsMoved = range.moveStart("character", 1);
+        t.assertEquals(charsMoved, 1);
+        t.assertEquals(range.startContainer, t.el);
+        t.assertEquals(range.startOffset, 2);
+        t.assert(range.collapsed);
 
 
-    if (!textNodeSpacesCollapsed) {
-        s.test("toCharacterRange in text node with collapsed spaces", function(t) {
-            t.el.innerHTML = ' One  Two';
-            var range = rangy.createRange();
-            var textNode = t.el.firstChild;
-
-            range.setStart(textNode, 3);
-            range.setEnd(textNode, 7);
-
-            var charRange = range.toCharacterRange(t.el);
-            t.assertEquals(charRange.start, 2);
-            t.assertEquals(charRange.end, 5);
-        });
-    }
+        charsMoved = range.moveStart("character", 1);
+        t.assertEquals(charsMoved, 1);
+        t.assertEquals(range.startContainer, textNode2);
+        t.assertEquals(range.startOffset, 1);
+        t.assert(range.collapsed);
+    });
 
 }, false);
