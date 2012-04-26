@@ -657,4 +657,45 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assert(range.collapsed);
     });
 
+    s.test("expand in text node", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStart(textNode, 5);
+        range.setEnd(textNode, 6);
+
+        t.assert(range.expand("word"));
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 7);
+    });
+
+    s.test("expand in text node, include trailing space", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 5);
+
+        t.assert(range.expand("word", { includeTrailingSpace: true }));
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 8);
+    });
+
+
+    s.test("expand in text node, start of word", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 4);
+
+        t.assert(range.expand("word"));
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 7);
+    });
+
 }, false);

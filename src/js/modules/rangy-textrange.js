@@ -774,6 +774,109 @@ rangy.createModule("TextRange", function(api, module) {
         }
     }
 
+    function isSpaceOrPunctuation(ch, options) {
+        return spacesRegex.test(ch) || options.punctuationRegex.test(ch);
+    }
+
+    /*
+    In the string "one%two%%three", words are at "[one]%[two]%%[three]" unless options say different. If including
+    trailing punctuation: "[one%][two%%][three]". "one'two''three" => "[one'two]''[three]" by default.
+     */
+
+    function isWordStart(pos, options) {
+        // First, check the next character. If it doesn't exist or is a space or punctuation, it cannot start a word.
+        var forwardsIterator = createCharacterIterator(pos, false);
+        var nextTextPos = forwardsIterator.next();
+        forwardsIterator.dispose();
+
+        if (!nextTextPos) {
+            return false;
+        }
+        var nextChar = nextTextPos.character;
+        if (isSpaceOrPunctuation(nextChar)) {
+            return false;
+        }
+
+        // Next character is a word character, so we need to examine the preceding character. If it is non-mid-word
+        // punctuation, a space or non-existent, we have the start of a word
+        var backwardsIterator = createCharacterIterator(pos, true);
+        var previousTextPos = backwardsIterator.next();
+        if (!previousTextPos) {
+            backwardsIterator.dispose();
+            return true;
+        }
+
+        var previousChar = previousTextPos.character;
+        if (options.midWordPunctuationRegex.test(previousChar)) {
+            // We need another character to determine if this is genuinely mid-word punctuation. If the preceding
+            // character is anything other than a word character, we have a word start.
+            var precedingTextPos = backwardsIterator.next();
+            backwardsIterator.dispose();
+            if (!precedingTextPos) {
+                return true;
+            }
+            var precedingChar = precedingTextPos.character;
+            return isSpaceOrPunctuation(precedingChar);
+        } else {
+            backwardsIterator.dispose();
+            return isSpaceOrPunctuation(previousChar);
+        }
+    }
+
+    function isWordEnd(pos, options) {
+        // First, check the next character. If it doesn't exist then we have a word end.
+        var forwardsIterator = createCharacterIterator(pos, false);
+        var nextTextPos = forwardsIterator.next();
+
+        if (!nextTextPos) {
+            forwardsIterator.dispose();
+            return true;
+        }
+        var nextChar = nextTextPos.character;
+
+        // Now check the previous character. If it doesn't exist then we can't have a word end.
+        var backwardsIterator = createCharacterIterator(pos, true);
+        var previousTextPos = backwardsIterator.next();
+        if (!previousTextPos) {
+            backwardsIterator.dispose();
+            return false;
+        }
+        var previousChar = previousTextPos.character;
+
+        if (isSpaceOrPunctuation(previousChar) && isSpaceOrPunctuation(nextChar)) {
+            return false;
+        }
+
+
+
+
+/*        var nextChar = nextTextPos.character;
+        var isTerminator
+        if (options.midWordPunctuationRegex.test(nextChar)) {
+            // We need another character to determine if this is genuinely mid-word punctuation.
+            var nextNextTextPos = forwardsIterator.next();
+            forwardsIterator.dispose();
+            if (!nextNextTextPos) {
+                return true;
+            }
+            var nextNextChar = nextNextTextPos.character;
+            if (isSpaceOrPunctuation(nextNextChar) {
+        }
+
+
+
+        // First, check the previous character. If it doesn't exist or is a space or punctuation, it cannot start a word.
+        var forwardsIterator = createCharacterIterator(pos, false);
+        var nextTextPos = forwardsIterator.next();
+        forwardsIterator.dispose();
+
+        var backwardsIterator = createCharacterIterator(pos, true);
+        var forwardsIterator = createCharacterIterator(pos, false);*/
+
+
+
+    }
+
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
         var unitsMoved = 0, chars, newPos = pos, textPos, absCount = Math.abs(count);
@@ -802,12 +905,6 @@ rangy.createModule("TextRange", function(api, module) {
                     var precedingChar = null, isWordChar, isTerminatorChar, isSpaceChar, isPunctuationChar;
                     var previousCharIsMidWordPunctuation = false;
                     var precedingIterator, precedingTextPos, ch, lastTextPosInWord;
-
-                    var endWord = function() {
-                        newPos = lastTextPosInWord.position;
-                        lastTextPosInWord = null;
-                        ++unitsMoved;
-                    };
 
                     while ( (textPos = it.next()) && unitsMoved < absCount ) {
                         ch = textPos.character;
@@ -987,12 +1084,34 @@ rangy.createModule("TextRange", function(api, module) {
             };
         },
 
-        expand: function(unit) {
+        expand: function(unit, options) {
+            var moved = false;
+            if (!unit) {
+                unit = CHARACTER;
+            }
+            if (unit == WORD) {
+                options = createWordOptions(options);
+                var startPos = new DomPosition(this.startContainer, this.startOffset);
+                var endPos = new DomPosition(this.endContainer, this.endOffset);
 
-        },
+                var moveStartResult = movePositionBy(startPos, WORD, 1, options);
+                if (!moveStartResult.position.equals(startPos)) {
+                    var newStartPos = movePositionBy(moveStartResult.position, WORD, -1, options).position;
+                    this.setStart(newStartPos.node, newStartPos.offset);
+                    moved = true;
+                }
 
-        move: function() {
+                var moveEndResult = movePositionBy(endPos, WORD, -1, options);
+                if (!moveEndResult.position.equals(endPos)) {
+                    var newEndPos = movePositionBy(moveEndResult.position, WORD, 1, options).position;
+                    this.setEnd(newEndPos.node, newEndPos.offset);
+                    moved = true;
+                }
 
+                return moved;
+            } else {
+                return this.moveEnd(CHARACTER, 1);
+            }
         },
 
         findText: function(searchTerm, caseSensitive) {
@@ -1059,12 +1178,10 @@ rangy.createModule("TextRange", function(api, module) {
             return found;
         },
 
-        pasteHTML: function() {
-
-        },
-
-        select: function() {
-
+        pasteHtml: function(html) {
+            this.deleteContents();
+            var frag = this.createContextualFragment(html);
+            this.insertNode(frag);
         }
     });
 
@@ -1077,8 +1194,20 @@ rangy.createModule("TextRange", function(api, module) {
 
         },
 
-        expand: function() {
+        expand: function(unit) {
+            var ranges = this.getAllRanges(), rangeCount = ranges.length;
+            var backwards = this.isBackwards();
 
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                ranges[i].expand(unit);
+            }
+
+            this.removeAllRanges();
+            if (backwards && rangeCount == 1) {
+                this.addRange(ranges[0], true);
+            } else {
+                this.setRanges(ranges);
+            }
         },
 
         moveAnchor: function() {
