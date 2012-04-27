@@ -95,12 +95,12 @@
 
                 caseSensitiveCheckBox.onclick = scheduleSearch;
 
-                // Snap to words
-/*
+                // Snap selection to words
                 document.onmouseup = function() {
-                    rangy.getSelection().expand("word");
+                    if (!/^(input|textarea)$/i.test(document.activeElement.nodeName)) {
+                        rangy.getSelection().expand("word");
+                    }
                 };
-*/
             }
         };
 

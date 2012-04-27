@@ -695,7 +695,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         toHtml: function() {
             assertRangeValid(this);
-            var container = getRangeDocument(this).createElement("div");
+            var container = this.commonAncestorContainer.parentNode.cloneNode(false);
             container.appendChild(this.cloneContents());
             return container.innerHTML;
         },
@@ -847,6 +847,10 @@ rangy.createModule("DomRange", function(api, module) {
 
         isValid: function() {
             return isRangeValid(this);
+        },
+
+        select: function(backwards) {
+            api.getSelection(this.startContainer).setSingleRange(this, backwards);
         },
 
         inspect: function() {

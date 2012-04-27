@@ -649,7 +649,6 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startOffset, 2);
         t.assert(range.collapsed);
 
-
         charsMoved = range.moveStart("character", 1);
         t.assertEquals(charsMoved, 1);
         t.assertEquals(range.startContainer, textNode2);
@@ -684,12 +683,24 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.endOffset, 8);
     });
 
-
     s.test("expand in text node, start of word", function(t) {
         t.el.innerHTML = 'One two three';
         var textNode = t.el.firstChild;
         var range = rangy.createRange();
         range.collapseToPoint(textNode, 4);
+
+        t.assert(range.expand("word"));
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 7);
+    });
+
+    s.test("expand in text node, mid-capitalized word", function(t) {
+        t.el.innerHTML = 'One Two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 5);
 
         t.assert(range.expand("word"));
         t.assertEquals(range.startContainer, textNode);

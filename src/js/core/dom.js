@@ -354,6 +354,10 @@ rangy.createModule("DomUtil", function(api, module) {
 
         inspect: function() {
             return "[DomPosition(" + inspectNode(this.node) + ":" + this.offset + ")]";
+        },
+
+        toString: function() {
+            return this.inspect();
         }
     };
 

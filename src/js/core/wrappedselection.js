@@ -752,8 +752,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return this._ranges.slice(0);
     };
 
-    selProto.setSingleRange = function(range) {
-        this.setRanges( [range] );
+    selProto.setSingleRange = function(range, backwards) {
+        this.removeAllRanges();
+        this.addRange(range, backwards);
     };
 
     selProto.containsNode = function(node, allowPartial) {
@@ -766,15 +767,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     selProto.toHtml = function() {
-        var html = "";
+        var rangeHtmls = [];
         if (this.rangeCount) {
-            var container = DomRange.getRangeDocument(this._ranges[0]).createElement("div");
             for (var i = 0, len = this._ranges.length; i < len; ++i) {
-                container.appendChild(this._ranges[i].cloneContents());
+                rangeHtmls.push(this._ranges[i].toHtml());
             }
-            html = container.innerHTML;
         }
-        return html;
+        return rangeHtmls.join("");
     };
 
     function inspect(sel) {
