@@ -1,5 +1,5 @@
 /**
- * @license Utilities module for Rangy.
+ * Utilities module for Rangy.
  * A collection of common selection and range-related tasks, using Rangy. The intention is that each method is
  * self-contained and could be copied and pasted elsewhere and still work.
  *

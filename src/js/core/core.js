@@ -1,5 +1,5 @@
 /**
- * @license Rangy, a cross-browser JavaScript range and selection library
+ * Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
  *
  * Copyright %%build:year%%, Tim Down

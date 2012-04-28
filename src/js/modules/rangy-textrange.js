@@ -1,5 +1,5 @@
 /**
- * @license Text range module for Rangy.
+ * Text range module for Rangy.
  * A generic framework for creating text mutation commands for Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
@@ -27,19 +27,11 @@
  * - Add window.find() equivalent
  * - Add innerText equivalent
  *
- * Potential API
- *
- * Range additions
- *
- * -
- *
- *
  * References
  *
  * https://www.w3.org/Bugs/Public/show_bug.cgi?id=13145
  * http://aryeh.name/spec/innertext/innertext.html
  * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
- *
  */
 
 rangy.createModule("TextRange", function(api, module) {
@@ -1093,20 +1085,12 @@ rangy.createModule("TextRange", function(api, module) {
     });
 
     util.extend(api.selectionPrototype, {
-        toNodePosition: function(node) {
-
-        },
-
-        modify: function() {
-
-        },
-
-        expand: function(unit) {
+        expand: function(unit, options) {
             var ranges = this.getAllRanges(), rangeCount = ranges.length;
             var backwards = this.isBackwards();
 
             for (var i = 0, len = ranges.length; i < len; ++i) {
-                ranges[i].expand(unit);
+                ranges[i].expand(unit, options);
             }
 
             this.removeAllRanges();
@@ -1135,6 +1119,8 @@ rangy.createModule("TextRange", function(api, module) {
                     backwards: backwards
                 }
             }
+
+            return characterRanges;
         },
 
         restoreCharacterRanges: function(containerNode, characterRanges) {
@@ -1142,29 +1128,9 @@ rangy.createModule("TextRange", function(api, module) {
             for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
                 characterRange = characterRanges[i];
                 range = api.createRange(containerNode);
-                range.selectCharacters(characterRange.range.start, characterRange.range.end);
+                range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end);
                 this.addRange(range, characterRange.backwards);
             }
-        },
-
-        moveAnchor: function(unit, count) {
-
-        },
-
-        moveFocus: function(unit, count) {
-
-        },
-
-        moveStart: function(unit, count) {
-
-        },
-
-        moveEnd: function(unit, count) {
-
-        },
-
-        find: function() {
-
         }
     });
 

@@ -1,5 +1,5 @@
 /**
- * @license Text Commands module for Rangy.
+ * Text Commands module for Rangy.
  * A generic framework for creating text mutation commands for Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library

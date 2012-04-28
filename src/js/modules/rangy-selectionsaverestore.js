@@ -1,5 +1,5 @@
 /**
- * @license Selection save and restore module for Rangy.
+ * Selection save and restore module for Rangy.
  * Saves and restores user selections using marker invisible elements in the DOM.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library

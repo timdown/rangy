@@ -1,5 +1,5 @@
 /**
- * @license Selection save and restore module for Rangy.
+ * Selection save and restore module for Rangy.
  * Bold command
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library

@@ -1,5 +1,5 @@
 /**
- * @license Highlighter module for Rangy, a cross-browser JavaScript range and selection library
+ * Highlighter module for Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
  *
  * Depends on Rangy core, SaveRestore, CssClassApplier and Serializer modules.

@@ -8,6 +8,17 @@
             font-weight: bold;
             background-color: yellow;
         }
+
+        *.redItalic {
+            font-style: italic;
+            color: red;
+        }
+
+        *.demo {
+            border: solid darkblue 1px;
+            background-color: #f5f5f5;
+            padding: 10px;
+        }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -28,13 +39,11 @@
             searchResultApplier.toggleSelection();
         }
 
-        window.onload = function() {
-            rangy.init();
-
+        function initFind() {
             // Enable buttons
             var cssClassApplierModule = rangy.modules.CssClassApplier;
             if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
-                searchResultApplier = rangy.createCssClassApplier("searchResult", true);
+                searchResultApplier = rangy.createCssClassApplier("searchResult");
 
                 var searchBox = gEBI("search"),
                     regexCheckBox = gEBI("regex"),
@@ -95,6 +104,76 @@
 
                 caseSensitiveCheckBox.onclick = scheduleSearch;
             }
+        }
+
+        function initSnapToWords1() {
+            gEBI("demo1").onmouseup = function() {
+                rangy.getSelection().expand("word");
+            };
+        }
+
+        function initSnapToWords2() {
+            gEBI("demo2").onmouseup = function() {
+                rangy.getSelection().expand("word", {
+                    includeTrailingSpace: true
+                });
+            };
+        }
+
+        function initSnapToWords3() {
+            gEBI("demo3").onmouseup = function() {
+                rangy.getSelection().expand("word", {
+                    midWordPunctuationRegex: /['\-]/
+                });
+            };
+        }
+
+        function initSaveRestore() {
+            var saveButton = gEBI("saveSelButton");
+            var restoreButton = gEBI("restoreSelButton");
+            var changeFormattingButton = gEBI("changeFormattingButton");
+            var containerElement = gEBI("demo4");
+
+            var savedSel = null;
+
+            saveButton.disabled = false;
+
+            saveButton.onclick = function() {
+                savedSel = rangy.getSelection().saveCharacterRanges(containerElement);
+                console.log(savedSel);
+                restoreButton.disabled = false;
+            };
+
+            restoreButton.onclick = function() {
+                rangy.getSelection().restoreCharacterRanges(containerElement, savedSel);
+            };
+
+            var redItalicApplier = rangy.createCssClassApplier("redItalic");
+            var textLength = rangy.innerText(containerElement).length;
+
+            changeFormattingButton.disabled = false;
+            changeFormattingButton.onclick = function() {
+                // Randomly apply and unapply some formatting
+                var start = Math.floor(Math.random() * textLength);
+                var end = Math.floor(Math.random() * textLength);
+                if (start > end) {
+                    var temp = end;
+                    end = start;
+                    start = temp;
+                }
+                var range = rangy.createRange();
+                range.selectCharacters(containerElement, start, end);
+                redItalicApplier.toggleRange(range);
+            };
+        }
+
+        window.onload = function() {
+            rangy.init();
+            initFind();
+            initSnapToWords1();
+            initSnapToWords2();
+            initSnapToWords3();
+            initSaveRestore();
         };
 
     </script>
@@ -112,53 +191,101 @@
     </div>
 
     <div id="content">
-        <h1>Rangy Find Demo</h1>
+        <h1>Rangy TextRange Demo</h1>
 
         <!-- A comment -->
 
         <p id="intro">
-            Enter search term in the search box on the left. Search results will be highlighted as you type. This uses
-            Rangy's TextRange and CSS Class Applier modules.
+            Rangy's TextRange module provides various methods for navigating the visible text on a page by character or
+            word.
         </p>
 
+<!--
         <p>
-            <b>Association football</b> is a sport played between two teams. It is usually called football, but in
-            some countries, such as the United States, it is called <b>soccer</b>. In
-            <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
-            Republic of Ireland, both words are commonly used.
+            Its main features and uses are:
+        </p>
+        <ul>
+            <li>Deals with text as a whole, regardless of element boundaries</li>
+            <li>
+                Considers only the text the user sees. Text inside <code>&lt;script&gt;</code> or
+                <code>&lt;style&gt;</code> elements or elements hidden via CSS <code>display: none</code> or
+                <code>visibility: hidden</code> is not included, while white space implied by block elements and
+                <code>&lt;br&gt;</code>s is included
+            </li>
+            <li>Provides methods for navigating through a range's text based on character or word</li>
+            <li>
+                Provides a method for creating a range or selection based on character indices within the visible text
+                of a containing element
+            </li>
+            <li>
+                Provides a means of searching text on a page, including using regular expressions. In conjunction with
+                Rangy's CSS Class Applier module, this can be used to create a custom page search facility (as
+                demonstrated on this page)
+            </li>
+            <li>
+                Provides a character index-based selection save and restore which is not vulnerable to formatting
+                changes (unlike Rangy's existing selection save/restore module)
+            </li>
+            <li>
+                Provides a method for expanding a range or selection to encompass whole words
+            </li>
+            <li>
+                Provides a method for obtaining the visible text for a range. This is also used to provide an
+                implementation of <code>innerText</code> for elements.
+            </li>
+        </ul>
+-->
+
+        <h2>Demos</h2>
+
+        <h3>Find</h3>
+        <p>
+            The find panel is on the left and can be used to search and highlight text on the page, optionally using a
+            regular expression.
+        </p>
+
+        <h3>Selection snap to words</h3>
+        <p>
+            Selecting via the mouse in the box below will snap the selection to whole words.
+        </p>
+        <p class="demo" id="demo1" contenteditable="true">
+            Please select some of this text. Don't be shy. Here are some some things with debatable word boundaries:
+            50%, 60:40, flip-flop. You can edit this too.
         </p>
         <p>
-            Each team has 11 players on the field. One of these players is the <i>goalkeeper</i>, and the other ten are
-            known as <i>"outfield players."</i> The game is played by <b>kicking a ball into the opponent's goal</b>. A
-            match has 90 minutes of play, with a break of 15 minutes in the middle. The break in the middle is called
-            half-time.
+            Snapping to words can optionally include the trailing space, as in the box below:
         </p>
-        <h2>Competitions <span class="smaller">(this section is editable)</span></h2>
-        <p contenteditable="true">
-            There are many competitions for football, for both football clubs and countries. Football clubs usually play
-            other teams in their own country, with a few exceptions. <b>Cardiff City F.C.</b> from Wales for example, play
-            in the English leagues and in the English FA Cup.
+        <p class="demo" id="demo2" contenteditable="true">
+            Please select some of this text. Don't be shy. Here are some some things with debatable word boundaries:
+            50%, 60:40, flip-flop. You can edit this too.
         </p>
-        <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
-        <pre contenteditable="true">
-Football is the world's most popular sport. It is played in more
-countries than any other game. In fact, FIFA (the Federation
-Internationale de Football Association) has more members than the
-United Nations.
+        <p>
+            You can also control what constitutes a word. By default, a single apostrophe inside a word is allowed,
+            hence "don't" is considered a single word in all these example. You may also want to consider hyphenated
+            words as single words, as in the example below:
+        </p>
+        <p class="demo" id="demo3" contenteditable="true">
+            Please select some of this text. Don't be shy. Here are some some things with debatable word boundaries:
+            50%, 60:40, flip-flop. You can edit this too.
+        </p>
 
-It is played by both males and females.
+        <h3>Character index-based selection save and restore</h3>
+        <p>
+            Rangy's TextRange module provides a character index-based selection save and restore which is not vulnerable
+            to formatting changes (unlike Rangy's existing selection save/restore module). Try it below:
+        </p>
+        <p>
+            <input type="button" disabled id="saveSelButton" value="Save selection">
+            <input type="button" disabled id="restoreSelButton" value="Restore selection">
+            <input type="button" disabled id="changeFormattingButton" value="Change some formatting">
+        </p>
 
-  <p>First para</p>
-  <p>Second para</p>
+        <p class="demo" id="demo4" contenteditable="true">
+            Select some of this text and manipulate the selection and the formatting using the buttons above.
+        </p>
 
-</pre>
+
+
     </div>
-
-    <p class="small">
-        Text adapted from <a href="http://simple.wikipedia.org/wiki/Association_football">Simple Wikipedia page on
-        Association Football</a>, licensed under the
-        <a href="http://simple.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative
-            Commons Attribution/Share-Alike License</a>.
-    </p>
 </body>
 </html>

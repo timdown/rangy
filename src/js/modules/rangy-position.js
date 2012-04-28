@@ -1,5 +1,5 @@
 /**
- * @license Position module for Rangy.
+ * Position module for Rangy.
  * Extensions to Range and Selection objects to provide access to pixel positions relative to the viewport or document.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
