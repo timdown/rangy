@@ -83,7 +83,7 @@ function checkoutSvnRepository() {
 }
 
 function getVersion() {
-    exec("svnversion", { cwd: svnDir }, function(error, stdout, stderr) {
+    exec("svnversion", function(error, stdout, stderr) {
         buildVersion = buildSpec.baseVersion + "." + stdout.trim();
         console.log("Got SVN version ", stdout, stderr);
         callback();

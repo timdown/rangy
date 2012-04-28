@@ -66,7 +66,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
         // check for that
-        // TODO: Find out when. Workaround for wholeRangeContainerElement may break this
         if (!dom.isAncestorOf(wholeRangeContainerElement, containerElement, true)) {
             containerElement = wholeRangeContainerElement;
             log.warn("Collapse has moved TextRange outside its original container, so correcting", dom.inspectNode(containerElement));
@@ -294,10 +293,10 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return this.nativeRange.cloneContents();
             };
 
-            // TODO: Until I can find a way to programmatically trigger the Firefox bug (apparently long-standing, still
-            // present in 3.6.8) that throws "Index or size is negative or greater than the allowed amount" for
-            // insertNode in some circumstances, all browsers will have to use the Rangy's own implementation of
-            // insertNode, which works but is almost certainly slower than the native implementation.
+            // Firefox has a bug (apparently long-standing, still present in 3.6.8) that throws "Index or size is
+            // negative or greater than the allowed amount" for insertNode in some circumstances, so all browsers will
+            // have to use the Rangy's own implementation of insertNode, which works but is almost certainly slower
+            // than the native implementation.
 /*
             rangeProto.insertNode = function(node) {
                 this.nativeRange.insertNode(node);

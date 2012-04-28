@@ -300,7 +300,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         getSelectionRangeAt = function(sel, index) {
             try {
                 return sel.getRangeAt(index);
-            } catch(ex) {
+            } catch (ex) {
                 return null;
             }
         };

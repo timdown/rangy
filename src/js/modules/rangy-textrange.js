@@ -907,10 +907,6 @@ rangy.createModule("TextRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     util.extend(api.rangePrototype, {
-        text: function() {
-            return this.collapsed ? "" : getRangeCharacters(this).join("");
-        },
-
         // Unit can be "character" or "word"
         moveStart: function(unit, count, options) {
             if (arguments.length == 1) {
@@ -939,40 +935,6 @@ rangy.createModule("TextRange", function(api, module) {
             var newPos = moveResult.position;
             this.setEnd(newPos.node, newPos.offset);
             return moveResult.unitsMoved;
-        },
-
-        selectCharacters: function(containerNode, startIndex, endIndex) {
-            this.selectNodeContents(containerNode);
-            this.collapse(true);
-            this.moveStart(startIndex);
-            this.collapse(true);
-            this.moveEnd(endIndex - startIndex);
-        },
-
-        // Character indexes are relative to the start of node
-        toCharacterRange: function(containerNode) {
-            if (!containerNode) {
-                containerNode = document.body;
-            }
-            var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
-            var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
-            var rangeBetween = this.cloneRange();
-            var startIndex, endIndex;
-            if (rangeStartsBeforeNode) {
-                rangeBetween.setStart(this.startContainer, this.startOffset);
-                rangeBetween.setEnd(parent, nodeIndex);
-                startIndex = -rangeBetween.text().length;
-            } else {
-                rangeBetween.setStart(parent, nodeIndex);
-                rangeBetween.setEnd(this.startContainer, this.startOffset);
-                startIndex = rangeBetween.text().length;
-            }
-            endIndex = startIndex + this.text().length;
-
-            return {
-                start: startIndex,
-                end: endIndex
-            };
         },
 
         expand: function(unit, options) {
@@ -1011,6 +973,44 @@ rangy.createModule("TextRange", function(api, module) {
             } else {
                 return this.moveEnd(CHARACTER, 1);
             }
+        },
+
+        text: function() {
+            return this.collapsed ? "" : getRangeCharacters(this).join("");
+        },
+
+        selectCharacters: function(containerNode, startIndex, endIndex) {
+            this.selectNodeContents(containerNode);
+            this.collapse(true);
+            this.moveStart(startIndex);
+            this.collapse(true);
+            this.moveEnd(endIndex - startIndex);
+        },
+
+        // Character indexes are relative to the start of node
+        toCharacterRange: function(containerNode) {
+            if (!containerNode) {
+                containerNode = document.body;
+            }
+            var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
+            var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
+            var rangeBetween = this.cloneRange();
+            var startIndex, endIndex;
+            if (rangeStartsBeforeNode) {
+                rangeBetween.setStart(this.startContainer, this.startOffset);
+                rangeBetween.setEnd(parent, nodeIndex);
+                startIndex = -rangeBetween.text().length;
+            } else {
+                rangeBetween.setStart(parent, nodeIndex);
+                rangeBetween.setEnd(this.startContainer, this.startOffset);
+                startIndex = rangeBetween.text().length;
+            }
+            endIndex = startIndex + this.text().length;
+
+            return {
+                start: startIndex,
+                end: endIndex
+            };
         },
 
         findText: function(searchTerm, caseSensitive) {
