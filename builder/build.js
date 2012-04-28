@@ -185,44 +185,47 @@ function substituteBuildVars() {
 function lint() {
     // Run JSHint only on non-library code
     var jshint = require("jshint");
-    console.dir(jshint);
 
-    var buf = fs.readFileSync(concatenatedInsiteOnlySriptFileName, FILE_ENCODING);
-    // Remove Byte Order Mark
-    buf = buf.replace(/^\uFEFF/g, "");
+    function doLint(file) {
+        var buf = fs.readFileSync(file, FILE_ENCODING);
+        // Remove Byte Order Mark
+        buf = buf.replace(/^\uFEFF/g, "");
 
-    jshint.JSHINT(buf, {
-        boss: true,
-        loopfunc: true,
-        scripturl: true
+        jshint.JSHINT(buf, {
+            boss: true,
+            loopfunc: true,
+            scripturl: true
+        });
+
+        var errors = jshint.JSHINT.errors;
+        if (errors && errors.length) {
+            console.log("Found " + errors.length + " JSHint errors");
+            errors.forEach(function(error) {
+                if (error) {
+                    console.log("%s at %d on line %d: %s\n%s", error.id, error.character, error.line, error.reason, error.evidence);
+                }
+            });
+        }
+    }
+
+    allScripts.forEach(function(fileName) {
+        doLint(uncompressedBuildDir + fileName);
     });
 
-    var errors = jshint.JSHINT.errors;
-    if (errors && errors.length) {
-        console.log("Found " + errors.length + " JSHint errors");
-        errors.forEach(function(error) {
-            if (error) {
-                console.log("%s at %d on line %d: %s\n%s", error.id, error.character, error.line, error.reason, error.evidence);
-            }
-        });
-        console.log("JSHint had 'errors'. Continuing");
-        callback();
-    } else {
-        console.log("JSHint passed");
-        callback();
-    }
+    console.log("JSHint done");
+    callback();
 }
-
-function getLicence(srcFile) {
-    var contents = fs.readFileSync(srcFile, FILE_ENCODING);
-    var result = /^\s*\/\*\*(.*?)\*/.exec(contents);
-    return result ? result.replace("@license ", "") : "";
-}
-
 
 function minify() {
+    function getLicence(srcFile) {
+        var contents = fs.readFileSync(srcFile, FILE_ENCODING);
+        var result = /^\s*\/\*\*[\s\S]*?\*\//.exec(contents);
+        return result ? result[0] : "";
+    }
+
     // Uglify
     function uglify(src, dest) {
+        var licence = getLicence(src);
         var uglify = require("uglify-js");
         var jsp = uglify.parser;
         var pro = uglify.uglify;
@@ -234,64 +237,16 @@ function minify() {
             ascii_only: true
         }); // compressed code here
 
-        fs.writeFileSync(dest, final_code, FILE_ENCODING);
+        fs.writeFileSync(dest, licence + "\n" + final_code, FILE_ENCODING);
     }
 
-    uglify(concatenatedSriptFileName, concatenatedMinScriptFileName);
-    console.log("Minified script");
-    callback();
-}
-
-function appendScriptHeader() {
-    // Append header to script files
-    var headerFileName = jsDir + "license.js";
-    concat([headerFileName, concatenatedSriptFileName], concatenatedSriptFileName);
-    concat([headerFileName, concatenatedMinScriptFileName], concatenatedMinScriptFileName);
-    console.log("Added script license");
-    callback();
-}
-
-function createDist() {
-    fs.mkdirSync(distDir);
-    var jsDistDir = distDir + "js/";
-    fs.mkdirSync(jsDistDir);
-
-    copyFileSync(concatenatedSriptFileName, jsDistDir + "insite.js");
-    copyFileSync(concatenatedMinScriptFileName, jsDistDir + "insite.min.js");
-    wrench.copyDirSyncRecursive(svnDir + "editor/js/libs", jsDistDir + "libs");
-
-    wrench.copyDirSyncRecursive(svnDir + "editor/images", distDir + "images");
-    wrench.copyDirSyncRecursive(svnDir + "editor/css", distDir + "css");
-    wrench.copyDirSyncRecursive(svnDir + "editor/themes", distDir + "themes");
-
-    console.log("Created editor dist directory");
-    callback();
-}
-
-function createDemo() {
-    // Create the demo directory
-    var demoDir = buildDir + buildSpec.target + "/";
-    fs.mkdirSync(demoDir);
-
-    // Copy in the dist directory into the demo root
-    wrench.copyDirSyncRecursive(distDir, demoDir + "insite", {
-        preserve: true
+    allScripts.forEach(function(fileName) {
+        uglify(uncompressedBuildDir + fileName, buildDir + fileName);
     });
 
-    // Copy server files
-    wrench.copyDirSyncRecursive(svnDir + "server/", demoDir + "server",  {
-        preserve: true
-    });
-
-    // Copy over demos and overrides
-    wrench.copyDirSyncRecursive(svnDir + "builder/targets/" + buildSpec.target + "/files/", demoDir, {
-        preserve: true
-    });
-
-    console.log("Created demo");
+    console.log("Minified scripts");
     callback();
 }
-
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -306,18 +261,9 @@ var actions = [
     copyModuleScripts,
     clean,
     removeLoggingFromScripts,
-    substituteBuildVars
-    //clean,
-
-    /*
-        removeLoggingFromScripts,
-        lint,
-        minify,
-        appendScriptHeader,
-        substituteBuildVars,
-        createDist,
-        createDemo
-    */
+    substituteBuildVars,
+    lint,
+    minify
 ];
 
 
