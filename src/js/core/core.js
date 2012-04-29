@@ -218,24 +218,26 @@ window["rangy"] = (function() {
         this.supported = false;
     }
 
-    Module.prototype.fail = function(reason) {
-        this.initialized = true;
-        this.supported = false;
-        log.error("Module '" + this.name + "' failed to load: " + reason);
-        throw new Error("Module '" + this.name + "' failed to load: " + reason);
-    };
+    Module.prototype = {
+        fail: function(reason) {
+            this.initialized = true;
+            this.supported = false;
+            log.error("Module '" + this.name + "' failed to load: " + reason);
+            throw new Error("Module '" + this.name + "' failed to load: " + reason);
+        },
 
-    Module.prototype.warn = function(msg) {
-        api.warn("Module " + this.name + ": " + msg);
-    };
+        warn: function(msg) {
+            api.warn("Module " + this.name + ": " + msg);
+        },
 
-    Module.prototype.deprecationNotice = function(deprecated, replacement) {
-        api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use "
-            + replacement + " instead");
-    };
+        deprecationNotice: function(deprecated, replacement) {
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use "
+                + replacement + " instead");
+        },
 
-    Module.prototype.createError = function(msg) {
-        return new Error("Error in Rangy " + this.name + " module: " + msg);
+        createError: function(msg) {
+            return new Error("Error in Rangy " + this.name + " module: " + msg);
+        }
     };
 
     api.createModule = function(name, initFunc) {

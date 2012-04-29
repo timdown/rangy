@@ -8,15 +8,15 @@ var exec = require("child_process").exec;
 var FILE_ENCODING = "utf-8";
 
 var buildSpec = {
-    baseVersion: "1.3",
+    baseVersion: "1.3alpha",
     svnUrl: "http://rangy.googlecode.com/svn/trunk/src/js/"
 };
 
 var buildDir = "build/";
 
 var svnDir = buildDir + "repository/", srcDir = svnDir + "js/";
-var distDir = buildDir + "dist/";
-var uncompressedBuildDir = buildDir + "uncompressed/";
+var zipDir;
+var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
 var modules = [
     "rangy-cssclassapplier.js",
@@ -70,7 +70,6 @@ function deleteBuildDir() {
 function createBuildDir() {
     fs.mkdirSync(buildDir);
     fs.mkdirSync(svnDir);
-    fs.mkdirSync(uncompressedBuildDir);
     console.log("Created build directory " + path.resolve(buildDir));
     callback();
 }
@@ -85,6 +84,10 @@ function checkoutSvnRepository() {
 function getVersion() {
     exec("svnversion", function(error, stdout, stderr) {
         buildVersion = buildSpec.baseVersion + "." + stdout.trim();
+        zipDir = buildDir + "rangy-" + buildVersion + "/";
+        fs.mkdirSync(zipDir);
+        uncompressedBuildDir = zipDir + "uncompressed/";
+        fs.mkdirSync(uncompressedBuildDir);
         console.log("Got SVN version ", stdout, stderr);
         callback();
     });
@@ -241,11 +244,32 @@ function minify() {
     }
 
     allScripts.forEach(function(fileName) {
-        uglify(uncompressedBuildDir + fileName, buildDir + fileName);
+        uglify(uncompressedBuildDir + fileName, zipDir + fileName);
     });
 
     console.log("Minified scripts");
     callback();
+}
+
+function zip() {
+    var zipFileName = "rangy-" + buildVersion + ".zip";
+    var tarName = "rangy-" + buildVersion + ".tar";
+    var tarGzName = "rangy-" + buildVersion + ".tar.gz";
+    var zipExe = "..\\builder\\tools\\7za";
+    var dir = "rangy-" + buildVersion + "/";
+
+    exec(zipExe + " a -tzip " + zipFileName + " " + dir, { cwd: buildDir }, function(error, stdout, stderr) {
+        console.log("Zipped", stdout, stderr);
+
+        exec(zipExe + " a -ttar " + tarName + " " + dir, { cwd: buildDir }, function(error, stdout, stderr) {
+            console.log("Tarred", stdout, stderr);
+            exec(zipExe + " a -tgzip " + tarGzName + " " + tarName, { cwd: buildDir }, function(error, stdout, stderr) {
+                console.log("Gzipped", stdout, stderr);
+                fs.unlinkSync(buildDir + tarName);
+                callback();
+            });
+        });
+    });
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -263,7 +287,8 @@ var actions = [
     removeLoggingFromScripts,
     substituteBuildVars,
     lint,
-    minify
+    minify,
+    zip
 ];
 
 
