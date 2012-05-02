@@ -766,6 +766,58 @@ rangy.createModule("TextRange", function(api, module) {
         }
     }
 
+    /*
+    Rewrite to have a separate tokenizing step. The tokenizer will have options or may be replaced by a custom tokenizer
+    with customizable rules.
+
+    Character types:
+
+    - word
+    - white space
+    - punctuation
+    - trailing punctuation (eg %)
+    - leading punctuation (eg $)
+
+    Tokenize into consecutive substrings of these types. A tokenizer may request more words but is still only obliged
+    to tokenize the current word.
+
+    Default English tokenizer will keep it simple. Suggest custom tokenizer using XRegExp and Unicode plugin for the
+    adventurous. Maybe write a brief example?
+
+     - consider all non-punctuation, non-whitespace chars as word chars
+     - have a default set of allowed words containing punctuation (Mr. etc)
+     - have a configurable list of all punctuation chars, defaulting to
+       .,-‐/#!$%‰‱^&*;:(){}⟨⟩[]=_`~()'"«»‒–—―…'"’“ ⁄〃°¡¿†‡№÷ºª¶′″‴§¦|@•©®℠℗™¤₳฿₵¢₡₢₠₫৳₯€ƒ₣₲₴₭ℳ₥₦₧₱₰£₹₨₪₸₮₩¥៛
+     - have a configurable list of trailing punctuation chars, defaulting to %‰‱° - really?
+     - have a configurable list of mid-word punctuation chars allowed on their own, defaulting to '
+
+    Maybe simpler. Maybe everything's a word character except white space and a set of non-word punctuation chars,
+    which are set to be all punctuation minus ', which is like IE. So we're back to a configurable list of mid-word
+    punctuation and a configurable list of punctuation characters.
+
+
+
+    These can vary fully depending on context. A custom tokenizer function is passed a position and a character and may
+    request more characters forwards or backwards, and/or the whole "word" (i.e. string of chars between white space
+    chars or string terminators). Client code can use default or custom tokenizer, and default tokenizer has options:
+
+     - punctuation regex
+     - allowable mid-word punctuation regex
+     - allowable trailing space regex (used in conjunction with include trailing punctuation option below)
+
+    moveStart/end word options:
+
+     - include trailing space (default false)
+     - include trailing punctuation (default false)
+     - skip punctuation between actual words (default true)
+
+    expand options:
+
+     - include trailing space (default false)
+     - include trailing punctuation (default false)
+
+     */
+
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
         var unitsMoved = 0, chars, newPos = pos, textPos, absCount = Math.abs(count);
