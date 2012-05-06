@@ -1065,6 +1065,7 @@ rangy.createModule("TextRange", function(api, module) {
             };
         },
 
+        // Add options from IE findText and/or window.find()
         findText: function(searchTerm, caseSensitive) {
             var that = this;
             var it = createRangeCharacterIterator(this);
