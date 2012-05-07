@@ -7,7 +7,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-window["rangy"] = (function() {
+window.rangy = (function() {
     var log = log4javascript.getLogger("rangy.core");
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
@@ -120,6 +120,7 @@ window["rangy"] = (function() {
                     o[i] = props[i];
                 }
             }
+            return o;
         };
     } else {
         fail("hasOwnProperty not supported");

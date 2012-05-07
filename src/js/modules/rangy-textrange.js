@@ -53,6 +53,29 @@ rangy.createModule("TextRange", function(api, module) {
             includeTrailingPunctuation: false
         }
     };
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            util.extend(defaults, options);
+            return defaults;
+        }
+    }
+
+    var defaultFindOptions = {
+        caseSensitive: false,
+        withinRange: null,
+        wholeWordsOnly: false,
+        wrapAround: false,
+        backwards: false,
+        wordOptions: null
+    };
+
     var defaultLanguage = "en";
 
     var getComputedStyleProperty;
@@ -342,6 +365,14 @@ rangy.createModule("TextRange", function(api, module) {
             }
         }
         return false;
+    }
+
+    function getRangeStartPosition(range) {
+        return new DomPosition(range.startContainer, range.startOffset);
+    }
+
+    function getRangeEndPosition(range) {
+        return new DomPosition(range.endContainer, range.endOffset);
     }
 
     function TextPosition(character, position, isTrailingSpace, collapsible) {
@@ -753,19 +784,6 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function createWordOptions(options) {
-        var lang, defaults;
-        if (!options) {
-            return defaultWordOptions[defaultLanguage];
-        } else {
-            lang = options.language || defaultLanguage;
-            defaults = {};
-            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
-            util.extend(defaults, options);
-            return defaults;
-        }
-    }
-
     /*
     Rewrite to have a separate tokenizing step. The tokenizer will have options or may be replaced by a custom tokenizer
     with customizable rules.
@@ -948,6 +966,83 @@ rangy.createModule("TextRange", function(api, module) {
         return chars;
     }
 
+    function isWholeWord(startPos, endPos, wordOptions) {
+        var range = api.createRange(startPos.node);
+        range.setStart(startPos.node, startPos.offset);
+        range.setEnd(endPos.node, endPos.offset);
+        var isWholeWord = !range.expand("word", wordOptions);
+        range.detach();
+        return isWholeWord;
+    }
+
+    function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, options) {
+        var backwards = options.backwards;
+        var it = createCharacterIterator(
+            initialPos,
+            backwards,
+            backwards ? getRangeStartPosition(searchScopeRange) : getRangeEndPosition(searchScopeRange)
+        );
+        var text = "", chars = [], textPos, currentChar, matchStartIndex, matchEndIndex;
+        var result, insideRegexMatch;
+        var returnValue = null;
+
+        function handleMatch(startIndex, endIndex) {
+            var startPos = previousVisiblePosition(chars[startIndex].position);
+            var endPos = chars[endIndex - 1].position;
+            var valid = (!options.wholeWordsOnly || isWholeWord(startPos, endPos, options.wordOptions));
+
+            return {
+                startPos: startPos,
+                endPos: endPos,
+                valid: valid
+            };
+        }
+
+        while ( (textPos = it.next()) ) {
+            currentChar = textPos.character;
+            currentChar = textPos.character;
+            if (!isRegex && !options.caseSensitive) {
+                currentChar = currentChar.toLowerCase();
+            }
+
+            if (backwards) {
+                chars.unshift(textPos);
+                text = currentChar + text;
+            } else {
+                chars.push(textPos);
+                text += currentChar;
+            }
+
+            if (isRegex) {
+                result = searchTerm.exec(text);
+                if (result) {
+                    if (insideRegexMatch) {
+                        // Check whether the match is now over
+                        matchStartIndex = result.index;
+                        matchEndIndex = matchStartIndex + result[0].length;
+                        if ((backwards && matchEndIndex < text.length) || (!backwards && matchStartIndex > 0)) {
+                            returnValue = handleMatch(matchStartIndex, matchEndIndex);
+                            break;
+                        }
+                    } else {
+                        insideRegexMatch = true;
+                    }
+                }
+            } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1 ) {
+                returnValue = handleMatch(matchStartIndex, matchStartIndex + searchTerm.length);
+                break;
+            }
+        }
+
+        // Check whether regex match extends to the end of the range
+        if (insideRegexMatch) {
+            returnValue = handleMatch(matchStartIndex, matchEndIndex);
+        }
+        it.dispose();
+
+        return returnValue;
+    }
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     util.extend(dom, {
@@ -968,7 +1063,7 @@ rangy.createModule("TextRange", function(api, module) {
             if (unit == WORD) {
                 options = createWordOptions(options);
             }
-            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count, options);
+            var moveResult = movePositionBy(getRangeStartPosition(this), unit, count, options);
             var newPos = moveResult.position;
             this.setStart(newPos.node, newPos.offset);
             return moveResult.unitsMoved;
@@ -983,7 +1078,7 @@ rangy.createModule("TextRange", function(api, module) {
             if (unit == WORD) {
                 options = createWordOptions(options);
             }
-            var moveResult = movePositionBy(new DomPosition(this.endContainer, this.endOffset), unit, count, options);
+            var moveResult = movePositionBy(getRangeEndPosition(this), unit, count, options);
             var newPos = moveResult.position;
             this.setEnd(newPos.node, newPos.offset);
             return moveResult.unitsMoved;
@@ -996,15 +1091,15 @@ rangy.createModule("TextRange", function(api, module) {
             }
             if (unit == WORD) {
                 options = createWordOptions(options);
-                var startPos = new DomPosition(this.startContainer, this.startOffset);
-                var endPos = new DomPosition(this.endContainer, this.endOffset);
+                var startPos = getRangeStartPosition(this);
+                var endPos = getRangeEndPosition(this);
 
                 var moveStartResult = movePositionBy(startPos, WORD, 1, options);
                 if (!moveStartResult.position.equals(startPos)) {
                     var newStartPos = movePositionBy(moveStartResult.position, WORD, -1, options).position;
                     this.setStart(newStartPos.node, newStartPos.offset);
                     log.info("**** MOVED START. Range now " + this.inspect(), startPos.inspect(), newStartPos.inspect());
-                    moved = true;
+                    moved = !newStartPos.equals(startPos);
                 }
                 if (this.collapsed) {
                     this.moveEnd(WORD, 1);
@@ -1017,7 +1112,7 @@ rangy.createModule("TextRange", function(api, module) {
                         var newEndPos = movePositionBy(moveEndResult.position, WORD, 1, options).position;
                         this.setEnd(newEndPos.node, newEndPos.offset);
                         log.info("**** MOVED END. Range now " + this.inspect());
-                        moved = true;
+                        moved = moved || !newEndPos.equals(endPos);
                     }
                 }
 
@@ -1066,68 +1161,74 @@ rangy.createModule("TextRange", function(api, module) {
         },
 
         // Add options from IE findText and/or window.find()
-        findText: function(searchTerm, caseSensitive) {
-            var that = this;
-            var it = createRangeCharacterIterator(this);
-            var text = "", chars = [], textPos, currentChar, matchStartIndex, matchEndIndex;
-            var isRegex = false, result, insideRegexMatch;
-            var found = false;
+        // Also, add option to limit search to a particular range
+        findText: function(searchTermParam, optionsParam) {
+            // Set up options
+            var defaults = util.extend({}, defaultFindOptions);
+            var options = optionsParam ? util.extend(defaults, optionsParam) : defaults;
 
-            function moveToMatch(startIndex, endIndex) {
-                var startPos = previousVisiblePosition(chars[startIndex].position);
-                var endPos = chars[endIndex - 1].position;
-                that.setStart(startPos.node, startPos.offset);
-                that.setEnd(endPos.node, endPos.offset);
+            // Create word options if we're matching whole words only
+            if (options.wholeWordsOnly) {
+                options.wordOptions = createWordOptions(options.wordOptions);
+
+                // We don't want trailing spaces
+                options.wordOptions.includeTrailingSpace = false;
             }
 
+            var backwards = options.backwards;
+
+            // Create a range representing the search scope if none was provided
+            var searchScopeRange = options.withinRange;
+            if (!searchScopeRange) {
+                searchScopeRange = api.createRange();
+                searchScopeRange.selectNodeContents(this.getDocument());
+            }
+
+            // Examine and prepare the search term
+            var searchTerm = searchTermParam, isRegex = false;
             if (typeof searchTerm == "string") {
-                if (!caseSensitive) {
+                if (!options.caseSensitive) {
                     searchTerm = searchTerm.toLowerCase();
                 }
             } else {
                 isRegex = true;
             }
 
-            while ( (textPos = it.next()) ) {
-                chars.push(textPos);
-                currentChar = textPos.character;
-                if (!isRegex && !caseSensitive) {
-                    currentChar = currentChar.toLowerCase();
-                }
-                text += currentChar;
+            var initialPos = backwards ? getRangeEndPosition(this) : getRangeStartPosition(this);
+            var pos = initialPos;
+            var wrappedAround = false;
 
-                if (isRegex) {
-                    result = searchTerm.exec(text);
-                    if (result) {
-                        if (insideRegexMatch) {
-                            // Check whether the match is now over
-                            matchStartIndex = result.index;
-                            matchEndIndex = matchStartIndex + result[0].length;
-                            if (matchEndIndex < text.length) {
-                                moveToMatch(matchStartIndex, matchEndIndex);
-                                found = true;
-                                break;
-                            }
-                        } else {
-                            insideRegexMatch = true;
-                        }
+            // Try to find a match and ignore invalid ones
+            var findResult;
+            while (true) {
+                findResult = findTextFromPosition(pos, searchTerm, isRegex, searchScopeRange, options);
+
+                if (findResult) {
+                    if (findResult.valid) {
+                        this.setStart(findResult.startPos.node, findResult.startPos.offset);
+                        this.setEnd(findResult.endPos.node, findResult.endPos.offset);
+                        return true;
+                    } else {
+                        // We've found a match that is not a whole word, so we carry on searching from the point immediately
+                        // after the match
+                        pos = backwards ? findResult.startPos : findResult.endPos;
                     }
-                } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1) {
-                    // A text match has been found, so adjust the range
-                    moveToMatch(matchStartIndex, matchStartIndex + searchTerm.length);
-                    found = true;
-                    break;
+                } else if (options.wrapAround && !wrappedAround) {
+                    // No result found but we're wrapping around and limiting the scope to the unsearched part of the range
+                    searchScopeRange = searchScopeRange.cloneRange();
+                    if (backwards) {
+                        pos = getRangeEndPosition(searchScopeRange);
+                        searchScopeRange.setStart(initialPos.node, initialPos.offset);
+                    } else {
+                        pos = getRangeStartPosition(searchScopeRange);
+                        searchScopeRange.setEnd(initialPos.node, initialPos.offset);
+                    }
+                    wrappedAround = true;
+                } else {
+                    // Nothing found and we can't wrap around, so we're done
+                    return false;
                 }
             }
-
-            // Check whether regex match extends to the end of the range
-            if (insideRegexMatch) {
-                moveToMatch(matchStartIndex, matchEndIndex);
-                found = true;
-            }
-            it.dispose();
-
-            return found;
         },
 
         pasteHtml: function(html) {

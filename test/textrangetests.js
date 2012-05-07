@@ -709,4 +709,17 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.endOffset, 7);
     });
 
+    s.test("findText", function(t) {
+        t.el.innerHTML = 'One Two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 5);
+
+        t.assert(range.expand("word"));
+        t.assertEquals(range.startContainer, textNode);
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endContainer, textNode);
+        t.assertEquals(range.endOffset, 7);
+    });
+
 }, false);

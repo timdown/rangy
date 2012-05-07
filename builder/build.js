@@ -83,7 +83,7 @@ function checkoutSvnRepository() {
 
 function getVersion() {
     exec("svnversion", function(error, stdout, stderr) {
-        buildVersion = buildSpec.baseVersion + "." + stdout.trim();
+        buildVersion = buildSpec.baseVersion + "." + stdout.trim().replace(/:/g, "_");
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";

@@ -48,12 +48,17 @@
                 var searchBox = gEBI("search"),
                     regexCheckBox = gEBI("regex"),
                     caseSensitiveCheckBox = gEBI("caseSensitive"),
+                    wholeWordsOnlyCheckBox = gEBI("wholeWordsOnly"),
                     timer;
 
                 function doSearch() {
                     // Remove existing highlights
                     var range = rangy.createRange();
                     var caseSensitive = caseSensitiveCheckBox.checked;
+                    var options = {
+                        caseSensitive: caseSensitive,
+                        wholeWordsOnly: wholeWordsOnlyCheckBox.checked
+                    };
 
                     range.selectNodeContents(document.body);
                     searchResultApplier.undoToRange(range);
@@ -67,7 +72,7 @@
                         }
 
                         // Iterate over matches
-                        while (range.findText(searchTerm, caseSensitive)) {
+                        while (range.findText(searchTerm, options)) {
                             // range now encompasses the first text match
                             searchResultApplier.applyToRange(range);
 
@@ -101,8 +106,8 @@
                 };
 
                 regexCheckBox.onclick = scheduleSearch;
-
                 caseSensitiveCheckBox.onclick = scheduleSearch;
+                wholeWordsOnlyCheckBox.onclick = scheduleSearch;
             }
         }
 
@@ -185,9 +190,11 @@
         <br><br>
         <label for="search">Find: </label><input type="text" size="20" id="search">
         <br>
-        <label for="regex">Regex: </label><input type="checkbox" id="regex">
+        <input type="checkbox" id="regex"> <label for="regex">Regex</label>
         <br>
-        <label for="caseSensitive">Case sensitive: </label><input type="checkbox" id="caseSensitive">
+        <input type="checkbox" id="caseSensitive"> <label for="caseSensitive">Case sensitive</label>
+        <br>
+        <input type="checkbox" id="wholeWordsOnly"> <label for="wholeWordsOnly">Whole words</label>
     </div>
 
     <div id="content">
