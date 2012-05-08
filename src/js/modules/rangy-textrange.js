@@ -71,7 +71,7 @@ rangy.createModule("TextRange", function(api, module) {
         caseSensitive: false,
         withinRange: null,
         wholeWordsOnly: false,
-        wrapAround: false,
+        wrap: false,
         backwards: false,
         wordOptions: null
     };
@@ -712,21 +712,6 @@ rangy.createModule("TextRange", function(api, module) {
         }
     }
 
-/*
-    function getNextCharacter(pos, transaction, endPos) {
-        var textPos;
-        while ( pos && (!endPos || !pos.equals(endPos)) ) {
-            textPos = getCharacterAt(pos, transaction);
-            if (textPos.character !== "") {
-                log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                return textPos;
-            }
-            pos = nextVisiblePosition(pos);
-        }
-        return null;
-    }
-*/
-
     function createCharacterIterator(startPos, backwards, endPos) {
         log.info("createCharacterIterator called backwards " + backwards + " and with endPos " + (endPos ? endPos.inspect() : ""));
         var transaction = createTransaction(dom.getWindow(startPos.node));
@@ -755,6 +740,7 @@ rangy.createModule("TextRange", function(api, module) {
                 }
                 if (pos) {
                     textPos = getCharacterAt(pos, transaction);
+                    //log.debug("pos is " + pos.inspect() + ", endPos is " + (endPos ? endPos.inspect() : null) + ", equal is " + pos.equals(endPos));
                     if (endPos && pos.equals(endPos)) {
                         finished = true;
                     }
@@ -947,9 +933,9 @@ rangy.createModule("TextRange", function(api, module) {
 
     function createRangeCharacterIterator(range) {
         return createCharacterIterator(
-            new DomPosition(range.startContainer, range.startOffset),
+            getRangeStartPosition(range),
             false,
-            new DomPosition(range.endContainer, range.endOffset)
+            getRangeEndPosition(range)
         );
     }
 
@@ -976,6 +962,8 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, options) {
+        log.debug("findTextFromPosition called with search term " + searchTerm + ", initialPos " +
+            initialPos.inspect() + " within range " + searchScopeRange.inspect());
         var backwards = options.backwards;
         var it = createCharacterIterator(
             initialPos,
@@ -1020,7 +1008,7 @@ rangy.createModule("TextRange", function(api, module) {
                         // Check whether the match is now over
                         matchStartIndex = result.index;
                         matchEndIndex = matchStartIndex + result[0].length;
-                        if ((backwards && matchEndIndex < text.length) || (!backwards && matchStartIndex > 0)) {
+                        if ((!backwards && matchEndIndex < text.length) || (backwards && matchStartIndex > 0)) {
                             returnValue = handleMatch(matchStartIndex, matchEndIndex);
                             break;
                         }
@@ -1045,6 +1033,8 @@ rangy.createModule("TextRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    // Extensions to the rangy.dom utility object
+
     util.extend(dom, {
         nextNode: nextNode,
         previousNode: previousNode,
@@ -1052,6 +1042,8 @@ rangy.createModule("TextRange", function(api, module) {
     });
 
     /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the Rangy Range object
 
     util.extend(api.rangePrototype, {
         // Unit can be "character" or "word"
@@ -1160,8 +1152,6 @@ rangy.createModule("TextRange", function(api, module) {
             };
         },
 
-        // Add options from IE findText and/or window.find()
-        // Also, add option to limit search to a particular range
         findText: function(searchTermParam, optionsParam) {
             // Set up options
             var defaults = util.extend({}, defaultFindOptions);
@@ -1195,6 +1185,15 @@ rangy.createModule("TextRange", function(api, module) {
             }
 
             var initialPos = backwards ? getRangeEndPosition(this) : getRangeStartPosition(this);
+
+            // Adjust initial position if it lies outside the search scope
+            var comparison = searchScopeRange.comparePoint(initialPos.node, initialPos.offset);
+            if (comparison === -1) {
+                initialPos = getRangeStartPosition(searchScopeRange);
+            } else if (comparison === 1) {
+                initialPos = getRangeEndPosition(searchScopeRange);
+            }
+
             var pos = initialPos;
             var wrappedAround = false;
 
@@ -1213,7 +1212,7 @@ rangy.createModule("TextRange", function(api, module) {
                         // after the match
                         pos = backwards ? findResult.startPos : findResult.endPos;
                     }
-                } else if (options.wrapAround && !wrappedAround) {
+                } else if (options.wrap && !wrappedAround) {
                     // No result found but we're wrapping around and limiting the scope to the unsearched part of the range
                     searchScopeRange = searchScopeRange.cloneRange();
                     if (backwards) {
@@ -1223,6 +1222,7 @@ rangy.createModule("TextRange", function(api, module) {
                         pos = getRangeStartPosition(searchScopeRange);
                         searchScopeRange.setEnd(initialPos.node, initialPos.offset);
                     }
+                    log.debug("Wrapping search. New search range is " + searchScopeRange.inspect());
                     wrappedAround = true;
                 } else {
                     // Nothing found and we can't wrap around, so we're done
@@ -1237,6 +1237,10 @@ rangy.createModule("TextRange", function(api, module) {
             this.insertNode(frag);
         }
     });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the Rangy Selection object
 
     util.extend(api.selectionPrototype, {
         expand: function(unit, options) {
@@ -1288,6 +1292,10 @@ rangy.createModule("TextRange", function(api, module) {
         }
     });
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the core rangy object
+
     api.innerText = function(el) {
         var range = api.createRange(el);
         range.selectNodeContents(el);
@@ -1295,6 +1303,8 @@ rangy.createModule("TextRange", function(api, module) {
         range.detach();
         return text;
     };
+
+    /*----------------------------------------------------------------------------------------------------------------*/
 
     api.textRange = {
         isBlockNode: isBlockNode,

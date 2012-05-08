@@ -1,7 +1,6 @@
 /**
  * Utilities module for Rangy.
- * A collection of common selection and range-related tasks, using Rangy. The intention is that each method is
- * self-contained and could be copied and pasted elsewhere and still work.
+ * A collection of common selection and range-related tasks, using Rangy.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
@@ -22,9 +21,8 @@ rangy.createModule("Util", function(api, module) {
     /**
      * Convenience method to select a range. Any existing selection will be removed.
      */
-    rangeProto.select = function() {
-        var sel = api.getSelection(this.getDocument());
-        sel.setSingleRange(this);
+    rangeProto.select = function(backwards) {
+        api.getSelection(this.getDocument()).setSingleRange(this, backwards);
     };
 
     selProto.pasteText = function(text) {
@@ -87,6 +85,18 @@ rangy.createModule("Util", function(api, module) {
         var range = api.createRange(this.win);
         range.selectNodeContents(node);
         this.setSingleRange(range);
+    };
+
+    api.createRangeFromNode = function(node) {
+        var range = api.createRange(node);
+        range.selectNode(node);
+        return range;
+    };
+
+    api.createRangeFromNodeContents = function(node) {
+        var range = api.createRange(node);
+        range.selectNodeContents(node);
+        return range;
     };
 
     // TODO: simple selection save/restore

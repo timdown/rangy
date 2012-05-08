@@ -849,10 +849,6 @@ rangy.createModule("DomRange", function(api, module) {
             return isRangeValid(this);
         },
 
-        select: function(backwards) {
-            api.getSelection(this.startContainer).setSingleRange(this, backwards);
-        },
-
         inspect: function() {
             return inspect(this);
         }

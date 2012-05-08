@@ -15,7 +15,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     function getDocument(doc, methodName) {
         doc = dom.getContentDocument(doc);
         if (!doc) {
-            throw module.createError(methodName + "(): " + "Parameter must be a Document or other DOM node, or a Window object");
+            throw module.createError(methodName + "(): Parameter must be a Document or other DOM node, or a Window object");
         }
         return doc;
     }

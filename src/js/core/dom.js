@@ -349,7 +349,7 @@ rangy.createModule("DomUtil", function(api, module) {
 
     DomPosition.prototype = {
         equals: function(pos) {
-            return this.node === pos.node & this.offset == pos.offset;
+            return !!pos && this.node === pos.node && this.offset == pos.offset;
         },
 
         inspect: function() {

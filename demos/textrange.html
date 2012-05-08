@@ -55,9 +55,14 @@
                     // Remove existing highlights
                     var range = rangy.createRange();
                     var caseSensitive = caseSensitiveCheckBox.checked;
+                    var searchScopeRange = rangy.createRange();
+                    searchScopeRange.selectNodeContents(document.body);
+
                     var options = {
                         caseSensitive: caseSensitive,
-                        wholeWordsOnly: wholeWordsOnlyCheckBox.checked
+                        wholeWordsOnly: wholeWordsOnlyCheckBox.checked,
+                        withinRange: searchScopeRange,
+                        backwards: false
                     };
 
                     range.selectNodeContents(document.body);
@@ -76,9 +81,8 @@
                             // range now encompasses the first text match
                             searchResultApplier.applyToRange(range);
 
-                            // Move the range to start after the match and end at the end of the document
+                            // Collapse the range to the position immediately after the match
                             range.collapse(false);
-                            range.setEndAfter(document.body);
                         }
                     }
 
