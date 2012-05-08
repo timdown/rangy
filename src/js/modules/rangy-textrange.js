@@ -962,8 +962,7 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, options) {
-        log.debug("findTextFromPosition called with search term " + searchTerm + ", initialPos " +
-            initialPos.inspect() + " within range " + searchScopeRange.inspect());
+        log.debug("findTextFromPosition called with search term " + searchTerm + ", initialPos " + initialPos.inspect() + " within range " + searchScopeRange.inspect());
         var backwards = options.backwards;
         var it = createCharacterIterator(
             initialPos,

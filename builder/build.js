@@ -221,6 +221,8 @@ function lint() {
 }
 
 function minify() {
+    var error = false;
+
     function getLicence(srcFile) {
         var contents = fs.readFileSync(srcFile, FILE_ENCODING);
         var result = /^\s*\/\*\*[\s\S]*?\*\//.exec(contents);
@@ -234,22 +236,31 @@ function minify() {
         var jsp = uglify.parser;
         var pro = uglify.uglify;
 
-        var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
-        ast = pro.ast_mangle(ast); // get a new AST with mangled names
-        ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-        var final_code = pro.gen_code(ast, {
-            ascii_only: true
-        }); // compressed code here
+        try {
+            var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
+            ast = pro.ast_mangle(ast); // get a new AST with mangled names
+            ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
+            var final_code = pro.gen_code(ast, {
+                ascii_only: true
+            });
 
-        fs.writeFileSync(dest, licence + "\n" + final_code, FILE_ENCODING);
+            fs.writeFileSync(dest, licence + "\n" + final_code, FILE_ENCODING);
+        } catch (ex) {
+            console.log(ex, ex.stack);
+            error = true;
+        }
     }
 
     allScripts.forEach(function(fileName) {
         uglify(uncompressedBuildDir + fileName, zipDir + fileName);
     });
 
-    console.log("Minified scripts");
-    callback();
+    if (error) {
+        console.log("Uglify failed");
+    } else {
+        console.log("Minified scripts");
+        callback();
+    }
 }
 
 function zip() {
