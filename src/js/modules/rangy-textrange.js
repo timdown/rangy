@@ -43,38 +43,14 @@ rangy.createModule("TextRange", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.textrange");
 
-    var elementsHaveUniqueId = util.isHostProperty(document.documentElement, "uniqueID");
-
-    var defaultWordOptions = {
-        "en": {
-            punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
-            midWordPunctuationRegex: /'/,
-            includeTrailingSpace: false,
-            includeTrailingPunctuation: false
-        }
-    };
-
-    function createWordOptions(options) {
-        var lang, defaults;
-        if (!options) {
-            return defaultWordOptions[defaultLanguage];
-        } else {
-            lang = options.language || defaultLanguage;
-            defaults = {};
-            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
-            util.extend(defaults, options);
-            return defaults;
-        }
-    }
-
-    var defaultFindOptions = {
-        caseSensitive: false,
-        withinRange: null,
-        wholeWordsOnly: false,
-        wrap: false,
-        backwards: false,
-        wordOptions: null
-    };
+    var spacesRegex = /^[ \t\f\r\n]+$/;
+    var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
+    /*
+     var spacesPattern = "\u000b\u000c\u0020\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000";
+     var newLinePattern = "\u000a-\u000d\u0085\u2028\u2029";
+     var otherWhitespacePattern = "\u0009";
+     */
+    var allWhiteSpaceRegex = /^[\t-\r \u0085\u00A0\u1680\u180E\u2000-\u200B\u2028\u2029\u202F\u205F\u3000]+$/;
 
     var defaultLanguage = "en";
 
@@ -109,9 +85,6 @@ rangy.createModule("TextRange", function(api, module) {
         return dom.isCharacterDataNode(node)
             || !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
     }
-
-    var spacesRegex = /^[ \t\f\r\n]+$/;
-    var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
 
     function getAncestors(node) {
         var ancestors = [];
@@ -197,6 +170,7 @@ rangy.createModule("TextRange", function(api, module) {
             && getComputedStyleProperty(el, "visibility") == "hidden";
     }
 
+    // Adpated from Aryeh's code.
     // "A whitespace node is either a Text node whose data is the empty string; or
     // a Text node whose data consists only of one or more tabs (0x0009), line
     // feeds (0x000A), carriage returns (0x000D), and/or spaces (0x0020), and whose
@@ -222,6 +196,7 @@ rangy.createModule("TextRange", function(api, module) {
             || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
     }
 
+    // Adpated from Aryeh's code.
     // "node is a collapsed whitespace node if the following algorithm returns
     // true:"
     function isCollapsedWhitespaceNode(node) {
@@ -770,6 +745,73 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
+    function createTextProvider(pos) {
+        var forwardIterator = createCharacterIterator(pos, false);
+        var backwardIterator = createCharacterIterator(pos, true);
+
+        
+
+        return {
+            getWordChars: function() {
+
+            }
+        }
+
+    }
+
+    var defaultWordOptions = {
+        "en": {
+            //punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
+            //midWordPunctuationRegex: /'/,
+            wordRegex: /[a-z0-9]+('[a-z0-9]+)?/g,
+            includeTrailingSpace: false
+        }
+    };
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            util.extend(defaults, options);
+            return defaults;
+        }
+    }
+
+    var defaultFindOptions = {
+        caseSensitive: false,
+        withinRange: null,
+        wholeWordsOnly: false,
+        wrap: false,
+        backwards: false,
+        wordOptions: null
+    };
+
+    var WORD_CHAR = "word", NON_WORD_CHAR = "non-word", WHITESPACE_CHAR = "white space";
+
+    function defaultTokenizer(pos, options, textProvider) {
+        var chars = textProvider.getWordChars(pos);
+        var word = chars.join("");
+        var result, end, i;
+
+        // Initially mark all characters as non-word
+        for (i = 0, end = chars.length; i < len; ++i) {
+            chars[i].type = NON_WORD_CHAR;
+        }
+
+        // Match words and mark characters
+        while ( (result = options.wordRegex.exec(word)) ) {
+            for (i = result.index, end = i + result.length; i < end; ++i) {
+                chars[i].type = WORD_CHAR;
+            }
+        }
+
+        return chars;
+    }
+
     /*
     Rewrite to have a separate tokenizing step. The tokenizer will have options or may be replaced by a custom tokenizer
     with customizable rules.
@@ -790,9 +832,8 @@ rangy.createModule("TextRange", function(api, module) {
 
      - consider all non-punctuation, non-whitespace chars as word chars
      - have a default set of allowed words containing punctuation (Mr. etc)
-     - have a configurable list of all punctuation chars, defaulting to
-       .,-‐/#!$%‰‱^&*;:(){}⟨⟩[]=_`~()'"«»‒–—―…'"’“ ⁄〃°¡¿†‡№÷ºª¶′″‴§¦|@•©®℠℗™¤₳฿₵¢₡₢₠₫৳₯€ƒ₣₲₴₭ℳ₥₦₧₱₰£₹₨₪₸₮₩¥៛
-     - have a configurable list of trailing punctuation chars, defaulting to %‰‱° - really?
+     - have a configurable list of all punctuation chars
+     - have a configurable list of trailing punctuation chars
      - have a configurable list of mid-word punctuation chars allowed on their own, defaulting to '
 
     Maybe simpler. Maybe everything's a word character except white space and a set of non-word punctuation chars,
@@ -824,7 +865,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
-        var unitsMoved = 0, chars, newPos = pos, textPos, absCount = Math.abs(count);
+        var unitsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
         if (count !== 0) {
             var backwards = (count < 0);
             var it = createCharacterIterator(pos, backwards);

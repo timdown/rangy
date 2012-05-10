@@ -185,7 +185,6 @@ function substituteBuildVars() {
     callback();
 }
 
-
 function lint() {
     // Run JSHint only on non-library code
     var jshint = require("jshint");
@@ -244,7 +243,7 @@ function minify() {
                 ascii_only: true
             });
 
-            fs.writeFileSync(dest, licence + "\n" + final_code, FILE_ENCODING);
+            fs.writeFileSync(dest, licence + "\r\n" + final_code, FILE_ENCODING);
         } catch (ex) {
             console.log(ex, ex.stack);
             error = true;
