@@ -749,14 +749,83 @@ rangy.createModule("TextRange", function(api, module) {
         var forwardIterator = createCharacterIterator(pos, false);
         var backwardIterator = createCharacterIterator(pos, true);
 
-        
+        var chars = [];
+
+        function toWordBoundary(forward, allowLeadingWhiteSpace) {
+            var textPos, textChar, allowWhiteSpace = allowLeadingWhiteSpace;
+            var newChars = [], it = forward ? forwardIterator : backwardIterator;
+            while ( (textPos = it.next()) ) {
+                textChar = textPos.character;
+                if (allWhiteSpaceRegex.test(textChar)) {
+                    if (!allowWhiteSpace) {
+                        break;
+                    }
+                } else {
+                    allowWhiteSpace = false;
+                }
+                newChars.push(textPos);
+            }
+            chars[forward ? "push" : "unshift"].apply(chars, newChars);
+
+            return newChars;
+        }
 
         return {
-            getWordChars: function() {
+            chars: chars,
 
+            getPrecedingWordChars: function() {
+                return toWordBoundary(false, true);
+            },
+
+            getFollowingWordChars: function() {
+                return toWordBoundary(true, true);
+            },
+
+            dispose: function() {
+                chars = null;
+                forwardIterator.dispose();
+                backwardIterator.dispose();
+            }
+        };
+    }
+
+    var WORD_CHAR = "word", NON_WORD_CHAR = "non-word", WHITESPACE_CHAR = "white space";
+
+    function defaultTokenizer(pos, options) {
+        var textProvider = createTextProvider(pos);
+
+        function tokenize(chars) {
+            var word = chars.join("");
+            var result, end, i;
+
+            // Initially mark all characters as non-word or white space
+            for (i = 0, end = chars.length; i < len; ++i) {
+                chars[i].type = allWhiteSpaceRegex.test(chars[i]) ? WHITESPACE_CHAR : NON_WORD_CHAR;
+            }
+
+            // Match words and mark characters
+            while ( (result = options.wordRegex.exec(word)) ) {
+                for (i = result.index, end = i + result.length; i < end; ++i) {
+                    chars[i].type = WORD_CHAR;
+                }
             }
         }
 
+        return {
+            tokenizePreceding: function() {
+                tokenize(textProvider.getPrecedingWordChars());
+                return textProvider.chars;
+            },
+
+            tokenizeFollowing: function() {
+                tokenize(textProvider.getFollowingWordChars());
+                return textProvider.chars;
+            },
+
+            dispose: function() {
+                textProvider.dispose();
+            }
+        };
     }
 
     var defaultWordOptions = {
@@ -764,7 +833,8 @@ rangy.createModule("TextRange", function(api, module) {
             //punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
             //midWordPunctuationRegex: /'/,
             wordRegex: /[a-z0-9]+('[a-z0-9]+)?/g,
-            includeTrailingSpace: false
+            includeTrailingSpace: false,
+            tokenizer: defaultTokenizer
         }
     };
 
@@ -789,28 +859,6 @@ rangy.createModule("TextRange", function(api, module) {
         backwards: false,
         wordOptions: null
     };
-
-    var WORD_CHAR = "word", NON_WORD_CHAR = "non-word", WHITESPACE_CHAR = "white space";
-
-    function defaultTokenizer(pos, options, textProvider) {
-        var chars = textProvider.getWordChars(pos);
-        var word = chars.join("");
-        var result, end, i;
-
-        // Initially mark all characters as non-word
-        for (i = 0, end = chars.length; i < len; ++i) {
-            chars[i].type = NON_WORD_CHAR;
-        }
-
-        // Match words and mark characters
-        while ( (result = options.wordRegex.exec(word)) ) {
-            for (i = result.index, end = i + result.length; i < end; ++i) {
-                chars[i].type = WORD_CHAR;
-            }
-        }
-
-        return chars;
-    }
 
     /*
     Rewrite to have a separate tokenizing step. The tokenizer will have options or may be replaced by a custom tokenizer
