@@ -830,8 +830,8 @@ rangy.createModule("TextRange", function(api, module) {
 
     var defaultWordOptions = {
         "en": {
-            //punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
-            //midWordPunctuationRegex: /'/,
+            punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
+            midWordPunctuationRegex: /'/,
             wordRegex: /[a-z0-9]+('[a-z0-9]+)?/g,
             includeTrailingSpace: false,
             tokenizer: defaultTokenizer
