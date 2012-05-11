@@ -106,8 +106,9 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             if (/[\r\n]/.test(boundaryNode.data)) {
                 /*
-                For the particular case of a boundary within a text node containing line breaks (within a <pre> element,
-                for example), we need a slightly complicated approach to get the boundary's offset in IE. The facts:
+                For the particular case of a boundary within a text node containing rendered line breaks (within a <pre>
+                element, for example), we need a slightly complicated approach to get the boundary's offset in IE. The
+                facts:
 
                 - Each line break is represented as \r in the text node's data/nodeValue properties
                 - Each line break is represented as \r\n in the TextRange's 'text' property
@@ -193,7 +194,7 @@ rangy.createModule("WrappedRange", function(api, module) {
         workingNode = doc.createElement("span");
 
         // Making the working element non-empty element persuades IE to consider the TextRange boundary to be within the
-        // element rather than immediately before or after it, which is what we want
+        // element rather than immediately before or after it
         workingNode.innerHTML = "&#feff;";
 
         // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
