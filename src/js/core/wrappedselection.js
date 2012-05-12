@@ -582,18 +582,30 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.refresh = function(checkForChanges) {
         var oldRanges = checkForChanges ? this._ranges.slice(0) : null;
+        var wasBackwards = this.isBackwards();
         refreshSelection(this);
         if (checkForChanges) {
+            // Check the range count first
             var i = oldRanges.length;
             if (i != this._ranges.length) {
-                return false;
+                log.debug("Selection.refresh: Range count has changed: was " + i + ", is now " + this._ranges.length);
+                return true;
             }
+
+            // Now check the direction
+            if (this.isBackwards() != wasBackwards) {
+                log.debug("Selection.refresh: Selection backwards was " + wasBackwards + ", is now " + this.isBackwards());
+                return true;
+            }
+
+            // Finally, compare each range in turn
             while (i--) {
                 if (!DomRange.rangesEqual(oldRanges[i], this._ranges[i])) {
-                    return false;
+                    log.debug("Selection.refresh: Range at index " + i + " has changed: was " + oldRanges[i].inspect() + ", is now " + this._ranges[i].inspect());
+                    return true;
                 }
             }
-            return true;
+            return false;
         }
     };
 

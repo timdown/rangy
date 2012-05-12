@@ -526,6 +526,20 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             return range;
         });
 
+        s.test("Refresh check for changes test", function(t) {
+            var sel = selectionCreator(win);
+            if (sel.refresh && sel.nativeSelection.selectAllChildren) {
+                t.assertFalse(sel.refresh(true));
+
+                sel.nativeSelection.selectAllChildren(t.nodes.div);
+                t.assertTrue(sel.refresh(true));
+                t.assertFalse(sel.refresh(true));
+
+                sel.collapseToEnd();
+                t.assertFalse(sel.refresh(true));
+            }
+        });
+
     }, false);
 }
 
