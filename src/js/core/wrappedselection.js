@@ -7,7 +7,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
     api.config.checkSelectionRanges = true;
 
     var BOOLEAN = "boolean",
-        windowPropertyName = "_rangySelection",
         dom = api.dom,
         util = api.util,
         DomRange = api.DomRange,
@@ -333,6 +332,38 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.refresh();
     }
 
+    function deleteProperties(sel) {
+        sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
+    }
+
+    var cachedRangySelections = [];
+
+    function findCachedSelection(win, action) {
+        var i = cachedRangySelections.length, cached, sel;
+        while (i--) {
+            cached = cachedRangySelections[i];
+            sel = cached.selection;
+            if (action == "deleteAll") {
+                deleteProperties(sel);
+            } else if (cached.win == win) {
+                if (action == "delete") {
+                    cachedRangySelections.splice(i, 1);
+                    return true;
+                } else {
+                    return sel;
+                }
+            }
+        }
+        if (action == "deleteAll") {
+            cachedRangySelections.length = 0;
+        }
+        return null;
+    }
+
+    function emptySelectionCache() {
+        cachedRangySelections.length = 0;
+    }
+
     api.getSelection = function(win) {
         // Check if the paraemter is a Rangy Selection object
         if (win && win instanceof WrappedSelection) {
@@ -342,7 +373,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
         win = getWindow(win, "getSelection");
 
-        var sel = win[windowPropertyName];
+        var sel = findCachedSelection(win);
         var nativeSel = getSelection(win), docSel = implementsDocSelection ? getDocSelection(win) : null;
         if (sel) {
             sel.nativeSelection = nativeSel;
@@ -350,7 +381,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             sel.refresh();
         } else {
             sel = new WrappedSelection(nativeSel, docSel, win);
-            win[windowPropertyName] = sel;
+            cachedRangySelections.push( { win: win, selection: sel } );
         }
         return sel;
     };
@@ -813,8 +844,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     selProto.detach = function() {
-        this.win[windowPropertyName] = null;
-        this.win = this.anchorNode = this.focusNode = null;
+        findCachedSelection(this.win, "delete");
+        deleteProperties(this);
+    };
+
+    WrappedSelection.detachAll = function() {
+        findCachedSelection(null, "deleteAll");
     };
 
     WrappedSelection.inspect = inspect;
