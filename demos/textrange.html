@@ -19,6 +19,15 @@
             background-color: #f5f5f5;
             padding: 10px;
         }
+
+        *.buttonSpan {
+            border: solid #333 1px;
+            background-color: #f5f5f5;
+            padding: 2px;
+            cursor: default;
+            font-size: 165%;
+            font-weight: bold;
+        }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -176,6 +185,22 @@
             };
         }
 
+        function initCaretMove() {
+            var editableDiv = gEBI("demo5");
+            var caretLeftButton = gEBI("caretLeftButton");
+            var caretRightButton = gEBI("caretRightButton");
+
+            caretLeftButton.onmousedown = function() {
+                rangy.getSelection().move("character", -1);
+                return false;
+            };
+
+            caretRightButton.onmousedown = function() {
+                rangy.getSelection().move("character", 1);
+                return false;
+            };
+        }
+
         window.onload = function() {
             rangy.init();
             initFind();
@@ -183,6 +208,7 @@
             initSnapToWords2();
             initSnapToWords3();
             initSaveRestore();
+            initCaretMove();
         };
 
     </script>
@@ -295,8 +321,30 @@
             Select some of this text and manipulate the selection and the formatting using the buttons above.
         </p>
 
-
-
+        <h3>Moving the caret</h3>
+        <p>
+            The TextRange module provides methods to move the caret as though using the left and right arrow keys. See
+            this in action by clicking in the editable area below and using the buttons to move the caret:
+        </p>
+        <p>
+            <span unselectable="on" class="unselectable buttonSpan" id="caretLeftButton"
+                  title="Click to move caret left">&larr;</span>
+            <span unselectable="on" class="unselectable buttonSpan" id="caretRightButton"
+                  title="Click to move caret right">&rarr;</span>
+        </p>
+        <div class="demo" id="demo5" contenteditable="true">
+            <p>
+                <b>Association football</b> is a sport played between two teams.
+            </p>
+            <p>
+                It is usually called <b>football</b>, but in some countries, such as the United States, it is called
+                <b>soccer</b>.
+            </p>
+            <p>
+                In Japan, New Zealand, South Africa, Australia, Canada and Republic of Ireland, both words are commonly
+                used.
+            </p>
+        </div>
     </div>
 </body>
 </html>

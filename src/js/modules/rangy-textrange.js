@@ -1133,36 +1133,36 @@ rangy.createModule("TextRange", function(api, module) {
 
     // Extensions to the Rangy Range object
 
-    util.extend(api.rangePrototype, {
+    function createRangeBoundaryMover(isStart, collapse) {
         // Unit can be "character" or "word"
-        moveStart: function(unit, count, options) {
-            if (arguments.length == 1) {
+        return function(unit, count, options) {
+            if (typeof count == "undefined") {
                 count = unit;
                 unit = CHARACTER;
             }
             if (unit == WORD) {
                 options = createWordOptions(options);
             }
-            var moveResult = movePositionBy(getRangeStartPosition(this), unit, count, options);
-            var newPos = moveResult.position;
-            this.setStart(newPos.node, newPos.offset);
-            return moveResult.unitsMoved;
-        },
 
-        // Unit can be "character" or "word"
-        moveEnd: function(unit, count, options) {
-            if (arguments.length == 1) {
-                count = unit;
-                unit = CHARACTER;
+            var boundaryIsStart = isStart;
+            if (collapse) {
+                boundaryIsStart = (count >= 0);
+                this.collapse(!boundaryIsStart);
             }
-            if (unit == WORD) {
-                options = createWordOptions(options);
-            }
-            var moveResult = movePositionBy(getRangeEndPosition(this), unit, count, options);
+            var rangePositionGetter = boundaryIsStart ? getRangeStartPosition : getRangeEndPosition;
+            var moveResult = movePositionBy(rangePositionGetter(this), unit, count, options);
             var newPos = moveResult.position;
-            this.setEnd(newPos.node, newPos.offset);
+            this[boundaryIsStart ? "setStart" : "setEnd"](newPos.node, newPos.offset);
             return moveResult.unitsMoved;
-        },
+        };
+    }
+
+    util.extend(api.rangePrototype, {
+        moveStart: createRangeBoundaryMover(true, false),
+
+        moveEnd: createRangeBoundaryMover(false, false),
+
+        move: createRangeBoundaryMover(true, true),
 
         expand: function(unit, options) {
             var moved = false;
@@ -1344,6 +1344,15 @@ rangy.createModule("TextRange", function(api, module) {
                 this.addRange(ranges[0], true);
             } else {
                 this.setRanges(ranges);
+            }
+        },
+
+        move: function(unit, count, options) {
+            if (this.focusNode) {
+                this.collapse(this.focusNode, this.focusOffset);
+                var range = this.getRangeAt(0);
+                range.move(unit, count, options);
+                this.setSingleRange(range);
             }
         },
 

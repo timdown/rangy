@@ -334,6 +334,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function deleteProperties(sel) {
         sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
+        sel.detached = true;
     }
 
     var cachedRangySelections = [];
