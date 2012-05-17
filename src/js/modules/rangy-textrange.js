@@ -45,12 +45,8 @@ rangy.createModule("TextRange", function(api, module) {
 
     var spacesRegex = /^[ \t\f\r\n]+$/;
     var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
-    /*
-     var spacesPattern = "\u000b\u000c\u0020\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000";
-     var newLinePattern = "\u000a-\u000d\u0085\u2028\u2029";
-     var otherWhitespacePattern = "\u0009";
-     */
     var allWhiteSpaceRegex = /^[\t-\r \u0085\u00A0\u1680\u180E\u2000-\u200B\u2028\u2029\u202F\u205F\u3000]+$/;
+    var lineBreakRegex = /^[\n-\r\u0085\u2028\u2029]$/;
 
     var defaultLanguage = "en";
 
@@ -453,7 +449,7 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     /*
-    Next and previous position moving functions that filter
+    Next and previous position moving functions that filter out
 
     - Whole whitespace nodes that do not affect rendering
     - Hidden (CSS visibility/display) elements
@@ -489,48 +485,6 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function createTransaction(win) {
-/*
-        var doc = win.document;
-        var elementInfoCache = {};
-
-        function getElementInfo(el) {
-            var id = elementsHaveUniqueId ? el.uniqueID : el.id || "";
-            var elementInfo, display;
-            if (id && elementInfoCache.hasOwnProperty(id)) {
-                elementInfo = elementInfoCache[id];
-            }
-            if (!elementInfo) {
-                display = getComputedDisplay(el, win);
-                elementInfo = {
-                    display: display,
-                    hidden: false
-                };
-                if (id) {
-                    elementInfoCache[id] = elementInfo;
-                }
-            }
-
-            return elementInfo;
-        }
-
-
-
-        return {
-            win: win,
-
-            isHidden: function(node) {
-                var ancestors = getAncestorsAndSelf(node);
-                for (var i = 0, len = ancestors.length; i < len; ++i) {
-                    if (ancestors[i].nodeType == 1 && getComputedDisplay(ancestors[i]) == "none") {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-        }
-*/
         return {};
     }
 
@@ -729,13 +683,29 @@ rangy.createModule("TextRange", function(api, module) {
             return textPos;
         }
 
+        var previousTextPos, returnPreviousTextPos = false;
+
         return {
             next: function() {
-                var textPos;
-                while ( (textPos = next()) ) {
-                    if (textPos.character) {
-                        return textPos;
+                if (returnPreviousTextPos) {
+                    returnPreviousTextPos = false;
+                    return previousTextPos;
+                } else {
+                    var textPos;
+                    while ( (textPos = next()) ) {
+                        if (textPos.character) {
+                            previousTextPos = textPos;
+                            return textPos;
+                        }
                     }
+                }
+            },
+
+            rewind: function() {
+                if (previousTextPos) {
+                    returnPreviousTextPos = true;
+                } else {
+                    throw module.createError("createCharacterIterator: cannot rewind. Only one position can be rewound.");
                 }
             },
 
@@ -745,85 +715,110 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function createTextProvider(pos) {
+    function defaultTokenizer(chars, options) {
+        var word = chars.join(""), ch;
+        var result, end, i;
+
+        // Initially mark all characters as non-word or white space
+        for (i = 0, end = chars.length; i < end; ++i) {
+            chars[i].isWhiteSpace = allWhiteSpaceRegex.test(chars[i]);
+            chars[i].isWordChar = false;
+        }
+
+        // Match words and mark characters
+        //console.log("running regex " + options.wordRegex + " on " + word);
+        while ( (result = options.wordRegex.exec(word)) ) {
+            // Mark word characters, and also trailing spaces if the option is set
+            for (i = result.index, end = i + result[0].length; i < end || (options.includeTrailingSpace && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch)); ++i) {
+                chars[i].isWordChar = true;
+            }
+/*
+            if (options.includeTrailingSpace) {
+                while ( (ch = chars[i]) && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch) ) {
+                    console.log("ch: " + ch)
+                    ch.isWordChar = true;
+                    ++i;
+                }
+                console.log("Done.", i, word);
+            }
+*/
+            chars[result.index].isFirstChar = true;
+            chars[i - 1].isLastChar = true;
+        }
+    }
+
+    // Provide pair of iterators over text positions, tokenized. Transparently requests more text when next()
+    // is called and there is no more tokenized text
+    function createTokenizedTextProvider(pos, options) {
         var forwardIterator = createCharacterIterator(pos, false);
         var backwardIterator = createCharacterIterator(pos, true);
+        var tokenizer = options.tokenizer;
 
-        var chars = [];
-
-        function toWordBoundary(forward, allowLeadingWhiteSpace) {
-            var textPos, textChar, allowWhiteSpace = allowLeadingWhiteSpace;
+        // Consumes a word and the whitespace beyond it
+        function consumeWord(forward) {
+            var textPos, textChar;
             var newChars = [], it = forward ? forwardIterator : backwardIterator;
+
+            var passedWordBoundary = false, insideWord = false;
+
             while ( (textPos = it.next()) ) {
                 textChar = textPos.character;
                 if (allWhiteSpaceRegex.test(textChar)) {
-                    if (!allowWhiteSpace) {
-                        break;
+                    if (insideWord) {
+                        insideWord = false;
+                        passedWordBoundary = true;
                     }
                 } else {
-                    allowWhiteSpace = false;
+                    if (passedWordBoundary) {
+                        it.rewind();
+                        break;
+                    } else {
+                        insideWord = true;
+                    }
                 }
                 newChars.push(textPos);
             }
-            chars[forward ? "push" : "unshift"].apply(chars, newChars);
 
             return newChars;
         }
 
-        return {
-            chars: chars,
+        // Get initial word surrounding initial position and tokenize it
+        var forwardBuffer = consumeWord(true);
+        var backwardBuffer = consumeWord(false);
+        tokenizer(backwardBuffer.reverse().concat(forwardBuffer), options);
 
-            getPrecedingWordChars: function() {
-                return toWordBoundary(false, true);
-            },
-
-            getFollowingWordChars: function() {
-                return toWordBoundary(true, true);
-            },
-
-            dispose: function() {
-                chars = null;
-                forwardIterator.dispose();
-                backwardIterator.dispose();
+        function inspectBuffer(buffer) {
+            var textPositions = [];
+            for (var i = 0; i < buffer.length; ++i) {
+                textPositions[i] = buffer[i].character + "(word: " + buffer[i].isWordChar + ", white space: " + buffer[i].isWhiteSpace + ")";
             }
-        };
-    }
-
-    var WORD_CHAR = "word", NON_WORD_CHAR = "non-word", WHITESPACE_CHAR = "white space";
-
-    function defaultTokenizer(pos, options) {
-        var textProvider = createTextProvider(pos);
-
-        function tokenize(chars) {
-            var word = chars.join("");
-            var result, end, i;
-
-            // Initially mark all characters as non-word or white space
-            for (i = 0, end = chars.length; i < len; ++i) {
-                chars[i].type = allWhiteSpaceRegex.test(chars[i]) ? WHITESPACE_CHAR : NON_WORD_CHAR;
-            }
-
-            // Match words and mark characters
-            while ( (result = options.wordRegex.exec(word)) ) {
-                for (i = result.index, end = i + result.length; i < end; ++i) {
-                    chars[i].type = WORD_CHAR;
-                }
-            }
+            return textPositions;
         }
 
+        //console.log("Initial word: ", inspectBuffer(backwardBuffer) + "", " and ", inspectBuffer(forwardBuffer) + "");
+        log.info("Initial word: ", inspectBuffer(backwardBuffer) + "", " and ", inspectBuffer(forwardBuffer) + "");
+
         return {
-            tokenizePreceding: function() {
-                tokenize(textProvider.getPrecedingWordChars());
-                return textProvider.chars;
+            nextEndChar: function() {
+                if (!forwardBuffer.length) {
+                    forwardBuffer = consumeWord(true);
+                    tokenizer(forwardBuffer, options);
+                }
+                return forwardBuffer.shift();
             },
 
-            tokenizeFollowing: function() {
-                tokenize(textProvider.getFollowingWordChars());
-                return textProvider.chars;
+            previousStartChar: function() {
+                if (!backwardBuffer.length) {
+                    backwardBuffer = consumeWord(false);
+                    tokenizer(backwardBuffer.reverse(), options);
+                }
+                return backwardBuffer.pop();
             },
 
             dispose: function() {
-                textProvider.dispose();
+                forwardIterator.dispose();
+                backwardIterator.dispose();
+                forwardBuffer = backwardBuffer = null;
             }
         };
     }
@@ -832,7 +827,7 @@ rangy.createModule("TextRange", function(api, module) {
         "en": {
             punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
             midWordPunctuationRegex: /'/,
-            wordRegex: /[a-z0-9]+('[a-z0-9]+)?/g,
+            wordRegex: /[a-z0-9]+('[a-z0-9]+)?/gi,
             includeTrailingSpace: false,
             tokenizer: defaultTokenizer
         }
@@ -936,6 +931,42 @@ rangy.createModule("TextRange", function(api, module) {
                      - Moving to word end: if char is space/non-mid-word-punct/end, word ends. If mid-word punct, check
                        preceding char and next char
                      */
+
+                    var tokenizedTextProvider = createTokenizedTextProvider(pos, options);
+                    var ch, lastTextPosInWord;
+                    var next = backwards ? tokenizedTextProvider.previousStartChar : tokenizedTextProvider.nextEndChar;
+
+                    while ( (textPos = next()) && unitsMoved < absCount ) {
+                        ch = textPos.character;
+
+                        log.info("**** TESTING CHAR " + ch + ". is word char: " + textPos.isWordChar);
+
+/*
+                        if (textPos.isWordChar) {
+                            lastTextPosInWord = textPos;
+                        }
+*/
+                        if (!textPos.isWordChar || (!backwards && unitsMoved > 0 && textPos.isFirstChar)) {
+                            if (lastTextPosInWord) {
+                                // We've hit the end of a word.
+                                newPos = lastTextPosInWord.position;
+                                lastTextPosInWord = null;
+                                ++unitsMoved;
+                                log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
+                            }
+                        } else {
+                            lastTextPosInWord = textPos;
+                        }
+                    }
+
+                    // If we've run out of positions before the required number of words were navigated, check whether
+                    // there was a last word and include it if so
+                    if (lastTextPosInWord && unitsMoved < absCount) {
+                        newPos = lastTextPosInWord.position;
+                        ++unitsMoved;
+                        log.info("**** FOUND EOF AFTER WORD. unitsMoved NOW " + unitsMoved);
+                    }
+/*
                     var precedingChar = null, isWordChar, isTerminatorChar, isSpaceChar, isPunctuationChar;
                     var previousCharIsMidWordPunctuation = false;
                     var precedingIterator, precedingTextPos, ch, lastTextPosInWord;
@@ -1002,6 +1033,7 @@ rangy.createModule("TextRange", function(api, module) {
                         ++unitsMoved;
                         log.info("**** FOUND EOF AFTER WORD. unitsMoved NOW " + unitsMoved);
                     }
+*/
 
                     break;
                 default:
@@ -1143,6 +1175,7 @@ rangy.createModule("TextRange", function(api, module) {
             if (unit == WORD) {
                 options = createWordOptions(options);
             }
+            log.debug("** moving boundary. start: " + isStart + ", unit: " + unit + ", count: " + count);
 
             var boundaryIsStart = isStart;
             if (collapse) {
