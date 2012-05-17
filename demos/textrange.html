@@ -141,7 +141,7 @@
         function initSnapToWords3() {
             gEBI("demo3").onmouseup = function() {
                 rangy.getSelection().expand("word", {
-                    midWordPunctuationRegex: /['\-]/
+                    wordRegex: /[a-z0-9]+(['\-][a-z0-9]+)*/gi
                 });
             };
         }
@@ -287,23 +287,23 @@
         </p>
         <p class="demo" id="demo1" contenteditable="true">
             Please select some of this text. Don't be shy. Here are some some things with debatable word boundaries:
-            50%, 60:40, flip-flop. You can edit this too.
+            50%, 60:40, flip-flop, tic-tac-toe, fo'c'sle, 'quotes'. You can edit this too.
         </p>
         <p>
             Snapping to words can optionally include the trailing space, as in the box below:
         </p>
         <p class="demo" id="demo2" contenteditable="true">
             Please select some of this text. Don't be shy. Here are some some things with debatable word boundaries:
-            50%, 60:40, flip-flop. You can edit this too.
+            50%, 60:40, flip-flop, tic-tac-toe, fo'c'sle, 'quotes'. You can edit this too.
         </p>
         <p>
-            You can also control what constitutes a word. By default, a single apostrophe inside a word is allowed,
-            hence "don't" is considered a single word in all these example. You may also want to consider hyphenated
-            words as single words, as in the example below:
+            You can also control what constitutes a word. By default, single apostrophes inside a word are allowed,
+            hence "don't" and "fo'c'sle" are considered a single word in all these examples. You may also want to
+            consider hyphenated words as single words, as in the example below:
         </p>
         <p class="demo" id="demo3" contenteditable="true">
             Please select some of this text. Don't be shy. Here are some some things with debatable word boundaries:
-            50%, 60:40, flip-flop. You can edit this too.
+            50%, 60:40, flip-flop, tic-tac-toe, fo'c'sle, 'quotes'. You can edit this too.
         </p>
 
         <h3>Character index-based selection save and restore</h3>

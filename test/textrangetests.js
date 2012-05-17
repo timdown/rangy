@@ -581,6 +581,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.text(), "one two. three");
     });
 
+/*
     s.test("moveEnd including trailing punctuation on text node", function(t) {
         t.el.innerHTML = 'one!! two!! three!! four!!';
         var textNode = t.el.firstChild;
@@ -611,6 +612,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.endOffset, 26);
         t.assertEquals(range.text(), "one!! two!! three!! four!!");
     });
+*/
 
     s.test("moveStart characters with br", function(t) {
         t.el.innerHTML = '1<br>2';

@@ -19,11 +19,11 @@ pre {
 }
 
 #buttons {
-    float: left;
+    left: 10px;
     position: fixed;
     border: solid black 1px;
     background-color: lightgoldenrodyellow;
-    padding: 0.25em;
+    padding: 5px;
     width: 300px;
 }
 

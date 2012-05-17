@@ -726,24 +726,11 @@ rangy.createModule("TextRange", function(api, module) {
         }
 
         // Match words and mark characters
-        //console.log("running regex " + options.wordRegex + " on " + word);
         while ( (result = options.wordRegex.exec(word)) ) {
-            // Mark word characters, and also trailing spaces if the option is set
+            // Mark word characters
             for (i = result.index, end = i + result[0].length; i < end || (options.includeTrailingSpace && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch)); ++i) {
                 chars[i].isWordChar = true;
             }
-/*
-            if (options.includeTrailingSpace) {
-                while ( (ch = chars[i]) && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch) ) {
-                    console.log("ch: " + ch)
-                    ch.isWordChar = true;
-                    ++i;
-                }
-                console.log("Done.", i, word);
-            }
-*/
-            chars[result.index].isFirstChar = true;
-            chars[i - 1].isLastChar = true;
         }
     }
 
@@ -795,7 +782,6 @@ rangy.createModule("TextRange", function(api, module) {
             return textPositions;
         }
 
-        //console.log("Initial word: ", inspectBuffer(backwardBuffer) + "", " and ", inspectBuffer(forwardBuffer) + "");
         log.info("Initial word: ", inspectBuffer(backwardBuffer) + "", " and ", inspectBuffer(forwardBuffer) + "");
 
         return {
@@ -825,9 +811,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     var defaultWordOptions = {
         "en": {
-            punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
-            midWordPunctuationRegex: /'/,
-            wordRegex: /[a-z0-9]+('[a-z0-9]+)?/gi,
+            wordRegex: /[a-z0-9]+('[a-z0-9]+)*/gi,
             includeTrailingSpace: false,
             tokenizer: defaultTokenizer
         }
@@ -855,57 +839,6 @@ rangy.createModule("TextRange", function(api, module) {
         wordOptions: null
     };
 
-    /*
-    Rewrite to have a separate tokenizing step. The tokenizer will have options or may be replaced by a custom tokenizer
-    with customizable rules.
-
-    Character types:
-
-    - word
-    - white space
-    - punctuation
-    - trailing punctuation (eg %)
-    - leading punctuation (eg $)
-
-    Tokenize into consecutive substrings of these types. A tokenizer may request more words but is still only obliged
-    to tokenize the current word.
-
-    Default English tokenizer will keep it simple. Suggest custom tokenizer using XRegExp and Unicode plugin for the
-    adventurous. Maybe write a brief example?
-
-     - consider all non-punctuation, non-whitespace chars as word chars
-     - have a default set of allowed words containing punctuation (Mr. etc)
-     - have a configurable list of all punctuation chars
-     - have a configurable list of trailing punctuation chars
-     - have a configurable list of mid-word punctuation chars allowed on their own, defaulting to '
-
-    Maybe simpler. Maybe everything's a word character except white space and a set of non-word punctuation chars,
-    which are set to be all punctuation minus ', which is like IE. So we're back to a configurable list of mid-word
-    punctuation and a configurable list of punctuation characters.
-
-
-
-    These can vary fully depending on context. A custom tokenizer function is passed a position and a character and may
-    request more characters forwards or backwards, and/or the whole "word" (i.e. string of chars between white space
-    chars or string terminators). Client code can use default or custom tokenizer, and default tokenizer has options:
-
-     - punctuation regex
-     - allowable mid-word punctuation regex
-     - allowable trailing space regex (used in conjunction with include trailing punctuation option below)
-
-    moveStart/end word options:
-
-     - include trailing space (default false)
-     - include trailing punctuation (default false)
-     - skip punctuation between actual words (default true)
-
-    expand options:
-
-     - include trailing space (default false)
-     - include trailing punctuation (default false)
-
-     */
-
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
         var unitsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
@@ -922,119 +855,50 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                     break;
                 case WORD:
-                    /*
-                     - If first char is space, move on until non-space/punct encountered, then on until word end
-                     - If first char is mid-word punct, check next and preceding chars. If both non-punct and non-space,
-                       treat as word char, otherwise as punct
-                     - If first char is other punct, move on until non-space/punct encountered, then on until word end
-                     - Otherwise, move on until word end.
-                     - Moving to word end: if char is space/non-mid-word-punct/end, word ends. If mid-word punct, check
-                       preceding char and next char
-                     */
-
                     var tokenizedTextProvider = createTokenizedTextProvider(pos, options);
                     var ch, lastTextPosInWord;
                     var next = backwards ? tokenizedTextProvider.previousStartChar : tokenizedTextProvider.nextEndChar;
+                    var passedWordEnd = false, insideWord = false;
+                    var includeTrailingWhiteSpace = !backwards && options.includeTrailingSpace;
+
+                    var completeWord = function() {
+                        newPos = lastTextPosInWord.position;
+                        lastTextPosInWord = null;
+                        passedWordEnd = false;
+                        ++unitsMoved;
+                        log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
+                    };
 
                     while ( (textPos = next()) && unitsMoved < absCount ) {
                         ch = textPos.character;
 
                         log.info("**** TESTING CHAR " + ch + ". is word char: " + textPos.isWordChar);
 
-/*
                         if (textPos.isWordChar) {
-                            lastTextPosInWord = textPos;
-                        }
-*/
-                        if (!textPos.isWordChar || (!backwards && unitsMoved > 0 && textPos.isFirstChar)) {
-                            if (lastTextPosInWord) {
+                            if (passedWordEnd && includeTrailingWhiteSpace) {
                                 // We've hit the end of a word.
-                                newPos = lastTextPosInWord.position;
-                                lastTextPosInWord = null;
-                                ++unitsMoved;
-                                log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
+                                completeWord();
                             }
-                        } else {
+                            insideWord = true;
                             lastTextPosInWord = textPos;
-                        }
-                    }
+                        } else if (insideWord) {
+                            passedWordEnd = true;
+                            insideWord = false;
 
-                    // If we've run out of positions before the required number of words were navigated, check whether
-                    // there was a last word and include it if so
-                    if (lastTextPosInWord && unitsMoved < absCount) {
-                        newPos = lastTextPosInWord.position;
-                        ++unitsMoved;
-                        log.info("**** FOUND EOF AFTER WORD. unitsMoved NOW " + unitsMoved);
-                    }
-/*
-                    var precedingChar = null, isWordChar, isTerminatorChar, isSpaceChar, isPunctuationChar;
-                    var previousCharIsMidWordPunctuation = false;
-                    var precedingIterator, precedingTextPos, ch, lastTextPosInWord;
-
-                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
-                        ch = textPos.character;
-                        isWordChar = isTerminatorChar = false;
-                        isSpaceChar = spacesRegex.test(ch);
-                        isPunctuationChar = options.punctuationRegex.test(ch);
-
-                        if (isSpaceChar || isPunctuationChar) {
-                            // If no word characters yet encountered, we just skip forward until we meet some.
-                            // Otherwise, we're done, unless this was a mid-word punctuation character
-
-                            if (!previousCharIsMidWordPunctuation && options.midWordPunctuationRegex.test(ch)) {
-                                if (precedingChar === null) {
-                                    // Check preceding character
-                                    precedingIterator = createCharacterIterator(pos, !backwards);
-                                    precedingTextPos = precedingIterator.next();
-                                    precedingChar = precedingTextPos ? precedingTextPos.character : "";
-                                    precedingIterator.dispose();
-                                    if (precedingChar && !options.punctuationRegex.test(precedingChar) && !spacesRegex.test(precedingChar)) {
-                                        previousCharIsMidWordPunctuation = true;
-                                    } else {
-                                        previousCharIsMidWordPunctuation = false;
-                                        isTerminatorChar = true;
-                                    }
-                                }
-                            } else if (!backwards && isPunctuationChar && lastTextPosInWord && options.includeTrailingPunctuation) {
-                                isWordChar = true;
+                            // Include trailing non-line-break white space characters, if appropriate
+                            if (includeTrailingWhiteSpace && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch)) {
+                                lastTextPosInWord = textPos;
                             } else {
-                                isTerminatorChar = true;
-                                previousCharIsMidWordPunctuation = false;
-                            }
-                        } else {
-                            previousCharIsMidWordPunctuation = false;
-                            isWordChar = true;
-                        }
-
-                        log.info("**** TESTING CHAR " + ch + ". is word char: " + isWordChar + ", is terminator: " + isTerminatorChar);
-
-                        if (isWordChar) {
-                            lastTextPosInWord = textPos;
-                        }
-
-                        if (isTerminatorChar) {
-                            if (lastTextPosInWord) {
-                                newPos = (!backwards && options.includeTrailingSpace && ch == " ")
-                                    ? textPos.position : lastTextPosInWord.position;
-
-                                lastTextPosInWord = null;
-                                ++unitsMoved;
-                                log.info("**** FOUND TERMINATOR AFTER WORD. unitsMoved NOW " + unitsMoved);
+                                completeWord();
                             }
                         }
-
-                        precedingChar = ch;
                     }
 
                     // If we've run out of positions before the required number of words were navigated, check whether
                     // there was a last word and include it if so
                     if (lastTextPosInWord && unitsMoved < absCount) {
-                        newPos = lastTextPosInWord.position;
-                        ++unitsMoved;
-                        log.info("**** FOUND EOF AFTER WORD. unitsMoved NOW " + unitsMoved);
+                        completeWord();
                     }
-*/
-
                     break;
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
