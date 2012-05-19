@@ -14,7 +14,7 @@ var buildSpec = {
 
 var buildDir = "build/";
 
-var svnDir = buildDir + "repository/", srcDir = svnDir + "js/";
+var svnDir = buildDir + "checkout/", srcDir = svnDir + "js/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
