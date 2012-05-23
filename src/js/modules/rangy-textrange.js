@@ -46,6 +46,7 @@ rangy.createModule("TextRange", function(api, module) {
     var spacesRegex = /^[ \t\f\r\n]+$/;
     var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
     var allWhiteSpaceRegex = /^[\t-\r \u0085\u00A0\u1680\u180E\u2000-\u200B\u2028\u2029\u202F\u205F\u3000]+$/;
+    var nonLineBreakWhiteSpaceRegex = /^[\t \u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]+$/;
     var lineBreakRegex = /^[\n-\r\u0085\u2028\u2029]$/;
 
     var defaultLanguage = "en";
@@ -715,24 +716,64 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
+    // This function must create word and non-word tokens for the whole of the text supplied to it
     function defaultTokenizer(chars, options) {
-        var word = chars.join(""), ch;
-        var result, end, i;
+        var word = chars.join(""), result, tokens = [];
 
-        // Initially mark all characters as non-word or white space
-        for (i = 0, end = chars.length; i < end; ++i) {
-            chars[i].isWhiteSpace = allWhiteSpaceRegex.test(chars[i]);
-            chars[i].isWordChar = false;
+        function createTokenFromRange(start, end, isWord) {
+            var tokenChars = chars.slice(start, end);
+            var token = {
+                isWord: isWord,
+                chars: tokenChars,
+                toString: function() { return tokenChars.join(""); }
+            };
+            for (var i = 0, len = tokenChars.length; i < len; ++i) {
+                tokenChars[i].token = token;
+            }
+            tokens.push(token);
         }
 
         // Match words and mark characters
+        var lastWordEnd = 0, wordStart, wordEnd;
         while ( (result = options.wordRegex.exec(word)) ) {
-            // Mark word characters
-            for (i = result.index, end = i + result[0].length; i < end || (options.includeTrailingSpace && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch)); ++i) {
-                chars[i].isWordChar = true;
+            wordStart = result.index;
+            wordEnd = wordStart + result[0].length;
+
+            // Create token for non-word characters preceding this word
+            if (wordStart > lastWordEnd) {
+                createTokenFromRange(lastWordEnd, wordStart, false);
             }
+
+            // Get trailing space characters for word
+            if (options.includeTrailingSpace) {
+                while (nonLineBreakWhiteSpaceRegex.test(chars[wordEnd])) {
+                    ++wordEnd;
+                }
+            }
+            createTokenFromRange(wordStart, wordEnd, true);
+            lastWordEnd = wordEnd;
         }
+
+        // Create token for trailing non-word characters, if any exist
+        if (lastWordEnd < chars.length) {
+            createTokenFromRange(lastWordEnd, chars.length, false);
+        }
+
+        return tokens;
     }
+
+    var arrayIndexOf = Array.prototype.indexOf ?
+        function(arr, val) {
+            return arr.indexOf(val);
+        } :
+        function(arr, val) {
+            for (var i = 0, len = arr.length; i < len; ++i) {
+                if (arr[i] === val) {
+                    return i;
+                }
+            }
+            return -1;
+        };
 
     // Provide pair of iterators over text positions, tokenized. Transparently requests more text when next()
     // is called and there is no more tokenized text
@@ -743,6 +784,7 @@ rangy.createModule("TextRange", function(api, module) {
 
         // Consumes a word and the whitespace beyond it
         function consumeWord(forward) {
+            log.debug("consumeWord called, forward is " + forward);
             var textPos, textChar;
             var newChars = [], it = forward ? forwardIterator : backwardIterator;
 
@@ -750,6 +792,7 @@ rangy.createModule("TextRange", function(api, module) {
 
             while ( (textPos = it.next()) ) {
                 textChar = textPos.character;
+
                 if (allWhiteSpaceRegex.test(textChar)) {
                     if (insideWord) {
                         insideWord = false;
@@ -766,45 +809,59 @@ rangy.createModule("TextRange", function(api, module) {
                 newChars.push(textPos);
             }
 
+            log.debug("consumeWord got new chars " + newChars.join(""));
             return newChars;
         }
 
         // Get initial word surrounding initial position and tokenize it
-        var forwardBuffer = consumeWord(true);
-        var backwardBuffer = consumeWord(false);
-        tokenizer(backwardBuffer.reverse().concat(forwardBuffer), options);
+        var forwardChars = consumeWord(true);
+        var backwardChars = consumeWord(false).reverse();
+        var tokens = tokenizer(backwardChars.concat(forwardChars), options);
+
+        // Create initial token buffers
+        var forwardTokensBuffer = forwardChars.length ?
+            tokens.slice(arrayIndexOf(tokens, forwardChars[0].token)) : [];
+        var backwardTokensBuffer = backwardChars.length ?
+            tokens.slice(0, arrayIndexOf(tokens, backwardChars.pop().token) + 1).reverse() : [];
+
 
         function inspectBuffer(buffer) {
             var textPositions = [];
             for (var i = 0; i < buffer.length; ++i) {
-                textPositions[i] = buffer[i].character + "(word: " + buffer[i].isWordChar + ", white space: " + buffer[i].isWhiteSpace + ")";
+                textPositions[i] = "(word: " + buffer[i] + ", is word: " + buffer[i].isWord + ")";
             }
             return textPositions;
         }
 
-        log.info("Initial word: ", inspectBuffer(backwardBuffer) + "", " and ", inspectBuffer(forwardBuffer) + "");
+        log.info("Initial word: ", inspectBuffer(forwardTokensBuffer) + "", " and ", inspectBuffer(backwardTokensBuffer) + "", forwardChars, backwardChars);
 
         return {
-            nextEndChar: function() {
-                if (!forwardBuffer.length) {
-                    forwardBuffer = consumeWord(true);
-                    tokenizer(forwardBuffer, options);
+            nextEndToken: function() {
+                log.debug("nextEndToken, token buffer is " + forwardTokensBuffer);
+                var lastToken;
+                if (forwardTokensBuffer.length == 1 && !(lastToken = forwardTokensBuffer[0]).isWord) {
+                    // Merge trailing non-word into next word and tokenize
+                    forwardTokensBuffer = tokenizer(lastToken.chars.concat(consumeWord(true)), options);
                 }
-                return forwardBuffer.shift();
+
+                return forwardTokensBuffer.shift();
             },
 
-            previousStartChar: function() {
-                if (!backwardBuffer.length) {
-                    backwardBuffer = consumeWord(false);
-                    tokenizer(backwardBuffer.reverse(), options);
+            previousStartToken: function() {
+                log.debug("previousStartToken, token buffer is " + backwardTokensBuffer);
+                var lastToken;
+                if (backwardTokensBuffer.length == 1 && !(lastToken = backwardTokensBuffer[0]).isWord) {
+                    // Merge leading non-word into next word and tokenize
+                    backwardTokensBuffer = tokenizer(consumeWord(false).reverse().concat(lastToken.chars), options);
                 }
-                return backwardBuffer.pop();
+
+                return backwardTokensBuffer.pop();
             },
 
             dispose: function() {
                 forwardIterator.dispose();
                 backwardIterator.dispose();
-                forwardBuffer = backwardBuffer = null;
+                forwardTokensBuffer = backwardTokensBuffer = null;
             }
         };
     }
@@ -841,7 +898,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
-        var unitsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
+        var unitsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count), token;
         if (count !== 0) {
             var backwards = (count < 0);
             var it = createCharacterIterator(pos, backwards);
@@ -856,55 +913,24 @@ rangy.createModule("TextRange", function(api, module) {
                     break;
                 case WORD:
                     var tokenizedTextProvider = createTokenizedTextProvider(pos, options);
-                    var ch, lastTextPosInWord;
-                    var next = backwards ? tokenizedTextProvider.previousStartChar : tokenizedTextProvider.nextEndChar;
-                    var passedWordEnd = false, insideWord = false;
-                    var includeTrailingWhiteSpace = !backwards && options.includeTrailingSpace;
+                    var next = backwards ? tokenizedTextProvider.previousStartToken : tokenizedTextProvider.nextEndToken;
 
-                    var completeWord = function() {
-                        newPos = lastTextPosInWord.position;
-                        lastTextPosInWord = null;
-                        passedWordEnd = false;
-                        ++unitsMoved;
-                        log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
-                    };
-
-                    while ( (textPos = next()) && unitsMoved < absCount ) {
-                        ch = textPos.character;
-
-                        log.info("**** TESTING CHAR " + ch + ". is word char: " + textPos.isWordChar);
-
-                        if (textPos.isWordChar) {
-                            if (passedWordEnd && includeTrailingWhiteSpace) {
-                                // We've hit the end of a word.
-                                completeWord();
-                            }
-                            insideWord = true;
-                            lastTextPosInWord = textPos;
-                        } else if (insideWord) {
-                            passedWordEnd = true;
-                            insideWord = false;
-
-                            // Include trailing non-line-break white space characters, if appropriate
-                            if (includeTrailingWhiteSpace && allWhiteSpaceRegex.test(ch) && !lineBreakRegex.test(ch)) {
-                                lastTextPosInWord = textPos;
-                            } else {
-                                completeWord();
-                            }
+                    while ( (token = next()) && unitsMoved < absCount ) {
+                        log.debug("token: " + token.chars.join(""), token.isWord);
+                        if (token.isWord) {
+                            ++unitsMoved;
+                            log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
+                            newPos = (backwards ? token.chars[0] : token.chars[token.chars.length - 1]).position;
                         }
-                    }
-
-                    // If we've run out of positions before the required number of words were navigated, check whether
-                    // there was a last word and include it if so
-                    if (lastTextPosInWord && unitsMoved < absCount) {
-                        completeWord();
                     }
                     break;
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
             }
             if (backwards) {
+                log.warn("newPos: " + newPos);
                 newPos = previousVisiblePosition(newPos);
+                log.warn("newPos now: " + newPos);
                 unitsMoved = -unitsMoved;
             }
             it.dispose();
