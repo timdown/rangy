@@ -673,6 +673,17 @@ xn.test.suite("Text Range module tests", function(s) {
         testRangeBoundaries(t, range, textNode, 4, textNode, 7);
     });
 
+    s.test("expand in text node, around word", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStart(textNode, 4);
+        range.setEnd(textNode, 7);
+
+        t.assertFalse(range.expand("word"));
+        testRangeBoundaries(t, range, textNode, 4, textNode, 7);
+    });
+
     s.test("expand in text node, non-move test return value", function(t) {
         t.el.innerHTML = 'One Two three';
         var textNode = t.el.firstChild;

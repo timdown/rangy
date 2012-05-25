@@ -821,9 +821,9 @@ rangy.createModule("TextRange", function(api, module) {
         // Create initial token buffers
         var forwardTokensBuffer = forwardChars.length ?
             tokens.slice(arrayIndexOf(tokens, forwardChars[0].token)) : [];
-        var backwardTokensBuffer = backwardChars.length ?
-            tokens.slice(0, arrayIndexOf(tokens, backwardChars.pop().token) + 1).reverse() : [];
 
+        var backwardTokensBuffer = backwardChars.length ?
+            tokens.slice(0, arrayIndexOf(tokens, backwardChars.pop().token) + 1) : [];
 
         function inspectBuffer(buffer) {
             var textPositions = [];
@@ -1097,28 +1097,27 @@ rangy.createModule("TextRange", function(api, module) {
                 var startPos = getRangeStartPosition(this);
                 var endPos = getRangeEndPosition(this);
 
-                var moveStartResult = movePositionBy(startPos, WORD, 1, options);
-                if (!moveStartResult.position.equals(startPos)) {
-                    var newStartPos = movePositionBy(moveStartResult.position, WORD, -1, options).position;
-                    this.setStart(newStartPos.node, newStartPos.offset);
-                    log.info("**** MOVED START. Range now " + this.inspect(), startPos.inspect(), newStartPos.inspect());
-                    moved = !newStartPos.equals(startPos);
-                }
-                if (this.collapsed) {
-                    this.moveEnd(WORD, 1);
-                    if (!this.collapsed) {
-                        moved = true;
-                    }
-                } else {
-                    var moveEndResult = movePositionBy(endPos, WORD, -1, options);
-                    if (!moveEndResult.position.equals(endPos)) {
-                        var newEndPos = movePositionBy(moveEndResult.position, WORD, 1, options).position;
-                        this.setEnd(newEndPos.node, newEndPos.offset);
-                        log.info("**** MOVED END. Range now " + this.inspect());
-                        moved = moved || !newEndPos.equals(endPos);
-                    }
-                }
+                var startTokenizedTextProvider = createTokenizedTextProvider(startPos, options);
+                var startToken = startTokenizedTextProvider.nextEndToken();
+                var newStartPos = previousVisiblePosition(startToken.chars[0].position);
+                var endToken, newEndPos;
 
+                if (this.collapsed) {
+                    endToken = startToken;
+                } else {
+                    var endTokenizedTextProvider = createTokenizedTextProvider(endPos, options);
+                    endToken = endTokenizedTextProvider.previousStartToken();
+                }
+                newEndPos = endToken.chars[endToken.chars.length - 1].position;
+
+                if (!newStartPos.equals(startPos)) {
+                    this.setStart(newStartPos.node, newStartPos.offset);
+                    moved = true;
+                }
+                if (!newEndPos.equals(endPos)) {
+                    this.setEnd(newEndPos.node, newEndPos.offset);
+                    moved = true;
+                }
                 return moved;
             } else {
                 return this.moveEnd(CHARACTER, 1);
