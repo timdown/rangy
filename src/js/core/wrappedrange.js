@@ -80,6 +80,12 @@ rangy.createModule("WrappedRange", function(api, module) {
         }
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
+
+        // Workaround for HTML5 Shiv's insane violation of document.createElement(). See issue 104.
+        if (workingNode.parentNode) {
+            workingNode.parentNode.removeChild(workingNode);
+        }
+
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var previousNode, nextNode, boundaryPosition, boundaryNode;
 
