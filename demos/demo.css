@@ -65,3 +65,9 @@ pre {
     -ms-user-select: none;
     user-select: none;
 }
+
+*.warning {
+    border: solid darkred 2px;
+    padding: 3px;
+    background-color: #f77;
+}
