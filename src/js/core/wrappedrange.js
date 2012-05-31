@@ -565,19 +565,19 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     api.createIframeRange = function(iframeEl) {
         module.deprecationNotice("createIframeRange()", "createRange(iframeEl)");
-        return api.createRange(dom.getIframeDocument(iframeEl));
+        return api.createRange(iframeEl);
     };
 
     api.createIframeRangyRange = function(iframeEl) {
         module.deprecationNotice("createIframeRangyRange()", "createRangyRange(iframeEl)");
-        return api.createRangyRange(dom.getIframeDocument(iframeEl));
+        return api.createRangyRange(iframeEl);
     };
 
     api.addCreateMissingNativeApiListener(function(win) {
         var doc = win.document;
         if (typeof doc.createRange == "undefined") {
             doc.createRange = function() {
-                return api.createRange(this);
+                return api.createRange(doc);
             };
         }
         doc = win = null;

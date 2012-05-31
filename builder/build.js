@@ -22,8 +22,8 @@ var modules = [
     "rangy-cssclassapplier.js",
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
-    "rangy-textrange.js",
-    "rangy-util.js"
+    "rangy-textrange.js"/*,
+    "rangy-util.js"*/
 ];
 
 var allScripts = [coreFilename].concat(modules);
