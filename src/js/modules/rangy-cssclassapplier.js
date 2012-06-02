@@ -114,9 +114,17 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function elementHasProps(el, props) {
+        var propValue;
         for (var p in props) {
-            if (props.hasOwnProperty(p) && el[p] !== props[p]) {
-                return false;
+            if (props.hasOwnProperty(p)) {
+                propValue = props[p];
+                if (typeof propValue == "object") {
+                    if (!elementHasProps(el[p], propValue)) {
+                        return false;
+                    }
+                } else if (el[p] !== propValue) {
+                    return false;
+                }
             }
         }
         return true;
@@ -341,6 +349,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
     // Allow "class" as a property name in object properties
     var mappedPropertyNames = {"class" : "className"};
+    var attrNamesForProperties = {};
 
     function CssClassApplier(cssClass, options, tagNames) {
         this.cssClass = cssClass;
@@ -363,31 +372,16 @@ rangy.createModule("CssClassApplier", function(api, module) {
             normalize = options;
         }
 
-        // Backwards compatibility: the second parameter can also be a Boolean indicating whether normalization
+        // Backwards compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
         this.normalize = (typeof normalize == "undefined") ? true : normalize;
 
         // Initialize element properties and attribute exceptions
         this.attrExceptions = [];
         var el = document.createElement(this.elementTagName);
-        this.elementProperties = {};
-        for (var p in elementPropertiesFromOptions) {
-            if (elementPropertiesFromOptions.hasOwnProperty(p)) {
-                // Map "class" to "className"
-                if (mappedPropertyNames.hasOwnProperty(p)) {
-                    p = mappedPropertyNames[p];
-                }
-                el[p] = elementPropertiesFromOptions[p];
-
-                // Copy the property back from the dummy element so that later comparisons to check whether elements
-                // may be removed are checking against the right value. For example, the href property of an element
-                // returns a fully qualified URL even if it was previously assigned a relative URL.
-                this.elementProperties[p] = el[p];
-                this.attrExceptions.push(p);
-            }
-        }
+        this.elementProperties = this.copyPropertiesToElement(elementPropertiesFromOptions, el, true);
 
         this.elementSortedClassName = this.elementProperties.hasOwnProperty("className") ?
-            sortClassName(this.elementProperties.className + " " + cssClass) : cssClass;
+            this.elementProperties.className : cssClass;
 
         // Initialize tag names
         this.applyToAnyTagName = false;
@@ -418,13 +412,64 @@ rangy.createModule("CssClassApplier", function(api, module) {
         ignoreWhiteSpace: true,
         applyToEditableOnly: false,
 
+        copyPropertiesToElement: function(props, el, createCopy) {
+            var s, elStyle, elProps = {}, elPropsStyle, propValue, elPropValue, attrName;
+
+            for (var p in props) {
+                if (props.hasOwnProperty(p)) {
+                    propValue = props[p];
+                    elPropValue = el[p];
+
+                    // Special case for class. The copied properties object has the applier's CSS class as well as its
+                    // own to simplify checks when removing styling elements
+                    if (p == "className") {
+                        addClass(el, propValue);
+                        addClass(el, this.cssClass);
+                        el[p] = sortClassName(el[p]);
+                        if (createCopy) {
+                            elProps[p] = el[p];
+                        }
+                    }
+
+                    // Special case for style
+                    else if (p == "style") {
+                        elStyle = elPropValue;
+                        if (createCopy) {
+                            elProps[p] = elPropsStyle = {};
+                        }
+                        for (s in props[p]) {
+                            elStyle[s] = propValue[s];
+                            if (createCopy) {
+                                elPropsStyle[s] = elStyle[s];
+                            }
+                        }
+                        this.attrExceptions.push(p);
+                    } else {
+                        el[p] = propValue;
+                        // Copy the property back from the dummy element so that later comparisons to check whether elements
+                        // may be removed are checking against the right value. For example, the href property of an element
+                        // returns a fully qualified URL even if it was previously assigned a relative URL.
+                        if (createCopy) {
+                            elProps[p] = el[p];
+
+                            // Not all properties map to identically named attributes
+                            attrName = attrNamesForProperties.hasOwnProperty(p) ? attrNamesForProperties[p] : p;
+                            this.attrExceptions.push(attrName);
+                        }
+                    }
+                }
+            }
+
+            return createCopy ? elProps : "";
+        },
+
         hasClass: function(node) {
             return node.nodeType == 1 && dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) && hasClass(node, this.cssClass);
         },
 
         getSelfOrAncestorWithClass: function(node) {
             while (node) {
-                if (this.hasClass(node, this.cssClass)) {
+                if (this.hasClass(node)) {
                     return node;
                 }
                 node = node.parentNode;
@@ -504,7 +549,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         createContainer: function(doc) {
             var el = doc.createElement(this.elementTagName);
-            api.util.extend(el, this.elementProperties);
+            //api.util.extend(el, this.elementProperties, true);
+            this.copyPropertiesToElement(this.elementProperties, el, false);
             addClass(el, this.cssClass);
             return el;
         },

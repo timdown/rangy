@@ -114,13 +114,20 @@ window.rangy = (function() {
 
     // Add utility extend() method
     if ({}.hasOwnProperty) {
-        api.util.extend = function(o, props) {
+        api.util.extend = function(obj, props, deep) {
+            var o, p;
             for (var i in props) {
                 if (props.hasOwnProperty(i)) {
-                    o[i] = props[i];
+                    o = obj[i];
+                    p = props[i];
+                    //if (deep) alert([o !== null, typeof o == "object", p !== null, typeof p == "object"])
+                    if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
+                        api.util.extend(o, p, true);
+                    }
+                    obj[i] = p;
                 }
             }
-            return o;
+            return obj;
         };
     } else {
         fail("hasOwnProperty not supported");

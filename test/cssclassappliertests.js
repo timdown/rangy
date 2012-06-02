@@ -501,6 +501,23 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('t<a class="c1" href="http://www.google.com/">[es]</a>t', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test adding extra class", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {
+            elementProperties: {
+                "className": "extra"
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 't[es]t');
+
+        applier.toggleRange(range);
+        t.assertEquals('t<span class="c1 extra">[es]</span>t', htmlAndRangeToString(testEl, range));
+
+        applier.toggleRange(range);
+        t.assertEquals('t[es]t', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Test range after two toggles", function(t) {
         var applier1 = rangy.createCssClassApplier("c1");
 
@@ -536,5 +553,32 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         //t.assertEquals('<span class="c1">[one]</span><br><br> two', htmlAndRangeToString(testEl, range));
     });
 
+
+    s.test("Test issue 101 (adding style properties)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {
+            elementTagName: "a",
+            elementProperties: {
+                href: "http://www.timdown.co.uk/",
+                style: {
+                    "fontWeight": "bold"
+                }
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = "one";
+        var range = rangy.createRange();
+        range.selectNodeContents(testEl);
+        applier.toggleRange(range);
+        //alert(testEl.outerHTML)
+
+        var link = testEl.firstChild;
+        t.assertEquals(link.nodeName.toLowerCase(), "a");
+        t.assertEquals(link.href.toLowerCase(), "http://www.timdown.co.uk/");
+        t.assertEquals(link.style.fontWeight, "bold");
+
+        applier.toggleRange(range);
+        t.assertEquals(testEl.innerHTML, "one");
+    });
 
 }, false);
