@@ -197,7 +197,10 @@ function lint() {
         jshint.JSHINT(buf, {
             boss: true,
             loopfunc: true,
-            scripturl: true
+            scripturl: true,
+            eqeqeq: false,
+            eqnull: false,
+            laxbreak: true
         });
 
         var errors = jshint.JSHINT.errors;
