@@ -795,7 +795,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // The following are non-standard extensions
     selProto.getAllRanges = function() {
-        return this._ranges.slice(0);
+        var ranges = [];
+        for (var i = 0, len = this._ranges.length; i < len; ++i) {
+            ranges[i] = this.getRangeAt(i);
+        }
+        return ranges;
     };
 
     selProto.setSingleRange = function(range, backwards) {
