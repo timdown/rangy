@@ -4,8 +4,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.603
- * Build date: 28 May 2012
+ * Version: 1.3alpha.639
+ * Build date: 3 June 2012
  */
 window.rangy = (function() {
 
@@ -65,7 +65,7 @@ window.rangy = (function() {
     }
 
     var api = {
-        version: "1.3alpha.603",
+        version: "1.3alpha.639",
         initialized: false,
         supported: true,
 
@@ -113,13 +113,20 @@ window.rangy = (function() {
 
     // Add utility extend() method
     if ({}.hasOwnProperty) {
-        api.util.extend = function(o, props) {
+        api.util.extend = function(obj, props, deep) {
+            var o, p;
             for (var i in props) {
                 if (props.hasOwnProperty(i)) {
-                    o[i] = props[i];
+                    o = obj[i];
+                    p = props[i];
+                    //if (deep) alert([o !== null, typeof o == "object", p !== null, typeof p == "object"])
+                    if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
+                        api.util.extend(o, p, true);
+                    }
+                    obj[i] = p;
                 }
             }
-            return o;
+            return obj;
         };
     } else {
         fail("hasOwnProperty not supported");
@@ -147,6 +154,10 @@ window.rangy = (function() {
         }
 
         var body = isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+        if (!body || body.nodeName.toLowerCase() != "body") {
+            fail("No body element found");
+            return;
+        }
 
         if (body && isHostMethod(body, "createTextRange")) {
             testRange = body.createTextRange();
@@ -157,6 +168,7 @@ window.rangy = (function() {
 
         if (!implementsDomRange && !implementsTextRange) {
             fail("Neither Range nor TextRange are available");
+            return;
         }
 
         api.initialized = true;
@@ -1979,6 +1991,12 @@ rangy.createModule("WrappedRange", function(api, module) {
         }
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
+
+        // Workaround for HTML5 Shiv's insane violation of document.createElement(). See issue 104.
+        if (workingNode.parentNode) {
+            workingNode.parentNode.removeChild(workingNode);
+        }
+
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var previousNode, nextNode, boundaryPosition, boundaryNode;
 
@@ -2449,28 +2467,27 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     api.createIframeRange = function(iframeEl) {
         module.deprecationNotice("createIframeRange()", "createRange(iframeEl)");
-        return api.createRange(dom.getIframeDocument(iframeEl));
+        return api.createRange(iframeEl);
     };
 
     api.createIframeRangyRange = function(iframeEl) {
         module.deprecationNotice("createIframeRangyRange()", "createRangyRange(iframeEl)");
-        return api.createRangyRange(dom.getIframeDocument(iframeEl));
+        return api.createRangyRange(iframeEl);
     };
 
     api.addCreateMissingNativeApiListener(function(win) {
         var doc = win.document;
         if (typeof doc.createRange == "undefined") {
             doc.createRange = function() {
-                return api.createRange(this);
+                return api.createRange(doc);
             };
         }
         doc = win = null;
     });
 });
+// This module creates a selection object wrapper that conforms as closely as possible to the Selection specification
+// in the HTML Editing spec (http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections)
 rangy.createModule("WrappedSelection", function(api, module) {
-    // This will create a selection object wrapper that follows the Selection object found in the WHATWG draft DOM Range
-    // spec (http://html5.org/specs/dom-range.html)
-
     api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
 
     api.config.checkSelectionRanges = true;
@@ -2761,8 +2778,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var getSelectionRangeAt;
 
-    if (util.isHostMethod(testSelection,  "getRangeAt")) {
-        // TODO: Why the try/catch? Find out.
+    if (util.isHostMethod(testSelection, "getRangeAt")) {
+        // try/catch is present because getRangeAt() threw and error in some browser and some situation. Unfortunately,
+        // I didn't write a comment about the specifics and am now scared to take it out.
         getSelectionRangeAt = function(sel, index) {
             try {
                 return sel.getRangeAt(index);
@@ -2826,10 +2844,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
             cachedRangySelections.length = 0;
         }
         return null;
-    }
-
-    function emptySelectionCache() {
-        cachedRangySelections.length = 0;
     }
 
     api.getSelection = function(win) {
@@ -2910,7 +2924,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                             this.removeAllRanges();
                             previousRangeCount = 0;
                         }
-                        this.nativeSelection.addRange(getNativeRange(range));
+                        // Clone the native range so that changing the selected range does not affect the selection.
+                        // This is contrary to the spec but is the only way to achieve consistency between browsers. See
+                        // issue 80.
+                        this.nativeSelection.addRange(getNativeRange(range).cloneRange());
 
                         // Check whether adding the range was successful
                         this.rangeCount = this.nativeSelection.rangeCount;
@@ -3019,7 +3036,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         if (index < 0 || index >= this.rangeCount) {
             throw new DOMException("INDEX_SIZE_ERR");
         } else {
-            return this._ranges[index];
+            // Clone the range to preserve selection-range independence. See issue 80.
+            return this._ranges[index].cloneRange();
         }
     };
 
@@ -3112,7 +3130,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (removed || range !== ranges[i]) {
                 sel.addRange(ranges[i]);
             } else {
-                // According to the draft WHATWG Range spec, the same range may be added to the selection multiple
+                // According to the draft HTML Editing spec, the same range may be added to the selection multiple
                 // times. removeRange should only remove the first instance, so the following ensures only the first
                 // instance is removed
                 removed = true;
@@ -3176,8 +3194,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     }
 
-    // Selection text
-    // This is conformant to the new WHATWG DOM Range draft spec but differs from WebKit and Mozilla's implementation
+    // Selection stringifier
+    // This is conformant to the old HTML5 selections draft spec but differs from WebKit and Mozilla's implementation.
+    // The current spec does not yet define this method.
     selProto.toString = function() {
         var rangeTexts = [];
         for (var i = 0, len = this.rangeCount; i < len; ++i) {
@@ -3192,13 +3211,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     }
 
-    // No current browsers conform fully to the HTML 5 draft spec for this method, so Rangy's own method is always used
+    // No current browser conforms fully to the spec for this method, so Rangy's own method is always used
     selProto.collapse = function(node, offset) {
         assertNodeInSameDocument(this, node);
-        var range = api.createRange(dom.getDocument(node));
+        var range = api.createRange(node);
         range.collapseToPoint(node, offset);
-        this.removeAllRanges();
-        this.addRange(range);
+        this.setSingleRange(range);
         this.isCollapsed = true;
     };
 
@@ -3220,11 +3238,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     };
 
-    // The HTML 5 spec is very specific on how selectAllChildren should be implemented so the native implementation is
+    // The spec is very specific on how selectAllChildren should be implemented so the native implementation is
     // never used by Rangy.
     selProto.selectAllChildren = function(node) {
         assertNodeInSameDocument(this, node);
-        var range = api.createRange(dom.getDocument(node));
+        var range = api.createRange(node);
         range.selectNodeContents(node);
         this.removeAllRanges();
         this.addRange(range);
@@ -3243,19 +3261,25 @@ rangy.createModule("WrappedSelection", function(api, module) {
             this.refresh();
         } else if (this.rangeCount) {
             var ranges = this.getAllRanges();
-            this.removeAllRanges();
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                ranges[i].deleteContents();
+            if (ranges.length) {
+                this.removeAllRanges();
+                for (var i = 0, len = ranges.length; i < len; ++i) {
+                    ranges[i].deleteContents();
+                }
+                // The spec says nothing about what the selection should contain after calling deleteContents on each
+                // range. Firefox moves the selection to where the final selected range was, so we emulate that
+                this.addRange(ranges[len - 1]);
             }
-            // The HTML5 spec says nothing about what the selection should contain after calling deleteContents on each
-            // range. Firefox moves the selection to where the final selected range was, so we emulate that
-            this.addRange(ranges[len - 1]);
         }
     };
 
     // The following are non-standard extensions
     selProto.getAllRanges = function() {
-        return this._ranges.slice(0);
+        var ranges = [];
+        for (var i = 0, len = this._ranges.length; i < len; ++i) {
+            ranges[i] = this.getRangeAt(i);
+        }
+        return ranges;
     };
 
     selProto.setSingleRange = function(range, backwards) {

@@ -1,6 +1,24 @@
 /**
  * Text range module for Rangy.
- * A generic framework for creating text mutation commands for Ranges and Selections
+ * Text-based manipulation and searching of ranges and selections.
+ *
+ * Features
+ *
+ * - Ability to move range boundaries by character or word offsets
+ * - Customizable word tokenizer
+ * - Ignore text nodes inside <script> or <style> elements or those hidden by CSS display and visibility properties
+ * - Do not ignore text nodes that are outside normal document flow
+ * - Range findText method to search for text or regex within the page or within a range. Flags for whole words and case
+ *   sensitivity
+ * - Selection and range save/restore as text offsets within a node
+ * - Methods to return visible text within a range or selection
+ * - innerText method for elements
+ *
+ * References
+ *
+ * https://www.w3.org/Bugs/Public/show_bug.cgi?id=13145
+ * http://aryeh.name/spec/innertext/innertext.html
+ * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
@@ -9,31 +27,9 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.603
- * Build date: 28 May 2012
+ * Version: 1.3alpha.639
+ * Build date: 3 June 2012
  */
-/**
- * Scope
- *
- * - Add ability to move range boundaries by character or word offsets
- * - Ignore text nodes inside <script> or <style> elements
- * - Do not ignore text nodes that are outside normal document flow
- * - Add a find method to search for text (optionally case sensitive, default insensitive) within the range
- * - Add ability to add custom word boundary finder (regex?)
- * - Add method to range to return a boundary as a text offset within a node
- * - Add method to selection to get the selection as text offsets within an optional node (body otherwise)
- * - Add method to selection to set the selection as text offsets within an optional node (body otherwise) and direction
- * - Add method to selection to return visible text
- * - Add window.find() equivalent
- * - Add innerText equivalent
- *
- * References
- *
- * https://www.w3.org/Bugs/Public/show_bug.cgi?id=13145
- * http://aryeh.name/spec/innertext/innertext.html
- * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
- */
-
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
@@ -936,9 +932,9 @@ rangy.createModule("TextRange", function(api, module) {
         var range = api.createRange(startPos.node);
         range.setStart(startPos.node, startPos.offset);
         range.setEnd(endPos.node, endPos.offset);
-        var isWholeWord = !range.expand("word", wordOptions);
+        var returnVal = !range.expand("word", wordOptions);
         range.detach();
-        return isWholeWord;
+        return returnVal;
     }
 
     function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, options) {
@@ -1260,7 +1256,7 @@ rangy.createModule("TextRange", function(api, module) {
                 characterRanges[i] = {
                     range: ranges[i].toCharacterRange(containerNode),
                     backwards: backwards
-                }
+                };
             }
 
             return characterRanges;
@@ -1274,6 +1270,14 @@ rangy.createModule("TextRange", function(api, module) {
                 range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end);
                 this.addRange(range, characterRange.backwards);
             }
+        },
+
+        text: function() {
+            var rangeTexts = [];
+            for (var i = 0, len = this.rangeCount; i < len; ++i) {
+                rangeTexts[i] = this.getRangeAt(i).text();
+            }
+            return rangeTexts.join("");
         }
     });
 

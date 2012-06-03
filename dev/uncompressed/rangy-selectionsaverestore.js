@@ -9,8 +9,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.603
- * Build date: 28 May 2012
+ * Version: 1.3alpha.639
+ * Build date: 3 June 2012
  */
 rangy.createModule("SaveRestore", function(api, module) {
     api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
@@ -79,7 +79,9 @@ rangy.createModule("SaveRestore", function(api, module) {
                 endMarkerId: endEl.id,
                 collapsed: false,
                 backwards: backwards,
-                toString: function() {return "original text: '" + text + "', new text: '" + range.toString() + "'"}
+                toString: function() {
+                    return "original text: '" + text + "', new text: '" + range.toString() + "'";
+                }
             };
         }
     }
