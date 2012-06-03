@@ -294,7 +294,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var getSelectionRangeAt;
 
     if (util.isHostMethod(testSelection, "getRangeAt")) {
-        // try/catch is present because getRangeAt() threw and error in some browser and some situation. Unfortunately
+        // try/catch is present because getRangeAt() threw and error in some browser and some situation. Unfortunately,
         // I didn't write a comment about the specifics and am now scared to take it out.
         getSelectionRangeAt = function(sel, index) {
             try {
@@ -439,7 +439,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                             this.removeAllRanges();
                             previousRangeCount = 0;
                         }
-                        this.nativeSelection.addRange(getNativeRange(range));
+                        // Clone the native range so that changing the selected range does not affect the selection.
+                        // This is contrary to the spec but is the only way to achieve consistency between browsers. See
+                        // issue 80.
+                        this.nativeSelection.addRange(getNativeRange(range).cloneRange());
 
                         // Check whether adding the range was successful
                         this.rangeCount = this.nativeSelection.rangeCount;

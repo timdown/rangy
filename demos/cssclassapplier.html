@@ -45,6 +45,9 @@
 
             // Enable buttons
             var cssClassApplierModule = rangy.modules.CssClassApplier;
+
+            // Next line is pure paranoia: it will only return false if the browser has no support for ranges,
+            // selections or TextRanges. Even IE 5 would pass this test.
             if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
                 boldRedApplier = rangy.createCssClassApplier("boldRed", true);
 
