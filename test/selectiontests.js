@@ -203,7 +203,6 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             range.selectNodeContents(t.nodes.plainText);
             sel.addRange(range);
             t.assert(DomRange.rangesEqual(range, sel.getRangeAt(0)));
-            t.assertEquivalent(range, sel.getRangeAt(0));
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         if (rangy.features.collapsedNonEditableSelectionsSupported) {
