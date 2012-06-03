@@ -9,17 +9,19 @@
 - [X] TextRange module
       (http://groups.google.com/group/rangy/browse_frm/thread/bd7a351e63a16474)
 - [X] Allow Window, Document, iframe and DOM node as params to range/selection creation methods
-- [ ] Simple selection save/restore (bookmark?) (is this necessary?)
-- [ ] Insert HTML
-      (http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514)
 - [X] Add rangy.features.implementsWinGetSelection and rangy.features.implementsDocSelection
-- [ ] Check Range and Selection against WHATWG Range spec algorithms
-- [ ] Add Range setStartAndEnd(). Overloaded? eg. two args collapsed, three args (node, startOffset, endOffset),
-      four args (startNode, startOffset, endNode, endOffset) (consider this)
+- [ ] Either a utils module or an FAQ page with code snippets for common use cases, including:
+      - [ ] Simple selection save/restore (bookmark?) (is this necessary?)
+      - [ ] Insert HTML
+            (http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514)
+      - [ ] Check Range and Selection against WHATWG Range spec algorithms
+      - [ ] Add Range setStartAndEnd(). Overloaded? eg. two args collapsed, three args (node, startOffset, endOffset),
+            four args (startNode, startOffset, endNode, endOffset) (consider this)
 
 1.4
 ---
 
+- [ ] Highlighter module. Review and rewrite existing.
 - [ ] Commands module with basic inline commands (bold, italic, colour, font face, font size, background colour, etc.)
       (http://stackoverflow.com/questions/2887101/apply-style-to-range-of-text-with-javascript-in-uiwebview/2888969#2888969)
 - [ ] More commands (block? Insert line break? Think about this, don't want to build a WYSIWYG editor)
