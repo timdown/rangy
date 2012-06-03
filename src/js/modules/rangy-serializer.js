@@ -175,7 +175,7 @@ rangy.createModule("Serializer", function(api, module) {
             doc = doc || document;
             rootNode = doc.documentElement;
         }
-        var result = /^([^,]+),([^,\{]+)({([^}]+)})?$/.exec(serialized);
+        var result = /^([^,]+),([^,\{]+)(\{([^}]+)\})?$/.exec(serialized);
         var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
         if (checksum && checksum !== getElementChecksum(rootNode)) {
             throw module.createError("deserializeRange(): checksums of serialized range root node (" + checksum +
@@ -195,7 +195,7 @@ rangy.createModule("Serializer", function(api, module) {
             doc = doc || document;
             rootNode = doc.documentElement;
         }
-        var result = /^([^,]+),([^,]+)({([^}]+)})?$/.exec(serialized);
+        var result = /^([^,]+),([^,]+)(\{([^}]+)\})?$/.exec(serialized);
         var checksum = result[3];
         return !checksum || checksum === getElementChecksum(rootNode);
     }
@@ -267,7 +267,7 @@ rangy.createModule("Serializer", function(api, module) {
         win = win || window;
         var serialized = getSerializedSelectionFromCookie(win.document.cookie);
         if (serialized) {
-            deserializeSelection(serialized, win.doc)
+            deserializeSelection(serialized, win.doc);
         }
     }
 

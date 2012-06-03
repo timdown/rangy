@@ -963,9 +963,9 @@ rangy.createModule("TextRange", function(api, module) {
         var range = api.createRange(startPos.node);
         range.setStart(startPos.node, startPos.offset);
         range.setEnd(endPos.node, endPos.offset);
-        var isWholeWord = !range.expand("word", wordOptions);
+        var returnVal = !range.expand("word", wordOptions);
         range.detach();
-        return isWholeWord;
+        return returnVal;
     }
 
     function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, options) {
@@ -1290,7 +1290,7 @@ rangy.createModule("TextRange", function(api, module) {
                 characterRanges[i] = {
                     range: ranges[i].toCharacterRange(containerNode),
                     backwards: backwards
-                }
+                };
             }
 
             return characterRanges;

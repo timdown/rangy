@@ -79,7 +79,9 @@ rangy.createModule("SaveRestore", function(api, module) {
                 endMarkerId: endEl.id,
                 collapsed: false,
                 backwards: backwards,
-                toString: function() {return "original text: '" + text + "', new text: '" + range.toString() + "'"}
+                toString: function() {
+                    return "original text: '" + text + "', new text: '" + range.toString() + "'";
+                }
             };
         }
     }

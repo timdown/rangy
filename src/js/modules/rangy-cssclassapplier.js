@@ -297,7 +297,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 }
             }
             return null;
-        }
+        };
     }
 
     var getPreviousMergeableTextNode = createAdjacentMergeableTextNodeGetter(false),
