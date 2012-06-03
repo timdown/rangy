@@ -155,6 +155,10 @@ window.rangy = (function() {
         }
 
         var body = isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+        if (!body || body.nodeName.toLowerCase() != "body") {
+            fail("No body element found");
+            return;
+        }
 
         if (body && isHostMethod(body, "createTextRange")) {
             testRange = body.createTextRange();
@@ -165,6 +169,7 @@ window.rangy = (function() {
 
         if (!implementsDomRange && !implementsTextRange) {
             fail("Neither Range nor TextRange are available");
+            return;
         }
 
         api.initialized = true;
