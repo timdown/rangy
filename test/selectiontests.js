@@ -540,6 +540,34 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             }
         });
 
+        s.test("Selection and range independence: addRange", function(t) {
+            var sel = selectionCreator(win);
+            if (sel.setSingleRange) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 0);
+                range.collapse(true);
+                sel.setSingleRange(range);
+                range.selectNodeContents(t.nodes.plainText);
+                sel.refresh();
+                t.assert(sel.isCollapsed);
+            }
+        });
+
+        s.test("Selection and range independence: getRangeAt", function(t) {
+            var sel = selectionCreator(win);
+            if (sel.setSingleRange) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 0);
+                range.collapse(true);
+                sel.setSingleRange(range);
+                sel.refresh();
+
+                var selRange = sel.getRangeAt(0);
+                selRange.selectNodeContents(t.nodes.div);
+                sel.refresh();
+                t.assert(sel.isCollapsed);
+            }
+        });
     }, false);
 }
 

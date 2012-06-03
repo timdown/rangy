@@ -551,7 +551,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         if (index < 0 || index >= this.rangeCount) {
             throw new DOMException("INDEX_SIZE_ERR");
         } else {
-            return this._ranges[index];
+            // Clone the range to preserve selection-range independence. See issue 80.
+            return this._ranges[index].cloneRange();
         }
     };
 
@@ -648,7 +649,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (removed || range !== ranges[i]) {
                 sel.addRange(ranges[i]);
             } else {
-                // According to the draft WHATWG Range spec, the same range may be added to the selection multiple
+                // According to the draft HTML Editing spec, the same range may be added to the selection multiple
                 // times. removeRange should only remove the first instance, so the following ensures only the first
                 // instance is removed
                 removed = true;
