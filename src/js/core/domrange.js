@@ -3,6 +3,7 @@ rangy.createModule("DomRange", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.DomRange");
     var dom = api.dom;
+    var util = api.util;
     var DomPosition = dom.DomPosition;
     var DOMException = api.DOMException;
 
@@ -157,9 +158,6 @@ rangy.createModule("DomRange", function(api, module) {
 
     // RangeIterator code partially borrows from IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
 
-    /**
-     * @constructor
-     */
     function RangeIterator(range, clonePartiallySelectedTextNodes) {
         this.range = range;
         this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
@@ -284,9 +282,6 @@ rangy.createModule("DomRange", function(api, module) {
 
     // Exceptions
 
-    /**
-     * @constructor
-     */
     function RangeException(codeName) {
         this.code = this[codeName];
         this.codeName = codeName;
@@ -307,7 +302,6 @@ rangy.createModule("DomRange", function(api, module) {
     /**
      * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
      * TODO: Look into making this a proper iterator, not requiring preloading everything first
-     * @constructor
      */
     function RangeNodeIterator(range, nodeTypes, filter) {
         this.nodes = getNodesInRange(range, nodeTypes, filter);
@@ -937,7 +931,7 @@ rangy.createModule("DomRange", function(api, module) {
 
         constructor.prototype = new RangePrototype();
 
-        api.util.extend(constructor.prototype, {
+        util.extend(constructor.prototype, {
             setStart: function(node, offset) {
                 assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
@@ -1151,9 +1145,6 @@ rangy.createModule("DomRange", function(api, module) {
         range.collapsed = range.commonAncestorContainer = null;
     }
 
-    /**
-     * @constructor
-     */
     function Range(doc) {
         this.startContainer = doc;
         this.startOffset = 0;
@@ -1166,6 +1157,22 @@ rangy.createModule("DomRange", function(api, module) {
 
     api.rangePrototype = RangePrototype.prototype;
 
+    util.extend(Range, {
+        rangeProperties: rangeProperties,
+        RangeIterator: RangeIterator,
+        copyComparisonConstants: copyComparisonConstants,
+        createPrototypeRange: createPrototypeRange,
+        inspect: inspect,
+        getRangeDocument: getRangeDocument,
+        rangesEqual: function(r1, r2) {
+            return r1.startContainer === r2.startContainer &&
+                r1.startOffset === r2.startOffset &&
+                r1.endContainer === r2.endContainer &&
+                r1.endOffset === r2.endOffset;
+        }
+    });
+
+/*
     Range.rangeProperties = rangeProperties;
     Range.RangeIterator = RangeIterator;
     Range.copyComparisonConstants = copyComparisonConstants;
@@ -1178,6 +1185,7 @@ rangy.createModule("DomRange", function(api, module) {
                r1.endContainer === r2.endContainer &&
                r1.endOffset === r2.endOffset;
     };
+*/
 
     api.DomRange = Range;
     api.RangeException = RangeException;

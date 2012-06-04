@@ -222,9 +222,6 @@ window.rangy = (function() {
 
     api.createMissingNativeApi = createMissingNativeApi;
 
-    /**
-     * @constructor
-     */
     function Module(name) {
         this.name = name;
         this.initialized = false;

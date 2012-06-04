@@ -297,9 +297,6 @@ rangy.createModule("DomUtil", function(api, module) {
         return fragment;
     }
 
-    /**
-     * @constructor
-     */
     function NodeIterator(root) {
         this.root = root;
         this._next = root;
@@ -339,9 +336,6 @@ rangy.createModule("DomUtil", function(api, module) {
         return new NodeIterator(root);
     }
 
-    /**
-     * @constructor
-     */
     function DomPosition(node, offset) {
         this.node = node;
         this.offset = offset;
@@ -361,9 +355,6 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     };
 
-    /**
-     * @constructor
-     */
     function DOMException(codeName) {
         this.code = this[codeName];
         this.codeName = codeName;

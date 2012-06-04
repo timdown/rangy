@@ -1,9 +1,6 @@
 rangy.createModule("WrappedRange", function(api, module) {
     api.requireModules( ["DomUtil", "DomRange"] );
 
-    /**
-     * @constructor
-     */
     var WrappedRange;
     var dom = api.dom;
     var util = api.util;
@@ -525,13 +522,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     if (api.features.implementsTextRange) {
         WrappedRange.rangeToTextRange = function(range) {
             if (range.collapsed) {
-                var tr = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
-
-                log.info(dom.inspectNode(tr.parentElement()), tr.getBoundingClientRect())
-
-                return tr;
-
-                //return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+                return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
             } else {
                 var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
                 var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
