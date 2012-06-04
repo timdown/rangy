@@ -19,15 +19,6 @@ rangy.createModule("DomRange", function(api, module) {
         return dom.getDocument(range.startContainer);
     }
 
-    function dispatchEvent(range, type, args) {
-        var listeners = range._listeners[type];
-        if (listeners) {
-            for (var i = 0, len = listeners.length; i < len; ++i) {
-                listeners[i].call(range, {target: range, args: args});
-            }
-        }
-    }
-
     function getBoundaryBeforeNode(node) {
         return new DomPosition(node.parentNode, dom.getNodeIndex(node));
     }
@@ -529,10 +520,6 @@ rangy.createModule("DomRange", function(api, module) {
     function RangePrototype() {}
 
     RangePrototype.prototype = {
-        attachListener: function(type, listener) {
-            this._listeners[type].push(listener);
-        },
-
         compareBoundaryPoints: function(how, range) {
             assertRangeValid(this);
             assertSameDocumentOrFragment(this.startContainer, range.startContainer);
@@ -1156,15 +1143,12 @@ rangy.createModule("DomRange", function(api, module) {
         range.endOffset = endOffset;
 
         updateCollapsedAndCommonAncestor(range);
-        dispatchEvent(range, "boundarychange", {startMoved: startMoved, endMoved: endMoved});
     }
 
     function detach(range) {
         assertNotDetached(range);
         range.startContainer = range.startOffset = range.endContainer = range.endOffset = null;
         range.collapsed = range.commonAncestorContainer = null;
-        dispatchEvent(range, "detach", null);
-        range._listeners = null;
     }
 
     /**
@@ -1175,10 +1159,6 @@ rangy.createModule("DomRange", function(api, module) {
         this.startOffset = 0;
         this.endContainer = doc;
         this.endOffset = 0;
-        this._listeners = {
-            boundarychange: [],
-            detach: []
-        };
         updateCollapsedAndCommonAncestor(this);
     }
 

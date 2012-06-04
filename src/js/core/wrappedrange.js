@@ -235,7 +235,6 @@ rangy.createModule("WrappedRange", function(api, module) {
         (function() {
             var rangeProto;
             var rangeProperties = DomRange.rangeProperties;
-            var canSetRangeStartAfterEnd;
 
             function updateRangeProperties(range) {
                 var i = rangeProperties.length, prop;
@@ -349,7 +348,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             try {
                 range.setStart(testTextNode, 1);
-                canSetRangeStartAfterEnd = true;
 
                 rangeProto.setStart = function(node, offset) {
                     this.nativeRange.setStart(node, offset);
@@ -370,8 +368,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             } catch(ex) {
                 log.info("Browser has bug (present in Firefox 2 and below) that prevents moving the start of a Range to a point after its current end. Correcting for it.");
-
-                canSetRangeStartAfterEnd = false;
 
                 rangeProto.setStart = function(node, offset) {
                     try {
@@ -431,8 +427,8 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // Test for WebKit bug that has the beahviour of compareBoundaryPoints round the wrong way for constants
-            // START_TO_END and END_TO_START: https://bugs.webkit.org/show_bug.cgi?id=20738
+            // Test for and correct WebKit bug that has the behaviour of compareBoundaryPoints round the wrong way for
+            // constants START_TO_END and END_TO_START: https://bugs.webkit.org/show_bug.cgi?id=20738
 
             range.selectNodeContents(testTextNode);
             range.setEnd(testTextNode, 3);
@@ -442,7 +438,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             range2.setEnd(testTextNode, 4);
             range2.setStart(testTextNode, 2);
 
-            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &
+            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &&
                     range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
                 // This is the wrong way round, so correct for it
                 log.info("START_TO_END and END_TO_START wrong way round. Correcting in wrapper.");
