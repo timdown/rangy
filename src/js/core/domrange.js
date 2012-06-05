@@ -132,7 +132,6 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function getNodesInRange(range, nodeTypes, filter) {
-        //log.info("getNodesInRange, " + nodeTypes.join(","));
         var filterNodeTypes = !!(nodeTypes && nodeTypes.length), regex;
         var filterExists = !!filter;
         if (filterNodeTypes) {
@@ -298,34 +297,6 @@ rangy.createModule("DomRange", function(api, module) {
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
-
-    /**
-     * Currently iterates through all nodes in the range on creation until I think of a decent way to do it
-     * TODO: Look into making this a proper iterator, not requiring preloading everything first
-     */
-    function RangeNodeIterator(range, nodeTypes, filter) {
-        this.nodes = getNodesInRange(range, nodeTypes, filter);
-        this._next = this.nodes[0];
-        this._position = 0;
-    }
-
-    RangeNodeIterator.prototype = {
-        _current: null,
-
-        hasNext: function() {
-            return !!this._next;
-        },
-
-        next: function() {
-            this._current = this._next;
-            this._next = this.nodes[ ++this._position ];
-            return this._current;
-        },
-
-        detach: function() {
-            this._current = this._next = this.nodes = null;
-        }
-    };
 
     var beforeAfterNodeTypes = [1, 3, 4, 5, 7, 8, 10];
     var rootContainerNodeTypes = [2, 9, 11];
@@ -790,11 +761,6 @@ rangy.createModule("DomRange", function(api, module) {
             }
         },
 
-        createNodeIterator: function(nodeTypes, filter) {
-            assertRangeValid(this);
-            return new RangeNodeIterator(this, nodeTypes, filter);
-        },
-
         getNodes: function(nodeTypes, filter) {
             assertRangeValid(this);
             return getNodesInRange(this, nodeTypes, filter);
@@ -1064,7 +1030,6 @@ rangy.createModule("DomRange", function(api, module) {
                     if (sibling && sibling.nodeType == node.nodeType) {
                         ec = node;
                         eo = node.length;
-                        log.debug("mergeForward merging next sibling '" + sibling.data + "' into '" + node.data + "'");
                         node.appendData(sibling.data);
                         sibling.parentNode.removeChild(sibling);
                     }
@@ -1076,7 +1041,6 @@ rangy.createModule("DomRange", function(api, module) {
                         sc = node;
                         var nodeLength = node.length;
                         so = sibling.length;
-                        log.debug("mergeBackward merging previous sibling '" + sibling.data + "' into '" + node.data + "'");
                         node.insertData(0, sibling.data);
                         sibling.parentNode.removeChild(sibling);
                         if (sc == ec) {
@@ -1101,14 +1065,12 @@ rangy.createModule("DomRange", function(api, module) {
                         mergeForward(ec);
                     }
                 } else {
-                    log.debug("endcontainer child count: " + ec.childNodes.length + ", endOffset: " + eo);
                     if (eo > 0) {
                         var endNode = ec.childNodes[eo - 1];
                         if (endNode && dom.isCharacterDataNode(endNode)) {
                             mergeForward(endNode);
                         }
                     }
-                    log.debug("range now " + this.inspect(), this.collapsed);
                     normalizeStart = !this.collapsed;
                 }
 
