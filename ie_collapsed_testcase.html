@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>extractContents() test case</title>
+    <script>
+        window.onload = function() {
+            var el = document.createElement("div");
+            var t1 = document.createTextNode("1");
+            var tBlank = document.createTextNode("");
+            var t2 = document.createTextNode("2");
+            el.appendChild(t1);
+            el.appendChild(tBlank);
+            el.appendChild(t2);
+            document.body.appendChild(el);
+
+            var r = document.createRange();
+            r.setStart(el, 1);
+            r.setEnd(el, 2);
+            alert("Range collapsed (should be false): " + r.collapsed);
+        };
+    </script>
+    <body></body>
+</html>

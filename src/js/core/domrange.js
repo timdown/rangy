@@ -250,7 +250,7 @@ rangy.createModule("DomRange", function(api, module) {
             var subRange;
             if (this.isSingleCharacterDataNode) {
                 subRange = this.range.cloneRange();
-                subRange.collapse();
+                subRange.collapse(false);
             } else {
                 subRange = new Range(getRangeDocument(this.range));
                 var current = this._current;
@@ -948,6 +948,30 @@ rangy.createModule("DomRange", function(api, module) {
                 setRangeEnd(this, node, offset);
             },
 
+            /**
+             * Convenience method to set a range's start and end boundaries. Overloaded as follows:
+             * - Two parameters (node, offset) creates a collapsed range at that position
+             * - three parameters (node, startOffset, endOffset) creates a range contained with node starting at
+             *   startOffset and ending at endOffset
+             * - Four parameters (startNode, startOffset, endNode, endOffset) creates a range starting at startOffset in
+             *   startNode and ending at endOffset in endNode
+             */
+            setStartAndEnd: function() {
+                var args = arguments;
+                this.setStart(args[0], args[1]);
+                switch (args.length) {
+                    case 2:
+                        this.collapse(true);
+                        break;
+                    case 3:
+                        this.setEnd(args[0], args[2]);
+                        break;
+                    case 4:
+                        this.setEnd(args[2], args[3]);
+                        break;
+                }
+            },
+
             setStartBefore: createBeforeAfterNodeSetter(true, true),
             setStartAfter: createBeforeAfterNodeSetter(false, true),
             setEndBefore: createBeforeAfterNodeSetter(true, false),
@@ -1040,6 +1064,7 @@ rangy.createModule("DomRange", function(api, module) {
                     if (sibling && sibling.nodeType == node.nodeType) {
                         ec = node;
                         eo = node.length;
+                        log.debug("mergeForward merging next sibling '" + sibling.data + "' into '" + node.data + "'");
                         node.appendData(sibling.data);
                         sibling.parentNode.removeChild(sibling);
                     }
@@ -1051,6 +1076,7 @@ rangy.createModule("DomRange", function(api, module) {
                         sc = node;
                         var nodeLength = node.length;
                         so = sibling.length;
+                        log.debug("mergeBackward merging previous sibling '" + sibling.data + "' into '" + node.data + "'");
                         node.insertData(0, sibling.data);
                         sibling.parentNode.removeChild(sibling);
                         if (sc == ec) {
@@ -1075,12 +1101,14 @@ rangy.createModule("DomRange", function(api, module) {
                         mergeForward(ec);
                     }
                 } else {
+                    log.debug("endcontainer child count: " + ec.childNodes.length + ", endOffset: " + eo);
                     if (eo > 0) {
                         var endNode = ec.childNodes[eo - 1];
                         if (endNode && dom.isCharacterDataNode(endNode)) {
                             mergeForward(endNode);
                         }
                     }
+                    log.debug("range now " + this.inspect(), this.collapsed);
                     normalizeStart = !this.collapsed;
                 }
 
@@ -1107,10 +1135,8 @@ rangy.createModule("DomRange", function(api, module) {
 
             collapseToPoint: function(node, offset) {
                 assertNotDetached(this);
-
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
-
                 setRangeStartAndEnd(this, node, offset);
             }
         });
@@ -1128,9 +1154,6 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function updateBoundaries(range, startContainer, startOffset, endContainer, endOffset) {
-        var startMoved = (range.startContainer !== startContainer || range.startOffset !== startOffset);
-        var endMoved = (range.endContainer !== endContainer || range.endOffset !== endOffset);
-
         range.startContainer = startContainer;
         range.startOffset = startOffset;
         range.endContainer = endContainer;
@@ -1171,21 +1194,6 @@ rangy.createModule("DomRange", function(api, module) {
                 r1.endOffset === r2.endOffset;
         }
     });
-
-/*
-    Range.rangeProperties = rangeProperties;
-    Range.RangeIterator = RangeIterator;
-    Range.copyComparisonConstants = copyComparisonConstants;
-    Range.createPrototypeRange = createPrototypeRange;
-    Range.inspect = inspect;
-    Range.getRangeDocument = getRangeDocument;
-    Range.rangesEqual = function(r1, r2) {
-        return r1.startContainer === r2.startContainer &&
-               r1.startOffset === r2.startOffset &&
-               r1.endContainer === r2.endContainer &&
-               r1.endOffset === r2.endOffset;
-    };
-*/
 
     api.DomRange = Range;
     api.RangeException = RangeException;

@@ -225,6 +225,41 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
         testSetBeforeOrAfter("setEndBefore");
         testSetBeforeOrAfter("setEndAfter");
 
+        if (testRange.setStartAndEnd) {
+            s.test("setStartAndEnd with two arguments", function(t) {
+                var range = rangeCreator(doc);
+
+                range.setStartAndEnd(t.nodes.plainText, 2);
+
+                t.assertEquivalent(range.startContainer, t.nodes.plainText);
+                t.assertEquivalent(range.startOffset, 2);
+                t.assertEquivalent(range.endContainer, t.nodes.plainText);
+                t.assertEquivalent(range.endOffset, 2);
+            });
+
+            s.test("setStartAndEnd with three arguments", function(t) {
+                var range = rangeCreator(doc);
+
+                range.setStartAndEnd(t.nodes.plainText, 2, 3);
+
+                t.assertEquivalent(range.startContainer, t.nodes.plainText);
+                t.assertEquivalent(range.startOffset, 2);
+                t.assertEquivalent(range.endContainer, t.nodes.plainText);
+                t.assertEquivalent(range.endOffset, 3);
+            });
+
+            s.test("setStartAndEnd with four arguments", function(t) {
+                var range = rangeCreator(doc);
+
+                range.setStartAndEnd(t.nodes.plainText, 2, t.nodes.boldAndItalicText, 1);
+
+                t.assertEquivalent(range.startContainer, t.nodes.plainText);
+                t.assertEquivalent(range.startOffset, 2);
+                t.assertEquivalent(range.endContainer, t.nodes.boldAndItalicText);
+                t.assertEquivalent(range.endOffset, 1);
+            });
+        }
+
         s.test("compareBoundaryPoints 1", function(t) {
             var range1 = rangeCreator(doc);
             var range2 = rangeCreator(doc);
@@ -265,7 +300,7 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
         });
 
-        s.test("extractContents 1", function(t) {
+        s.test("extractContents in single text node", function(t) {
             var range = rangeCreator(doc);
             range.setStart(t.nodes.plainText, 1);
             range.setEnd(t.nodes.plainText, 2);
@@ -274,6 +309,15 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             t.assertEquals(frag.childNodes.length, 1);
             t.assertEquals(frag.firstChild.nodeType, 3);
             t.assertEquals(frag.firstChild.data, "l");
+            t.assertEquals(t.nodes.plainText.data, "pain");
+            t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
+        });
+
+        s.test("deleteContents in single text node", function(t) {
+            var range = rangeCreator(doc);
+            range.setStart(t.nodes.plainText, 1);
+            range.setEnd(t.nodes.plainText, 2);
+            range.deleteContents();
             t.assertEquals(t.nodes.plainText.data, "pain");
             t.assertEquals(t.nodes.plainText.nextSibling.nodeType, 1);
         });
@@ -564,7 +608,6 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
         }
 
         // TODO: Write tests for all possible exceptions
-        // TODO: Write tests for extractContents/cloneContents etc when range is contained within one text node
 
         if (testRange.splitBoundaries) {
             s.test("splitBoundaries 'on[e]two' element container", function(t) {
@@ -949,7 +992,7 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
             s.test("createContextualFragment create b fragment in xmp", function(t) {
                 var range = rangeCreator(doc);
                 var el = doc.createElement("xmp");
-                var textNode =  doc.createTextNode("foo");
+                var textNode = doc.createTextNode("foo");
                 el.appendChild(textNode);
                 doc.body.appendChild(el);
 

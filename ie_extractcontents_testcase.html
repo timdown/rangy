@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>extractContents() test case</title>
+    <script>
+        window.onload = function() {
+            var t = document.createTextNode("test");
+            document.body.appendChild(t);
+            var r = document.createRange();
+            r.setStart(t, 1);
+            r.setEnd(t, 2);
+            r.extractContents();
+            alert("Data (should be 'tst'): " + t.data);
+        };
+    </script>
+    <body></body>
+</html>
