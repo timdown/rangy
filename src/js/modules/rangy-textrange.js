@@ -343,9 +343,10 @@ rangy.createModule("TextRange", function(api, module) {
         return new DomPosition(range.endContainer, range.endOffset);
     }
 
-    function TextPosition(character, position, isTrailingSpace, collapsible) {
+    function TextPosition(character, position, isLeadingSpace, isTrailingSpace, collapsible) {
         this.character = character;
         this.position = position;
+        this.isLeadingSpace = isLeadingSpace;
         this.isTrailingSpace = isTrailingSpace;
         this.collapsible = collapsible;
     }
@@ -379,6 +380,22 @@ rangy.createModule("TextRange", function(api, module) {
                 default:
                     return hasInnerText(el) ? "\n" : "";
             }
+        }
+        return "";
+    }
+
+    function getLeadingSpace(el) {
+        switch (getComputedDisplay(el)) {
+            case "inline":
+            case "inline-block":
+            case "inline-table":
+            case "none":
+            case "table-column":
+            case "table-column-group":
+            case "table-cell":
+                break;
+            default:
+                return hasInnerText(el) ? "\n" : "";
         }
         return "";
     }
@@ -509,7 +526,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function getPossibleCharacterAt(pos, transaction) {
         var node = pos.node, offset = pos.offset;
-        var visibleChar = "", isTrailingSpace = false, collapsible = false;
+        var visibleChar = "", isLeadingSpace = false, isTrailingSpace = false, collapsible = false;
         if (offset > 0) {
             if (node.nodeType == 3) {
                 var text = node.data;
@@ -558,9 +575,22 @@ rangy.createModule("TextRange", function(api, module) {
                         }
                     }
                 }
+
+                // Check the leading space of the next node for the case when a block element follows an inline
+                // element or text node. In that case, there is an implied line break between the two nodes.
+                if (!visibleChar) {
+                    var nextNode = node.childNodes[offset];
+                    if (nextNode && nextNode.nodeType == 1 && !isCollapsedNode(nextNode)) {
+                        log.debug("Getting leading space for node " + dom.inspectNode(nextNode));
+                        visibleChar = getLeadingSpace(nextNode);
+                        if (visibleChar) {
+                            isLeadingSpace = true;
+                        }
+                    }
+                }
             }
         }
-        return new TextPosition(visibleChar, pos, isTrailingSpace, collapsible);
+        return new TextPosition(visibleChar, pos, isLeadingSpace, isTrailingSpace, collapsible);
     }
 
     function getPreviousPossibleCharacter(pos, transaction) {
@@ -612,7 +642,7 @@ rangy.createModule("TextRange", function(api, module) {
             }
             preceding = precedingChars[precedingChars.length - 1];
 
-            log.info("possible.collapsible: " + possible.collapsible + ", trailing space: " + possible.isTrailingSpace + ", preceding: '" + preceding + "'");
+            log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace + ", preceding: '" + preceding + "'");
 
             // Disallow a collapsible space that follows a trailing space or line break, or is the first character
             if (possibleChar === " " && possible.collapsible && (!preceding || preceding.isTrailingSpace || preceding.character === "\n")) {
@@ -1326,6 +1356,12 @@ rangy.createModule("TextRange", function(api, module) {
         range.detach();
         return text;
     };
+
+/*
+    api.tokenizeText = function(el) {
+
+    };
+*/
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
