@@ -290,6 +290,43 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "");
     });
 
+    s.test("innerText on text node followed by block element", function(t) {
+        t.el.innerHTML = '1<div>2</div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two consecutive block elements", function(t) {
+        t.el.innerHTML = '<div>1</div><div>2</div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two block elements separated by a space", function(t) {
+        t.el.innerHTML = '<div>1</div> <div>2</div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText() on block element with leading space", function(t) {
+        t.el.innerHTML = '<p contenteditable="true"> One</p>';
+        var p = t.el.getElementsByTagName("p")[0];
+        t.assertEquals(rangy.innerText(p), "One");
+    });
+
+    s.test("innerText() on block element with leading space following block element", function(t) {
+        t.el.innerHTML = '<div>1</div><div> 2</div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText() on block element with leading space following block element and a space", function(t) {
+        t.el.innerHTML = '<div>1</div> <div> 2</div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText() on block element with leading space and preceding text", function(t) {
+        t.el.innerHTML = '1<p contenteditable="true"> One</p>';
+        var p = t.el.getElementsByTagName("p")[0];
+        t.assertEquals(rangy.innerText(p), "One");
+    });
+
     s.test("range text() on collapsed range", function(t) {
         t.el.innerHTML = '12345';
         var textNode = t.el.firstChild;
@@ -842,6 +879,25 @@ xn.test.suite("Text Range module tests", function(s) {
 
         t.assert(range.findText("Two", options));
         testRangeBoundaries(t, range, textNode, 14, textNode, 17);
+    });
+
+    s.test("createWordIterator", function(t) {
+        t.el.innerHTML = 'One two three; four';
+
+        var iterator = rangy.createWordIterator(t.el.firstChild, 10);
+
+        t.assertEquals(iterator.next().toString(), "three");
+        t.assertEquals(iterator.next().toString(), "; ");
+        t.assertEquals(iterator.next().toString(), "four");
+        iterator.dispose();
+
+        iterator = rangy.createWordIterator(t.el.firstChild, 10, "backwards");
+
+        t.assertEquals(iterator.next().toString(), "three");
+        t.assertEquals(iterator.next().toString(), " ");
+        t.assertEquals(iterator.next().toString(), "two");
+        t.assertEquals(iterator.next().toString(), " ");
+        t.assertEquals(iterator.next().toString(), "One");
     });
 
 }, false);

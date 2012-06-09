@@ -1357,11 +1357,23 @@ rangy.createModule("TextRange", function(api, module) {
         return text;
     };
 
-/*
-    api.tokenizeText = function(el) {
+    api.createWordIterator = function(startNode, startOffset, direction, options) {
+        options = createWordOptions(options);
+        var startPos = new DomPosition(startNode, startOffset);
+        var tokenizedTextProvider = createTokenizedTextProvider(startPos, options);
+        var backwards = (direction == "backwards");
 
+        return {
+            next: function() {
+                return backwards ? tokenizedTextProvider.previousStartToken() : tokenizedTextProvider.nextEndToken();
+            },
+
+            dispose: function() {
+                tokenizedTextProvider.dispose();
+                this.next = function() {};
+            }
+        };
     };
-*/
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
