@@ -953,9 +953,6 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             selectNodeContents: function(node) {
-                // This doesn't seem well specified: the spec talks only about selecting the node's contents, which
-                // could be taken to mean only its children. However, browsers implement this the same as selectNode for
-                // text nodes, so I shall do likewise
                 assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
 

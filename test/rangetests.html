@@ -15,8 +15,12 @@
             //log4javascript.getRootLogger().addAppender(appender);
             var log = log4javascript.getRootLogger();
             log4javascript.setShowStackTraces(true);
-            //log4javascript.setEnabled(false);
         </script>
+        <!--[if lt IE 9]>
+        <script type="text/javascript">
+            log4javascript.setEnabled(false);
+        </script>
+        <![endif]-->
         <script type="text/javascript" src="../src/js/core/core.js"></script>
         <script type="text/javascript" src="../src/js/core/dom.js"></script>
         <script type="text/javascript" src="../src/js/core/domrange.js"></script>

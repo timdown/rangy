@@ -185,7 +185,7 @@ window.rangy = (function() {
                 allListeners[i](api);
             } catch (ex) {
                 if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
-                    window.console.log("Init listener threw an exception. Continuing.", ex);
+                    window.console.log("Rangy init listener threw an exception. Continuing.", ex);
                 }
                 log.error("Init listener threw an exception. Continuing.", ex);
             }

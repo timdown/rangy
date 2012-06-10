@@ -46,7 +46,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         return function(el, cssClass) {
             if (el.className) {
-                el.className = el.className.replace(new RegExp("(?:^|\\s)" + cssClass + "(?:\\s|$)"), replacer);
+                el.className = el.className.replace(new RegExp("(^|\\s)" + cssClass + "(\\s|$)"), replacer);
             }
         };
     })();
@@ -345,10 +345,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     };
 
-    var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly"];
+    var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements"];
 
     // Allow "class" as a property name in object properties
-    var mappedPropertyNames = {"class" : "className"};
     var attrNamesForProperties = {};
 
     function CssClassApplier(cssClass, options, tagNames) {
@@ -411,6 +410,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         elementProperties: {},
         ignoreWhiteSpace: true,
         applyToEditableOnly: false,
+        useExistingElements: true,
 
         copyPropertiesToElement: function(props, el, createCopy) {
             var s, elStyle, elProps = {}, elPropsStyle, propValue, elPropValue, attrName;
@@ -498,6 +498,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
             var textNode, precedingTextNode;
 
+            // Check for every required merge and create a Merge object for each
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 textNode = textNodes[i];
                 precedingTextNode = getPreviousMergeableTextNode(textNode, !isUndo);
@@ -532,7 +533,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 currentMerge.textNodes.push(nextTextNode);
             }
 
-            // Do the merges
+            // Apply the merges
             if (merges.length) {
                 log.info("Merging. Merges:", merges);
                 for (i = 0, len = merges.length; i < len; ++i) {
@@ -549,7 +550,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         createContainer: function(doc) {
             var el = doc.createElement(this.elementTagName);
-            //api.util.extend(el, this.elementProperties, true);
             this.copyPropertiesToElement(this.elementProperties, el, false);
             addClass(el, this.cssClass);
             return el;
@@ -559,7 +559,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             log.group("Apply CSS class '" + this.cssClass + "'. textNode: " + textNode.data);
             log.info("Apply CSS class  '" + this.cssClass + "'. textNode: " + textNode.data);
             var parent = textNode.parentNode;
-            if (parent.childNodes.length == 1 && dom.arrayContains(this.tagNames, parent.tagName.toLowerCase())) {
+            if (parent.childNodes.length == 1 && dom.arrayContains(this.tagNames, parent.tagName.toLowerCase()) && this.useExistingElements) {
                 addClass(parent, this.cssClass);
             } else {
                 var el = this.createContainer(dom.getDocument(textNode));

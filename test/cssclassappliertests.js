@@ -581,4 +581,26 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals(testEl.innerHTML, "one");
     });
 
+    s.test("Issue 109 (extra option for useExistingElements)", function(t) {
+        var applier = rangy.createCssClassApplier("c1", {
+            useExistingElements: true
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 'x[1<span class="c2">2</span>3]x');
+        applier.applyToRange(range);
+        t.assertEquals('x<span class="c1">[1</span><span class="c1 c2">2</span><span class="c1">3]</span>x', htmlAndRangeToString(testEl, range));
+        applier.undoToRange(range);
+        t.assertEquals('x[1<span class="c2">2</span>3]x', htmlAndRangeToString(testEl, range));
+
+        applier = rangy.createCssClassApplier("c1", {
+            useExistingElements: false
+        });
+
+        applier.applyToRange(range);
+        t.assertEquals('x<span class="c1">[1</span><span class="c2"><span class="c1">2</span></span><span class="c1">3]</span>x', htmlAndRangeToString(testEl, range));
+        applier.undoToRange(range);
+        t.assertEquals('x[1<span class="c2">2</span>3]x', htmlAndRangeToString(testEl, range));
+    });
+
 }, false);
