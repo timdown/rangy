@@ -88,9 +88,16 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Move the working range through the container's children, starting at the end and working backwards, until the
         // working range reaches or goes past the boundary we're interested in
+        var limit = 0;
         do {
             containerElement.insertBefore(workingNode, workingNode.previousSibling);
             workingRange.moveToElementText(workingNode);
+/*
+            log.warn("workingNode at position " + dom.getNodeIndex(workingNode) + " in " +
+                dom.inspectNode(containerElement) + ", previous sibling is " +
+                dom.inspectNode(workingNode.previousSibling) + ", next sibling is " +
+                dom.inspectNode(workingNode.nextSibling));
+*/
         } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
                 workingNode.previousSibling);
 
