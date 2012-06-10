@@ -581,7 +581,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals(testEl.innerHTML, "one");
     });
 
-    s.test("Issue 109 (extra option for useExistingElements)", function(t) {
+    s.test("Issue 111 (extra option for useExistingElements)", function(t) {
         var applier = rangy.createCssClassApplier("c1", {
             useExistingElements: true
         });
