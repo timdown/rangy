@@ -10,8 +10,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.639
- * Build date: 3 June 2012
+ * Version: 1.3alpha.650
+ * Build date: 10 June 2012
  */
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );

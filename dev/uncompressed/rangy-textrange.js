@@ -27,8 +27,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.639
- * Build date: 3 June 2012
+ * Version: 1.3alpha.650
+ * Build date: 10 June 2012
  */
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
@@ -342,9 +342,10 @@ rangy.createModule("TextRange", function(api, module) {
         return new DomPosition(range.endContainer, range.endOffset);
     }
 
-    function TextPosition(character, position, isTrailingSpace, collapsible) {
+    function TextPosition(character, position, isLeadingSpace, isTrailingSpace, collapsible) {
         this.character = character;
         this.position = position;
+        this.isLeadingSpace = isLeadingSpace;
         this.isTrailingSpace = isTrailingSpace;
         this.collapsible = collapsible;
     }
@@ -378,6 +379,22 @@ rangy.createModule("TextRange", function(api, module) {
                 default:
                     return hasInnerText(el) ? "\n" : "";
             }
+        }
+        return "";
+    }
+
+    function getLeadingSpace(el) {
+        switch (getComputedDisplay(el)) {
+            case "inline":
+            case "inline-block":
+            case "inline-table":
+            case "none":
+            case "table-column":
+            case "table-column-group":
+            case "table-cell":
+                break;
+            default:
+                return hasInnerText(el) ? "\n" : "";
         }
         return "";
     }
@@ -507,7 +524,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function getPossibleCharacterAt(pos, transaction) {
         var node = pos.node, offset = pos.offset;
-        var visibleChar = "", isTrailingSpace = false, collapsible = false;
+        var visibleChar = "", isLeadingSpace = false, isTrailingSpace = false, collapsible = false;
         if (offset > 0) {
             if (node.nodeType == 3) {
                 var text = node.data;
@@ -548,9 +565,21 @@ rangy.createModule("TextRange", function(api, module) {
                         }
                     }
                 }
+
+                // Check the leading space of the next node for the case when a block element follows an inline
+                // element or text node. In that case, there is an implied line break between the two nodes.
+                if (!visibleChar) {
+                    var nextNode = node.childNodes[offset];
+                    if (nextNode && nextNode.nodeType == 1 && !isCollapsedNode(nextNode)) {
+                        visibleChar = getLeadingSpace(nextNode);
+                        if (visibleChar) {
+                            isLeadingSpace = true;
+                        }
+                    }
+                }
             }
         }
-        return new TextPosition(visibleChar, pos, isTrailingSpace, collapsible);
+        return new TextPosition(visibleChar, pos, isLeadingSpace, isTrailingSpace, collapsible);
     }
 
     function getPreviousPossibleCharacter(pos, transaction) {
@@ -1291,6 +1320,24 @@ rangy.createModule("TextRange", function(api, module) {
         var text = range.text();
         range.detach();
         return text;
+    };
+
+    api.createWordIterator = function(startNode, startOffset, direction, options) {
+        options = createWordOptions(options);
+        var startPos = new DomPosition(startNode, startOffset);
+        var tokenizedTextProvider = createTokenizedTextProvider(startPos, options);
+        var backwards = (direction == "backwards");
+
+        return {
+            next: function() {
+                return backwards ? tokenizedTextProvider.previousStartToken() : tokenizedTextProvider.nextEndToken();
+            },
+
+            dispose: function() {
+                tokenizedTextProvider.dispose();
+                this.next = function() {};
+            }
+        };
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
