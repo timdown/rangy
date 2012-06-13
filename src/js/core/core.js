@@ -13,7 +13,7 @@ window.rangy = (function() {
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
 
     var domRangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
-        "commonAncestorContainer", "START_TO_START", "START_TO_END", "END_TO_START", "END_TO_END"];
+        "commonAncestorContainer"];
 
     // Minimal set of methods required for DOM Level 2 Range compliance
     var domRangeMethods = ["setStart", "setStartBefore", "setStartAfter", "setEnd", "setEndBefore",
