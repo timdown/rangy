@@ -597,7 +597,7 @@ rangy.createModule("DomRange", function(api, module) {
                 log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
                 iterateSubtree(iterator, function(node) {
                     // Accept only text or CDATA nodes, not comments
-                    log.info("toString: got node", dom.inspectNode(node));
+                    //log.info("toString: got node", dom.inspectNode(node));
                     if (node.nodeType == 3 || node.nodeType == 4) {
                         textBits.push(node.data);
                     }

@@ -95,30 +95,62 @@ rangy.createModule("WrappedRange", function(api, module) {
          dom.inspectNode(workingNode.nextSibling));
          */
 
-        // Binary search
+        if (api.config.useBinarySearch) {
+            var nodeIndex, newNodeIndex, start = 0, end = containerElement.childNodes.length;
+            var limit = 0;
+            while (limit++ < 40) {
 /*
-        var nodeIndex, start = 0, end = containerElement.childNodes.length;
-        while (true) {
-            nodeIndex = Math.floor((start + end) / 2);
-            containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
-            comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
-            log.debug("node index: " + nodeIndex + ", start: " + start + ", end: " + end + ", comparison: " + comparison);
-            if (comparison == 0 || start == end) {
-                break;
-            } else if (comparison == 1) {
-                end = nodeIndex;
-            } else {
-                start = nodeIndex;
-            }
-        }
+                newNodeIndex = Math.floor((start + end) / 2);
+                if (newNodeIndex > nodeIndex) {
+                    newNodeIndex++;
+                }
+                nodeIndex = newNodeIndex;
 */
 
+                containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
+                workingRange.moveToElementText(workingNode);
+                comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
+                log.debug("*** node index: " + nodeIndex + ", start: " + start + ", end: " + end + ", comparison: " + comparison);
+                if (comparison == 0) {
+                    break;
+                } else if (comparison == 1) {
+                    end = (end == start + 1) ? start : nodeIndex;
+                } else {
+                    start = (end == start + 1) ? end : nodeIndex;
+                }
+            }
+            if (limit >= 40) {
+                throw new Error("Limit reached");
+            }
 
-        do {
-            containerElement.insertBefore(workingNode, workingNode.previousSibling);
-            workingRange.moveToElementText(workingNode);
-        } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
+            var binaryResult = dom.getNodeIndex(workingNode);
+            log.debug("*** BINARY SEARCH GOT node index " + binaryResult);
+
+            workingNode.parentNode.removeChild(workingNode);
+
+            do {
+                containerElement.insertBefore(workingNode, workingNode.previousSibling);
+                workingRange.moveToElementText(workingNode);
+                log.debug("*** node index: " + dom.getNodeIndex(workingNode) + ", comparison: " + comparison);
+            } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
                 workingNode.previousSibling);
+
+            var linearResult = dom.getNodeIndex(workingNode);
+            log.debug("*** LINEAR SEARCH GOT node index " + linearResult + ", comparison: " + comparison);
+
+            if (linearResult != binaryResult) {
+                throw new Error("Linear and binary do not agree (linear: " + linearResult + ", binary: " + binaryResult + ")");
+            }
+
+        } else {
+            do {
+                containerElement.insertBefore(workingNode, workingNode.previousSibling);
+                workingRange.moveToElementText(workingNode);
+            } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
+                workingNode.previousSibling);
+        }
+
+        log.debug("*** GOT node index " + dom.getNodeIndex(workingNode));
 
         // We've now reached or gone past the boundary of the text range we're interested in
         // so have identified the node we want
