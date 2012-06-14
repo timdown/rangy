@@ -347,7 +347,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
     var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements"];
 
-    // Allow "class" as a property name in object properties
+    // TODO: Populate this with every attribute name that corresponds to a property with a different name
     var attrNamesForProperties = {};
 
     function CssClassApplier(cssClass, options, tagNames) {

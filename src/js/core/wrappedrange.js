@@ -88,16 +88,35 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Move the working range through the container's children, starting at the end and working backwards, until the
         // working range reaches or goes past the boundary we're interested in
-        var limit = 0;
+        /*
+         log.warn("workingNode at position " + dom.getNodeIndex(workingNode) + " in " +
+         dom.inspectNode(containerElement) + ", previous sibling is " +
+         dom.inspectNode(workingNode.previousSibling) + ", next sibling is " +
+         dom.inspectNode(workingNode.nextSibling));
+         */
+
+        // Binary search
+/*
+        var nodeIndex, start = 0, end = containerElement.childNodes.length;
+        while (true) {
+            nodeIndex = Math.floor((start + end) / 2);
+            containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
+            comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
+            log.debug("node index: " + nodeIndex + ", start: " + start + ", end: " + end + ", comparison: " + comparison);
+            if (comparison == 0 || start == end) {
+                break;
+            } else if (comparison == 1) {
+                end = nodeIndex;
+            } else {
+                start = nodeIndex;
+            }
+        }
+*/
+
+
         do {
             containerElement.insertBefore(workingNode, workingNode.previousSibling);
             workingRange.moveToElementText(workingNode);
-/*
-            log.warn("workingNode at position " + dom.getNodeIndex(workingNode) + " in " +
-                dom.inspectNode(containerElement) + ", previous sibling is " +
-                dom.inspectNode(workingNode.previousSibling) + ", next sibling is " +
-                dom.inspectNode(workingNode.nextSibling));
-*/
         } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
                 workingNode.previousSibling);
 
@@ -110,7 +129,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             // node containing the text range's boundary, so we move the end of the working range to the boundary point
             // and measure the length of its text to get the boundary's offset within the node.
             workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
-            log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
+            //log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
 
             var offset;
 

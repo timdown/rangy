@@ -286,8 +286,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var getSelectionRangeAt;
 
     if (util.isHostMethod(testSelection, "getRangeAt")) {
-        // try/catch is present because getRangeAt() threw and error in some browser and some situation. Unfortunately,
-        // I didn't write a comment about the specifics and am now scared to take it out.
+        // try/catch is present because getRangeAt() must have thrown an error in some browser and some situation.
+        // Unfortunately, I didn't write a comment about the specifics and am now scared to take it out. Let that be a
+        // lesson to us all, especially me.
         getSelectionRangeAt = function(sel, index) {
             try {
                 return sel.getRangeAt(index);
