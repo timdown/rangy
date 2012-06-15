@@ -208,11 +208,11 @@ rangy.createModule("DomRange", function(api, module) {
                 // Check for partially selected text nodes
                 if (dom.isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
                     if (current === this.ec) {
-                        log.info("*** CLONING END");
+                        //log.info("*** CLONING END");
                         (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
                     }
                     if (this._current === this.sc) {
-                        log.info("*** CLONING START");
+                        //log.info("*** CLONING START");
                         (current = current.cloneNode(true)).deleteData(0, this.so);
                     }
                 }

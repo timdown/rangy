@@ -3,12 +3,12 @@ rangy.config.preferTextRange = true;
 xn.test.suite("Range miscellaneous", function(s) {
     rangy.init();
 
-    var elementCount = 200;
-    var testCount = 10;
+    var elementCount = 1000;
+    var testCount = 20;
 
     function setUp(t) {
         t.testEl = document.createElement("div");
-        t.testEl.innerHTML = new Array(elementCount + 1).join("One<b>two</b>");
+        t.testEl.innerHTML = new Array(elementCount + 1).join("One two<b>three four</b>");
         document.body.appendChild(t.testEl);
         var textRange = document.body.createTextRange();
         textRange.moveToElementText(t.testEl);
@@ -26,6 +26,10 @@ xn.test.suite("Range miscellaneous", function(s) {
             textRange.collapse(true);
             textRange.moveEnd("character", end);
             textRange.moveStart("character", start);
+
+            if (Math.random() < 0.3) {
+                textRange.collapse(true);
+            }
             t.textRanges[i] = textRange;
         }
     }
@@ -42,21 +46,8 @@ xn.test.suite("Range miscellaneous", function(s) {
             }
         }, setUp, tearDown);
 
-        s.test("TextRange to Range speed test (linear search)", function(t) {
-            rangy.config.useBinarySearch = false;
-            rangy.init();
-            //t.assertEquals(t.testEl.childNodes.length, 2 * elementCount);
-            for (var i = 0, len = t.textRanges.length, sel; i < len; ++i) {
-                t.textRanges[i].select();
-                sel = rangy.getSelection();
-                t.assertEquals(t.textRanges[i].text, sel.toString());
-            }
-        }, setUp, tearDown);
-
         s.test("TextRange to Range speed test (binary search)", function(t) {
-            rangy.config.useBinarySearch = true;
             rangy.init();
-            //t.assertEquals(t.testEl.childNodes.length, 2 * elementCount);
             for (var i = 0, len = t.textRanges.length, sel; i < len; ++i) {
                 t.textRanges[i].select();
                 sel = rangy.getSelection();

@@ -55,7 +55,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     // an improved version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/) but has
     // grown, fixing problems with line breaks in preformatted text, adding workaround for IE TextRange bugs, handling
     // for inputs and images, plus optimizations.
-    function getTextRangeBoundaryPosition(textRange, wholeRangeContainerElement, isStart, isCollapsed) {
+    function getTextRangeBoundaryPosition(textRange, wholeRangeContainerElement, isStart, isCollapsed, startInfo) {
         var workingRange = textRange.duplicate();
 
         workingRange.collapse(isStart);
@@ -78,79 +78,48 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
 
-        // Workaround for HTML5 Shiv's insane violation of document.createElement(). See issue 104.
+        // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML 5 Shiv
+        // issue 64: https://github.com/aFarkas/html5shiv/issues/64
         if (workingNode.parentNode) {
             workingNode.parentNode.removeChild(workingNode);
         }
 
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var previousNode, nextNode, boundaryPosition, boundaryNode;
+        var start = (startInfo && startInfo.containerElement == containerElement) ? startInfo.nodeIndex : 0;
+        var childNodeCount = containerElement.childNodes.length;
+        var end = childNodeCount;
 
-        // Move the working range through the container's children, starting at the end and working backwards, until the
-        // working range reaches or goes past the boundary we're interested in
-        /*
-         log.warn("workingNode at position " + dom.getNodeIndex(workingNode) + " in " +
-         dom.inspectNode(containerElement) + ", previous sibling is " +
-         dom.inspectNode(workingNode.previousSibling) + ", next sibling is " +
-         dom.inspectNode(workingNode.nextSibling));
-         */
+        // Check end first. Code within the loop assumes that the endth child node of the container is definitely
+        // after the range boundary.
+        var nodeIndex = end;
 
-        if (api.config.useBinarySearch) {
-            var nodeIndex, newNodeIndex, start = 0, end = containerElement.childNodes.length;
-            var limit = 0;
-            while (limit++ < 40) {
-/*
-                newNodeIndex = Math.floor((start + end) / 2);
-                if (newNodeIndex > nodeIndex) {
-                    newNodeIndex++;
-                }
-                nodeIndex = newNodeIndex;
-*/
-
+        while (true) {
+            log.debug("nodeIndex is " + nodeIndex + ", start: " + start + ", end: " + end);
+            if (nodeIndex == childNodeCount) {
+                containerElement.appendChild(workingNode);
+            } else {
                 containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
-                workingRange.moveToElementText(workingNode);
-                comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
-                log.debug("*** node index: " + nodeIndex + ", start: " + start + ", end: " + end + ", comparison: " + comparison);
-                if (comparison == 0) {
+            }
+            workingRange.moveToElementText(workingNode);
+            comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
+            if (comparison == 0 || start == end) {
+                break;
+            } else if (comparison == -1) {
+                if (end == start + 1) {
+                    // We know the endth child node is after the range boundary, so we must be done.
                     break;
-                } else if (comparison == 1) {
-                    end = (end == start + 1) ? start : nodeIndex;
                 } else {
-                    start = (end == start + 1) ? end : nodeIndex;
+                    start = nodeIndex
                 }
+            } else {
+                end = (end == start + 1) ? start : nodeIndex;
             }
-            if (limit >= 40) {
-                throw new Error("Limit reached");
-            }
-
-            var binaryResult = dom.getNodeIndex(workingNode);
-            log.debug("*** BINARY SEARCH GOT node index " + binaryResult);
-
-            workingNode.parentNode.removeChild(workingNode);
-
-            do {
-                containerElement.insertBefore(workingNode, workingNode.previousSibling);
-                workingRange.moveToElementText(workingNode);
-                log.debug("*** node index: " + dom.getNodeIndex(workingNode) + ", comparison: " + comparison);
-            } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
-                workingNode.previousSibling);
-
-            var linearResult = dom.getNodeIndex(workingNode);
-            log.debug("*** LINEAR SEARCH GOT node index " + linearResult + ", comparison: " + comparison);
-
-            if (linearResult != binaryResult) {
-                throw new Error("Linear and binary do not agree (linear: " + linearResult + ", binary: " + binaryResult + ")");
-            }
-
-        } else {
-            do {
-                containerElement.insertBefore(workingNode, workingNode.previousSibling);
-                workingRange.moveToElementText(workingNode);
-            } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
-                workingNode.previousSibling);
+            nodeIndex = Math.floor((start + end) / 2);
+            containerElement.removeChild(workingNode);
         }
 
-        log.debug("*** GOT node index " + dom.getNodeIndex(workingNode));
+        log.debug("*** GOT node index " + nodeIndex);
 
         // We've now reached or gone past the boundary of the text range we're interested in
         // so have identified the node we want
@@ -230,7 +199,13 @@ rangy.createModule("WrappedRange", function(api, module) {
         // Clean up
         workingNode.parentNode.removeChild(workingNode);
 
-        return boundaryPosition;
+        return {
+            boundaryPosition: boundaryPosition,
+            nodeInfo: {
+                nodeIndex: nodeIndex,
+                containerElement: containerElement
+            }
+        };
     }
 
     // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
@@ -569,17 +544,24 @@ rangy.createModule("WrappedRange", function(api, module) {
         WrappedRange.prototype = new DomRange(document);
 
         WrappedRange.prototype.refresh = function() {
-            var start, end;
+            var start, end, startBoundary;
 
             // TextRange's parentElement() method cannot be trusted. getTextRangeContainerElement() works around that.
             var rangeContainerElement = getTextRangeContainerElement(this.textRange);
 
             if (textRangeIsCollapsed(this.textRange)) {
-                end = start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, true);
+                end = start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true,
+                    true).boundaryPosition;
             } else {
-                log.warn("Refreshing Range from TextRange. parent element: " + dom.inspectNode(rangeContainerElement) + ", parentElement(): " + dom.inspectNode(this.textRange.parentElement()));
-                start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, false);
-                end = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, false, false);
+                log.debug("Refreshing Range from TextRange. parent element: " + dom.inspectNode(rangeContainerElement) + ", parentElement(): " + dom.inspectNode(this.textRange.parentElement()));
+                startBoundary = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, false);
+                start = startBoundary.boundaryPosition;
+
+                // An optimization used here is that if the start and end boundaries have teh same parent element, the
+                // search scope for the end boundary can be limited to exclude the portion of the element that precedes
+                // the start boundary
+                end = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, false, false,
+                    startBoundary.nodeInfo).boundaryPosition;
             }
 
             this.setStart(start.node, start.offset);
