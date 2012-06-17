@@ -371,7 +371,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             normalize = options;
         }
 
-        // Backwards compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
+        // Backward compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
         this.normalize = (typeof normalize == "undefined") ? true : normalize;
 
         // Initialize element properties and attribute exceptions

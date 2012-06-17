@@ -18,6 +18,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
 
+    // Utility function to support direction parameters in the API that may be a string ("backward" or "forward") or a
+    // Boolean (true for backwards).
+    function isDirectionBackward(dir) {
+        return (typeof dir == "string") ? (dir == "backward") : !!dir;
+    }
+
     function getWindow(win, methodName) {
         if (!win) {
             return window;
@@ -162,8 +168,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     }
 
-    function updateAnchorAndFocusFromRange(sel, range, backwards) {
-        var anchorPrefix = backwards ? "end" : "start", focusPrefix = backwards ? "start" : "end";
+    function updateAnchorAndFocusFromRange(sel, range, backward) {
+        var anchorPrefix = backward ? "end" : "start", focusPrefix = backward ? "start" : "end";
         sel.anchorNode = range[anchorPrefix + "Container"];
         sel.anchorOffset = range[anchorPrefix + "Offset"];
         sel.focusNode = range[focusPrefix + "Container"];
@@ -405,7 +411,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             updateEmptySelection(this);
         };
 
-        var addRangeBackwards = function(sel, range) {
+        var addRangeBackward = function(sel, range) {
             var doc = DomRange.getRangeDocument(range);
             var endRange = api.createRange(doc);
             endRange.collapseToPoint(range.endContainer, range.endOffset);
@@ -415,12 +421,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
 
         if (selectionHasRangeCount) {
-            selProto.addRange = function(range, backwards) {
+            selProto.addRange = function(range, direction) {
                 if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
                     addRangeToControlSelection(this, range);
                 } else {
-                    if (backwards && selectionHasExtend) {
-                        addRangeBackwards(this, range);
+                    if (isDirectionBackward(direction) && selectionHasExtend) {
+                        addRangeBackward(this, range);
                     } else {
                         var previousRangeCount;
                         if (selectionSupportsMultipleRanges) {
@@ -450,7 +456,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                                 }
                             }
                             this._ranges[this.rangeCount - 1] = range;
-                            updateAnchorAndFocusFromRange(this, range, selectionIsBackwards(this.nativeSelection));
+                            updateAnchorAndFocusFromRange(this, range, selectionIsBackward(this.nativeSelection));
                             this.isCollapsed = selectionIsCollapsed(this);
                         } else {
                             // The range was not added successfully. The simplest thing is to refresh
@@ -460,9 +466,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 }
             };
         } else {
-            selProto.addRange = function(range, backwards) {
-                if (backwards && selectionHasExtend) {
-                    addRangeBackwards(this, range);
+            selProto.addRange = function(range, direction) {
+                if (isDirectionBackward(direction) && selectionHasExtend) {
+                    addRangeBackward(this, range);
                 } else {
                     this.nativeSelection.addRange(getNativeRange(range));
                     this.refresh();
@@ -577,7 +583,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     for (var i = 0, len = sel.rangeCount; i < len; ++i) {
                         sel._ranges[i] = new api.WrappedRange(sel.nativeSelection.getRangeAt(i));
                     }
-                    updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackwards(sel.nativeSelection));
+                    updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackward(sel.nativeSelection));
                     sel.isCollapsed = selectionIsCollapsed(sel);
                 } else {
                     updateEmptySelection(sel);
@@ -604,7 +610,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.refresh = function(checkForChanges) {
         var oldRanges = checkForChanges ? this._ranges.slice(0) : null;
-        var wasBackwards = this.isBackwards();
+        var wasBackward = this.isBackward();
         refreshSelection(this);
         if (checkForChanges) {
             // Check the range count first
@@ -615,8 +621,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
             }
 
             // Now check the direction
-            if (this.isBackwards() != wasBackwards) {
-                log.debug("Selection.refresh: Selection backwards was " + wasBackwards + ", is now " + this.isBackwards());
+            if (this.isBackward() != wasBackward) {
+                log.debug("Selection.refresh: Selection backward was " + wasBackward + ", is now " + this.isBackward());
                 return true;
             }
 
@@ -683,25 +689,28 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     }
 
-    // Detecting if a selection is backwards
-    var selectionIsBackwards;
+    // Detecting if a selection is backward
+    var selectionIsBackward;
     if (!useDocumentSelection && selectionHasAnchorAndFocus && api.features.implementsDomRange) {
-        selectionIsBackwards = function(sel) {
-            var backwards = false;
+        selectionIsBackward = function(sel) {
+            var backward = false;
             if (sel.anchorNode) {
-                backwards = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
+                backward = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
             }
-            return backwards;
+            return backward;
         };
 
-        selProto.isBackwards = function() {
-            return selectionIsBackwards(this);
+        selProto.isBackward = function() {
+            return selectionIsBackward(this);
         };
     } else {
-        selectionIsBackwards = selProto.isBackwards = function() {
+        selectionIsBackward = selProto.isBackward = function() {
             return false;
         };
     }
+
+    // Create an alias for backwards compatibility. From 1.3, everything is "backward" rather than "backwards"
+    selProto.isBackwards = selProto.isBackward;
 
     // Selection stringifier
     // This is conformant to the old HTML5 selections draft spec but differs from WebKit and Mozilla's implementation.
@@ -792,9 +801,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return ranges;
     };
 
-    selProto.setSingleRange = function(range, backwards) {
+    selProto.setSingleRange = function(range, direction) {
         this.removeAllRanges();
-        this.addRange(range, backwards);
+        this.addRange(range, direction);
     };
 
     selProto.containsNode = function(node, allowPartial) {
@@ -850,6 +859,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     WrappedSelection.inspect = inspect;
+    WrappedSelection.isDirectionBackward = isDirectionBackward;
 
     api.Selection = WrappedSelection;
 

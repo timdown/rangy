@@ -77,7 +77,7 @@
                         caseSensitive: caseSensitive,
                         wholeWordsOnly: wholeWordsOnlyCheckBox.checked,
                         withinRange: searchScopeRange,
-                        backwards: false
+                        direction: "forward" // This is redundant because "forward" is the default
                     };
 
                     range.selectNodeContents(document.body);

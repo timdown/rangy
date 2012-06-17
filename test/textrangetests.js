@@ -849,7 +849,7 @@ xn.test.suite("Text Range module tests", function(s) {
         scopeRange.selectNodeContents(t.el);
         var options = {
             withinRange: scopeRange,
-            backwards: true
+            direction: "backward"
         };
 
         t.assert(range.findText("Two", options));
@@ -869,7 +869,7 @@ xn.test.suite("Text Range module tests", function(s) {
         scopeRange.selectNodeContents(t.el);
         var options = {
             withinRange: scopeRange,
-            backwards: true,
+            direction: "backward",
             wrap: true
         };
 
@@ -891,7 +891,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(iterator.next().toString(), "four");
         iterator.dispose();
 
-        iterator = rangy.createWordIterator(t.el.firstChild, 10, "backwards");
+        iterator = rangy.createWordIterator(t.el.firstChild, 10, "backward");
 
         t.assertEquals(iterator.next().toString(), "three");
         t.assertEquals(iterator.next().toString(), " ");

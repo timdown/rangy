@@ -21,8 +21,8 @@ rangy.createModule("Util", function(api, module) {
     /**
      * Convenience method to select a range. Any existing selection will be removed.
      */
-    rangeProto.select = function(backwards) {
-        api.getSelection(this.getDocument()).setSingleRange(this, backwards);
+    rangeProto.select = function(direction) {
+        api.getSelection(this.getDocument()).setSingleRange(this, direction);
     };
 
     selProto.pasteText = function(text) {

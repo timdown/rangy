@@ -12,6 +12,8 @@ window.rangy = (function() {
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
 
+    // Minimal set of properties required for DOM Level 2 Range compliance. Comparison constants such as START_TO_START
+    // are omitted because ranges in KHTML do not have them but otherwise work perfectly well. See issue 113.
     var domRangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
         "commonAncestorContainer"];
 
