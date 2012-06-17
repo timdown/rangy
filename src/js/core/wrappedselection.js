@@ -82,8 +82,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var body = dom.getBody(document);
 
     // Obtaining a range from a selection
-    var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"] &&
-                                     util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]));
+    var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"]) &&
+                                     util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]);
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test for existence of native selection extend() method
@@ -101,24 +101,23 @@ rangy.createModule("WrappedSelection", function(api, module) {
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
         (function() {
-            var iframe = document.createElement("iframe");
-            iframe.frameBorder = 0;
-            iframe.style.position = "absolute";
-            iframe.style.left = "-10000px";
-            body.appendChild(iframe);
+            // Previously an iframe was used but this caused problems in some circumatsances in IE, so tests are
+            // performed on the current document's selection. See issue 109.
 
-            var iframeDoc = dom.getIframeDocument(iframe);
-            iframeDoc.open();
-            iframeDoc.write("<html><head></head><body>12</body></html>");
-            iframeDoc.close();
-
-            var sel = dom.getIframeWindow(iframe).getSelection();
+            // Note also that if a selection previously existed, it is wiped by these tests. This should usually be fine
+            // because initialization usually happens when the document loads, but could be a problem for a script that
+            // loads and initializes Rangy later. If anyone complains, code could be added to the selection could be
+            // saved and restored.
+            var sel = window.getSelection();
             if (sel) {
-                var docEl = iframeDoc.documentElement;
-                var iframeBody = docEl.lastChild, textNode = iframeBody.firstChild;
+                var body = dom.getBody(document);
+                var testEl = body.appendChild( document.createElement("div") );
+                testEl.contentEditable = "false";
+                var textNode = testEl.appendChild( document.createTextNode("\u00a0\u00a0\u00a0") );
 
                 // Test whether the native selection will allow a collapsed selection within a non-editable element
-                var r1 = iframeDoc.createRange();
+                var r1 = document.createRange();
+
                 r1.setStart(textNode, 1);
                 r1.collapse(true);
                 sel.addRange(r1);
@@ -128,18 +127,19 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 // Test whether the native selection is capable of supporting multiple ranges
                 var r2 = r1.cloneRange();
                 r1.setStart(textNode, 0);
-                r2.setEnd(textNode, 2);
+                r2.setEnd(textNode, 3);
+                r2.setStart(textNode, 2);
                 sel.addRange(r1);
                 sel.addRange(r2);
 
                 selectionSupportsMultipleRanges = (sel.rangeCount == 2);
 
                 // Clean up
+                body.removeChild(testEl);
+                sel.removeAllRanges();
                 r1.detach();
                 r2.detach();
             }
-
-            body.removeChild(iframe);
         })();
     }
 
