@@ -82,8 +82,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var body = dom.getBody(document);
 
     // Obtaining a range from a selection
-    var selectionHasAnchorAndFocus = util.areHostObjects(testSelection, ["anchorNode", "focusNode"]) &&
-                                     util.areHostProperties(testSelection, ["anchorOffset", "focusOffset"]);
+    var selectionHasAnchorAndFocus = util.areHostProperties(testSelection,
+        ["anchorNode", "focusNode", "anchorOffset", "focusOffset"]);
+
     api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test for existence of native selection extend() method
