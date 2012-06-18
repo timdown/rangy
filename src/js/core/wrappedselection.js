@@ -640,16 +640,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // Removal of a single range
     var removeRangeManually = function(sel, range) {
-        var ranges = sel.getAllRanges(), removed = false;
+        var ranges = sel.getAllRanges();
         sel.removeAllRanges();
         for (var i = 0, len = ranges.length; i < len; ++i) {
-            if (removed || range !== ranges[i]) {
+            if (!api.DomRange.rangesEqual(range, ranges[i])) {
                 sel.addRange(ranges[i]);
-            } else {
-                // According to the draft HTML Editing spec, the same range may be added to the selection multiple
-                // times. removeRange should only remove the first instance, so the following ensures only the first
-                // instance is removed
-                removed = true;
             }
         }
         if (!sel.rangeCount) {

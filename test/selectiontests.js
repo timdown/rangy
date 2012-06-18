@@ -143,6 +143,8 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         if (rangy.features.selectionSupportsMultipleRanges) {
+            // Next test no longer applies
+/*
             s.test("removeRange multiple instances of same range test", function(t) {
                 var sel = selectionCreator(win);
                 sel.removeAllRanges();
@@ -156,6 +158,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 sel.removeRange(range);
                 t.assertEquals(sel.rangeCount, 0);
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
+*/
 
             s.test("Multiple ranges test", function(t) {
                 var sel = selectionCreator(win);
@@ -444,13 +447,15 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
         function testRefresh(name, testRangeCreator) {
             s.test("Refresh test: " + name, function(t) {
                 var sel = selectionCreator(win);
-                var range = testRangeCreator(t);
-                sel.removeAllRanges();
-                sel.addRange(range);
-                sel.refresh();
-                t.assertEquals(sel.rangeCount, 1);
-                var selRange = sel.getRangeAt(0);
-                t.assert(DomRange.rangesEqual(range, selRange), "Ranges not equal. Original: " + DomRange.inspect(range) + ", refreshed selection range: " + DomRange.inspect(selRange));
+                if (sel.refresh) {
+                    var range = testRangeCreator(t);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    sel.refresh();
+                    t.assertEquals(sel.rangeCount, 1);
+                    var selRange = sel.getRangeAt(0);
+                    t.assert(DomRange.rangesEqual(range, selRange), "Ranges not equal. Original: " + DomRange.inspect(range) + ", refreshed selection range: " + DomRange.inspect(selRange));
+                }
             });
         }
 
@@ -478,42 +483,48 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
         testRefresh("collapsed selection mid text node", function(t) {
             var range = rangeCreator(doc);
             t.nodes.div.contentEditable = true;
-            range.collapseToPoint(t.nodes.boldAndItalicText, 1);
+            range.setStart(t.nodes.boldAndItalicText, 1);
+            range.collapse(true);
             return range;
         });
 
         testRefresh("collapsed selection start of text node", function(t) {
             var range = rangeCreator(doc);
             t.nodes.div.contentEditable = true;
-            range.collapseToPoint(t.nodes.boldAndItalicText, 0);
+            range.setStart(t.nodes.boldAndItalicText, 0);
+            range.collapse(true);
             return range;
         });
 
         testRefresh("collapsed selection end of text node", function(t) {
             var range = rangeCreator(doc);
             t.nodes.div.contentEditable = true;
-            range.collapseToPoint(t.nodes.boldAndItalicText, t.nodes.boldAndItalicText.length);
+            range.setStart(t.nodes.boldAndItalicText, t.nodes.boldAndItalicText.length);
+            range.collapse(true);
             return range;
         });
 
         testRefresh("collapsed selection immediately prior to element", function(t) {
             var range = rangeCreator(doc);
             t.nodes.div.contentEditable = true;
-            range.collapseToPoint(t.nodes.b, 1);
+            range.setStart(t.nodes.b, 1);
+            range.collapse(true);
             return range;
         });
 
         testRefresh("collapsed selection immediately after element", function(t) {
             var range = rangeCreator(doc);
             t.nodes.div.contentEditable = true;
-            range.collapseToPoint(t.nodes.b, 2);
+            range.setStart(t.nodes.b, 2);
+            range.collapse(true);
             return range;
         });
 
         testRefresh("collapsed selection at offset 0 in element", function(t) {
             var range = rangeCreator(doc);
             t.nodes.div.contentEditable = true;
-            range.collapseToPoint(t.nodes.b, 0);
+            range.setStart(t.nodes.b, 0);
+            range.collapse(true);
             return range;
         });
 
