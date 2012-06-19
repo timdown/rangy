@@ -366,6 +366,23 @@ xn.test.suite("Text Range module tests", function(s) {
         });
     }
 
+    s.test("range move() on block inside block (issue 114)", function(t) {
+        t.el.innerHTML = '<div>1<div>2</div></div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var innerDiv = firstTextNode.nextSibling;
+        var secondTextNode = innerDiv.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 1);
+        range.move("character", 1);
+        console.log(range);
+        var newRange = range.cloneRange();
+        newRange.move("character", 1);
+        console.log(newRange);
+
+        t.assertEquals(range.startContainer, secondTextNode);
+        t.assertEquals(range.startOffset, 0);
+    });
+
     s.test("selectCharacters on text node", function(t) {
         t.el.innerHTML = 'One Two';
         var range = rangy.createRange();
