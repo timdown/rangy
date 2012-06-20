@@ -592,6 +592,19 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             }
         }
+/*
+        // Check the leading space of the node for the case when we're at the start of a block element that
+        // follows an inline element or text node. In that case, there is an implied line break between the two
+        // nodes.
+        if (!visibleChar && offset == 0 && node.nodeType == 1 && !isCollapsedNode(node)) {
+            visibleChar = getLeadingSpace(node);
+            log.debug("Got leading space for node " + dom.inspectNode(node) + ", " + visibleChar);
+            if (visibleChar) {
+                log.debug("LEADING SPACE NON EMPTY");
+                isLeadingSpace = true;
+            }
+        }
+*/
         return new TextPosition(visibleChar, pos, isLeadingSpace, isTrailingSpace, collapsible);
     }
 
