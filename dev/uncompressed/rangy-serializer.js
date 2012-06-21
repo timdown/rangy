@@ -10,8 +10,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.650
- * Build date: 10 June 2012
+ * Version: 1.3alpha.673
+ * Build date: 21 June 2012
  */
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
@@ -156,7 +156,7 @@ rangy.createModule("Serializer", function(api, module) {
 
     function serializeRange(range, omitChecksum, rootNode) {
         rootNode = rootNode || api.DomRange.getRangeDocument(range).documentElement;
-        if (!dom.isAncestorOf(rootNode, range.commonAncestorContainer, true)) {
+        if (!dom.isOrIsAncestorOf(rootNode, range.commonAncestorContainer)) {
             throw module.createError("serializeRange(): range " + range.inspect() +
                 " is not wholly contained within specified root node " + dom.inspectNode(rootNode));
         }

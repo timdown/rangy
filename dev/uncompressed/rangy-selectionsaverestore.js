@@ -9,8 +9,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.650
- * Build date: 10 June 2012
+ * Version: 1.3alpha.673
+ * Build date: 21 June 2012
  */
 rangy.createModule("SaveRestore", function(api, module) {
     api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
@@ -59,7 +59,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         return r2.compareBoundaryPoints(r1.START_TO_START, r1);
     }
 
-    function saveRange(range, backwards) {
+    function saveRange(range, backward) {
         var startEl, endEl, doc = api.DomRange.getRangeDocument(range), text = range.toString();
 
         if (range.collapsed) {
@@ -78,7 +78,7 @@ rangy.createModule("SaveRestore", function(api, module) {
                 startMarkerId: startEl.id,
                 endMarkerId: endEl.id,
                 collapsed: false,
-                backwards: backwards,
+                backward: backward,
                 toString: function() {
                     return "original text: '" + text + "', new text: '" + range.toString() + "'";
                 }
@@ -121,7 +121,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         return range;
     }
 
-    function saveRanges(ranges, backwards) {
+    function saveRanges(ranges, backward) {
         var rangeInfos = [], range, doc;
 
         // Order the ranges by position within the DOM, latest first, cloning the array to leave the original untouched
@@ -129,7 +129,7 @@ rangy.createModule("SaveRestore", function(api, module) {
         ranges.sort(compareRanges);
 
         for (var i = 0, len = ranges.length; i < len; ++i) {
-            rangeInfos[i] = saveRange(ranges[i], backwards);
+            rangeInfos[i] = saveRange(ranges[i], backward);
         }
 
         // Now that all the markers are in place and DOM manipulation over, adjust each range's boundaries to lie
@@ -155,9 +155,9 @@ rangy.createModule("SaveRestore", function(api, module) {
         }
         var sel = api.getSelection(win);
         var ranges = sel.getAllRanges();
-        var backwards = (ranges.length == 1 && sel.isBackwards());
+        var backward = (ranges.length == 1 && sel.isBackward());
 
-        var rangeInfos = saveRanges(ranges, backwards);
+        var rangeInfos = saveRanges(ranges, backward);
 
         // Ensure current selection is unaffected
         sel.setRanges(ranges);
@@ -189,7 +189,7 @@ rangy.createModule("SaveRestore", function(api, module) {
             var sel = api.getSelection(savedSelection.win);
             var ranges = restoreRanges(rangeInfos), rangeCount = rangeInfos.length;
 
-            if (rangeCount == 1 && preserveDirection && api.features.selectionHasExtend && rangeInfos[0].backwards) {
+            if (rangeCount == 1 && preserveDirection && api.features.selectionHasExtend && rangeInfos[0].backward) {
                 sel.removeAllRanges();
                 sel.addRange(ranges[0], true);
             } else {

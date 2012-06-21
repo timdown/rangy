@@ -9,8 +9,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.650
- * Build date: 10 June 2012
+ * Version: 1.3alpha.673
+ * Build date: 21 June 2012
  */
 rangy.createModule("CssClassApplier", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
@@ -343,7 +343,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
     var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements"];
 
-    // Allow "class" as a property name in object properties
+    // TODO: Populate this with every attribute name that corresponds to a property with a different name
     var attrNamesForProperties = {};
 
     function CssClassApplier(cssClass, options, tagNames) {
@@ -367,7 +367,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             normalize = options;
         }
 
-        // Backwards compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
+        // Backward compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
         this.normalize = (typeof normalize == "undefined") ? true : normalize;
 
         // Initialize element properties and attribute exceptions
