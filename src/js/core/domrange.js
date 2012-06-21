@@ -13,7 +13,7 @@ rangy.createModule("DomRange", function(api, module) {
 
     function isNonTextPartiallySelected(node, range) {
         return (node.nodeType != 3) &&
-               (dom.isAncestorOf(node, range.startContainer, true) || dom.isAncestorOf(node, range.endContainer, true));
+               (dom.isOrIsAncestorOf(node, range.startContainer) || dom.isOrIsAncestorOf(node, range.endContainer));
     }
 
     function getRangeDocument(range) {
@@ -255,11 +255,11 @@ rangy.createModule("DomRange", function(api, module) {
                 var current = this._current;
                 var startContainer = current, startOffset = 0, endContainer = current, endOffset = dom.getNodeLength(current);
 
-                if (dom.isAncestorOf(current, this.sc, true)) {
+                if (dom.isOrIsAncestorOf(current, this.sc)) {
                     startContainer = this.sc;
                     startOffset = this.so;
                 }
-                if (dom.isAncestorOf(current, this.ec, true)) {
+                if (dom.isOrIsAncestorOf(current, this.ec)) {
                     endContainer = this.ec;
                     endOffset = this.eo;
                 }
@@ -504,7 +504,7 @@ rangy.createModule("DomRange", function(api, module) {
             assertValidNodeType(node, insertableNodeTypes);
             assertNodeNotReadOnly(this.startContainer);
 
-            if (dom.isAncestorOf(node, this.startContainer, true)) {
+            if (dom.isOrIsAncestorOf(node, this.startContainer)) {
                 throw new DOMException("HIERARCHY_REQUEST_ERR");
             }
 

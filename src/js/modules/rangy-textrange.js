@@ -583,28 +583,16 @@ rangy.createModule("TextRange", function(api, module) {
                 if (!visibleChar) {
                     var nextNode = node.childNodes[offset];
                     if (nextNode && nextNode.nodeType == 1 && !isCollapsedNode(nextNode)) {
-                        log.debug("Getting leading space for node " + dom.inspectNode(nextNode));
+                        log.debug("Getting leading space for node " + dom.inspectNode(nextNode) + " at position " + pos.inspect());
                         visibleChar = getLeadingSpace(nextNode);
                         if (visibleChar) {
+                            log.debug("GOT LEADING SPACE AND USING IT");
                             isLeadingSpace = true;
                         }
                     }
                 }
             }
         }
-/*
-        // Check the leading space of the node for the case when we're at the start of a block element that
-        // follows an inline element or text node. In that case, there is an implied line break between the two
-        // nodes.
-        if (!visibleChar && offset == 0 && node.nodeType == 1 && !isCollapsedNode(node)) {
-            visibleChar = getLeadingSpace(node);
-            log.debug("Got leading space for node " + dom.inspectNode(node) + ", " + visibleChar);
-            if (visibleChar) {
-                log.debug("LEADING SPACE NON EMPTY");
-                isLeadingSpace = true;
-            }
-        }
-*/
         return new TextPosition(visibleChar, pos, isLeadingSpace, isTrailingSpace, collapsible);
     }
 
@@ -657,7 +645,12 @@ rangy.createModule("TextRange", function(api, module) {
             }
             preceding = precedingChars[precedingChars.length - 1];
 
-            log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace + ", preceding: '" + preceding + "'");
+            log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace);
+            if (preceding) {
+                log.info("preceding: '" + preceding + "' (" + preceding.position + "), possible: " + possible.position);
+                log.info([possible.isLeadingSpace, possibleChar == "\n", [!preceding, preceding.isLeadingSpace, !dom.isOrIsAncestorOf(possible.position.node.parentNode, preceding.position.node), dom.inspectNode(possible.position.node.parentNode), dom.inspectNode(preceding.position.node)]]);
+            }
+
 
             // Disallow a collapsible space that follows a trailing space or line break, or is the first character
             if (possibleChar === " " && possible.collapsible && (!preceding || preceding.isTrailingSpace || preceding.character === "\n")) {
@@ -939,18 +932,20 @@ rangy.createModule("TextRange", function(api, module) {
 
     function movePositionBy(pos, unit, count, options) {
         log.info("movePositionBy called " + count);
-        var unitsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count), token;
+        var unitsMoved = 0, newPos = pos, textPos, charIterator, nextTextPos, newTextPos, absCount = Math.abs(count), token;
         if (count !== 0) {
             var backward = (count < 0);
-            var it = createCharacterIterator(pos, backward);
 
             switch (unit) {
                 case CHARACTER:
-                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
+                    charIterator = createCharacterIterator(pos, backward);
+                    while ( (textPos = charIterator.next()) && unitsMoved < absCount ) {
                         log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
                         ++unitsMoved;
-                        newPos = textPos.position;
+                        newTextPos = textPos;
                     }
+                    nextTextPos = textPos;
+                    charIterator.dispose();
                     break;
                 case WORD:
                     var tokenizedTextProvider = createTokenizedTextProvider(pos, options);
@@ -961,20 +956,40 @@ rangy.createModule("TextRange", function(api, module) {
                         if (token.isWord) {
                             ++unitsMoved;
                             log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
-                            newPos = (backward ? token.chars[0] : token.chars[token.chars.length - 1]).position;
+                            newTextPos = backward ? token.chars[0] : token.chars[token.chars.length - 1];
                         }
                     }
                     break;
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
             }
+
+            // Perform any necessary position tweaks
+            newPos = newTextPos.position;
             if (backward) {
-                log.warn("newPos: " + newPos);
+                newPos = newTextPos.position;
+                log.debug("Adjusting position. Current newPos: " + newPos);
                 newPos = previousVisiblePosition(newPos);
-                log.warn("newPos now: " + newPos);
+                log.debug("newPos now: " + newPos);
                 unitsMoved = -unitsMoved;
+            } else if (newTextPos.isLeadingSpace) {
+                // Tweak the position for the case of a leading space. The problem is that an uncollapsed leading space
+                // before a block element (for example, the line break between "1" and "2" in the following HTML:
+                // "1<p>2</p>") is considered to be attached to the position immediately before the block element, which
+                // corresponds with a different selection position in most browsers from the one we want (i.e. at the
+                // start of the contents of the block element). We get round this by advancing the position returned to
+                // the last possible equivalent visible position.
+                log.info("movePositionBy ended immediately after a leading space at " + newPos);
+                if (unit == WORD) {
+                    charIterator = createCharacterIterator(pos, false);
+                    nextTextPos = charIterator.next();
+                    charIterator.dispose();
+                }
+                if (nextTextPos) {
+                    newPos = previousVisiblePosition(nextTextPos.position);
+                    log.info("movePositionBy adjusted leading space position to " + newPos);
+                }
             }
-            it.dispose();
         }
 
         return {

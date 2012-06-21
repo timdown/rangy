@@ -63,7 +63,7 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
         // check for that
-        if (!dom.isAncestorOf(wholeRangeContainerElement, containerElement, true)) {
+        if (!dom.isOrIsAncestorOf(wholeRangeContainerElement, containerElement)) {
             containerElement = wholeRangeContainerElement;
             log.warn("Collapse has moved TextRange outside its original container, so correcting", dom.inspectNode(containerElement));
         }

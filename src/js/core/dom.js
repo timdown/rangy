@@ -109,6 +109,10 @@ rangy.createModule("DomUtil", function(api, module) {
         return false;
     }
 
+    function isOrIsAncestorOf(ancestor, descendant) {
+        return isAncestorOf(ancestor, descendant, true);
+    }
+
     function getClosestAncestorIn(node, ancestor, selfIsAncestor) {
         var p, n = selfIsAncestor ? node : node.parentNode;
         while (n) {
@@ -383,6 +387,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getNodeLength: getNodeLength,
         getCommonAncestor: getCommonAncestor,
         isAncestorOf: isAncestorOf,
+        isOrIsAncestorOf: isOrIsAncestorOf,
         getClosestAncestorIn: getClosestAncestorIn,
         isCharacterDataNode: isCharacterDataNode,
         isTextOrCommentNode: isTextOrCommentNode,

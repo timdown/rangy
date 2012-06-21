@@ -374,10 +374,23 @@ xn.test.suite("Text Range module tests", function(s) {
         var range = rangy.createRange();
         range.collapseToPoint(firstTextNode, 1);
         range.move("character", 1);
-        console.log(range);
         var newRange = range.cloneRange();
         newRange.move("character", 1);
-        console.log(newRange);
+
+        t.assertEquals(range.startContainer, secondTextNode);
+        t.assertEquals(range.startOffset, 0);
+    });
+
+    s.test("range move() on block inside block inside block (issue 114)", function(t) {
+        t.el.innerHTML = '<div>1<div><div>2</div></div></div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var innerDiv = firstTextNode.nextSibling;
+        var secondTextNode = innerDiv.firstChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 1);
+        range.move("character", 1);
+        var newRange = range.cloneRange();
+        newRange.move("character", 1);
 
         t.assertEquals(range.startContainer, secondTextNode);
         t.assertEquals(range.startOffset, 0);
@@ -394,11 +407,11 @@ xn.test.suite("Text Range module tests", function(s) {
         sel.addRange(range);
         sel.move("character", 1);
         selRange.setEnd(sel.focusNode, sel.focusOffset);
-        t.assertEquals(sel.text(), "\n");
+        t.assertEquals(selRange.text(), "\n");
 
         sel.move("character", 1);
         selRange.setEnd(sel.focusNode, sel.focusOffset);
-        t.assertEquals(sel.text(), "\n2");
+        t.assertEquals(selRange.text(), "\n2");
     });
 
     s.test("selectCharacters on text node", function(t) {
