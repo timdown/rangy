@@ -132,7 +132,7 @@ function clean() {
 }
 
 function removeLoggingFromScripts() {
-    var logCallRegex = /^\s*log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd)/;
+    var logCallRegex = /^\s*(\/\/\s*)?log\.(trace|debug|info|warn|error|fatal|time|timeEnd|group|groupEnd)/;
     var loggerRegex = /^\s*var\s+log\s*=/;
 
     function removeLogging(file) {
