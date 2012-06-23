@@ -25,6 +25,21 @@
 
                         return false;
                     }
+
+                    var sel = rangy.getSelection();
+                    document.getElementById("selInfo").innerHTML = "Selection: " + sel.inspect();
+
+                    var selRange = sel.getRangeAt(0);
+
+                    var nextPosRange = selRange.cloneRange();
+                    nextPosRange.move("character", 1);
+                    document.getElementById("nextPositionInfo").innerHTML = "Next position: " + nextPosRange.inspect();
+                    nextPosRange.detach();
+
+                    var previousPosRange = selRange.cloneRange();
+                    previousPosRange.move("character", -1);
+                    document.getElementById("previousPositionInfo").innerHTML = "Previous position: " + previousPosRange.inspect();
+                    previousPosRange.detach();
                 });
             });
         </script>
@@ -33,5 +48,9 @@
         <div id="editableDiv" contenteditable="true" style="border:solid 1px black;">
             <span>Test</span><span> </span>
         </div>
+        <div id="selInfo"></div>
+        <div id="charRangeInfo"></div>
+        <div id="nextPositionInfo"></div>
+        <div id="previousPositionInfo"></div>
     </body>
 </html>

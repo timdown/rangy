@@ -948,4 +948,18 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(iterator.next().toString(), "One");
     });
 
+    s.test("moveStart word document start boundary test", function(t) {
+        var range = rangy.createRange();
+        range.collapseBefore(document.body);
+
+        while (range.moveStart("word", -1)) {}
+    });
+
+    s.test("moveEnd word document end boundary test", function(t) {
+        var range = rangy.createRange();
+        range.collapseAfter(document.body);
+
+        while (range.moveStart("word", 1)) {}
+    });
+
 }, false);

@@ -651,7 +651,6 @@ rangy.createModule("TextRange", function(api, module) {
                 log.info([possible.isLeadingSpace, possibleChar == "\n", [!preceding, preceding.isLeadingSpace, !dom.isOrIsAncestorOf(possible.position.node.parentNode, preceding.position.node), dom.inspectNode(possible.position.node.parentNode), dom.inspectNode(preceding.position.node)]]);
             }
 
-
             // Disallow a collapsible space that follows a trailing space or line break, or is the first character
             if (possibleChar === " " && possible.collapsible && (!preceding || preceding.isTrailingSpace || preceding.character === "\n")) {
                 log.info("Preceding character is a trailing space or non-existent and current possible character is a collapsible space, so space is collapsed");
@@ -965,14 +964,15 @@ rangy.createModule("TextRange", function(api, module) {
             }
 
             // Perform any necessary position tweaks
-            newPos = newTextPos.position;
-            if (backward) {
+            if (newTextPos) {
                 newPos = newTextPos.position;
+            }
+            if (backward) {
                 log.debug("Adjusting position. Current newPos: " + newPos);
                 newPos = previousVisiblePosition(newPos);
                 log.debug("newPos now: " + newPos);
                 unitsMoved = -unitsMoved;
-            } else if (newTextPos.isLeadingSpace) {
+            } else if (newTextPos && newTextPos.isLeadingSpace) {
                 // Tweak the position for the case of a leading space. The problem is that an uncollapsed leading space
                 // before a block element (for example, the line break between "1" and "2" in the following HTML:
                 // "1<p>2</p>") is considered to be attached to the position immediately before the block element, which
