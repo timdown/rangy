@@ -27,8 +27,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.673
- * Build date: 21 June 2012
+ * Version: 1.3alpha.675
+ * Build date: 23 June 2012
  */
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
@@ -633,7 +633,6 @@ rangy.createModule("TextRange", function(api, module) {
             if (preceding) {
             }
 
-
             // Disallow a collapsible space that follows a trailing space or line break, or is the first character
             if (possibleChar === " " && possible.collapsible && (!preceding || preceding.isTrailingSpace || preceding.character === "\n")) {
                 possible.character = "";
@@ -932,12 +931,13 @@ rangy.createModule("TextRange", function(api, module) {
             }
 
             // Perform any necessary position tweaks
-            newPos = newTextPos.position;
-            if (backward) {
+            if (newTextPos) {
                 newPos = newTextPos.position;
+            }
+            if (backward) {
                 newPos = previousVisiblePosition(newPos);
                 unitsMoved = -unitsMoved;
-            } else if (newTextPos.isLeadingSpace) {
+            } else if (newTextPos && newTextPos.isLeadingSpace) {
                 // Tweak the position for the case of a leading space. The problem is that an uncollapsed leading space
                 // before a block element (for example, the line break between "1" and "2" in the following HTML:
                 // "1<p>2</p>") is considered to be attached to the position immediately before the block element, which

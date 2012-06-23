@@ -9,8 +9,8 @@
  *
  * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.673
- * Build date: 21 June 2012
+ * Version: 1.3alpha.675
+ * Build date: 23 June 2012
  */
 rangy.createModule("CssClassApplier", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
