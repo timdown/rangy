@@ -41,12 +41,35 @@
                     document.getElementById("previousPositionInfo").innerHTML = "Previous position: " + previousPosRange.inspect();
                     previousPosRange.detach();
                 });
+
+                var testDiv = document.createElement("div");
+                testDiv.innerHTML = "1 ";
+                document.body.appendChild(testDiv);
+                rangy.init();
+                var sel = rangy.getSelection();
+                sel.selectAllChildren(testDiv);
+                var range = sel.getRangeAt(0)
+                //alert(range.toString() == "1 ");
             });
         </script>
+        <style type="text/css">
+            span {
+                border: solid green 1px;
+            }
+        </style>
     </head>
     <body>
         <div id="editableDiv" contenteditable="true" style="border:solid 1px black;">
-            <span>Test</span><span> </span>
+            <span>Test</span><span> </span><br>2
+        </div>
+        <div contenteditable="true" style="border:solid 1px black;">
+            <span>Test</span><span>  </span><br>2
+        </div>
+        <div contenteditable="true" style="border:solid 1px black;">
+            <span>Test <br>2</span>
+        </div>
+        <div contenteditable="false" style="border:solid 1px black;">
+            <span>Test <br>2</span>
         </div>
         <div id="selInfo"></div>
         <div id="charRangeInfo"></div>

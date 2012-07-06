@@ -603,4 +603,34 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('x[1<span class="c2">2</span>3]x', htmlAndRangeToString(testEl, range));
     });
 
+
+    if (rangy.features.selectionSupportsMultipleRanges) {
+        s.test("Undo to multiple ranges", function(t) {
+            var testEl = document.getElementById("test");
+            testEl.innerHTML = "<b>12</b>345";
+            var applier = rangy.createCssClassApplier("c1");
+
+            var textNode1 = testEl.firstChild.firstChild;
+            var textNode2 = testEl.lastChild;
+
+            var range1 = rangy.createRange();
+            range1.setStartAndEnd(textNode1, 1, textNode2, 1);
+
+            var range2 = rangy.createRange();
+            range2.setStartAndEnd(textNode2, 2, 3);
+
+            t.assertEquals(range1.toString(), "23");
+            t.assertEquals(range2.toString(), "5");
+
+            applier.applyToRanges([range1, range2]);
+
+            t.assertEquals(range1.toString(), "23");
+            t.assertEquals(range2.toString(), "5");
+
+            applier.undoToRanges([range1, range2]);
+
+            t.assertEquals(range1.toString(), "23");
+            t.assertEquals(range2.toString(), "5");
+        });
+    }
 }, false);

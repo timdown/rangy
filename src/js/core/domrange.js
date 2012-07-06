@@ -44,6 +44,20 @@ rangy.createModule("DomRange", function(api, module) {
         return firstNodeInserted;
     }
 
+    function rangesIntersect(rangeA, rangeB, touchingIsIntersecting) {
+        assertRangeValid(rangeA);
+        assertRangeValid(rangeB);
+
+        if (getRangeDocument(rangeB) != getRangeDocument(rangeA)) {
+            throw new DOMException("WRONG_DOCUMENT_ERR");
+        }
+
+        var startComparison = dom.comparePoints(rangeA.startContainer, rangeA.startOffset, rangeB.endContainer, rangeB.endOffset),
+            endComparison = dom.comparePoints(rangeA.endContainer, rangeA.endOffset, rangeB.startContainer, rangeB.startOffset);
+
+        return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+    }
+
     function cloneSubtree(iterator) {
         var partiallySelected;
         for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
@@ -474,6 +488,34 @@ rangy.createModule("DomRange", function(api, module) {
             return dom.fragmentFromNodeChildren(el);
         };
 
+    function splitRangeBoundaries(range, positionsToPreserve) {
+        assertRangeValid(range);
+
+        log.debug("splitBoundaries called " + range.inspect(), positionsToPreserve);
+        var sc = range.startContainer, so = range.startOffset, ec = range.endContainer, eo = range.endOffset;
+        var startEndSame = (sc === ec);
+
+        if (dom.isCharacterDataNode(ec) && eo > 0 && eo < ec.length) {
+            dom.splitDataNode(ec, eo, positionsToPreserve);
+            log.debug("Split end", dom.inspectNode(ec), eo);
+        }
+
+        if (dom.isCharacterDataNode(sc) && so > 0 && so < sc.length) {
+            log.debug("Splitting start", dom.inspectNode(sc), so);
+            sc = dom.splitDataNode(sc, so, positionsToPreserve);
+            if (startEndSame) {
+                eo -= so;
+                ec = sc;
+            } else if (ec == sc.parentNode && eo >= dom.getNodeIndex(sc)) {
+                eo++;
+            }
+            so = 0;
+            log.debug("Split start", dom.inspectNode(sc), so);
+        }
+        range.setStartAndEnd(sc, so, ec, eo);
+        log.debug("splitBoundaries done");
+    }
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
@@ -682,17 +724,13 @@ rangy.createModule("DomRange", function(api, module) {
         // The methods below are non-standard and invented by me.
 
         // Sharing a boundary start-to-end or end-to-start does not count as intersection.
-        intersectsRange: function(range, touchingIsIntersecting) {
-            assertRangeValid(this);
+        intersectsRange: function(range) {
+            return rangesIntersect(this, range, false);
+        },
 
-            if (getRangeDocument(range) != getRangeDocument(this)) {
-                throw new DOMException("WRONG_DOCUMENT_ERR");
-            }
-
-            var startComparison = dom.comparePoints(this.startContainer, this.startOffset, range.endContainer, range.endOffset),
-                endComparison = dom.comparePoints(this.endContainer, this.endOffset, range.startContainer, range.startOffset);
-
-            return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+        // Sharing a boundary start-to-end or end-to-start does count as intersection.
+        intersectsOrTouchesRange: function(range) {
+            return rangesIntersect(this, range, true);
         },
 
         intersection: function(range) {
@@ -714,7 +752,7 @@ rangy.createModule("DomRange", function(api, module) {
         },
 
         union: function(range) {
-            if (this.intersectsRange(range, true)) {
+            if (this.intersectsOrTouchesRange(range)) {
                 var unionRange = this.cloneRange();
                 if (dom.comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) == -1) {
                     unionRange.setStart(range.startContainer, range.startOffset);
@@ -889,12 +927,6 @@ rangy.createModule("DomRange", function(api, module) {
             }
         }
 
-        function setRangeStartAndEnd(range, node, offset) {
-            if (node !== range.startContainer || offset !== range.startOffset || node !== range.endContainer || offset !== range.endOffset) {
-                boundaryUpdater(range, node, offset, node, offset);
-            }
-        }
-
         constructor.prototype = new RangePrototype();
 
         util.extend(constructor.prototype, {
@@ -923,19 +955,22 @@ rangy.createModule("DomRange", function(api, module) {
              *   startNode and ending at endOffset in endNode
              */
             setStartAndEnd: function() {
+                assertNotDetached(this);
+
                 var args = arguments;
-                this.setStart(args[0], args[1]);
+                var sc = args[0], so = args[1], ec = sc, eo = so;
+
                 switch (args.length) {
-                    case 2:
-                        this.collapse(true);
-                        break;
                     case 3:
-                        this.setEnd(args[0], args[2]);
+                        eo = args[2];
                         break;
                     case 4:
-                        this.setEnd(args[2], args[3]);
+                        ec = args[2];
+                        eo = args[3];
                         break;
                 }
+
+                boundaryUpdater(this, sc, so, ec, eo);
             },
 
             setStartBefore: createBeforeAfterNodeSetter(true, true),
@@ -991,30 +1026,11 @@ rangy.createModule("DomRange", function(api, module) {
             },
 
             splitBoundaries: function() {
-                assertRangeValid(this);
+                splitRangeBoundaries(this);
+            },
 
-                log.debug("splitBoundaries called " + this.inspect());
-                var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
-                var startEndSame = (sc === ec);
-
-                if (dom.isCharacterDataNode(ec) && eo > 0 && eo < ec.length) {
-                    dom.splitDataNode(ec, eo);
-                    log.debug("Split end", dom.inspectNode(ec), eo);
-                }
-
-                if (dom.isCharacterDataNode(sc) && so > 0 && so < sc.length) {
-                    log.debug("Splitting start", dom.inspectNode(sc), so);
-                    sc = dom.splitDataNode(sc, so);
-                    if (startEndSame) {
-                        eo -= so;
-                        ec = sc;
-                    } else if (ec == sc.parentNode && eo >= dom.getNodeIndex(sc)) {
-                        eo++;
-                    }
-                    so = 0;
-                    log.debug("Split start", dom.inspectNode(sc), so);
-                }
-                boundaryUpdater(this, sc, so, ec, eo);
+            splitBoundariesPreservingPositions: function(positionsToPreserve) {
+                splitRangeBoundaries(this, positionsToPreserve);
             },
 
             normalizeBoundaries: function() {
@@ -1096,7 +1112,7 @@ rangy.createModule("DomRange", function(api, module) {
                 assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
-                setRangeStartAndEnd(this, node, offset);
+                this.setStartAndEnd(node, offset);
             }
         });
 
