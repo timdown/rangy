@@ -760,16 +760,14 @@ rangy.createModule("CssClassApplier", function(api, module) {
         applyToRanges: function(ranges) {
             log.group("applyToRanges");
 
-            // Get ranges returned in document order
-            var normalizedRanges = normalizeRanges(ranges);
-            var i = normalizedRanges.length;
-
+            var i = ranges.length;
             while (i--) {
-                this.applyToRange(normalizedRanges[i], arrayWithoutValue(ranges, normalizedRanges[i]));
+                this.applyToRange(ranges[i], ranges);
             }
+
             log.groupEnd();
 
-            return normalizedRanges;
+            return ranges;
         },
 
         applyToSelection: function(win) {
@@ -781,11 +779,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         undoToRange: function(range, rangesToPreserve) {
-            log.info("undoToRange " + range.inspect());
-
             // Create an array of range boundaries to preserve
             rangesToPreserve = rangesToPreserve || [];
-            var positionsToPreserve = getRangeBoundaries(rangesToPreserve || []);
+            var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
+
+            log.info("undoToRange " + range.inspect(), positionsToPreserve);
 
             range.splitBoundariesPreservingPositions(positionsToPreserve);
             var textNodes = getEffectiveTextNodes(range);
@@ -818,32 +816,26 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         undoToRanges: function(ranges) {
             // Get ranges returned in document order
-            var normalizedRanges = normalizeRanges(ranges);
-            var i = normalizedRanges.length;
-
-            while (i--) {
-                this.undoToRange(normalizedRanges[i], arrayWithoutValue(ranges, normalizedRanges[i]));
-            }
-            log.groupEnd();
-
-            return normalizedRanges;
-        },
-
-        undoToSelection: function(win) {
-            this.undoToRanges( api.getSelection(win).getAllRanges() );
-/*
-            var sel = api.getSelection(win);
-            var ranges = normalizeRanges(sel.getAllRanges()), range;
-            sel.removeAllRanges();
-
             var i = ranges.length;
 
             while (i--) {
-                range = ranges[i];
-                this.undoToRange(range);
-                sel.addRange(range);
+                //this.undoToRange(ranges[i], arrayWithoutValue(ranges, ranges[i]));
+                this.undoToRange(ranges[i], ranges);
             }
-*/
+            log.groupEnd();
+
+            ranges.forEach(function(range) {
+                log.debug("Range: " + range.inspect(), range.toString());
+            });
+
+            return ranges;
+        },
+
+        undoToSelection: function(win) {
+            var sel = api.getSelection(win);
+            var ranges = api.getSelection(win).getAllRanges();
+            this.undoToRanges(ranges);
+            sel.setRanges(ranges);
         },
 
         getTextSelectedByRange: function(textNode, range) {
@@ -873,12 +865,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isAppliedToRanges: function(ranges) {
-            // Get ranges returned in document order
-            var normalizedRanges = normalizeRanges(ranges);
-            var i = normalizedRanges.length;
-
+            var i = ranges.length;
             while (i--) {
-                if (!this.isAppliedToRange(normalizedRanges[i])) {
+                if (!this.isAppliedToRange(ranges[i])) {
                     return false;
                 }
             }
@@ -900,21 +889,18 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         toggleRanges: function(ranges) {
             if (this.isAppliedToRanges(ranges)) {
-                this.undoToRange(ranges);
+                this.undoToRanges(ranges);
             } else {
-                this.applyToRange(ranges);
+                this.applyToRanges(ranges);
             }
         },
 
         toggleSelection: function(win) {
-            this.toggleRanges( api.getSelection(win).getAllRanges() );
-/*
             if (this.isAppliedToSelection(win)) {
                 this.undoToSelection(win);
             } else {
                 this.applyToSelection(win);
             }
-*/
         },
 
         detach: function() {}
