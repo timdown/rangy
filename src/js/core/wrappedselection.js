@@ -611,7 +611,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.refresh = function(checkForChanges) {
         var oldRanges = checkForChanges ? this._ranges.slice(0) : null;
-        var wasBackward = this.isBackward();
+        var oldAnchorNode = this.anchorNode, oldAnchorOffset = this.anchorOffset;
+
         refreshSelection(this);
         if (checkForChanges) {
             // Check the range count first
@@ -621,9 +622,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 return true;
             }
 
-            // Now check the direction
-            if (this.isBackward() != wasBackward) {
-                log.debug("Selection.refresh: Selection backward was " + wasBackward + ", is now " + this.isBackward());
+            // Now check the direction. Checking the anchor position is the same is enough since we're checking all the
+            // ranges after this
+            if (this.anchorNode != oldAnchorNode || this.anchorOffset != oldAnchorOffset) {
+                log.debug("Selection.refresh: anchor different, so selection has changed");
                 return true;
             }
 
