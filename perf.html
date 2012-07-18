@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script src="lib/log4javascript-1.4.1.js" type="text/javascript"></script>
+<!--
+    <script src="src/js/core/core.js" type="text/javascript"></script>
+    <script src="src/js/core/dom.js" type="text/javascript"></script>
+    <script src="src/js/core/domrange.js" type="text/javascript"></script>
+    <script src="src/js/core/wrappedrange.js" type="text/javascript"></script>
+    <script src="src/js/core/wrappedselection.js" type="text/javascript"></script>
+    <script src="src/js/modules/rangy-textrange.js" type="text/javascript"></script>
+-->
+    <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-core.js"></script>
+    <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-textrange.js"></script>
+
+    <script>
+        function replaceLastWord(e) {
+            if (e.keyCode == 32) {
+                var start = new Date();
+                var sel = rangy.getSelection();
+                var range = sel.getRangeAt(0);
+                range.moveStart("word", -1);
+                range.deleteContents();
+                var textNode = document.createTextNode("[REPLACED]\u00a0");
+                range.insertNode(textNode);
+                range.collapseAfter(textNode);
+                //range.pasteHtml("REPLACED&nbsp;");
+                sel.setSingleRange(range);
+                console.log(new Date() - start);
+            }
+        }
+    </script>
+
+</head>
+<body>
+    <div id="editor" contenteditable="true" onkeyup="replaceLastWord(event)">
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+        Here is some text and more text. Type some more.
+
+
+    </div>
+</body>
+</html>

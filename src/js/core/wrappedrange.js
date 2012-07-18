@@ -190,7 +190,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             if (nextNode && dom.isCharacterDataNode(nextNode)) {
                 boundaryPosition = new DomPosition(nextNode, 0);
             } else if (previousNode && dom.isCharacterDataNode(previousNode)) {
-                boundaryPosition = new DomPosition(previousNode, previousNode.length);
+                boundaryPosition = new DomPosition(previousNode, previousNode.data.length);
             } else {
                 boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
             }

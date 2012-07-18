@@ -11,7 +11,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
         <script type="text/javascript" language="javascript">
             $(document).ready(function() {
-                $("#editableDiv").keyup(function(event) {
+                $("#div1").keyup(function(event) {
                     //Capture enter key
                     if (event.keyCode == 13) {
                         var myDiv = $(this);
@@ -42,6 +42,18 @@
                     previousPosRange.detach();
                 });
 
+                $("#xdiv1").keydown(function(e) {
+                    if (e.keyCode == 37) {
+                        var sel = rangy.getSelection();
+                        sel.move("character", -1);
+                        e.preventDefault();
+                    } else if (e.keyCode == 39) {
+                        var sel = rangy.getSelection();
+                        sel.move("character", 1);
+                        e.preventDefault();
+                    }
+                });
+
                 var testDiv = document.createElement("div");
                 testDiv.innerHTML = "1 ";
                 document.body.appendChild(testDiv);
@@ -50,6 +62,26 @@
                 sel.selectAllChildren(testDiv);
                 var range = sel.getRangeAt(0)
                 //alert(range.toString() == "1 ");
+                rangy.init();
+
+                for (var i = 1; i <= 4; ++i) {
+                    var el = document.getElementById("div" + i);
+                    var textarea = document.createElement("textarea");
+                    textarea.rows = 3;
+                    textarea.cols = 50;
+                    rangy.dom.insertAfter(textarea, el);
+                    textarea.value = el.innerText ? el.innerText.replace(/\s/g, function(s) { return "[" + s.charCodeAt(0) + "]"; }) : "";
+
+/*
+                    var sel = rangy.getSelection();
+                    var range = rangy.createRange();
+                    range.selectNodeContents(el);
+                    sel.setSingleRange(range);
+                    var nativeSel = sel.nativeSelection;
+                    var selText = nativeSel.createRange ? nativeSel.createRange().text : nativeSel + "";
+                    textarea.value = selText.replace(/\s/g, function(s) { return "[" + s.charCodeAt(0) + "]"; });
+*/
+                }
             });
         </script>
         <style type="text/css">
@@ -59,17 +91,61 @@
         </style>
     </head>
     <body>
-        <div id="editableDiv" contenteditable="true" style="border:solid 1px black;">
+        <div contenteditable="true" style="border:solid 1px black;" id="div1">
+            <p>1<span> </span></p>
+            <p>2</p>
+            1 <br>2
             <span>Test</span><span> </span><br>2
         </div>
-        <div contenteditable="true" style="border:solid 1px black;">
-            <span>Test</span><span>  </span><br>2
+        <div contenteditable="true" style="border:solid 1px black;" id="div2">
         </div>
-        <div contenteditable="true" style="border:solid 1px black;">
+        <div contenteditable="true" style="border:solid 1px black;" id="div3">
+            <span>Test <br>2</span>
+        </div>
+        <div contenteditable="false" style="border:solid 1px black;" id="div4">
             <span>Test <br>2</span>
         </div>
         <div contenteditable="false" style="border:solid 1px black;">
-            <span>Test <br>2</span>
+            <p>
+                One
+            </p>
+            <p>
+                Two
+            </p>
+            <p>
+                Three
+            </p>
+        </div>
+        <div contenteditable="true" style="border:solid 1px black;">
+            <p>
+                One
+            </p>
+            <p>
+                Two
+            </p>
+            <p>
+                Three
+            </p>
+        </div>
+        <div contenteditable="false" style="border:solid 1px black;">
+            One
+            <br>
+            Two
+            <br>
+            Three
+        </div>
+        <div contenteditable="true" style="border:solid 1px black;">
+            One
+            <br>
+            Two
+            <br>
+            Three
+        </div>
+        <div style="border:solid 1px black;">
+            <span>One</span><span> </span><br>2
+        </div>
+        <div contenteditable="true" style="border:solid 1px black;">
+            <span>One</span><span> </span><br>2
         </div>
         <div id="selInfo"></div>
         <div id="charRangeInfo"></div>

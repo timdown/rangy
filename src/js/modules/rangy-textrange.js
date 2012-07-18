@@ -30,6 +30,32 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
+
+/**
+ * Problem: handling of trailing spaces before line breaks is handled inconsistently between browsers.
+ *
+ * First, a <br>: this is relatively simple. For the following HTML:
+ *
+ * 1 <br>2
+ *
+ * - IE and WebKit render the space, include it in the selection (i.e. when the content is selected and pasted in to a
+ *   textarea, the space is present) and allow the caret to be placed after it.
+ * - Firefox does not acknowledge the space in any way except that it is possible to place the caret after it.
+ * - Opera does not render the space but has two separate caret positions on either side of the space (left and right
+ *   arrow keys show this) and includes the space in the selection.
+ *
+ * The other case is the line break or breaks implied by block elements. For the following HTML:
+ *
+ * <p>1 </p><p>2<p>
+ *
+ * - IE renders the space, includes it in the selection and allows the caret to be placed after it.
+ * - WebKit does not acknowledge the space in any way
+ * - Firefox does not acknowledge the space in any way except that it is possible to place the caret after it.
+ * - Opera does not render the space but has two separate caret positions on either side of the space (left and right
+ *   arrow keys show this) and includes the space in the selection.
+ *
+ * Problem is whether Rangy should ever acknowledge the space and if so, when.
+ */
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
@@ -48,6 +74,20 @@ rangy.createModule("TextRange", function(api, module) {
     var defaultLanguage = "en";
 
     var isDirectionBackward = api.Selection.isDirectionBackward;
+
+    // Test whether trailing spaces inside blocks are completely collapsed (as they are in WebKit, but not other
+    // browsers). Also test whether trailing spaces before <br> elements are collapsed
+    var trailingSpaceInBlockCollapses = false;
+    var trailingSpaceBeforeBrBlockCollapses = true;
+    var el = document.createElement("div");
+    if (util.isHostProperty(el, "innerText")) {
+        el.innerHTML = "<p>&nbsp; </p><p></p>";
+        document.body.appendChild(el);
+        trailingSpaceInBlockCollapses = (!/ /.test(el.innerText));
+        document.body.removeChild(el);
+    }
+    //alert([trailingSpaceBeforeBrBlockCollapses, trailingSpaceInBlockCollapses])
+
 
     var getComputedStyleProperty;
     if (typeof window.getComputedStyle != UNDEF) {
@@ -1299,8 +1339,12 @@ rangy.createModule("TextRange", function(api, module) {
 
         pasteHtml: function(html) {
             this.deleteContents();
-            var frag = this.createContextualFragment(html);
-            this.insertNode(frag);
+            if (html) {
+                var frag = this.createContextualFragment(html);
+                var lastChild = frag.lastChild;
+                this.insertNode(frag);
+                this.collapseAfter(lastChild);
+            }
         }
     });
 
