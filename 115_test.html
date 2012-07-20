@@ -1,0 +1,58 @@
+<html>
+    <head>
+        <script src="lib/log4javascript-1.4.1.js" type="text/javascript"></script>
+        <script src="src/js/core/core.js" type="text/javascript"></script>
+        <script src="src/js/core/dom.js" type="text/javascript"></script>
+        <script src="src/js/core/domrange.js" type="text/javascript"></script>
+        <script src="src/js/core/wrappedrange.js" type="text/javascript"></script>
+        <script src="src/js/core/wrappedselection.js" type="text/javascript"></script>
+        <script src="src/js/modules/rangy-textrange.js" type="text/javascript"></script>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+        <script type="text/javascript" language="javascript">
+            $(document).ready(function() {
+                $("#editableDiv").keydown(function(event) {
+                    //Capture enter key
+                    if (event.keyCode == 13) {
+                        var myDiv = $(this);
+
+                        //Get current cursor selection
+                        var sel = rangy.getSelection();
+                        var savedSel = sel.saveCharacterRanges(myDiv[0]);
+
+                        //Restore cursor position
+                        sel.restoreCharacterRanges(myDiv[0], savedSel);
+
+                        return false;
+                    }
+                });
+            });
+        </script>
+        <style type="text/css">
+/*
+            span {
+                border: solid green 1px;
+            }
+*/
+        </style>
+    </head>
+    <body>
+        <div id="editableDiv" contenteditable="true" style="border:solid 1px black;">
+            <span>br</span><span> </span><br>
+            No space
+            <p>Space in p </p>
+            <p>No space in p</p>
+            <pre>
+                Pre plus space 
+                Pre no space
+                Pre no space
+            </pre>
+            <p style="white-space: pre-line">
+                Pre-line plus space 
+                Pre-line no space
+                Pre-line no space
+            </p>
+        </div>
+        <textarea rows="5" cols="50"></textarea>
+    </body>
+</html>
