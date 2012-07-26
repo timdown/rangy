@@ -15,6 +15,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         getSelection,
         selectionIsCollapsed,
         CONTROL = "Control";
+    
+    var getDocument = dom.getDocument;
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
 
@@ -32,10 +34,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         } else if (win instanceof WrappedSelection) {
             return win.win;
         } else {
-            var doc = dom.getContentDocument(win);
-            if (!doc) {
-                throw module.createError(methodName + "(): " + "Parameter must be a Window object or DOM node");
-            }
+            var doc = dom.getContentDocument(win, module, methodName);
             return dom.getWindow(doc);
         }
     }
@@ -64,7 +63,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             var doc = getWindow(winParam, "isSelectionValid").document, nativeSel = doc.selection;
 
             // Check whether the selection TextRange is actually contained within the correct document
-            return (nativeSel.type != "None" || dom.getDocument(nativeSel.createRange().parentElement()) == doc);
+            return (nativeSel.type != "None" || getDocument(nativeSel.createRange().parentElement()) == doc);
         };
     } else if (implementsWinGetSelection) {
         getSelection = getWinSelection;
@@ -256,7 +255,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 updateFromTextRange(sel, controlRange);
             } else {
                 sel.rangeCount = controlRange.length;
-                var range, doc = dom.getDocument(controlRange.item(0));
+                var range, doc = getDocument(controlRange.item(0));
                 for (var i = 0; i < sel.rangeCount; ++i) {
                     range = api.createRange(doc);
                     range.selectNode(controlRange.item(i));
@@ -274,7 +273,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
         // Create a new ControlRange containing all the elements in the selected ControlRange plus the element
         // contained by the supplied range
-        var doc = dom.getDocument(controlRange.item(0));
+        var doc = getDocument(controlRange.item(0));
         var newControlRange = dom.getBody(doc).createControlRange();
         for (var i = 0, len = controlRange.length; i < len; ++i) {
             newControlRange.add(controlRange.item(i));
@@ -305,7 +304,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     } else if (selectionHasAnchorAndFocus) {
         getSelectionRangeAt = function(sel) {
-            var doc = dom.getDocument(sel.anchorNode);
+            var doc = getDocument(sel.anchorNode);
             var range = api.createRange(doc);
             range.setStart(sel.anchorNode, sel.anchorOffset);
             range.setEnd(sel.focusNode, sel.focusOffset);
@@ -389,7 +388,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function createControlSelection(sel, ranges) {
         // Ensure that the selection becomes of type "Control"
-        var doc = dom.getDocument(ranges[0].startContainer);
+        var doc = getDocument(ranges[0].startContainer);
         var controlRange = dom.getBody(doc).createControlRange();
         for (var i = 0, el; i < rangeCount; ++i) {
             el = getSingleElementFromRange(ranges[i]);
@@ -501,11 +500,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     // calling empty()
                     var doc;
                     if (this.anchorNode) {
-                        doc = dom.getDocument(this.anchorNode);
+                        doc = getDocument(this.anchorNode);
                     } else if (this.docSelection.type == CONTROL) {
                         var controlRange = this.docSelection.createRange();
                         if (controlRange.length) {
-                            doc = dom.getDocument(controlRange.item(0)).body.createTextRange();
+                            doc = getDocument(controlRange.item(0)).body.createTextRange();
                         }
                     }
                     if (doc) {
@@ -662,7 +661,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
                 // Create a new ControlRange containing all the elements in the selected ControlRange minus the
                 // element contained by the supplied range
-                var doc = dom.getDocument(controlRange.item(0));
+                var doc = getDocument(controlRange.item(0));
                 var newControlRange = dom.getBody(doc).createControlRange();
                 var el, removed = false;
                 for (var i = 0, len = controlRange.length; i < len; ++i) {
@@ -723,7 +722,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     function assertNodeInSameDocument(sel, node) {
-        if (sel.anchorNode && (dom.getDocument(sel.anchorNode) !== dom.getDocument(node))) {
+        if (sel.anchorNode && (getDocument(sel.anchorNode) !== getDocument(node))) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
     }

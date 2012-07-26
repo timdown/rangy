@@ -64,7 +64,7 @@ rangy.createModule("DomUtil", function(api, module) {
     function getNodeIndex(node) {
         var i = 0;
         while( (node = node.previousSibling) ) {
-            i++;
+            ++i;
         }
         return i;
     }
@@ -226,7 +226,7 @@ rangy.createModule("DomUtil", function(api, module) {
         return obj && util.isHostMethod(obj, "setTimeout") && util.isHostObject(obj, "document");
     }
 
-    function getContentDocument(obj) {
+    function getContentDocument(obj, module, methodName) {
         var doc;
 
         if (!obj) {
@@ -242,6 +242,10 @@ rangy.createModule("DomUtil", function(api, module) {
         // Test if the doc parameter appears to be a Window object
         else if (isWindow(obj)) {
             doc = obj.document;
+        }
+
+        if (!doc) {
+            throw module.createError(methodName + "(): Parameter must be a Window object or DOM node");
         }
 
         return doc;

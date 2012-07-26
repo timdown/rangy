@@ -1,7 +1,7 @@
 rangy.createModule("WrappedRange", function(api, module) {
     api.requireModules( ["DomUtil", "DomRange"] );
 
-    var WrappedRange;
+    var WrappedRange, WrappedTextRange;
     var dom = api.dom;
     var util = api.util;
     var DomPosition = dom.DomPosition;
@@ -9,255 +9,9 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     var log = log4javascript.getLogger("rangy.WrappedRange");
 
-    function getDocument(doc, methodName) {
-        doc = dom.getContentDocument(doc);
-        if (!doc) {
-            throw module.createError(methodName + "(): Parameter must be a Document or other DOM node, or a Window object");
-        }
-        return doc;
-    }
-
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    /*
-    This is a workaround for a bug where IE returns the wrong container element from the TextRange's parentElement()
-    method. For example, in the following (where pipes denote the selection boundaries):
-
-    <ul id="ul"><li id="a">| a </li><li id="b"> b |</li></ul>
-
-    var range = document.selection.createRange();
-    alert(range.parentElement().id); // Should alert "ul" but alerts "b"
-
-    This method returns the common ancestor node of the following:
-    - the parentElement() of the textRange
-    - the parentElement() of the textRange after calling collapse(true)
-    - the parentElement() of the textRange after calling collapse(false)
-     */
-    function getTextRangeContainerElement(textRange) {
-        var parentEl = textRange.parentElement();
-        log.info("getTextRangeContainerElement parentEl is " + dom.inspectNode(parentEl));
-        var range = textRange.duplicate();
-        range.collapse(true);
-        var startEl = range.parentElement();
-        range = textRange.duplicate();
-        range.collapse(false);
-        var endEl = range.parentElement();
-        var startEndContainer = (startEl == endEl) ? startEl : dom.getCommonAncestor(startEl, endEl);
-
-        return startEndContainer == parentEl ? startEndContainer : dom.getCommonAncestor(parentEl, startEndContainer);
-    }
-
-    function textRangeIsCollapsed(textRange) {
-        return textRange.compareEndPoints("StartToEnd", textRange) == 0;
-    }
-
-    // Gets the boundary of a TextRange expressed as a node and an offset within that node. This function started out as
-    // an improved version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/) but has
-    // grown, fixing problems with line breaks in preformatted text, adding workaround for IE TextRange bugs, handling
-    // for inputs and images, plus optimizations.
-    function getTextRangeBoundaryPosition(textRange, wholeRangeContainerElement, isStart, isCollapsed, startInfo) {
-        var workingRange = textRange.duplicate();
-
-        workingRange.collapse(isStart);
-        var containerElement = workingRange.parentElement();
-
-        // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
-        // check for that
-        if (!dom.isOrIsAncestorOf(wholeRangeContainerElement, containerElement)) {
-            containerElement = wholeRangeContainerElement;
-            log.warn("Collapse has moved TextRange outside its original container, so correcting", dom.inspectNode(containerElement));
-        }
-
-        log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + dom.inspectNode(containerElement));
-
-        // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
-        // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
-        if (!containerElement.canHaveHTML) {
-            return new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
-        }
-
-        var workingNode = dom.getDocument(containerElement).createElement("span");
-
-        // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML 5 Shiv
-        // issue 64: https://github.com/aFarkas/html5shiv/issues/64
-        if (workingNode.parentNode) {
-            workingNode.parentNode.removeChild(workingNode);
-        }
-
-        var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
-        var previousNode, nextNode, boundaryPosition, boundaryNode;
-        var start = (startInfo && startInfo.containerElement == containerElement) ? startInfo.nodeIndex : 0;
-        var childNodeCount = containerElement.childNodes.length;
-        var end = childNodeCount;
-
-        // Check end first. Code within the loop assumes that the endth child node of the container is definitely
-        // after the range boundary.
-        var nodeIndex = end;
-
-        while (true) {
-            log.debug("nodeIndex is " + nodeIndex + ", start: " + start + ", end: " + end);
-            if (nodeIndex == childNodeCount) {
-                containerElement.appendChild(workingNode);
-            } else {
-                containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
-            }
-            workingRange.moveToElementText(workingNode);
-            comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
-            if (comparison == 0 || start == end) {
-                break;
-            } else if (comparison == -1) {
-                if (end == start + 1) {
-                    // We know the endth child node is after the range boundary, so we must be done.
-                    break;
-                } else {
-                    start = nodeIndex
-                }
-            } else {
-                end = (end == start + 1) ? start : nodeIndex;
-            }
-            nodeIndex = Math.floor((start + end) / 2);
-            containerElement.removeChild(workingNode);
-        }
-
-        log.debug("*** GOT node index " + nodeIndex);
-
-        // We've now reached or gone past the boundary of the text range we're interested in
-        // so have identified the node we want
-        boundaryNode = workingNode.nextSibling;
-
-        if (comparison == -1 && boundaryNode && dom.isCharacterDataNode(boundaryNode)) {
-            // This is a character data node (text, comment, cdata). The working range is collapsed at the start of the
-            // node containing the text range's boundary, so we move the end of the working range to the boundary point
-            // and measure the length of its text to get the boundary's offset within the node.
-            workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
-            //log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
-
-            var offset;
-
-            if (/[\r\n]/.test(boundaryNode.data)) {
-                /*
-                For the particular case of a boundary within a text node containing rendered line breaks (within a <pre>
-                element, for example), we need a slightly complicated approach to get the boundary's offset in IE. The
-                facts:
-
-                - Each line break is represented as \r in the text node's data/nodeValue properties
-                - Each line break is represented as \r\n in the TextRange's 'text' property
-                - The 'text' property of the TextRange does not contain trailing line breaks
-
-                To get round the problem presented by the final fact above, we can use the fact that TextRange's
-                moveStart() and moveEnd() methods return the actual number of characters moved, which is not necessarily
-                the same as the number of characters it was instructed to move. The simplest approach is to use this to
-                store the characters moved when moving both the start and end of the range to the start of the document
-                body and subtracting the start offset from the end offset (the "move-negative-gazillion" method).
-                However, this is extremely slow when the document is large and the range is near the end of it. Clearly
-                doing the mirror image (i.e. moving the range boundaries to the end of the document) has the same
-                problem.
-
-                Another approach that works is to use moveStart() to move the start boundary of the range up to the end
-                boundary one character at a time and incrementing a counter with the value returned by the moveStart()
-                call. However, the check for whether the start boundary has reached the end boundary is expensive, so
-                this method is slow (although unlike "move-negative-gazillion" is largely unaffected by the location of
-                the range within the document).
-
-                The method below is a hybrid of the two methods above. It uses the fact that a string containing the
-                TextRange's 'text' property with each \r\n converted to a single \r character cannot be longer than the
-                text of the TextRange, so the start of the range is moved that length initially and then a character at
-                a time to make up for any trailing line breaks not contained in the 'text' property. This has good
-                performance in most situations compared to the previous two methods.
-                */
-                var tempRange = workingRange.duplicate();
-                var rangeLength = tempRange.text.replace(/\r\n/g, "\r").length;
-
-                offset = tempRange.moveStart("character", rangeLength);
-                while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
-                    offset++;
-                    tempRange.moveStart("character", 1);
-                }
-            } else {
-                offset = workingRange.text.length;
-            }
-            boundaryPosition = new DomPosition(boundaryNode, offset);
-        } else {
-            log.debug("Range boundary is at node boundary");
-
-            // If the boundary immediately follows a character data node and this is the end boundary, we should favour
-            // a position within that, and likewise for a start boundary preceding a character data node
-            previousNode = (isCollapsed || !isStart) && workingNode.previousSibling;
-            nextNode = (isCollapsed || isStart) && workingNode.nextSibling;
-            log.info("workingNode: " + dom.inspectNode(workingNode));
-            log.info("previousNode: " + dom.inspectNode(previousNode));
-            log.info("nextNode: " + dom.inspectNode(nextNode));
-            if (nextNode && dom.isCharacterDataNode(nextNode)) {
-                boundaryPosition = new DomPosition(nextNode, 0);
-            } else if (previousNode && dom.isCharacterDataNode(previousNode)) {
-                boundaryPosition = new DomPosition(previousNode, previousNode.data.length);
-            } else {
-                boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
-            }
-        }
-
-        // Clean up
-        workingNode.parentNode.removeChild(workingNode);
-
-        return {
-            boundaryPosition: boundaryPosition,
-            nodeInfo: {
-                nodeIndex: nodeIndex,
-                containerElement: containerElement
-            }
-        };
-    }
-
-    // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
-    // This function started out as an optimized version of code found in Tim Cameron Ryan's IERange
-    // (http://code.google.com/p/ierange/)
-    function createBoundaryTextRange(boundaryPosition, isStart) {
-        var boundaryNode, boundaryParent, boundaryOffset = boundaryPosition.offset;
-        var doc = dom.getDocument(boundaryPosition.node);
-        var workingNode, childNodes, workingRange = doc.body.createTextRange();
-        var nodeIsDataNode = dom.isCharacterDataNode(boundaryPosition.node);
-
-        if (nodeIsDataNode) {
-            boundaryNode = boundaryPosition.node;
-            boundaryParent = boundaryNode.parentNode;
-        } else {
-            childNodes = boundaryPosition.node.childNodes;
-            boundaryNode = (boundaryOffset < childNodes.length) ? childNodes[boundaryOffset] : null;
-            boundaryParent = boundaryPosition.node;
-        }
-
-        // Position the range immediately before the node containing the boundary
-        workingNode = doc.createElement("span");
-
-        // Making the working element non-empty element persuades IE to consider the TextRange boundary to be within the
-        // element rather than immediately before or after it
-        workingNode.innerHTML = "&#feff;";
-
-        // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
-        // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
-        if (boundaryNode) {
-            boundaryParent.insertBefore(workingNode, boundaryNode);
-        } else {
-            boundaryParent.appendChild(workingNode);
-        }
-
-        workingRange.moveToElementText(workingNode);
-        workingRange.collapse(!isStart);
-
-        // Clean up
-        boundaryParent.removeChild(workingNode);
-
-        // Move the working range to the text offset, if required
-        if (nodeIsDataNode) {
-            workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryOffset);
-        }
-
-        return workingRange;
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    if (api.features.implementsDomRange && (!api.features.implementsTextRange || !api.config.preferTextRange)) {
+    if (api.features.implementsDomRange) {
         // This is a wrapper around the browser's native DOM Range. It has two aims:
         // - Provide workarounds for specific browser bugs
         // - provide convenient extensions, which are inherited from Rangy's DomRange
@@ -527,24 +281,270 @@ rangy.createModule("WrappedRange", function(api, module) {
             dom.getBody(document).removeChild(testTextNode);
             range.detach();
             range2.detach();
-        })();
 
-        api.createNativeRange = function(doc) {
-            doc = getDocument(doc, "createNativeRange");
-            return doc.createRange();
+            rangeProto.getName = function() {
+                return "WrappedRange";
+            };
+
+            api.WrappedRange = WrappedRange;
+
+            api.createNativeRange = function(doc) {
+                doc = dom.getContentDocument(doc, module, "createNativeRange");
+                return doc.createRange();
+            };
+        })();
+    }
+    
+    if (api.features.implementsTextRange) {
+        /*
+         This is a workaround for a bug where IE returns the wrong container element from the TextRange's parentElement()
+         method. For example, in the following (where pipes denote the selection boundaries):
+
+         <ul id="ul"><li id="a">| a </li><li id="b"> b |</li></ul>
+
+         var range = document.selection.createRange();
+         alert(range.parentElement().id); // Should alert "ul" but alerts "b"
+
+         This method returns the common ancestor node of the following:
+         - the parentElement() of the textRange
+         - the parentElement() of the textRange after calling collapse(true)
+         - the parentElement() of the textRange after calling collapse(false)
+         */
+        var getTextRangeContainerElement = function(textRange) {
+            var parentEl = textRange.parentElement();
+            log.info("getTextRangeContainerElement parentEl is " + dom.inspectNode(parentEl));
+            var range = textRange.duplicate();
+            range.collapse(true);
+            var startEl = range.parentElement();
+            range = textRange.duplicate();
+            range.collapse(false);
+            var endEl = range.parentElement();
+            var startEndContainer = (startEl == endEl) ? startEl : dom.getCommonAncestor(startEl, endEl);
+
+            return startEndContainer == parentEl ? startEndContainer : dom.getCommonAncestor(parentEl, startEndContainer);
         };
-    } else if (api.features.implementsTextRange) {
+
+        var textRangeIsCollapsed = function(textRange) {
+            return textRange.compareEndPoints("StartToEnd", textRange) == 0;
+        };
+
+        // Gets the boundary of a TextRange expressed as a node and an offset within that node. This function started out as
+        // an improved version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/) but has
+        // grown, fixing problems with line breaks in preformatted text, adding workaround for IE TextRange bugs, handling
+        // for inputs and images, plus optimizations.
+        var getTextRangeBoundaryPosition = function(textRange, wholeRangeContainerElement, isStart, isCollapsed, startInfo) {
+            var workingRange = textRange.duplicate();
+
+            workingRange.collapse(isStart);
+            var containerElement = workingRange.parentElement();
+
+            // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
+            // check for that
+            if (!dom.isOrIsAncestorOf(wholeRangeContainerElement, containerElement)) {
+                containerElement = wholeRangeContainerElement;
+                log.warn("Collapse has moved TextRange outside its original container, so correcting", dom.inspectNode(containerElement));
+            }
+
+            log.debug("getTextRangeBoundaryPosition start " + isStart + ", containerElement is " + dom.inspectNode(containerElement));
+
+            // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
+            // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
+            if (!containerElement.canHaveHTML) {
+                return new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
+            }
+
+            var workingNode = dom.getDocument(containerElement).createElement("span");
+
+            // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML 5 Shiv
+            // issue 64: https://github.com/aFarkas/html5shiv/issues/64
+            if (workingNode.parentNode) {
+                workingNode.parentNode.removeChild(workingNode);
+            }
+
+            var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
+            var previousNode, nextNode, boundaryPosition, boundaryNode;
+            var start = (startInfo && startInfo.containerElement == containerElement) ? startInfo.nodeIndex : 0;
+            var childNodeCount = containerElement.childNodes.length;
+            var end = childNodeCount;
+
+            // Check end first. Code within the loop assumes that the endth child node of the container is definitely
+            // after the range boundary.
+            var nodeIndex = end;
+
+            while (true) {
+                log.debug("nodeIndex is " + nodeIndex + ", start: " + start + ", end: " + end);
+                if (nodeIndex == childNodeCount) {
+                    containerElement.appendChild(workingNode);
+                } else {
+                    containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
+                }
+                workingRange.moveToElementText(workingNode);
+                comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
+                if (comparison == 0 || start == end) {
+                    break;
+                } else if (comparison == -1) {
+                    if (end == start + 1) {
+                        // We know the endth child node is after the range boundary, so we must be done.
+                        break;
+                    } else {
+                        start = nodeIndex
+                    }
+                } else {
+                    end = (end == start + 1) ? start : nodeIndex;
+                }
+                nodeIndex = Math.floor((start + end) / 2);
+                containerElement.removeChild(workingNode);
+            }
+
+            log.debug("*** GOT node index " + nodeIndex);
+
+            // We've now reached or gone past the boundary of the text range we're interested in
+            // so have identified the node we want
+            boundaryNode = workingNode.nextSibling;
+
+            if (comparison == -1 && boundaryNode && dom.isCharacterDataNode(boundaryNode)) {
+                // This is a character data node (text, comment, cdata). The working range is collapsed at the start of the
+                // node containing the text range's boundary, so we move the end of the working range to the boundary point
+                // and measure the length of its text to get the boundary's offset within the node.
+                workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
+                //log.info("boundaryNode text: '" + boundaryNode.data + "', textRange text: '" + textRange.text + "'");
+
+                var offset;
+
+                if (/[\r\n]/.test(boundaryNode.data)) {
+                    /*
+                     For the particular case of a boundary within a text node containing rendered line breaks (within a <pre>
+                     element, for example), we need a slightly complicated approach to get the boundary's offset in IE. The
+                     facts:
+
+                     - Each line break is represented as \r in the text node's data/nodeValue properties
+                     - Each line break is represented as \r\n in the TextRange's 'text' property
+                     - The 'text' property of the TextRange does not contain trailing line breaks
+
+                     To get round the problem presented by the final fact above, we can use the fact that TextRange's
+                     moveStart() and moveEnd() methods return the actual number of characters moved, which is not necessarily
+                     the same as the number of characters it was instructed to move. The simplest approach is to use this to
+                     store the characters moved when moving both the start and end of the range to the start of the document
+                     body and subtracting the start offset from the end offset (the "move-negative-gazillion" method).
+                     However, this is extremely slow when the document is large and the range is near the end of it. Clearly
+                     doing the mirror image (i.e. moving the range boundaries to the end of the document) has the same
+                     problem.
+
+                     Another approach that works is to use moveStart() to move the start boundary of the range up to the end
+                     boundary one character at a time and incrementing a counter with the value returned by the moveStart()
+                     call. However, the check for whether the start boundary has reached the end boundary is expensive, so
+                     this method is slow (although unlike "move-negative-gazillion" is largely unaffected by the location of
+                     the range within the document).
+
+                     The method below is a hybrid of the two methods above. It uses the fact that a string containing the
+                     TextRange's 'text' property with each \r\n converted to a single \r character cannot be longer than the
+                     text of the TextRange, so the start of the range is moved that length initially and then a character at
+                     a time to make up for any trailing line breaks not contained in the 'text' property. This has good
+                     performance in most situations compared to the previous two methods.
+                     */
+                    var tempRange = workingRange.duplicate();
+                    var rangeLength = tempRange.text.replace(/\r\n/g, "\r").length;
+
+                    offset = tempRange.moveStart("character", rangeLength);
+                    while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
+                        offset++;
+                        tempRange.moveStart("character", 1);
+                    }
+                } else {
+                    offset = workingRange.text.length;
+                }
+                boundaryPosition = new DomPosition(boundaryNode, offset);
+            } else {
+                log.debug("Range boundary is at node boundary");
+
+                // If the boundary immediately follows a character data node and this is the end boundary, we should favour
+                // a position within that, and likewise for a start boundary preceding a character data node
+                previousNode = (isCollapsed || !isStart) && workingNode.previousSibling;
+                nextNode = (isCollapsed || isStart) && workingNode.nextSibling;
+                log.info("workingNode: " + dom.inspectNode(workingNode));
+                log.info("previousNode: " + dom.inspectNode(previousNode));
+                log.info("nextNode: " + dom.inspectNode(nextNode));
+                if (nextNode && dom.isCharacterDataNode(nextNode)) {
+                    boundaryPosition = new DomPosition(nextNode, 0);
+                } else if (previousNode && dom.isCharacterDataNode(previousNode)) {
+                    boundaryPosition = new DomPosition(previousNode, previousNode.data.length);
+                } else {
+                    boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
+                }
+            }
+
+            // Clean up
+            workingNode.parentNode.removeChild(workingNode);
+
+            return {
+                boundaryPosition: boundaryPosition,
+                nodeInfo: {
+                    nodeIndex: nodeIndex,
+                    containerElement: containerElement
+                }
+            };
+        };
+
+        // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that node.
+        // This function started out as an optimized version of code found in Tim Cameron Ryan's IERange
+        // (http://code.google.com/p/ierange/)
+        var createBoundaryTextRange = function(boundaryPosition, isStart) {
+            var boundaryNode, boundaryParent, boundaryOffset = boundaryPosition.offset;
+            var doc = dom.getDocument(boundaryPosition.node);
+            var workingNode, childNodes, workingRange = doc.body.createTextRange();
+            var nodeIsDataNode = dom.isCharacterDataNode(boundaryPosition.node);
+
+            if (nodeIsDataNode) {
+                boundaryNode = boundaryPosition.node;
+                boundaryParent = boundaryNode.parentNode;
+            } else {
+                childNodes = boundaryPosition.node.childNodes;
+                boundaryNode = (boundaryOffset < childNodes.length) ? childNodes[boundaryOffset] : null;
+                boundaryParent = boundaryPosition.node;
+            }
+
+            // Position the range immediately before the node containing the boundary
+            workingNode = doc.createElement("span");
+
+            // Making the working element non-empty element persuades IE to consider the TextRange boundary to be within the
+            // element rather than immediately before or after it
+            workingNode.innerHTML = "&#feff;";
+
+            // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
+            // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
+            if (boundaryNode) {
+                boundaryParent.insertBefore(workingNode, boundaryNode);
+            } else {
+                boundaryParent.appendChild(workingNode);
+            }
+
+            workingRange.moveToElementText(workingNode);
+            workingRange.collapse(!isStart);
+
+            // Clean up
+            boundaryParent.removeChild(workingNode);
+
+            // Move the working range to the text offset, if required
+            if (nodeIsDataNode) {
+                workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryOffset);
+            }
+
+            return workingRange;
+        };
+
+        /*------------------------------------------------------------------------------------------------------------*/
+
         // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
         // prototype
 
-        WrappedRange = function(textRange) {
+        WrappedTextRange = function(textRange) {
             this.textRange = textRange;
             this.refresh();
         };
 
-        WrappedRange.prototype = new DomRange(document);
+        WrappedTextRange.prototype = new DomRange(document);
 
-        WrappedRange.prototype.refresh = function() {
+        WrappedTextRange.prototype.refresh = function() {
             var start, end, startBoundary;
 
             // TextRange's parentElement() method cannot be trusted. getTextRangeContainerElement() works around that.
@@ -569,22 +569,13 @@ rangy.createModule("WrappedRange", function(api, module) {
             this.setEnd(end.node, end.offset);
         };
 
-        DomRange.copyComparisonConstants(WrappedRange);
-
-        // Add WrappedRange as the Range property of the global object to allow expression like Range.END_TO_END to work
-        var globalObj = (function() { return this; })();
-        if (typeof globalObj.Range == "undefined") {
-            globalObj.Range = WrappedRange;
-        }
-
-        api.createNativeRange = function(doc) {
-            doc = getDocument(doc, "createNativeRange");
-            return doc.body.createTextRange();
+        WrappedTextRange.prototype.getName = function() {
+            return "WrappedTextRange";
         };
-    }
 
-    if (api.features.implementsTextRange) {
-        WrappedRange.rangeToTextRange = function(range) {
+        DomRange.copyComparisonConstants(WrappedTextRange);
+
+        WrappedTextRange.rangeToTextRange = function(range) {
             if (range.collapsed) {
                 return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
             } else {
@@ -596,21 +587,34 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return textRange;
             }
         };
+
+        api.WrappedTextRange = WrappedTextRange;
+
+        // IE 9 and above have both implementations and Rangy makes both available. The next few lines sets which
+        // implementation to use by default.
+        if (!api.features.implementsDomRange || api.config.preferTextRange) {
+            // Add WrappedTextRange as the Range property of the global object to allow expression like Range.END_TO_END to work
+            var globalObj = (function() { return this; })();
+            if (typeof globalObj.Range == "undefined") {
+                globalObj.Range = WrappedTextRange;
+            }
+
+            api.createNativeRange = function(doc) {
+                doc = dom.getContentDocument(doc, module, "createNativeRange");
+                return doc.body.createTextRange();
+            };
+
+            api.WrappedRange = WrappedTextRange;
+        }
     }
 
-    WrappedRange.prototype.getName = function() {
-        return "WrappedRange";
-    };
-
-    api.WrappedRange = WrappedRange;
-
     api.createRange = function(doc) {
-        doc = getDocument(doc, "createRange");
-        return new WrappedRange(api.createNativeRange(doc));
+        doc = dom.getContentDocument(doc, module, "createRange");
+        return new api.WrappedRange(api.createNativeRange(doc));
     };
 
     api.createRangyRange = function(doc) {
-        doc = getDocument(doc, "createRangyRange");
+        doc = dom.getContentDocument(doc, module, "createRangyRange");
         return new DomRange(doc);
     };
 
