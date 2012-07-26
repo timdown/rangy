@@ -686,7 +686,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
             log.group("Apply CSS class '" + this.cssClass + "'. textNode: " + textNode.data);
             log.info("Apply CSS class  '" + this.cssClass + "'. textNode: " + textNode.data);
             var parent = textNode.parentNode;
-            if (parent.childNodes.length == 1 && dom.arrayContains(this.tagNames, parent.tagName.toLowerCase()) && this.useExistingElements) {
+            if (parent.childNodes.length == 1 &&
+                    this.useExistingElements &&
+                    dom.arrayContains(this.tagNames, parent.tagName.toLowerCase()) &&
+                    elementHasProps(parent, this.elementProperties)) {
+
                 addClass(parent, this.cssClass);
             } else {
                 var el = this.createContainer(dom.getDocument(textNode));
