@@ -135,6 +135,24 @@ window.rangy = (function() {
         fail("hasOwnProperty not supported");
     }
 
+
+    // Very simple event handler wrapper function that doesn't attempt to solve issue such as "this" handling or
+    // normalization of event properties
+    var addListener;
+    if (isHostMethod(document, "addEventListener")) {
+        addListener = function(obj, eventType, listener) {
+            obj.addEventListener(eventType, listener, false);
+        };
+    } else if (isHostMethod(document, "attachEvent")) {
+        addListener = function(obj, eventType, listener) {
+            obj.attachEvent("on" + eventType, listener);
+        };
+    } else {
+        fail("Document does not have required addEventListener or attachEvent method");
+    }
+    
+    api.util.addListener = addListener;
+
     var initListeners = [];
     var moduleInitializers = [];
 
@@ -307,13 +325,7 @@ window.rangy = (function() {
     }
 
     // Add a fallback in case the DOMContentLoaded event isn't supported
-    if (isHostMethod(window, "addEventListener")) {
-        window.addEventListener("load", loadHandler, false);
-    } else if (isHostMethod(window, "attachEvent")) {
-        window.attachEvent("onload", loadHandler);
-    } else {
-        fail("Window does not have required addEventListener or attachEvent method");
-    }
+    addListener(window, "load", loadHandler);
 
     return api;
 })();

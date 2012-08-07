@@ -101,13 +101,13 @@ rangy.createModule("WrappedSelection", function(api, module) {
             typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
 
         (function() {
-            // Previously an iframe was used but this caused problems in some circumatsances in IE, so tests are
+            // Previously an iframe was used but this caused problems in some circumstances in IE, so tests are
             // performed on the current document's selection. See issue 109.
 
             // Note also that if a selection previously existed, it is wiped by these tests. This should usually be fine
             // because initialization usually happens when the document loads, but could be a problem for a script that
-            // loads and initializes Rangy later. If anyone complains, code could be added to the selection could be
-            // saved and restored.
+            // loads and initializes Rangy later. If anyone complains, code could be added to save and restore the
+            // selection.
             var sel = window.getSelection();
             if (sel) {
                 var body = dom.getBody(document);

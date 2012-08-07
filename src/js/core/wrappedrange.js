@@ -45,10 +45,9 @@ rangy.createModule("WrappedRange", function(api, module) {
             function detach(range) {
                 range.nativeRange.detach();
                 range.detached = true;
-                var i = rangeProperties.length, prop;
+                var i = rangeProperties.length;
                 while (i--) {
-                    prop = rangeProperties[i];
-                    range[prop] = null;
+                    range[ rangeProperties[i] ] = null;
                 }
             }
 
@@ -75,16 +74,8 @@ rangy.createModule("WrappedRange", function(api, module) {
                 return this.nativeRange.cloneContents();
             };
 
-            // Firefox has a bug (apparently long-standing, still present in 3.6.8) that throws "Index or size is
-            // negative or greater than the allowed amount" for insertNode in some circumstances. I haven't been able to
-            // find a reliable way of detecting this, so all browsers will have to use the Rangy's own implementation of
-            // insertNode, which works but is almost certainly slower than the native implementation.
-/*
-            rangeProto.insertNode = function(node) {
-                this.nativeRange.insertNode(node);
-                updateRangeProperties(this);
-            };
-*/
+            // Due to a long-standing Firefox bug that I have not been able to find a reliable way to detect,
+            // insertNode() is never delegated to the native range.
 
             rangeProto.surroundContents = function(node) {
                 this.nativeRange.surroundContents(node);
