@@ -7,7 +7,9 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-window.rangy = (function() {
+
+var rangy;
+rangy = rangy || (function() {
     var log = log4javascript.getLogger("rangy.core");
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
