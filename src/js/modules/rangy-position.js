@@ -15,7 +15,7 @@
 rangy.createModule("Position", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
-    var log = log4javascript.getLogger("rangy.position");
+    //var log = log4javascript.getLogger("rangy.position");
 
     var NUMBER = "number", UNDEF = "undefined";
     var WrappedRange = api.WrappedRange;
