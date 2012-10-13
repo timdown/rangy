@@ -18,13 +18,6 @@ rangy.createModule("Util", function(api, module) {
     var rangeProto = api.rangePrototype;
     var selProto = api.selectionPrototype;
 
-    /**
-     * Convenience method to select a range. Any existing selection will be removed.
-     */
-    rangeProto.select = function(direction) {
-        api.getSelection(this.getDocument()).setSingleRange(this, direction);
-    };
-
     selProto.pasteText = function(text) {
         this.deleteFromDocument();
         var range = this.getRangeAt(0);

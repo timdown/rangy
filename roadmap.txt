@@ -12,6 +12,9 @@
       - [ ] Check Range and Selection against WHATWG Range spec algorithms
       - [ ] Add Range setStartAndEnd(). Overloaded? eg. two args collapsed, three args (node, startOffset, endOffset),
             four args (startNode, startOffset, endNode, endOffset) (consider this)
+- [ ] Consider range.restrict(node)
+- [ ] Consider filter option in createCssClassApplier() options object
+- [X] Added select() method to range
 
 1.4
 ---

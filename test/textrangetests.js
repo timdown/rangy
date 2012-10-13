@@ -247,6 +247,11 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
     });
 
+    s.test("innerText on one paragraph", function(t) {
+        t.el.innerHTML = '<p>1</p>';
+        t.assertEquals(rangy.innerText(t.el), "1");
+    });
+
     s.test("innerText on two paragraphs", function(t) {
         t.el.innerHTML = '<p>1</p><p>2</p>';
         t.assertEquals(rangy.innerText(t.el), "1\n2");
@@ -979,6 +984,68 @@ xn.test.suite("Text Range module tests", function(s) {
         range.collapseAfter(document.body);
 
         while (range.moveStart("word", 1)) {}
+    });
+
+    s.test("trimStart test", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(textNode, 3, 8);
+        range.trimStart();
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endOffset, 8);
+        range.trimStart();
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endOffset, 8);
+
+        t.el.innerHTML = 'One&nbsp;&nbsp;two three';
+        range.selectCharacters(t.el, 3, 8);
+        t.assertEquals(range.text(), "\u00a0\u00a0two");
+
+        var charRange = range.toCharacterRange();
+
+        range.trimStart();
+        t.assertEquals(range.text(), "two");
+
+        var trimmedCharRange = range.toCharacterRange();
+        t.assertEquals(charRange.start, 3);
+        t.assertEquals(charRange.end, 8);
+        t.assertEquals(trimmedCharRange.start, 5);
+        t.assertEquals(trimmedCharRange.end, 8);
+    });
+
+    s.test("trimEnd test", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(textNode, 3, 8);
+        range.trimEnd();
+        t.assertEquals(range.startOffset, 3);
+        t.assertEquals(range.endOffset, 7);
+        range.trimEnd();
+        t.assertEquals(range.startOffset, 3);
+        t.assertEquals(range.endOffset, 7);
+
+        t.el.innerHTML = 'One two&nbsp;&nbsp;three';
+        range.selectCharacters(t.el, 4, 9);
+        t.assertEquals(range.text(), "two\u00a0\u00a0");
+
+        var charRange = range.toCharacterRange();
+
+        range.trimEnd();
+        t.assertEquals(range.text(), "two");
+
+        var trimmedCharRange = range.toCharacterRange();
+        t.assertEquals(charRange.start, 4);
+        t.assertEquals(charRange.end, 9);
+        t.assertEquals(trimmedCharRange.start, 4);
+        t.assertEquals(trimmedCharRange.end, 7);
+    });
+
+    s.test("Speed test", function(t) {
+        //t.el.innerHTML = new Array(10000).join("<p>One <b>two <i>three</i></b> four<br> </p>\n<p>four </p>");
+        var range = rangy.createRange();
+        var text = range.text();
     });
 
 }, false);

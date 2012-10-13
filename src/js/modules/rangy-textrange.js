@@ -37,9 +37,9 @@
  *
  * 1 <br>2
  *
- * - IE and WebKit render the space, include it in the selection (i.e. when the content is selected and pasted in to a
+ * - IE and WebKit render the space, include it in the selection (i.e. when the content is selected and pasted into a
  *   textarea, the space is present) and allow the caret to be placed after it.
- * - Firefox does not acknowledge the space in any way except that it is possible to place the caret after it.
+ * - Firefox does not acknowledge the space in the selection but it is possible to place the caret after it.
  * - Opera does not render the space but has two separate caret positions on either side of the space (left and right
  *   arrow keys show this) and includes the space in the selection.
  *
@@ -50,7 +50,8 @@
  * - WebKit does not acknowledge the space in any way
  * - Firefox, IE and Opera as per <br>
  *
- * Problem is whether Rangy should ever acknowledge the space and if so, when.
+ * Problem is whether Rangy should ever acknowledge the space and if so, when. Another problem is whether this can be
+ * feature-tested
  */
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
@@ -74,23 +75,30 @@ rangy.createModule("TextRange", function(api, module) {
 
     // Test whether trailing spaces inside blocks are completely collapsed (as they are in WebKit, but not other
     // browsers). Also test whether trailing spaces before <br> elements are collapsed
-    var trailingSpaceInBlockCollapses = false;
-    var trailingSpaceBeforeBrCollapses = false;
+    var trailingSpaceInBlockCollapses = true;
+    var trailingSpaceBeforeBrCollapses = true;
     var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
     
     var el = document.createElement("div");
+/*
     if (util.isHostProperty(el, "innerText")) {
         el.innerHTML = "<p>&nbsp; </p><p></p>";
         document.body.appendChild(el);
         trailingSpaceInBlockCollapses = (!/ /.test(el.innerText));
         document.body.removeChild(el);
+
+        el.innerHTML = "&nbsp; <br>";
+        document.body.appendChild(el);
+        trailingSpaceBeforeBrCollapses = (!/ /.test(el.innerText));
+        document.body.removeChild(el);
     }
+*/
     
     util.extend(api.features, {
         trailingSpaceInBlockCollapses: trailingSpaceInBlockCollapses,
         trailingSpaceBeforeBrCollapses: trailingSpaceBeforeBrCollapses
     });
-    //alert([trailingSpaceBeforeBrBlockCollapses, trailingSpaceInBlockCollapses])
+    //alert([trailingSpaceBeforeBrCollapses, trailingSpaceInBlockCollapses])
 
 
     var getComputedStyleProperty;
@@ -410,7 +418,7 @@ rangy.createModule("TextRange", function(api, module) {
     };
 
     TextPosition.prototype.collapsesPrecedingSpace = function() {
-        return this.character == "\n" &&
+        return (this.character == "\n") &&
             ( (this.isBr && trailingSpaceBeforeBrCollapses) || (this.isTrailingSpace && trailingSpaceInBlockCollapses) );
     };
 
@@ -587,6 +595,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function getPossibleCharacterAt(pos, transaction, options) {
         var node = pos.node, offset = pos.offset;
+        log.debug("getPossibleCharacterAt " + pos);
         var visibleChar = "", isLeadingSpace = false, isTrailingSpace = false, isBr = false, collapsible = false;
         if (offset > 0) {
             if (node.nodeType == 3) {
@@ -684,60 +693,57 @@ rangy.createModule("TextRange", function(api, module) {
         var possible = getPossibleCharacterAt(pos, transaction);
         var possibleChar = possible.character;
         var next, preceding;
-        log.debug("*** getCharacterAt got possible char '" + possibleChar + "' at position " + pos);
-        if (!possibleChar) {
-            return possible;
-        }
-        if (spacesRegex.test(possibleChar)) {
-            if (!precedingChars) {
-                // Work backwards until we have a non-space character
-                var previousPos = pos, previous, previousPossibleChar;
-                precedingChars = [];
-                while ( (previousPos = previousVisiblePosition(previousPos)) ) {
-                    previous = getPossibleCharacterAt(previousPos, transaction);
-                    previousPossibleChar = previous.character;
-                    if (previousPossibleChar !== "") {
-                        log.debug("Found preceding character '" + previousPossibleChar + "' at position " + previousPos);
-                        precedingChars.unshift(previous);
-                        if (previousPossibleChar != " " && previousPossibleChar != "\n") {
-                            break;
+        log.group("*** getCharacterAt got possible char '" + possibleChar + "' at position " + pos);
+        if (possibleChar) {
+            if (spacesRegex.test(possibleChar)) {
+                if (!precedingChars) {
+                    // Work backwards until we have a non-space character
+                    var previousPos = pos, previous, previousPossibleChar;
+                    precedingChars = [];
+                    while ( (previousPos = previousVisiblePosition(previousPos)) ) {
+                        previous = getPossibleCharacterAt(previousPos, transaction);
+                        previousPossibleChar = previous.character;
+                        if (previousPossibleChar !== "") {
+                            log.debug("Found preceding character '" + previousPossibleChar + "' at position " + previousPos);
+                            precedingChars.unshift(previous);
+                            if (previousPossibleChar != " " && previousPossibleChar != "\n") {
+                                break;
+                            }
                         }
                     }
                 }
+                preceding = precedingChars[precedingChars.length - 1];
+    
+                log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace);
+                if (preceding) {
+                    log.info("preceding: '" + preceding + "' (" + preceding.position + "), possible: " + possible.position);
+                    log.info([possible.isLeadingSpace, possibleChar == "\n", [!preceding, preceding.isLeadingSpace, !dom.isOrIsAncestorOf(possible.position.node.parentNode, preceding.position.node), dom.inspectNode(possible.position.node.parentNode), dom.inspectNode(preceding.position.node)]]);
+                }
+    
+                // Disallow a collapsible space that follows a trailing space or line break, or is the first character
+                if (possibleChar === " " && possible.collapsible &&
+                        (!preceding || preceding.isTrailingSpace || preceding.character == "\n")) {
+                    log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
+                    possible.character = "";
+                }
+    
+                // Disallow a collapsible space that is followed by a line break or is the last character
+                else if (possible.collapsible &&
+                        (!(next = getNextPossibleCharacter(pos, transaction))
+                            || (next.character == "\n" && options.collapseSpaceBeforeLineBreak && next.collapsesPrecedingSpace()))) {
+                    log.debug("Character is a space which is followed by a line break that collapses preceding spaces, or nothing, so collapsing");
+                    possible.character = "";
+                }
+    
+                // Collapse a br element that is followed by a trailing space
+                else if (possibleChar === "\n" && !possible.collapsible && (!(next = getNextPossibleCharacter(pos, transaction)) || next.isTrailingSpace)) {
+                    log.debug("Character is a br which is followed by a trailing space or nothing, collapsing");
+                    possible.character = "";
+                }
             }
-            preceding = precedingChars[precedingChars.length - 1];
-
-            log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace);
-            if (preceding) {
-                log.info("preceding: '" + preceding + "' (" + preceding.position + "), possible: " + possible.position);
-                log.info([possible.isLeadingSpace, possibleChar == "\n", [!preceding, preceding.isLeadingSpace, !dom.isOrIsAncestorOf(possible.position.node.parentNode, preceding.position.node), dom.inspectNode(possible.position.node.parentNode), dom.inspectNode(preceding.position.node)]]);
-            }
-
-            // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-            if (possibleChar === " " && possible.collapsible &&
-                    (!preceding || preceding.isTrailingSpace || preceding.character == "\n")) {
-                log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
-                possible.character = "";
-            }
-
-            // Disallow a collapsible space that is followed by a line break or is the last character
-            else if (possible.collapsible &&
-                    (!(next = getNextPossibleCharacter(pos, transaction))
-                        || (next.character == "\n" && options.collapseSpaceBeforeLineBreak && next.collapsesPrecedingSpace()))) {
-                log.debug("Character is a space which is followed by a line break that collapses preceding spaces, or nothing, so collapsing");
-                possible.character = "";
-            }
-
-            // Collapse a br element that is followed by a trailing space
-            else if (possibleChar === "\n" && !possible.collapsible && (!(next = getNextPossibleCharacter(pos, transaction)) || next.isTrailingSpace)) {
-                log.debug("Character is a br which is followed by a trailing space or nothing, collapsing");
-                possible.character = "";
-            }
-
-            return possible;
-        } else {
-            return possible;
         }
+        log.groupEnd();
+        return possible;
     }
 
 
@@ -874,7 +880,7 @@ rangy.createModule("TextRange", function(api, module) {
             return -1;
         };
 
-    // Provide pair of iterators over text positions, tokenized. Transparently requests more text when next()
+    // Provides a pair of iterators over text positions, tokenized. Transparently requests more text when next()
     // is called and there is no more tokenized text
     function createTokenizedTextProvider(pos, characterOptions, wordOptions) {
         var forwardIterator = createCharacterIterator(pos, false, null, characterOptions);
@@ -925,9 +931,9 @@ rangy.createModule("TextRange", function(api, module) {
             tokens.slice(0, arrayIndexOf(tokens, backwardChars.pop().token) + 1) : [];
 
         function inspectBuffer(buffer) {
-            var textPositions = [];
+            var textPositions = ["[" + buffer.length + "]"];
             for (var i = 0; i < buffer.length; ++i) {
-                textPositions[i] = "(word: " + buffer[i] + ", is word: " + buffer[i].isWord + ")";
+                textPositions.push("(word: " + buffer[i] + ", is word: " + buffer[i].isWord + ")");
             }
             return textPositions;
         }
@@ -936,22 +942,32 @@ rangy.createModule("TextRange", function(api, module) {
 
         return {
             nextEndToken: function() {
-                log.debug("nextEndToken, token buffer is " + forwardTokensBuffer);
-                var lastToken;
-                if (forwardTokensBuffer.length == 1 && !(lastToken = forwardTokensBuffer[0]).isWord) {
+                var lastToken, forwardChars;
+
+                // If we're down to the last token, consume character chunks until we have a word or run out of
+                // characters to consume
+                while ( forwardTokensBuffer.length == 1 &&
+                        !(lastToken = forwardTokensBuffer[0]).isWord &&
+                        (forwardChars = consumeWord(true)).length > 0) {
+
                     // Merge trailing non-word into next word and tokenize
-                    forwardTokensBuffer = tokenizer(lastToken.chars.concat(consumeWord(true)), wordOptions);
+                    forwardTokensBuffer = tokenizer(lastToken.chars.concat(forwardChars), wordOptions);
                 }
 
                 return forwardTokensBuffer.shift();
             },
 
             previousStartToken: function() {
-                log.debug("previousStartToken, token buffer is " + backwardTokensBuffer);
-                var lastToken;
-                if (backwardTokensBuffer.length == 1 && !(lastToken = backwardTokensBuffer[0]).isWord) {
+                var lastToken, backwardChars;
+
+                // If we're down to the last token, consume character chunks until we have a word or run out of
+                // characters to consume
+                while ( backwardTokensBuffer.length == 1 &&
+                        !(lastToken = backwardTokensBuffer[0]).isWord &&
+                        (backwardChars = consumeWord(false)).length > 0) {
+
                     // Merge leading non-word into next word and tokenize
-                    backwardTokensBuffer = tokenizer(consumeWord(false).reverse().concat(lastToken.chars), wordOptions);
+                    backwardTokensBuffer = tokenizer(backwardChars.reverse().concat(lastToken.chars), options);
                 }
 
                 return backwardTokensBuffer.pop();
@@ -1014,6 +1030,20 @@ rangy.createModule("TextRange", function(api, module) {
     var defaultMoveOptions = {
         wordOptions: null,
         characterOptions: null
+    };
+
+    var defaultExpandOptions = {
+        wordOptions: null,
+        characterOptions: null,
+        trim: false,
+        trimStart: true,
+        trimEnd: true
+    };
+
+    var defaultWordIteratorOptions = {
+        wordOptions: null,
+        characterOptions: null,
+        direction: "forward"
     };
 
     function movePositionBy(pos, unit, count, characterOptions, wordOptions) {
@@ -1085,13 +1115,10 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function createRangeCharacterIterator(range, characterOptions) {
-        return createCharacterIterator(
-            getRangeStartPosition(range),
-            false,
-            getRangeEndPosition(range),
-            characterOptions
-        );
+    function createRangeCharacterIterator(range, characterOptions, backward) {
+        var rangeStart = getRangeStartPosition(range), rangeEnd = getRangeEndPosition(range);
+        var itStart = backward ? rangeEnd : rangeStart, itEnd = backward ? rangeStart : rangeEnd;
+        return createCharacterIterator(itStart, !!backward, itEnd, characterOptions);
     }
 
     function getRangeCharacters(range, characterOptions) {
@@ -1233,16 +1260,47 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
+    function createRangeTrimmer(isStart) {
+        return function(characterOptions) {
+            characterOptions = createOptions(characterOptions, defaultCharacterOptions);
+            var textPos;
+            var it = createRangeCharacterIterator(this, characterOptions, !isStart);
+            var trimCharCount = 0;
+            while ( (textPos = it.next()) && allWhiteSpaceRegex.test(textPos.character) ) {
+                ++trimCharCount;
+            }
+            it.dispose();
+            var trimmed = (trimCharCount > 0);
+            if (trimmed) {
+                this[isStart ? "moveStart" : "moveEnd"](
+                    "character",
+                    isStart ? trimCharCount : -trimCharCount,
+                    { characterOptions: characterOptions }
+                );
+            }
+            return trimmed;
+        };
+    }
+    
     extend(api.rangePrototype, {
         moveStart: createRangeBoundaryMover(true, false),
 
         moveEnd: createRangeBoundaryMover(false, false),
 
         move: createRangeBoundaryMover(true, true),
+        
+        trimStart: createRangeTrimmer(true),
+
+        trimEnd: createRangeTrimmer(false),
+        
+        trim: function(characterOptions) {
+            var startTrimmed = this.trimStart(characterOptions), endTrimmed = this.trimEnd(characterOptions);
+            return startTrimmed || endTrimmed;
+        },
 
         expand: function(unit, expandOptions) {
             var moved = false;
-            expandOptions = createOptions(expandOptions, defaultMoveOptions);
+            expandOptions = createOptions(expandOptions, defaultExpandOptions);
             var characterOptions = createOptions(expandOptions.characterOptions, defaultCharacterOptions);
             if (!unit) {
                 unit = CHARACTER;
@@ -1273,6 +1331,16 @@ rangy.createModule("TextRange", function(api, module) {
                     this.setEnd(newEndPos.node, newEndPos.offset);
                     moved = true;
                 }
+
+                if (expandOptions.trim) {
+                    if (expandOptions.trimStart) {
+                        moved = this.trimStart(characterOptions) || moved;
+                    }
+                    if (expandOptions.trimEnd) {
+                        moved = this.trimEnd(characterOptions) || moved;
+                    }
+                }
+                
                 return moved;
             } else {
                 return this.moveEnd(CHARACTER, 1, expandOptions);
@@ -1411,22 +1479,22 @@ rangy.createModule("TextRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Extensions to the Rangy Selection object
+    
+    function createSelectionTrimmer(methodName) {
+        return function(characterOptions) {
+            var trimmed = false;
+            this.changeEachRange(function(range) {
+                trimmed = range[methodName](characterOptions) || trimmed;
+            });
+            return trimmed;
+        }
+    }
 
     extend(api.selectionPrototype, {
         expand: function(unit, expandOptions) {
-            var ranges = this.getAllRanges(), rangeCount = ranges.length;
-            var backward = this.isBackward();
-
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                ranges[i].expand(unit, expandOptions);
-            }
-
-            this.removeAllRanges();
-            if (backward && rangeCount == 1) {
-                this.addRange(ranges[0], true);
-            } else {
-                this.setRanges(ranges);
-            }
+            this.changeEachRange(function(range) {
+                range.expand(unit, expandOptions);
+            });
         },
 
         move: function(unit, count, options) {
@@ -1437,6 +1505,10 @@ rangy.createModule("TextRange", function(api, module) {
                 this.setSingleRange(range);
             }
         },
+        
+        trimStart: createSelectionTrimmer("trimStart"),
+        trimEnd: createSelectionTrimmer("trimEnd"),
+        trim: createSelectionTrimmer("trim"),
 
         selectCharacters: function(containerNode, startIndex, endIndex, direction, characterOptions) {
             var range = api.createRange(containerNode);
@@ -1489,15 +1561,17 @@ rangy.createModule("TextRange", function(api, module) {
         range.selectNodeContents(el);
         var text = range.text(characterOptions);
         range.detach();
+        log.debug("innerText is '" + text.replace(/\s/g, function(matched) { return "[" + matched.charCodeAt(0) + "]"; }) + "'");
         return text;
     };
 
-    api.createWordIterator = function(startNode, startOffset, direction, characterOptions, wordOptions) {
-        characterOptions = createOptions(characterOptions, defaultCharacterOptions);
-        wordOptions = createWordOptions(wordOptions);
+    api.createWordIterator = function(startNode, startOffset, iteratorOptions) {
+        iteratorOptions = createOptions(iteratorOptions, defaultWordIteratorOptions);
+        characterOptions = createOptions(iteratorOptions.characterOptions, defaultCharacterOptions);
+        wordOptions = createWordOptions(iteratorOptions.wordOptions);
         var startPos = new DomPosition(startNode, startOffset);
         var tokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
-        var backward = isDirectionBackward(direction);
+        var backward = isDirectionBackward(iteratorOptions.direction);
 
         return {
             next: function() {

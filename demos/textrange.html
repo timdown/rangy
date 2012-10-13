@@ -30,11 +30,12 @@
         }
     </style>
     <script type="text/javascript" src="../lib/log4javascript.js"></script>
+<!--
     <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/rangy-core.js"></script>
     <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/rangy-textrange.js"></script>
     <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/rangy-cssclassapplier.js"></script>
+-->
 
-    <!--
         <script type="text/javascript" src="../src/js/core/core.js"></script>
         <script type="text/javascript" src="../src/js/core/dom.js"></script>
         <script type="text/javascript" src="../src/js/core/domrange.js"></script>
@@ -42,7 +43,6 @@
         <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
         <script type="text/javascript" src="../src/js/modules/rangy-textrange.js"></script>
         <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
-    -->
     <script type="text/javascript">
         function gEBI(id) {
             return document.getElementById(id);
@@ -152,11 +152,19 @@
             };
         }
 
+        function initSnapToWords4() {
+            gEBI("demo4").onmouseup = function() {
+                rangy.getSelection().expand("word", {
+                    trim: true
+                });
+            };
+        }
+
         function initSaveRestore() {
             var saveButton = gEBI("saveSelButton");
             var restoreButton = gEBI("restoreSelButton");
             var changeFormattingButton = gEBI("changeFormattingButton");
-            var containerElement = gEBI("demo4");
+            var containerElement = gEBI("demo5");
 
             var savedSel = null;
 
@@ -191,7 +199,7 @@
         }
 
         function initCaretMove() {
-            var editableDiv = gEBI("demo5");
+            var editableDiv = gEBI("demo6");
             var caretLeftButton = gEBI("caretLeftButton");
             var caretRightButton = gEBI("caretRightButton");
 
@@ -212,6 +220,7 @@
             initSnapToWords1();
             initSnapToWords2();
             initSnapToWords3();
+            initSnapToWords4();
             initSaveRestore();
             initCaretMove();
         };
@@ -276,6 +285,14 @@
             Please select some of this text. Don't be shy. Here are some things with debatable word boundaries:
             50%, 60:40, flip-flop, tic-tac-toe, fo'c'sle, 'quotes'. You can edit this too.
         </p>
+        <p>
+            You can also trim ranges and selections. In the box below, try selecting some tex that starts and/or ends
+            in a space:
+        </p>
+        <p class="demo" id="demo4" contenteditable="true">
+            Please select some of this text. Don't be shy. Here are some things with debatable word boundaries:
+            50%, 60:40, flip-flop, tic-tac-toe, fo'c'sle, 'quotes'. You can edit this too.
+        </p>
 
         <h3>Character index-based selection save and restore</h3>
         <p>
@@ -288,7 +305,7 @@
             <input type="button" disabled id="changeFormattingButton" value="Change some formatting">
         </p>
 
-        <p class="demo" id="demo4" contenteditable="true">
+        <p class="demo" id="demo5" contenteditable="true">
             Select some of this text and manipulate the selection and the formatting using the buttons above.
         </p>
 
@@ -303,7 +320,7 @@
             <span unselectable="on" class="unselectable buttonSpan" id="caretRightButton"
                   title="Click to move caret right">&rarr;</span>
         </p>
-        <div class="demo" id="demo5" contenteditable="true">
+        <div class="demo" id="demo6" contenteditable="true">
             <p>
                 <b>Association football</b> is a sport played between two teams.
             </p>
