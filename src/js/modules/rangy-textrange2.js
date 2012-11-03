@@ -416,7 +416,7 @@ rangy.createModule("TextRange", function(api, module) {
         }
     };
     
-    function createCachingPropertyGetter(obj, func, methodName) {
+    function createCachingPropertyGetter(obj, methodName, func) {
         obj[methodName] = function() {
             var cache = this.cache;
             if (cache.hasOwnProperty(methodName)) {
@@ -431,8 +431,9 @@ rangy.createModule("TextRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
-    function NodeWrapper(node) {
+    function NodeWrapper(node, transaction) {
         this.node = node;
+        this.transaction = transaction;
         this.cache = new Cache();
         this.positions = new Cache();
     }
@@ -446,13 +447,39 @@ rangy.createModule("TextRange", function(api, module) {
 
     NodeWrapper.prototype = nodeProto;
 
-    createCachingPropertyGetter(nodeProto, isWhitespaceNode, "isWhitespace");
-    createCachingPropertyGetter(nodeProto, isCollapsedWhitespaceNode, "isCollapsedWhitespace");
-    createCachingPropertyGetter(nodeProto, getComputedDisplay, "getComputedDisplay");
-    createCachingPropertyGetter(nodeProto, isCollapsedNode, "isCollapsed");
-    createCachingPropertyGetter(nodeProto, isIgnoredNode, "isIgnored");
-    createCachingPropertyGetter(nodeProto, nextNode, "next");
-    createCachingPropertyGetter(nodeProto, previousNode, "previous");
+    createCachingPropertyGetter(nodeProto, "isCharacterDataNode", dom.isCharacterDataNode);
+    createCachingPropertyGetter(nodeProto, "getNodeIndex", dom.getNodeIndex);
+    createCachingPropertyGetter(nodeProto, "getLength", dom.getNodeLength);
+    createCachingPropertyGetter(nodeProto, "containsPositions", containsPositions);
+    createCachingPropertyGetter(nodeProto, "isWhitespace", isWhitespaceNode);
+    createCachingPropertyGetter(nodeProto, "isCollapsedWhitespace", isCollapsedWhitespaceNode);
+    createCachingPropertyGetter(nodeProto, "getComputedDisplay", getComputedDisplay);
+    createCachingPropertyGetter(nodeProto, "isCollapsed", isCollapsedNode);
+    createCachingPropertyGetter(nodeProto, "isIgnored", isIgnoredNode);
+    createCachingPropertyGetter(nodeProto, "next", nextNode);
+    createCachingPropertyGetter(nodeProto, "previous", previousNode);
+
+    createCachingPropertyGetter(nodeProto, "getTextNodeProperties", function(textNode) {
+        log.debug("getTextNodeProperties for " + textNode.data);
+        var spaceRegex = null, collapseSpaces = false;
+        var cssWhitespace = getComputedStyleProperty(textNode.parentNode, "whiteSpace");
+        var preLine = (cssWhitespace == "pre-line");
+        if (preLine) {
+            spaceRegex = spacesMinusLineBreaksRegex;
+            collapseSpaces = true;
+        } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
+            spaceRegex = spacesRegex;
+            collapseSpaces = true;
+        }
+
+        return {
+            node: textNode,
+            text: textNode.data,
+            spaceRegex: spaceRegex,
+            collapseSpaces: collapseSpaces,
+            preLine: preLine
+        };
+    });
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -461,28 +488,105 @@ rangy.createModule("TextRange", function(api, module) {
         this.offset = offset;
         this.nodeWrapper = nodeWrapper;
         this.node = nodeWrapper.node;
-
-        /*
-
-         Properties:
-
-         - wrapped node with metadata
-         - offset
-         - next
-         - next visible
-         - previous
-         - previous visible
-         - next node()
-         - previous node()
-         - has character
-         - isLeadingSpace, isTrailingSpace, isBr, collapsible
-
-
-
-         */
-
+        this.transaction = nodeWrapper.transaction;
+        this.cache = new Cache();
     }
+    
+    var positionProto = {};
+    
+    Position.prototype = positionProto;
 
+    createCachingPropertyGetter(positionProto, "next", function() {
+        var nodeWrapper = this.nodeWrapper, node = this.node, offset = this.offset;
+        if (!node) {
+            return null;
+        }
+        var nextNode, nextOffset, child;
+        if (offset == nodeWrapper.getLength()) {
+            // Move onto the next node
+            nextNode = node.parentNode;
+            nextOffset = nextNode ? nodeWrapper.getNodeIndex() + 1 : 0;
+        } else {
+            if (nodeWrapper.isCharacterDataNode()) {
+                nextNode = node;
+                nextOffset = offset + 1;
+            } else {
+                child = node.childNodes[offset];
+                // Go into the children next, if children there are
+                if (this.transaction.getNodeWrapper(child).containsPositions()) {
+                    nextNode = child;
+                    nextOffset = 0;
+                } else {
+                    nextNode = node;
+                    nextOffset = offset + 1;
+                }
+            }
+        }
+
+        log.info("nextNode", nextNode)
+        return nextNode ? this.transaction.getPosition(nextNode, nextOffset) : null;
+    });
+
+    createCachingPropertyGetter(positionProto, "previous", function() {
+        var nodeWrapper = this.nodeWrapper, node = this.node, offset = this.offset;
+        var previousNode, previousOffset, child;
+        if (offset == 0) {
+            previousNode = node.parentNode;
+            previousOffset = previousNode ? nodeWrapper.getNodeIndex() : 0;
+        } else {
+            if (nodeWrapper.isCharacterDataNode()) {
+                previousNode = node;
+                previousOffset = offset - 1;
+            } else {
+                child = node.childNodes[offset - 1];
+                // Go into the children next, if children there are
+                if (this.transaction.getNodeWrapper(child).containsPositions()) {
+                    previousNode = child;
+                    previousOffset = dom.getNodeLength(child);
+                } else {
+                    previousNode = node;
+                    previousOffset = offset - 1;
+                }
+            }
+        }
+        return previousNode ? this.transaction.getPosition(previousNode, previousOffset) : null;
+    });
+
+    /*
+     Next and previous position moving functions that filter out
+
+     - Hidden (CSS visibility/display) elements
+     - Script and style elements
+     - collapsed whitespace characters
+     */
+    createCachingPropertyGetter(positionProto, "nextVisible", function() {
+        var next = this.next();
+        if (!next) {
+            return null;
+        }
+        var nodeWrapper = next.nodeWrapper, node = next.node;
+        var newPos = next;
+        if (nodeWrapper.isCollapsed()) {
+            // We're skipping this node and all its descendants
+            newPos = this.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex() + 1);
+        }
+        return newPos;
+    });
+
+    createCachingPropertyGetter(positionProto, "previousVisible", function() {
+        var previous = this.previous();
+        if (!previous) {
+            return null;
+        }
+        var nodeWrapper = previous.nodeWrapper, node = previous.node;
+        var newPos = previous;
+        if (nodeWrapper.isCollapsed()) {
+            // We're skipping this node and all its descendants
+            newPos = this.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex());
+        }
+        return newPos;
+    });
+    
     /*----------------------------------------------------------------------------------------------------------------*/
 
     var currentTransaction = null;
@@ -555,7 +659,7 @@ rangy.createModule("TextRange", function(api, module) {
 
                 var wrapper = wrapperCache.get(node);
                 if (!wrapper) {
-                    wrapper = new NodeWrapper(node);
+                    wrapper = new NodeWrapper(node, this);
                     wrapperCache.set(wrapper);
                 }
                 return wrapper;
@@ -580,6 +684,18 @@ rangy.createModule("TextRange", function(api, module) {
     function endTransaction() {
         currentTransaction = null;
     }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the rangy.dom utility object
+
+    extend(dom, {
+        nextNode: nextNode,
+        previousNode: previousNode
+    });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
 
 
 
@@ -902,4 +1018,11 @@ rangy.createModule("TextRange", function(api, module) {
         return returnValue;
     }
 
+    api.textRange = {
+        isBlockNode: isBlockNode,
+        isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
+        createPosition: function(node, offset) {
+            return new Transaction().getPosition(node, offset);
+        }
+    };
 });
