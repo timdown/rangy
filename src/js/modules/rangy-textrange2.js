@@ -384,23 +384,9 @@ rangy.createModule("TextRange", function(api, module) {
             || (type == 1 && getComputedDisplay(node, win) == "none");
     }
 
-    /*
-    
-    - Add rangy.domIsFrozen() and rangy.domIsUnfrozen() or similar to indicate that the DOM will not change, thus
-      allowing Rangy to persist DOM metadata between calls.
-    - Change isCollapsedWhitespaceNode to a function that returns infomration about whether the whitespace node is the
-      last inline descendant of a block or immediately precedes a <br>
-    - Add node metadata info object to every position. Also next and previous properties, and property indicating
-      whether position character information is complete
-      
-    - Reimplement hasInnerText() to find or create the position at the start of the node and populate positions until it
-      finds a character.
-    
-     */
-
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // Horrible caching system to prevent repeated DOM calls slowing everything down
+    // Possibly overengineered caching system to prevent repeated DOM calls slowing everything down
 
     function Cache() {
         this.store = {};
@@ -416,13 +402,13 @@ rangy.createModule("TextRange", function(api, module) {
         }
     };
     
-    function createCachingPropertyGetter(obj, methodName, func) {
+    function createCachingPropertyGetter(obj, methodName, func, objProperty) {
         obj[methodName] = function() {
             var cache = this.cache;
             if (cache.hasOwnProperty(methodName)) {
                 return cache[methodName];
             } else {
-                var value = func.call(this.node);
+                var value = func.call(obj, objProperty ? this[objProperty] : this);
                 cache[methodName] = value;
                 return value;
             }
@@ -447,17 +433,17 @@ rangy.createModule("TextRange", function(api, module) {
 
     NodeWrapper.prototype = nodeProto;
 
-    createCachingPropertyGetter(nodeProto, "isCharacterDataNode", dom.isCharacterDataNode);
-    createCachingPropertyGetter(nodeProto, "getNodeIndex", dom.getNodeIndex);
-    createCachingPropertyGetter(nodeProto, "getLength", dom.getNodeLength);
-    createCachingPropertyGetter(nodeProto, "containsPositions", containsPositions);
-    createCachingPropertyGetter(nodeProto, "isWhitespace", isWhitespaceNode);
-    createCachingPropertyGetter(nodeProto, "isCollapsedWhitespace", isCollapsedWhitespaceNode);
-    createCachingPropertyGetter(nodeProto, "getComputedDisplay", getComputedDisplay);
-    createCachingPropertyGetter(nodeProto, "isCollapsed", isCollapsedNode);
-    createCachingPropertyGetter(nodeProto, "isIgnored", isIgnoredNode);
-    createCachingPropertyGetter(nodeProto, "next", nextNode);
-    createCachingPropertyGetter(nodeProto, "previous", previousNode);
+    createCachingPropertyGetter(nodeProto, "isCharacterDataNode", dom.isCharacterDataNode, "node");
+    createCachingPropertyGetter(nodeProto, "getNodeIndex", dom.getNodeIndex, "node");
+    createCachingPropertyGetter(nodeProto, "getLength", dom.getNodeLength, "node");
+    createCachingPropertyGetter(nodeProto, "containsPositions", containsPositions, "node");
+    createCachingPropertyGetter(nodeProto, "isWhitespace", isWhitespaceNode, "node");
+    createCachingPropertyGetter(nodeProto, "isCollapsedWhitespace", isCollapsedWhitespaceNode, "node");
+    createCachingPropertyGetter(nodeProto, "getComputedDisplay", getComputedDisplay, "node");
+    createCachingPropertyGetter(nodeProto, "isCollapsed", isCollapsedNode, "node");
+    createCachingPropertyGetter(nodeProto, "isIgnored", isIgnoredNode, "node");
+    createCachingPropertyGetter(nodeProto, "next", nextNode, "node");
+    createCachingPropertyGetter(nodeProto, "previous", previousNode, "node");
 
     createCachingPropertyGetter(nodeProto, "getTextNodeProperties", function(textNode) {
         log.debug("getTextNodeProperties for " + textNode.data);
@@ -479,7 +465,24 @@ rangy.createModule("TextRange", function(api, module) {
             collapseSpaces: collapseSpaces,
             preLine: preLine
         };
+    }, "node");
+
+/*
+    createCachingPropertyGetter(nodeProto, "hasInnerText", function(nodeWrapper) {
+        if (!nodeWrapper.isCollapsed()) {
+            if (nodeWrapper.node.nodeType == 3) {
+                return true;
+            } else {
+                for (var child = node.firstChild; child; child = child.nextSibling) {
+                    if (hasInnerText(child)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     });
+*/
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -496,8 +499,8 @@ rangy.createModule("TextRange", function(api, module) {
     
     Position.prototype = positionProto;
 
-    createCachingPropertyGetter(positionProto, "next", function() {
-        var nodeWrapper = this.nodeWrapper, node = this.node, offset = this.offset;
+    createCachingPropertyGetter(positionProto, "next", function(pos) {
+        var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, transaction = nodeWrapper.transaction;
         if (!node) {
             return null;
         }
@@ -513,7 +516,7 @@ rangy.createModule("TextRange", function(api, module) {
             } else {
                 child = node.childNodes[offset];
                 // Go into the children next, if children there are
-                if (this.transaction.getNodeWrapper(child).containsPositions()) {
+                if (transaction.getNodeWrapper(child).containsPositions()) {
                     nextNode = child;
                     nextOffset = 0;
                 } else {
@@ -523,12 +526,11 @@ rangy.createModule("TextRange", function(api, module) {
             }
         }
 
-        log.info("nextNode", nextNode)
-        return nextNode ? this.transaction.getPosition(nextNode, nextOffset) : null;
+        return nextNode ? transaction.getPosition(nextNode, nextOffset) : null;
     });
 
-    createCachingPropertyGetter(positionProto, "previous", function() {
-        var nodeWrapper = this.nodeWrapper, node = this.node, offset = this.offset;
+    createCachingPropertyGetter(positionProto, "previous", function(pos) {
+        var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, transaction = nodeWrapper.transaction;
         var previousNode, previousOffset, child;
         if (offset == 0) {
             previousNode = node.parentNode;
@@ -540,7 +542,7 @@ rangy.createModule("TextRange", function(api, module) {
             } else {
                 child = node.childNodes[offset - 1];
                 // Go into the children next, if children there are
-                if (this.transaction.getNodeWrapper(child).containsPositions()) {
+                if (transaction.getNodeWrapper(child).containsPositions()) {
                     previousNode = child;
                     previousOffset = dom.getNodeLength(child);
                 } else {
@@ -549,7 +551,7 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             }
         }
-        return previousNode ? this.transaction.getPosition(previousNode, previousOffset) : null;
+        return previousNode ? transaction.getPosition(previousNode, previousOffset) : null;
     });
 
     /*
@@ -559,8 +561,8 @@ rangy.createModule("TextRange", function(api, module) {
      - Script and style elements
      - collapsed whitespace characters
      */
-    createCachingPropertyGetter(positionProto, "nextVisible", function() {
-        var next = this.next();
+    createCachingPropertyGetter(positionProto, "nextVisible", function(pos) {
+        var next = pos.next();
         if (!next) {
             return null;
         }
@@ -568,13 +570,13 @@ rangy.createModule("TextRange", function(api, module) {
         var newPos = next;
         if (nodeWrapper.isCollapsed()) {
             // We're skipping this node and all its descendants
-            newPos = this.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex() + 1);
+            newPos = nodeWrapper.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex() + 1);
         }
         return newPos;
     });
 
-    createCachingPropertyGetter(positionProto, "previousVisible", function() {
-        var previous = this.previous();
+    createCachingPropertyGetter(positionProto, "previousVisible", function(pos) {
+        var previous = pos.previous();
         if (!previous) {
             return null;
         }
@@ -582,7 +584,7 @@ rangy.createModule("TextRange", function(api, module) {
         var newPos = previous;
         if (nodeWrapper.isCollapsed()) {
             // We're skipping this node and all its descendants
-            newPos = this.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex());
+            newPos = nodeWrapper.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex());
         }
         return newPos;
     });
@@ -650,10 +652,10 @@ rangy.createModule("TextRange", function(api, module) {
                         wrapperCache = this.elementCache;
                         break;
                     case 3:
-                        wrapper = this.textNodeCache;
+                        wrapperCache = this.textNodeCache;
                         break;
                     default:
-                        wrapper = this.otherNodeCache;
+                        wrapperCache = this.otherNodeCache;
                         break;
                 }
 
@@ -697,6 +699,51 @@ rangy.createModule("TextRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
 
+
+    function getTrailingSpace(el) {
+        if (el.tagName.toLowerCase() == "br") {
+            return "";
+        } else {
+            switch (getComputedDisplay(el)) {
+                case "inline":
+                    var child = el.lastChild;
+                    while (child) {
+                        if (!isIgnoredNode(child)) {
+                            return (child.nodeType == 1) ? getTrailingSpace(child) : "";
+                        }
+                        child = child.previousSibling;
+                    }
+                    break;
+                case "inline-block":
+                case "inline-table":
+                case "none":
+                case "table-column":
+                case "table-column-group":
+                    break;
+                case "table-cell":
+                    return "\t";
+                default:
+                    return hasInnerText(el) ? "\n" : "";
+            }
+        }
+        return "";
+    }
+
+    function getLeadingSpace(el) {
+        switch (getComputedDisplay(el)) {
+            case "inline":
+            case "inline-block":
+            case "inline-table":
+            case "none":
+            case "table-column":
+            case "table-column-group":
+            case "table-cell":
+                break;
+            default:
+                return hasInnerText(el) ? "\n" : "";
+        }
+        return "";
+    }
 
 
 
