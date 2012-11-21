@@ -428,6 +428,10 @@ rangy.createModule("TextRange", function(api, module) {
         getPosition: function(offset) {
             var positions = this.positions;
             return positions.get(offset) || positions.set(offset, new Position(this, offset));
+        },
+        
+        toString: function() {
+            return "[NodeWrapper(" + dom.inspectNode(this.node) + ")]";
         }
     };
 
@@ -467,6 +471,14 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }, "node");
 
+    var EMPTY = 0,
+        NON_SPACE = 1,
+        UNCOLLAPSIBLE_SPACE = 2,
+        COLLAPSIBLE_SPACE = 3,
+        TRAILING_SPACE_IN_BLOCK = 4,
+        TRAILING_SPACE_BEFORE_BR = 5,
+        PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK = 6;
+
     createCachingPropertyGetter(nodeProto, "getInnerTextInfo", function(el, backward) {
         var transaction = this.transaction;
         var posAfterEl = transaction.getPosition(el.parentNode, this.getNodeIndex() + 1);
@@ -474,13 +486,32 @@ rangy.createModule("TextRange", function(api, module) {
         
         var pos = backward ? posAfterEl : firstPosInEl;
         var endPos = backward ? firstPosInEl : posAfterEl;
+        
+        var hasInnerText = false;
+        var hasPossibleTrailingSpaceInBlock = false;
+        var hasPossibleTrailingSpaceBeforeBr = false;
+        var hasPossiblePreLineSpaceBeforeLineBreak = false;
+        
+        
         var returnValue = {
-            
+            hasInnerText: false,
+            hasPossibleTrailingSpaceInBlock: false,
+            hasPossibleTrailingSpaceBeforeBr: false,
+            hasPossiblePreLineSpaceBeforeLineBreak: false
         };
         
         while (pos !== endPos) {
-            pos.populateIndependentChar();
+            pos.prepopulateChar();
+            if (pos.finalizedChar && pos.type != EMPTY) {
+                returnValue.hasInnerText = true;
+                break;
+            } else if (pos.type == PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK) {
+                returnValue.hasPossiblePreLineSpaceBeforeLineBreak = true;
+            }
+            // TODO: Remaining cases
         }
+        
+        return returnValue;
     }, "node");
 
 
@@ -511,7 +542,6 @@ rangy.createModule("TextRange", function(api, module) {
             }
         }
         return "";
-        
     }, "node");
 
 
@@ -542,24 +572,21 @@ rangy.createModule("TextRange", function(api, module) {
         this.transaction = nodeWrapper.transaction;
         this.cache = new Cache();
     }
-    
-    var EMPTY = 0,
-        NON_SPACE = 1,
-        UNCOLLAPSIBLE_SPACE = 2,
-        COLLAPSIBLE_SPACE = 3,
-        TRAILING_SPACE_IN_BLOCK = 4,
-        TRAILING_SPACE_BEFORE_BR = 5,
-        PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK = 6;
-    
+
     var positionProto = {
         character: "",
         characterType: EMPTY,
 
-        populateIndependentChar: function() {
+        /*
+        This method:
+        - Fully populates positions that have characters that can be determined independently of any other characters.
+        - Populates most types of space positions with a provisional character. The character is finalized later.
+         */
+        prepopulateChar: function() {
             var pos = this;
-            if (!pos.populatedIndependentChar) {
+            if (!pos.prepopulatedChar) {
                 var node = pos.node, offset = pos.offset;
-                log.debug("populateIndependentChar " + pos);
+                log.debug("prepopulateChar " + pos);
                 var visibleChar = "", charType = EMPTY;
                 var finalizedChar = false;
                 if (offset > 0) {
@@ -624,7 +651,7 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                 }
 
-                pos.populatedIndependentChar = true;
+                pos.prepopulatedChar = true;
                 pos.character = visibleChar;
                 pos.characterType = charType;
                 pos.finalizedChar = finalizedChar;
@@ -635,6 +662,15 @@ rangy.createModule("TextRange", function(api, module) {
         finalizeWithPreceding: function() {
             log.debug("finalizeWithPreceding called on " + this);
             
+            if (this.checkForTrailingSpace) {
+                log.debug("Getting trailing space for node wrapper " + this.nodeWrapper);
+                var trailingSpace = this.nodeWrapper.getTrailingSpace();
+                if (visibleChar) {
+                    isTrailingSpace = collapsible = true;
+                }
+
+            }
+            
             var pos = this;
             var preceding;
             while ( (pos = pos.previousVisible()) ) {
@@ -644,7 +680,7 @@ rangy.createModule("TextRange", function(api, module) {
         
         finalizeChar: function() {
             var pos = this;
-            pos.populateIndependentChar();
+            pos.prepopulateChar();
             if (!pos.finalizedChar) {
                 // There is still work to be done to finalize the character, which means it must need to look at the
                 // preceding character. To get hold of the preceding character, we need to work backwards to a position
@@ -653,7 +689,7 @@ rangy.createModule("TextRange", function(api, module) {
                 var unfinalizedPositions = [];
                 //var previousFinalizedPos = null;
                 while ( (previousPos = previousPos.previousVisible()) ) {
-                    previousPos.populateIndependentChar();
+                    previousPos.prepopulateChar();
                     if (previousPos.finalizedChar) {
                         //previousFinalizedPos = previousPos;
                         break;
