@@ -402,8 +402,8 @@ rangy.createModule("TextRange", function(api, module) {
         }
     };
     
-    function createCachingPropertyGetter(obj, methodName, func, objProperty) {
-        obj[methodName] = function(args) {
+    function createCachingGetter(obj, methodName, func, objProperty) {
+        return function(args) {
             var cache = this.cache;
             if (cache.hasOwnProperty(methodName)) {
                 return cache[methodName];
@@ -437,40 +437,6 @@ rangy.createModule("TextRange", function(api, module) {
 
     NodeWrapper.prototype = nodeProto;
 
-    createCachingPropertyGetter(nodeProto, "isCharacterDataNode", dom.isCharacterDataNode, "node");
-    createCachingPropertyGetter(nodeProto, "getNodeIndex", dom.getNodeIndex, "node");
-    createCachingPropertyGetter(nodeProto, "getLength", dom.getNodeLength, "node");
-    createCachingPropertyGetter(nodeProto, "containsPositions", containsPositions, "node");
-    createCachingPropertyGetter(nodeProto, "isWhitespace", isWhitespaceNode, "node");
-    createCachingPropertyGetter(nodeProto, "isCollapsedWhitespace", isCollapsedWhitespaceNode, "node");
-    createCachingPropertyGetter(nodeProto, "getComputedDisplay", getComputedDisplay, "node");
-    createCachingPropertyGetter(nodeProto, "isCollapsed", isCollapsedNode, "node");
-    createCachingPropertyGetter(nodeProto, "isIgnored", isIgnoredNode, "node");
-    createCachingPropertyGetter(nodeProto, "next", nextNode, "node");
-    createCachingPropertyGetter(nodeProto, "previous", previousNode, "node");
-
-    createCachingPropertyGetter(nodeProto, "getTextNodeInfo", function(textNode) {
-        log.debug("getTextNodeInfo for " + textNode.data);
-        var spaceRegex = null, collapseSpaces = false;
-        var cssWhitespace = getComputedStyleProperty(textNode.parentNode, "whiteSpace");
-        var preLine = (cssWhitespace == "pre-line");
-        if (preLine) {
-            spaceRegex = spacesMinusLineBreaksRegex;
-            collapseSpaces = true;
-        } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
-            spaceRegex = spacesRegex;
-            collapseSpaces = true;
-        }
-
-        return {
-            node: textNode,
-            text: textNode.data,
-            spaceRegex: spaceRegex,
-            collapseSpaces: collapseSpaces,
-            preLine: preLine
-        };
-    }, "node");
-
     var EMPTY = 0,
         NON_SPACE = 1,
         UNCOLLAPSIBLE_SPACE = 2,
@@ -479,88 +445,138 @@ rangy.createModule("TextRange", function(api, module) {
         TRAILING_SPACE_BEFORE_BR = 5,
         PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK = 6;
 
-    createCachingPropertyGetter(nodeProto, "getInnerTextInfo", function(el, backward) {
-        var transaction = this.transaction;
-        var posAfterEl = transaction.getPosition(el.parentNode, this.getNodeIndex() + 1);
-        var firstPosInEl = transaction.getPosition(el, 0);
-        
-        var pos = backward ? posAfterEl : firstPosInEl;
-        var endPos = backward ? firstPosInEl : posAfterEl;
-        
-        var hasInnerText = false;
-        var hasPossibleTrailingSpaceInBlock = false;
-        var hasPossibleTrailingSpaceBeforeBr = false;
-        var hasPossiblePreLineSpaceBeforeLineBreak = false;
-        
-        
-        var returnValue = {
-            hasInnerText: false,
-            hasPossibleTrailingSpaceInBlock: false,
-            hasPossibleTrailingSpaceBeforeBr: false,
-            hasPossiblePreLineSpaceBeforeLineBreak: false
-        };
-        
-        while (pos !== endPos) {
-            pos.prepopulateChar();
-            if (pos.finalizedChar && pos.type != EMPTY) {
-                returnValue.hasInnerText = true;
-                break;
-            } else if (pos.type == PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK) {
-                returnValue.hasPossiblePreLineSpaceBeforeLineBreak = true;
+
+    extend(nodeProto, {
+        isCharacterDataNode: createCachingGetter(nodeProto, "isCharacterDataNode", dom.isCharacterDataNode, "node"),
+        getNodeIndex: createCachingGetter(nodeProto, "nodeIndex", dom.getNodeIndex, "node"),
+        getLength: createCachingGetter(nodeProto, "nodeLength", dom.getNodeLength, "node"),
+        containsPositions: createCachingGetter(nodeProto, "containsPositions", containsPositions, "node"),
+        isWhitespace: createCachingGetter(nodeProto, "isWhitespace", isWhitespaceNode, "node"),
+        isCollapsedWhitespace: createCachingGetter(nodeProto, "isCollapsedWhitespace", isCollapsedWhitespaceNode, "node"),
+        getComputedDisplay: createCachingGetter(nodeProto, "computedDisplay", getComputedDisplay, "node"),
+        isCollapsed: createCachingGetter(nodeProto, "collapsed", isCollapsedNode, "node"),
+        isIgnored: createCachingGetter(nodeProto, "ignored", isIgnoredNode, "node"),
+        next: createCachingGetter(nodeProto, "next", nextNode, "node"),
+        previous: createCachingGetter(nodeProto, "previous", previousNode, "node"),
+
+        getTextNodeInfo: createCachingGetter(nodeProto, "textNodeInfo", function(textNode) {
+            log.debug("getTextNodeInfo for " + textNode.data);
+            var spaceRegex = null, collapseSpaces = false;
+            var cssWhitespace = getComputedStyleProperty(textNode.parentNode, "whiteSpace");
+            var preLine = (cssWhitespace == "pre-line");
+            if (preLine) {
+                spaceRegex = spacesMinusLineBreaksRegex;
+                collapseSpaces = true;
+            } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
+                spaceRegex = spacesRegex;
+                collapseSpaces = true;
             }
-            // TODO: Remaining cases
-        }
-        
-        return returnValue;
-    }, "node");
 
+            return {
+                node: textNode,
+                text: textNode.data,
+                spaceRegex: spaceRegex,
+                collapseSpaces: collapseSpaces,
+                preLine: preLine
+            };
+        }, "node"),
 
-    createCachingPropertyGetter(nodeProto, "getTrailingSpace", function(el) {
-        if (el.tagName.toLowerCase() == "br") {
-            return "";
-        } else {
-            switch (getComputedDisplay(el)) {
-                case "inline":
-                    var child = el.lastChild;
-                    while (child) {
-                        if (!isIgnoredNode(child)) {
-                            return (child.nodeType == 1) ? this.transaction.getNodeWrapper(child).getTrailingSpace() : "";
+        hasInnerText: createCachingGetter(nodeProto, "hasInnerText", function(el, backward) {
+            var transaction = this.transaction;
+            var posAfterEl = transaction.getPosition(el.parentNode, this.getNodeIndex() + 1);
+            var firstPosInEl = transaction.getPosition(el, 0);
+
+            var pos = backward ? posAfterEl : firstPosInEl;
+            var endPos = backward ? firstPosInEl : posAfterEl;
+
+            /*
+             <body><p>X  </p><p>Y</p></body>
+
+             Positions:
+
+             body:0:""
+             p:0:""
+             text:0:""
+             text:1:"X"
+             text:2:TRAILING_SPACE_IN_BLOCK
+             text:3:COLLAPSED_SPACE
+             p:1:""
+             body:1:"\n"
+             p:0:""
+             text:0:""
+             text:1:"Y"
+
+             A character is a TRAILING_SPACE_IN_BLOCK iff:
+
+             - There is no uncollapsed character after it within the visible containing block element
+
+             A character is a TRAILING_SPACE_BEFORE_BR iff:
+
+             - There is no uncollapsed character after it preceding a <br> element
+
+             An element has inner text iff
+
+             - It is not hidden
+             - It contains an uncollapsed character
+
+             All trailing spaces (pre-line, before <br>, end of block) require definite non-empty characters to render. 
+             */
+
+            while (pos !== endPos) {
+                pos.prepopulateChar();
+                if (pos.isDefinitelyNonEmpty()) {
+                    return true;
+                }
+            }
+
+            return false;
+        }, "node"),
+
+        getTrailingSpace: createCachingGetter(nodeProto, "trailingSpace", function(el) {
+            if (el.tagName.toLowerCase() == "br") {
+                return "";
+            } else {
+                switch (this.getComputedDisplay()) {
+                    case "inline":
+                        var child = el.lastChild;
+                        while (child) {
+                            if (!isIgnoredNode(child)) {
+                                return (child.nodeType == 1) ? this.transaction.getNodeWrapper(child).getTrailingSpace() : "";
+                            }
+                            child = child.previousSibling;
                         }
-                        child = child.previousSibling;
-                    }
-                    break;
+                        break;
+                    case "inline-block":
+                    case "inline-table":
+                    case "none":
+                    case "table-column":
+                    case "table-column-group":
+                        break;
+                    case "table-cell":
+                        return "\t";
+                    default:
+                        return this.hasInnerText(true) ? "\n" : "";
+                }
+            }
+            return "";
+        }, "node"),
+
+        getLeadingSpace: createCachingGetter(nodeProto, "leadingSpace", function(el) {
+            switch (this.getComputedDisplay()) {
+                case "inline":
                 case "inline-block":
                 case "inline-table":
                 case "none":
                 case "table-column":
                 case "table-column-group":
-                    break;
                 case "table-cell":
-                    return "\t";
+                    break;
                 default:
-                    return this.getInnerTextInfo(true) ? "\n" : "";
+                    return this.hasInnerText(false) ? "\n" : "";
             }
-        }
-        return "";
-    }, "node");
-
-
-    /*
-        createCachingPropertyGetter(nodeProto, "hasInnerText", function(nodeWrapper) {
-            if (!nodeWrapper.isCollapsed()) {
-                if (nodeWrapper.node.nodeType == 3) {
-                    return true;
-                } else {
-                    for (var child = node.firstChild; child; child = child.nextSibling) {
-                        if (hasInnerText(child)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        });
-    */
+            return "";
+        }, "node")
+    });
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -576,6 +592,7 @@ rangy.createModule("TextRange", function(api, module) {
     var positionProto = {
         character: "",
         characterType: EMPTY,
+        isBr: false,
 
         /*
         This method:
@@ -657,7 +674,37 @@ rangy.createModule("TextRange", function(api, module) {
                 pos.finalizedChar = finalizedChar;
             }
         },
-
+        
+        isDefinitelyNonEmpty: function() {
+            var charType = this.characterType;
+            return charType == NON_SPACE || charType == UNCOLLAPSIBLE_SPACE; 
+        },
+        
+        // Resolve leading and trailing spaces, which may involve prepopulating other positions
+        resolveLeadingAndTrailingSpaces: function() {
+            if (!this.prepopulatedChar) {
+                this.prepopulateChar();
+            }
+            if (this.checkForTrailingSpace) {
+                var trailingSpace = this.nodeWrapper.getTrailingSpace();
+                if (trailingSpace) {
+                    this.isTrailingSpace = true;
+                    this.character = trailingSpace;
+                    this.characterType = COLLAPSIBLE_SPACE;
+                }
+                this.checkForTrailingSpace = false;
+            }
+            if (this.checkForLeadingSpace) {
+                var leadingSpace = this.nodeWrapper.getLeadingSpace();
+                if (leadingSpace) {
+                    this.isLeadingSpace = true;
+                    this.character = leadingSpace;
+                    this.characterType = COLLAPSIBLE_SPACE;
+                }
+                this.checkForLeadingSpace = false;
+            }
+        },
+        
         // Preceding positions on which this position relies are now guaranteed to be finalized
         finalizeWithPreceding: function() {
             log.debug("finalizeWithPreceding called on " + this);
@@ -680,29 +727,40 @@ rangy.createModule("TextRange", function(api, module) {
         
         finalizeChar: function() {
             var pos = this;
-            pos.prepopulateChar();
+            pos.resolveLeadingAndTrailingSpaces();
             if (!pos.finalizedChar) {
                 // There is still work to be done to finalize the character, which means it must need to look at the
+                // preceding character and/or following character. To get hold of the preceding character, we need to
+                // work backwards to a position that has a non-empty character.
+                var previousPos = pos;
+                while ( (previousPos = previousPos.previousVisible()) ) {
+                    previousPos.resolveLeadingAndTrailingSpaces();
+                    if (previousPos.character !== "") {
+                        break;
+                    }
+                }
+
+/*
+                // There is still work to be done to finalize the character, which means it must need to look at the
                 // preceding character. To get hold of the preceding character, we need to work backwards to a position
-                // that has a non-space character.
+                // that has a non-empty character.
                 var previousPos = pos, previous, previousPossibleChar;
                 var unfinalizedPositions = [];
-                //var previousFinalizedPos = null;
                 while ( (previousPos = previousPos.previousVisible()) ) {
                     previousPos.prepopulateChar();
                     if (previousPos.finalizedChar) {
-                        //previousFinalizedPos = previousPos;
                         break;
                     } else {
                         unfinalizedPositions.push(previousPos);
                     }
                 }
+                
                 // Finalize intervening positions
-                var posToFinalize;
-                while ( (posToFinalize = unfinalizedPositions.pop()) ) {
-                    posToFinalize.finalizeWithPreceding();
-                    //previousFinalizedPos = posToFinalize;
+                var i = unfinalizedPositions.length;
+                while (i--) {
+                    unfinalizedPositions[i].finalizeWithPreceding();
                 }
+*/
             }
         },
         
@@ -712,95 +770,97 @@ rangy.createModule("TextRange", function(api, module) {
     };
     
     Position.prototype = positionProto;
-
-    createCachingPropertyGetter(positionProto, "next", function(pos) {
-        var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, transaction = nodeWrapper.transaction;
-        if (!node) {
-            return null;
-        }
-        var nextNode, nextOffset, child;
-        if (offset == nodeWrapper.getLength()) {
-            // Move onto the next node
-            nextNode = node.parentNode;
-            nextOffset = nextNode ? nodeWrapper.getNodeIndex() + 1 : 0;
-        } else {
-            if (nodeWrapper.isCharacterDataNode()) {
-                nextNode = node;
-                nextOffset = offset + 1;
+    
+    extend(positionProto, {
+        next: createCachingGetter(positionProto, "next", function(pos) {
+            var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, transaction = nodeWrapper.transaction;
+            if (!node) {
+                return null;
+            }
+            var nextNode, nextOffset, child;
+            if (offset == nodeWrapper.getLength()) {
+                // Move onto the next node
+                nextNode = node.parentNode;
+                nextOffset = nextNode ? nodeWrapper.getNodeIndex() + 1 : 0;
             } else {
-                child = node.childNodes[offset];
-                // Go into the children next, if children there are
-                if (transaction.getNodeWrapper(child).containsPositions()) {
-                    nextNode = child;
-                    nextOffset = 0;
-                } else {
+                if (nodeWrapper.isCharacterDataNode()) {
                     nextNode = node;
                     nextOffset = offset + 1;
+                } else {
+                    child = node.childNodes[offset];
+                    // Go into the children next, if children there are
+                    if (transaction.getNodeWrapper(child).containsPositions()) {
+                        nextNode = child;
+                        nextOffset = 0;
+                    } else {
+                        nextNode = node;
+                        nextOffset = offset + 1;
+                    }
                 }
             }
-        }
 
-        return nextNode ? transaction.getPosition(nextNode, nextOffset) : null;
-    });
+            return nextNode ? transaction.getPosition(nextNode, nextOffset) : null;
+        }),
 
-    createCachingPropertyGetter(positionProto, "previous", function(pos) {
-        var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, transaction = nodeWrapper.transaction;
-        var previousNode, previousOffset, child;
-        if (offset == 0) {
-            previousNode = node.parentNode;
-            previousOffset = previousNode ? nodeWrapper.getNodeIndex() : 0;
-        } else {
-            if (nodeWrapper.isCharacterDataNode()) {
-                previousNode = node;
-                previousOffset = offset - 1;
+        previous: createCachingGetter(positionProto, "previous", function(pos) {
+            var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, transaction = nodeWrapper.transaction;
+            var previousNode, previousOffset, child;
+            if (offset == 0) {
+                previousNode = node.parentNode;
+                previousOffset = previousNode ? nodeWrapper.getNodeIndex() : 0;
             } else {
-                child = node.childNodes[offset - 1];
-                // Go into the children next, if children there are
-                if (transaction.getNodeWrapper(child).containsPositions()) {
-                    previousNode = child;
-                    previousOffset = dom.getNodeLength(child);
-                } else {
+                if (nodeWrapper.isCharacterDataNode()) {
                     previousNode = node;
                     previousOffset = offset - 1;
+                } else {
+                    child = node.childNodes[offset - 1];
+                    // Go into the children next, if children there are
+                    if (transaction.getNodeWrapper(child).containsPositions()) {
+                        previousNode = child;
+                        previousOffset = dom.getNodeLength(child);
+                    } else {
+                        previousNode = node;
+                        previousOffset = offset - 1;
+                    }
                 }
             }
-        }
-        return previousNode ? transaction.getPosition(previousNode, previousOffset) : null;
-    });
+            return previousNode ? transaction.getPosition(previousNode, previousOffset) : null;
+        }),
 
-    /*
-     Next and previous position moving functions that filter out
+        /*
+         Next and previous position moving functions that filter out
 
-     - Hidden (CSS visibility/display) elements
-     - Script and style elements
-     - collapsed whitespace characters
-     */
-    createCachingPropertyGetter(positionProto, "nextVisible", function(pos) {
-        var next = pos.next();
-        if (!next) {
-            return null;
-        }
-        var nodeWrapper = next.nodeWrapper, node = next.node;
-        var newPos = next;
-        if (nodeWrapper.isCollapsed()) {
-            // We're skipping this node and all its descendants
-            newPos = nodeWrapper.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex() + 1);
-        }
-        return newPos;
-    });
+         - Hidden (CSS visibility/display) elements
+         - Script and style elements
+         - collapsed whitespace characters??? NO.
+         */
+        nextVisible: createCachingGetter(positionProto, "nextVisible", function(pos) {
+            var next = pos.next();
+            if (!next) {
+                return null;
+            }
+            var nodeWrapper = next.nodeWrapper, node = next.node;
+            var newPos = next;
+            if (nodeWrapper.isCollapsed()) {
+                // We're skipping this node and all its descendants
+                newPos = nodeWrapper.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex() + 1);
+            }
+            return newPos;
+        }),
 
-    createCachingPropertyGetter(positionProto, "previousVisible", function(pos) {
-        var previous = pos.previous();
-        if (!previous) {
-            return null;
-        }
-        var nodeWrapper = previous.nodeWrapper, node = previous.node;
-        var newPos = previous;
-        if (nodeWrapper.isCollapsed()) {
-            // We're skipping this node and all its descendants
-            newPos = nodeWrapper.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex());
-        }
-        return newPos;
+        previousVisible: createCachingGetter(positionProto, "previousVisible", function(pos) {
+            var previous = pos.previous();
+            if (!previous) {
+                return null;
+            }
+            var nodeWrapper = previous.nodeWrapper, node = previous.node;
+            var newPos = previous;
+            if (nodeWrapper.isCollapsed()) {
+                // We're skipping this node and all its descendants
+                newPos = nodeWrapper.transaction.getPosition(node.parentNode, nodeWrapper.getNodeIndex());
+            }
+            return newPos;
+        })
     });
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -914,50 +974,6 @@ rangy.createModule("TextRange", function(api, module) {
 
 
 
-    function getTrailingSpace(el) {
-        if (el.tagName.toLowerCase() == "br") {
-            return "";
-        } else {
-            switch (getComputedDisplay(el)) {
-                case "inline":
-                    var child = el.lastChild;
-                    while (child) {
-                        if (!isIgnoredNode(child)) {
-                            return (child.nodeType == 1) ? getTrailingSpace(child) : "";
-                        }
-                        child = child.previousSibling;
-                    }
-                    break;
-                case "inline-block":
-                case "inline-table":
-                case "none":
-                case "table-column":
-                case "table-column-group":
-                    break;
-                case "table-cell":
-                    return "\t";
-                default:
-                    return hasInnerText(el) ? "\n" : "";
-            }
-        }
-        return "";
-    }
-
-    function getLeadingSpace(el) {
-        switch (getComputedDisplay(el)) {
-            case "inline":
-            case "inline-block":
-            case "inline-table":
-            case "none":
-            case "table-column":
-            case "table-column-group":
-            case "table-cell":
-                break;
-            default:
-                return hasInnerText(el) ? "\n" : "";
-        }
-        return "";
-    }
 
 
 
@@ -978,66 +994,6 @@ rangy.createModule("TextRange", function(api, module) {
 
 
 
-
-
-
-
-    function getCharacterAt(pos, precedingChars, options) {
-        var possible = getPossibleCharacterAt(pos);
-        var possibleChar = possible.character;
-        var next, preceding;
-        log.group("*** getCharacterAt got possible char '" + possibleChar + "' at position " + pos);
-        if (possibleChar) {
-            if (spacesRegex.test(possibleChar)) {
-                if (!precedingChars) {
-                    // Work backwards until we have a non-space character
-                    var previousPos = pos, previous, previousPossibleChar;
-                    precedingChars = [];
-                    while ( (previousPos = previousVisiblePosition(previousPos)) ) {
-                        previous = getPossibleCharacterAt(previousPos);
-                        previousPossibleChar = previous.character;
-                        if (previousPossibleChar !== "") {
-                            log.debug("Found preceding character '" + previousPossibleChar + "' at position " + previousPos);
-                            precedingChars.unshift(previous);
-                            if (previousPossibleChar != " " && previousPossibleChar != "\n") {
-                                break;
-                            }
-                        }
-                    }
-                }
-                preceding = precedingChars[precedingChars.length - 1];
-
-                log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace);
-                if (preceding) {
-                    log.info("preceding: '" + preceding + "' (" + preceding.position + "), possible: " + possible.position);
-                    log.info([possible.isLeadingSpace, possibleChar == "\n", [!preceding, preceding.isLeadingSpace, !dom.isOrIsAncestorOf(possible.position.node.parentNode, preceding.position.node), dom.inspectNode(possible.position.node.parentNode), dom.inspectNode(preceding.position.node)]]);
-                }
-
-                // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-                if (possibleChar === " " && possible.collapsible &&
-                    (!preceding || preceding.isTrailingSpace || preceding.character == "\n")) {
-                    log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
-                    possible.character = "";
-                }
-
-                // Disallow a collapsible space that is followed by a line break or is the last character
-                else if (possible.collapsible &&
-                    (!(next = getNextPossibleCharacter(pos))
-                        || (next.character == "\n" && options.collapseSpaceBeforeLineBreak && next.collapsesPrecedingSpace()))) {
-                    log.debug("Character is a space which is followed by a line break that collapses preceding spaces, or nothing, so collapsing");
-                    possible.character = "";
-                }
-
-                // Collapse a br element that is followed by a trailing space
-                else if (possibleChar === "\n" && !possible.collapsible && (!(next = getNextPossibleCharacter(pos)) || next.isTrailingSpace)) {
-                    log.debug("Character is a br which is followed by a trailing space or nothing, collapsing");
-                    possible.character = "";
-                }
-            }
-        }
-        log.groupEnd();
-        return possible;
-    }
 
     function createCharacterIterator(startPos, backward, endPos, characterOptions) {
         log.info("createCharacterIterator called backwards " + backward + " and with endPos " + (endPos ? endPos.inspect() : ""));

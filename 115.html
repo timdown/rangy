@@ -94,10 +94,22 @@
         <div contenteditable="true" style="border:solid 1px black;" id="div1">
             <p>1<span> </span></p>
             <p>2</p>
+            <p> </p>
             1 <br>2
             <span>Test</span><span> </span><br>2
         </div>
         <div contenteditable="true" style="border:solid 1px black;" id="div2">
+            <table>
+                <tr>
+                    <td>1 </td><td>2 </td>
+                </tr>
+                <tr>
+                    <td>3</td><td>4</td>
+                </tr>
+                <tr>
+                    <td>5</td><td>6 </td>
+                </tr>
+            </table>
         </div>
         <div contenteditable="true" style="border:solid 1px black;" id="div3">
             <span>Test <br>2</span>
@@ -153,9 +165,12 @@
             <span>One</span><span> </span><br>2
         </div>
         <div contenteditable="true" style="border:solid 1px black; white-space: pre-line;">
-            One
+            One 
             Two
             Three
+            
+            &nbsp; 
+            
         </div>
         <div id="selInfo"></div>
         <div id="charRangeInfo"></div>
