@@ -68,33 +68,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return r1.compareBoundaryPoints(r2.START_TO_START, r2);
     }
 
-    function mergeOverlappingRanges(ranges) {
-
-        for (var i = 0, len = ranges.length, r1, r2, j; i < len; ++i) {
-        }
-    }
-
-    // Sorts and merges any overlapping ranges
-    function normalizeRanges(ranges) {
-        var sortedRanges = ranges.slice(0);
-        sortedRanges.sort(compareRanges);
-        var newRanges = [];
-
-        // Check for overlaps and merge where they exist
-        for (var i = 1, len = ranges.length, range, mergedRange = ranges[0]; i < len; ++i) {
-            range = ranges[i];
-            if (range.intersectsOrTouchesRange(mergedRange)) {
-                mergedRange = mergedRange.union(range);
-            } else {
-                newRanges.push(mergedRange);
-                mergedRange = range;
-            }
-
-        }
-        newRanges.push(mergedRange);
-        return newRanges;
-    }
-
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
         var node = position.node, offset = position.offset;
 
@@ -573,9 +546,10 @@ rangy.createModule("CssClassApplier", function(api, module) {
                         this.attrExceptions.push(p);
                     } else {
                         el[p] = propValue;
-                        // Copy the property back from the dummy element so that later comparisons to check whether elements
-                        // may be removed are checking against the right value. For example, the href property of an element
-                        // returns a fully qualified URL even if it was previously assigned a relative URL.
+                        // Copy the property back from the dummy element so that later comparisons to check whether
+                        // elements may be removed are checking against the right value. For example, the href property
+                        // of an element returns a fully qualified URL even if it was previously assigned a relative
+                        // URL.
                         if (createCopy) {
                             elProps[p] = el[p];
 
@@ -591,7 +565,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         hasClass: function(node) {
-            return node.nodeType == 1 && dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) && hasClass(node, this.cssClass);
+            return node.nodeType == 1 &&
+                dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) &&
+                hasClass(node, this.cssClass);
         },
 
         getSelfOrAncestorWithClass: function(node) {
