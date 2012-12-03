@@ -92,6 +92,17 @@ rangy.createModule("TextRange", function(api, module) {
         }
     };
 
+    function createOptions(optionsParam, defaults) {
+        if (!optionsParam) {
+            return defaults;
+        } else {
+            var options = {};
+            extend(options, defaults);
+            extend(options, optionsParam);
+            return options;
+        }
+    }
+
     function createWordOptions(options) {
         var lang, defaults;
         if (!options) {
@@ -596,7 +607,7 @@ rangy.createModule("TextRange", function(api, module) {
     }
     
     function inspectPosition() {
-        return "[" + dom.inspectNode(this.node) + ":" + this.offset + "]";
+        return "[Position(" + dom.inspectNode(this.node) + ":" + this.offset + ")]";
     }
 
     var positionProto = {
@@ -762,6 +773,10 @@ rangy.createModule("TextRange", function(api, module) {
             }
             
             return character;
+        },
+        
+        equals: function(pos) {
+            return !!pos && this.node === pos.node && this.offset === pos.offset;            
         },
         
         inspect: inspectPosition,
@@ -954,6 +969,25 @@ rangy.createModule("TextRange", function(api, module) {
 
             getPosition: function(node, offset) {
                 return this.getNodeWrapper(node).getPosition(offset);
+            },
+
+            getRangeBoundaryPosition: function(range, isStart) {
+                var prefix = isStart ? "start" : "end";
+                return this.getPosition(range[prefix + "Container"], range[prefix + "Offset"]);
+            },
+
+/*
+            getRangeStartPosition: function(range) {
+                return this.getRangeBoundaryPosition(range, true);
+            },
+
+            getRangeEndPosition: function(range) {
+                return this.getRangeBoundaryPosition(range, false);
+            },
+
+*/
+            detach: function() {
+                this.elementCache = this.textNodeCache = this.otherNodeCache = null;
             }
         };
         
@@ -963,12 +997,18 @@ rangy.createModule("TextRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     function startTransaction() {
-        if (!currentTransaction) {
-            currentTransaction = new Transaction();
-        }
+        endTransaction();
+        return (currentTransaction = new Transaction());
+    }
+
+    function getTransaction() {
+        return currentTransaction || startTransaction();
     }
 
     function endTransaction() {
+        if (currentTransaction) {
+            currentTransaction.detach();
+        }
         currentTransaction = null;
     }
 
@@ -1078,13 +1118,13 @@ rangy.createModule("TextRange", function(api, module) {
         // Consumes a word and the whitespace beyond it
         function consumeWord(forward) {
             log.debug("consumeWord called, forward is " + forward);
-            var textPos, textChar;
+            var pos, textChar;
             var newChars = [], it = forward ? forwardIterator : backwardIterator;
 
             var passedWordBoundary = false, insideWord = false;
 
-            while ( (textPos = it.next()) ) {
-                textChar = textPos.character;
+            while ( (pos = it.next()) ) {
+                textChar = pos.character;
 
                 if (allWhiteSpaceRegex.test(textChar)) {
                     if (insideWord) {
@@ -1099,7 +1139,7 @@ rangy.createModule("TextRange", function(api, module) {
                         insideWord = true;
                     }
                 }
-                newChars.push(textPos);
+                newChars.push(pos);
             }
 
             log.debug("consumeWord got new chars " + newChars.join(""));
@@ -1171,19 +1211,18 @@ rangy.createModule("TextRange", function(api, module) {
 
     function movePositionBy(pos, unit, count, characterOptions, wordOptions) {
         log.info("movePositionBy called " + count);
-        var unitsMoved = 0, newPos = pos, textPos, charIterator, nextTextPos, newTextPos, absCount = Math.abs(count), token;
+        var unitsMoved = 0, newPos = pos, charIterator, nextPos, newTextPos, absCount = Math.abs(count), token;
         if (count !== 0) {
             var backward = (count < 0);
 
             switch (unit) {
                 case CHARACTER:
                     charIterator = createCharacterIterator(pos, backward, null, characterOptions);
-                    while ( (textPos = charIterator.next()) && unitsMoved < absCount ) {
-                        log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
+                    while ( (newPos = charIterator.next()) && unitsMoved < absCount ) {
+                        log.info("*** movePositionBy GOT CHAR " + newPos.character + "[" + newPos.character.charCodeAt(0) + "]");
                         ++unitsMoved;
-                        newTextPos = textPos;
                     }
-                    nextTextPos = textPos;
+                    nextPos = newPos;
                     charIterator.dispose();
                     break;
                 case WORD:
@@ -1195,7 +1234,7 @@ rangy.createModule("TextRange", function(api, module) {
                         if (token.isWord) {
                             ++unitsMoved;
                             log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
-                            newTextPos = backward ? token.chars[0] : token.chars[token.chars.length - 1];
+                            newPos = backward ? token.chars[0] : token.chars[token.chars.length - 1];
                         }
                     }
                     break;
@@ -1204,9 +1243,6 @@ rangy.createModule("TextRange", function(api, module) {
             }
 
             // Perform any necessary position tweaks
-            if (newTextPos) {
-                newPos = newTextPos.position;
-            }
             if (backward) {
                 log.debug("Adjusting position. Current newPos: " + newPos);
                 newPos = newPos.previousVisible();
@@ -1222,11 +1258,11 @@ rangy.createModule("TextRange", function(api, module) {
                 log.info("movePositionBy ended immediately after a leading space at " + newPos);
                 if (unit == WORD) {
                     charIterator = createCharacterIterator(pos, false, null, characterOptions);
-                    nextTextPos = charIterator.next();
+                    nextPos = charIterator.next();
                     charIterator.dispose();
                 }
-                if (nextTextPos) {
-                    newPos = nextTextPos.previousVisible();
+                if (nextPos) {
+                    newPos = nextPos.previousVisible();
                     log.info("movePositionBy adjusted leading space position to " + newPos);
                 }
             }
@@ -1238,27 +1274,19 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function getRangeStartPosition(range, transaction) {
-        return transaction.getPosition(range.startContainer, range.startOffset);
-    }
-
-    function getRangeEndPosition(range, transaction) {
-        return transaction.getPosition(range.endContainer, range.endOffset);
-    }
-
-    function createRangeCharacterIterator(range, transaction, characterOptions, backward) {
-        var rangeStart = getRangeStartPosition(range, transaction);
-        var rangeEnd = getRangeEndPosition(range, transaction);
+    function createRangeCharacterIterator(transaction, range, characterOptions, backward) {
+        var rangeStart = transaction.getRangeBoundaryPosition(range, true);
+        var rangeEnd = transaction.getRangeBoundaryPosition(range, false);
         var itStart = backward ? rangeEnd : rangeStart;
         var itEnd = backward ? rangeStart : rangeEnd;
 
         return createCharacterIterator(itStart, !!backward, itEnd, characterOptions);
     }
 
-    function getRangeCharacters(range, transaction, characterOptions) {
+    function getRangeCharacters(transaction, range, characterOptions) {
         log.info("getRangeCharacters called on range " + range.inspect());
 
-        var chars = [], it = createRangeCharacterIterator(range, transaction, characterOptions), textPos;
+        var chars = [], it = createRangeCharacterIterator(transaction, range, characterOptions), textPos;
         while ( (textPos = it.next()) ) {
             log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
             chars.push(textPos);
@@ -1268,12 +1296,474 @@ rangy.createModule("TextRange", function(api, module) {
         return chars;
     }
 
+    function isWholeWord(startPos, endPos, wordOptions) {
+        var range = api.createRange(startPos.node);
+        range.setStart(startPos.node, startPos.offset);
+        range.setEnd(endPos.node, endPos.offset);
+        var returnVal = !range.expand("word", wordOptions);
+        range.detach();
+        return returnVal;
+    }
+
+    function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, findOptions) {
+        log.debug("findTextFromPosition called with search term " + searchTerm + ", initialPos " + initialPos.inspect() + " within range " + searchScopeRange.inspect());
+        var backward = isDirectionBackward(findOptions.direction);
+        var it = createCharacterIterator(
+            initialPos,
+            backward,
+            initialPos.transaction.getRangeBoundaryPosition(searchScopeRange, backward),
+            findOptions
+        );
+        var text = "", chars = [], pos, currentChar, matchStartIndex, matchEndIndex;
+        var result, insideRegexMatch;
+        var returnValue = null;
+
+        function handleMatch(startIndex, endIndex) {
+            var startPos = chars[startIndex].previousVisible();
+            var endPos = chars[endIndex - 1];
+            var valid = (!findOptions.wholeWordsOnly || isWholeWord(startPos, endPos, findOptions.wordOptions));
+
+            return {
+                startPos: startPos,
+                endPos: endPos,
+                valid: valid
+            };
+        }
+
+        while ( (pos = it.next()) ) {
+            currentChar = pos.character;
+            if (!isRegex && !findOptions.caseSensitive) {
+                currentChar = currentChar.toLowerCase();
+            }
+
+            if (backward) {
+                chars.unshift(pos);
+                text = currentChar + text;
+            } else {
+                chars.push(pos);
+                text += currentChar;
+            }
+
+            if (isRegex) {
+                result = searchTerm.exec(text);
+                if (result) {
+                    if (insideRegexMatch) {
+                        // Check whether the match is now over
+                        matchStartIndex = result.index;
+                        matchEndIndex = matchStartIndex + result[0].length;
+                        if ((!backward && matchEndIndex < text.length) || (backward && matchStartIndex > 0)) {
+                            returnValue = handleMatch(matchStartIndex, matchEndIndex);
+                            break;
+                        }
+                    } else {
+                        insideRegexMatch = true;
+                    }
+                }
+            } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1 ) {
+                returnValue = handleMatch(matchStartIndex, matchStartIndex + searchTerm.length);
+                break;
+            }
+        }
+
+        // Check whether regex match extends to the end of the range
+        if (insideRegexMatch) {
+            returnValue = handleMatch(matchStartIndex, matchEndIndex);
+        }
+        it.dispose();
+
+        return returnValue;
+    }
+
+    function createEntryPointFunction(func) {
+        return function() {
+            var transactionRunning = !!currentTransaction;
+            var transaction = getTransaction();
+            var args = [transaction].concat( Array.prototype.slice.call(arguments, 0) );
+            func.apply(this, args);
+            if (!transactionRunning) {
+                endTransaction();
+            }
+        }
+    }
+    
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the Rangy Range object
+
+    function createRangeBoundaryMover(isStart, collapse) {
+        /*
+         Unit can be "character" or "word"
+         Options:
+
+         - includeTrailingSpace
+         - wordRegex
+         - tokenizer
+         - collapseSpaceBeforeLineBreak
+         */
+        return createEntryPointFunction(
+            function(transaction, unit, count, moveOptions) {
+                if (typeof count == "undefined") {
+                    count = unit;
+                    unit = CHARACTER;
+                }
+                moveOptions = createOptions(moveOptions, defaultMoveOptions);
+                var characterOptions = createOptions(moveOptions.characterOptions, defaultCharacterOptions);
+                var wordOptions = createWordOptions(moveOptions.wordOptions);
+                log.debug("** moving boundary. start: " + isStart + ", unit: " + unit + ", count: " + count);
+    
+                var boundaryIsStart = isStart;
+                if (collapse) {
+                    boundaryIsStart = (count >= 0);
+                    this.collapse(!boundaryIsStart);
+                }
+                var moveResult = movePositionBy(transaction.getRangeBoundaryPosition(this, boundaryIsStart), unit, count, characterOptions, wordOptions);
+                var newPos = moveResult.position;
+                this[boundaryIsStart ? "setStart" : "setEnd"](newPos.node, newPos.offset);
+                return moveResult.unitsMoved;
+            }
+        );
+    }
+
+    function createRangeTrimmer(isStart) {
+        return createEntryPointFunction(
+            function(transaction, characterOptions) {
+                characterOptions = createOptions(characterOptions, defaultCharacterOptions);
+                var pos;
+                var it = createRangeCharacterIterator(transaction, this, characterOptions, !isStart);
+                var trimCharCount = 0;
+                while ( (pos = it.next()) && allWhiteSpaceRegex.test(pos.character) ) {
+                    ++trimCharCount;
+                }
+                it.dispose();
+                var trimmed = (trimCharCount > 0);
+                if (trimmed) {
+                    this[isStart ? "moveStart" : "moveEnd"](
+                        "character",
+                        isStart ? trimCharCount : -trimCharCount,
+                        { characterOptions: characterOptions }
+                    );
+                }
+                return trimmed;
+            }
+        );
+    }
+
+    extend(api.rangePrototype, {
+        moveStart: createRangeBoundaryMover(true, false),
+
+        moveEnd: createRangeBoundaryMover(false, false),
+
+        move: createRangeBoundaryMover(true, true),
+
+        trimStart: createRangeTrimmer(true),
+
+        trimEnd: createRangeTrimmer(false),
+
+        trim: createEntryPointFunction(
+            function(transaction, characterOptions) {
+                var startTrimmed = this.trimStart(characterOptions), endTrimmed = this.trimEnd(characterOptions);
+                return startTrimmed || endTrimmed;
+            }
+        ),
+
+        expand: function(unit, expandOptions) {
+            var moved = false;
+            expandOptions = createOptions(expandOptions, defaultExpandOptions);
+            var characterOptions = createOptions(expandOptions.characterOptions, defaultCharacterOptions);
+            if (!unit) {
+                unit = CHARACTER;
+            }
+            if (unit == WORD) {
+                var wordOptions = createWordOptions(expandOptions.wordOptions);
+                var startPos = getRangeStartPosition(this);
+                var endPos = getRangeEndPosition(this);
+
+                var startTokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
+                var startToken = startTokenizedTextProvider.nextEndToken();
+                var newStartPos = previousVisiblePosition(startToken.chars[0].position);
+                var endToken, newEndPos;
+
+                if (this.collapsed) {
+                    endToken = startToken;
+                } else {
+                    var endTokenizedTextProvider = createTokenizedTextProvider(endPos, characterOptions, wordOptions);
+                    endToken = endTokenizedTextProvider.previousStartToken();
+                }
+                newEndPos = endToken.chars[endToken.chars.length - 1].position;
+
+                if (!newStartPos.equals(startPos)) {
+                    this.setStart(newStartPos.node, newStartPos.offset);
+                    moved = true;
+                }
+                if (!newEndPos.equals(endPos)) {
+                    this.setEnd(newEndPos.node, newEndPos.offset);
+                    moved = true;
+                }
+
+                if (expandOptions.trim) {
+                    if (expandOptions.trimStart) {
+                        moved = this.trimStart(characterOptions) || moved;
+                    }
+                    if (expandOptions.trimEnd) {
+                        moved = this.trimEnd(characterOptions) || moved;
+                    }
+                }
+
+                return moved;
+            } else {
+                return this.moveEnd(CHARACTER, 1, expandOptions);
+            }
+        },
+
+        text: createEntryPointFunction(
+            function(transaction, characterOptions) {
+                return this.collapsed ?
+                    "" : getRangeCharacters(transaction, this, createOptions(characterOptions, defaultCharacterOptions)).join("");
+            }
+        ),
+
+        selectCharacters: function(containerNode, startIndex, endIndex, characterOptions) {
+            var moveOptions = { characterOptions: characterOptions };
+            this.selectNodeContents(containerNode);
+            this.collapse(true);
+            this.moveStart("character", startIndex, moveOptions);
+            this.collapse(true);
+            this.moveEnd("character", endIndex - startIndex, moveOptions);
+        },
+
+        // Character indexes are relative to the start of node
+        toCharacterRange: function(containerNode, characterOptions) {
+            if (!containerNode) {
+                containerNode = document.body;
+            }
+            var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
+            var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
+            var rangeBetween = this.cloneRange();
+            var startIndex, endIndex;
+            if (rangeStartsBeforeNode) {
+                rangeBetween.setStart(this.startContainer, this.startOffset);
+                rangeBetween.setEnd(parent, nodeIndex);
+                startIndex = -rangeBetween.text(characterOptions).length;
+            } else {
+                rangeBetween.setStart(parent, nodeIndex);
+                rangeBetween.setEnd(this.startContainer, this.startOffset);
+                startIndex = rangeBetween.text(characterOptions).length;
+            }
+            endIndex = startIndex + this.text(characterOptions).length;
+
+            return {
+                start: startIndex,
+                end: endIndex
+            };
+        },
+
+        findText: function(searchTermParam, findOptions) {
+            // Set up options
+            findOptions = createOptions(findOptions, defaultFindOptions);
+
+            // Create word options if we're matching whole words only
+            if (findOptions.wholeWordsOnly) {
+                findOptions.wordOptions = createWordOptions(findOptions.wordOptions);
+
+                // We don't ever want trailing spaces for search results
+                findOptions.wordOptions.includeTrailingSpace = false;
+            }
+
+            var backward = isDirectionBackward(findOptions.direction);
+
+            // Create a range representing the search scope if none was provided
+            var searchScopeRange = findOptions.withinRange;
+            if (!searchScopeRange) {
+                searchScopeRange = api.createRange();
+                searchScopeRange.selectNodeContents(this.getDocument());
+            }
+
+            // Examine and prepare the search term
+            var searchTerm = searchTermParam, isRegex = false;
+            if (typeof searchTerm == "string") {
+                if (!findOptions.caseSensitive) {
+                    searchTerm = searchTerm.toLowerCase();
+                }
+            } else {
+                isRegex = true;
+            }
+
+            var initialPos = backward ? getRangeEndPosition(this) : getRangeStartPosition(this);
+
+            // Adjust initial position if it lies outside the search scope
+            var comparison = searchScopeRange.comparePoint(initialPos.node, initialPos.offset);
+            if (comparison === -1) {
+                initialPos = getRangeStartPosition(searchScopeRange);
+            } else if (comparison === 1) {
+                initialPos = getRangeEndPosition(searchScopeRange);
+            }
+
+            var pos = initialPos;
+            var wrappedAround = false;
+
+            // Try to find a match and ignore invalid ones
+            var findResult;
+            while (true) {
+                findResult = findTextFromPosition(pos, searchTerm, isRegex, searchScopeRange, findOptions);
+
+                if (findResult) {
+                    if (findResult.valid) {
+                        this.setStart(findResult.startPos.node, findResult.startPos.offset);
+                        this.setEnd(findResult.endPos.node, findResult.endPos.offset);
+                        return true;
+                    } else {
+                        // We've found a match that is not a whole word, so we carry on searching from the point immediately
+                        // after the match
+                        pos = backward ? findResult.startPos : findResult.endPos;
+                    }
+                } else if (findOptions.wrap && !wrappedAround) {
+                    // No result found but we're wrapping around and limiting the scope to the unsearched part of the range
+                    searchScopeRange = searchScopeRange.cloneRange();
+                    if (backward) {
+                        pos = getRangeEndPosition(searchScopeRange);
+                        searchScopeRange.setStart(initialPos.node, initialPos.offset);
+                    } else {
+                        pos = getRangeStartPosition(searchScopeRange);
+                        searchScopeRange.setEnd(initialPos.node, initialPos.offset);
+                    }
+                    log.debug("Wrapping search. New search range is " + searchScopeRange.inspect());
+                    wrappedAround = true;
+                } else {
+                    // Nothing found and we can't wrap around, so we're done
+                    return false;
+                }
+            }
+        },
+
+        pasteHtml: function(html) {
+            this.deleteContents();
+            if (html) {
+                var frag = this.createContextualFragment(html);
+                var lastChild = frag.lastChild;
+                this.insertNode(frag);
+                this.collapseAfter(lastChild);
+            }
+        }
+    });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the Rangy Selection object
+
+    function createSelectionTrimmer(methodName) {
+        return function(characterOptions) {
+            var trimmed = false;
+            this.changeEachRange(function(range) {
+                trimmed = range[methodName](characterOptions) || trimmed;
+            });
+            return trimmed;
+        }
+    }
+
+    extend(api.selectionPrototype, {
+        expand: function(unit, expandOptions) {
+            this.changeEachRange(function(range) {
+                range.expand(unit, expandOptions);
+            });
+        },
+
+        move: function(unit, count, options) {
+            if (this.focusNode) {
+                this.collapse(this.focusNode, this.focusOffset);
+                var range = this.getRangeAt(0);
+                range.move(unit, count, options);
+                this.setSingleRange(range);
+            }
+        },
+
+        trimStart: createSelectionTrimmer("trimStart"),
+        trimEnd: createSelectionTrimmer("trimEnd"),
+        trim: createSelectionTrimmer("trim"),
+
+        selectCharacters: function(containerNode, startIndex, endIndex, direction, characterOptions) {
+            var range = api.createRange(containerNode);
+            range.selectCharacters(containerNode, startIndex, endIndex, characterOptions);
+            this.setSingleRange(range, direction);
+        },
+
+        saveCharacterRanges: function(containerNode, characterOptions) {
+            var ranges = this.getAllRanges(), rangeCount = ranges.length;
+            var characterRanges = [];
+
+            var backward = rangeCount == 1 && this.isBackward();
+
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                characterRanges[i] = {
+                    range: ranges[i].toCharacterRange(containerNode, characterOptions),
+                    backward: backward,
+                    characterOptions: characterOptions
+                };
+            }
+
+            return characterRanges;
+        },
+
+        restoreCharacterRanges: function(containerNode, characterRanges) {
+            this.removeAllRanges();
+            for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
+                characterRange = characterRanges[i];
+                range = api.createRange(containerNode);
+                range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end, characterRange.characterOptions);
+                this.addRange(range, characterRange.backward);
+            }
+        },
+
+        text: function(characterOptions) {
+            var rangeTexts = [];
+            for (var i = 0, len = this.rangeCount; i < len; ++i) {
+                rangeTexts[i] = this.getRangeAt(i).text(characterOptions);
+            }
+            return rangeTexts.join("");
+        }
+    });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Extensions to the core rangy object
+
+    api.innerText = function(el, characterOptions) {
+        var range = api.createRange(el);
+        range.selectNodeContents(el);
+        var text = range.text(characterOptions);
+        range.detach();
+        log.debug("innerText is '" + text.replace(/\s/g, function(matched) { return "[" + matched.charCodeAt(0) + "]"; }) + "'");
+        return text;
+    };
+
+    api.createWordIterator = function(startNode, startOffset, iteratorOptions) {
+        iteratorOptions = createOptions(iteratorOptions, defaultWordIteratorOptions);
+        characterOptions = createOptions(iteratorOptions.characterOptions, defaultCharacterOptions);
+        wordOptions = createWordOptions(iteratorOptions.wordOptions);
+        var startPos = new DomPosition(startNode, startOffset);
+        var tokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
+        var backward = isDirectionBackward(iteratorOptions.direction);
+
+        return {
+            next: function() {
+                return backward ? tokenizedTextProvider.previousStartToken() : tokenizedTextProvider.nextEndToken();
+            },
+
+            dispose: function() {
+                tokenizedTextProvider.dispose();
+                this.next = function() {};
+            }
+        };
+    };
+
+    /*----------------------------------------------------------------------------------------------------------------*/
 
     api.textRange = {
         isBlockNode: isBlockNode,
         isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
+        startTransaction: startTransaction,
+        endTransaction: endTransaction,
         createPosition: function(node, offset) {
-            return new Transaction().getPosition(node, offset);
+            return startTransaction().getPosition(node, offset);
         }
     };
 });
