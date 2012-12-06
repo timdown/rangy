@@ -1,3 +1,5 @@
+Error.stackTraceLimit = 50;
+
 // Next three methods are primarily for IE5, which is missing them
 if (!Array.prototype.push) {
     Array.prototype.push = function() {

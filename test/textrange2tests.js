@@ -25,6 +25,7 @@ xn.test.suite("Text Range module tests", function(s) {
 
     s.tearDown = function(t) {
         t.el.innerHTML = "";
+        textRange.endTransaction();
     };
 
     s.test("Next/previous node tests", function(t) {
@@ -153,7 +154,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.el.innerHTML = 'One Two';
         t.assertEquals(rangy.innerText(t.el), "One Two");
     });
-    
+
     return;
 
     s.test("innerText on simple text with double space", function(t) {

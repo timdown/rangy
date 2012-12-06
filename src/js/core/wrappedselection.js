@@ -15,7 +15,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         getNativeSelection,
         selectionIsCollapsed,
         CONTROL = "Control";
-    
+
     var getDocument = dom.getDocument;
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
@@ -330,6 +330,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     function deleteProperties(sel) {
         sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
+        sel.rangeCount = sel.anchorOffset = sel.focusOffset = 0;
         sel.detached = true;
     }
 
