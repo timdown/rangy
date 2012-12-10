@@ -624,7 +624,7 @@ rangy.createModule("TextRange", function(api, module) {
             var pos = this;
             if (!pos.prepopulatedChar) {
                 var node = pos.node, offset = pos.offset;
-                log.debug("prepopulateChar " + pos);
+                log.debug("prepopulateChar " + pos.inspect());
                 var visibleChar = "", charType = EMPTY;
                 var finalizedChar = false;
                 if (offset > 0) {
@@ -728,7 +728,12 @@ rangy.createModule("TextRange", function(api, module) {
 
         getCharacter: function(characterOptions) {
             var character = "";
+            
+            log.info("getCharacter called on " + this.inspect());
+            
             this.resolveLeadingAndTrailingSpaces();
+            var collapsible = (this.characterType == COLLAPSIBLE_SPACE);
+            log.info("getCharacter initial character is '" + this.character + "'", collapsible);
 
             if (this.isCharFinalized) {
                 character = this.character;
@@ -739,13 +744,13 @@ rangy.createModule("TextRange", function(api, module) {
                 }
 
                 // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-                if (this.character === " " && this.collapsible &&
+                if (this.character === " " && collapsible &&
                         (!previousPos || previousPos.isTrailingSpace || previousPos.character == "\n")) {
                     log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
                 }
 
                 // Disallow a collapsible space that is followed by a line break or is the last character
-                else if (this.collapsible) {
+                else if (collapsible) {
                     nextPos = this.nextUncollapsed();
                     if (nextPos) {
                         if (nextPos.character === "\n") {
@@ -759,6 +764,9 @@ rangy.createModule("TextRange", function(api, module) {
                                 log.debug("Collapsible line break is being included.");
                                 character = "\n";
                             }
+                        } else {
+                            log.debug("Character is a collapsible space has not been disallowed");
+                            character = " ";
                         }
                     } else {
                         log.debug("Character is a space which is followed by nothing, so collapsing");
@@ -766,11 +774,13 @@ rangy.createModule("TextRange", function(api, module) {
                 }
 
                 // Collapse a br element that is followed by a trailing space
-                else if (this.character === "\n" && !this.collapsible &&
+                else if (this.character === "\n" && !collapsible &&
                         (!(nextPos = this.nextUncollapsed()) || nextPos.isTrailingSpace)) {
                     log.debug("Character is a br which is followed by a trailing space or nothing. This is always collapsed.");
                 }
             }
+            
+            log.debug("getCharacter returning '" + character + "' for pos " + this.inspect())
 
             return character;
         },
@@ -781,7 +791,9 @@ rangy.createModule("TextRange", function(api, module) {
 
         inspect: inspectPosition,
 
-        toString: inspectPosition
+        toString: function() {
+            return this.character;
+        }
     };
 
     Position.prototype = positionProto;
@@ -976,16 +988,6 @@ rangy.createModule("TextRange", function(api, module) {
                 return this.getPosition(range[prefix + "Container"], range[prefix + "Offset"]);
             },
 
-/*
-            getRangeStartPosition: function(range) {
-                return this.getRangeBoundaryPosition(range, true);
-            },
-
-            getRangeEndPosition: function(range) {
-                return this.getRangeBoundaryPosition(range, false);
-            },
-
-*/
             detach: function() {
                 this.elementCache = this.textNodeCache = this.otherNodeCache = null;
             }
@@ -1043,9 +1045,10 @@ rangy.createModule("TextRange", function(api, module) {
         var pos = startPos, finished = false;
 
         function next() {
+            var newPos = null;
             if (!finished) {
                 if (!backward) {
-                    pos = pos.nextVisible();
+                    newPos = pos.nextVisible();
                 }
                 if (pos) {
                     //log.debug("pos is " + pos.inspect() + ", endPos is " + (endPos ? endPos.inspect() : null) + ", equal is " + pos.equals(endPos));
@@ -1056,9 +1059,10 @@ rangy.createModule("TextRange", function(api, module) {
                     finished = true;
                 }
                 if (backward) {
-                    pos = pos.previousVisible();
+                    newPos = pos.previousVisible();
                 }
             }
+            pos = newPos;
             return pos;
         }
 
@@ -1078,6 +1082,7 @@ rangy.createModule("TextRange", function(api, module) {
                             return pos;
                         }
                     }
+                    return null;
                 }
             },
 
@@ -1286,10 +1291,10 @@ rangy.createModule("TextRange", function(api, module) {
     function getRangeCharacters(transaction, range, characterOptions) {
         log.info("getRangeCharacters called on range " + range.inspect());
 
-        var chars = [], it = createRangeCharacterIterator(transaction, range, characterOptions), textPos;
-        while ( (textPos = it.next()) ) {
-            log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-            chars.push(textPos);
+        var chars = [], it = createRangeCharacterIterator(transaction, range, characterOptions), pos;
+        while ( (pos = it.next()) ) {
+            log.info("*** GOT CHAR " + pos.character + "[" + pos.character.charCodeAt(0) + "]");
+            chars.push(pos);
         }
 
         it.dispose();
@@ -1379,10 +1384,11 @@ rangy.createModule("TextRange", function(api, module) {
             var transactionRunning = !!currentTransaction;
             var transaction = getTransaction();
             var args = [transaction].concat( Array.prototype.slice.call(arguments, 0) );
-            func.apply(this, args);
+            var returnValue = func.apply(this, args);
             if (!transactionRunning) {
                 endTransaction();
             }
+            return returnValue;
         }
     }
 
@@ -1517,6 +1523,7 @@ rangy.createModule("TextRange", function(api, module) {
 
         text: createEntryPointFunction(
             function(transaction, characterOptions) {
+                log.info("text. Transaction: " + transaction + ", characterOptions:", characterOptions);
                 return this.collapsed ?
                     "" : getRangeCharacters(transaction, this, createOptions(characterOptions, defaultCharacterOptions)).join("");
             }
