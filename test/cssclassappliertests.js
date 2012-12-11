@@ -603,6 +603,13 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('x[1<span class="c2">2</span>3]x', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Issue 139 (Merge bug)", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div><span class="test">[1<span class="test"></span></span> 2]</div>');
+        applier.applyToRange(range);
+    });
 
     if (rangy.features.selectionSupportsMultipleRanges) {
         s.test("Undo to multiple ranges", function(t) {

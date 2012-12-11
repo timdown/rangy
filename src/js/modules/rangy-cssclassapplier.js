@@ -283,16 +283,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     }
 
-    function arrayWithoutValue(arr, val) {
-        var newArray = [];
-        for (var i = 0, len = arr.length; i < len; ++i) {
-            if (arr[i] !== val) {
-                newArray.push(arr[i]);
-            }
-        }
-        return newArray;
-    }
-
     function isSplitPoint(node, offset) {
         if (dom.isCharacterDataNode(node)) {
             if (offset == 0) {
@@ -591,7 +581,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         // Normalizes nodes after applying a CSS class to a Range.
         postApply: function(textNodes, range, positionsToPreserve, isUndo) {
-            log.group("postApply");
+            log.group("postApply " + range.toHtml());
             var firstNode = textNodes[0], lastNode = textNodes[textNodes.length - 1];
 
             var merges = [], currentMerge;
@@ -605,7 +595,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 textNode = textNodes[i];
                 precedingTextNode = getPreviousMergeableTextNode(textNode, !isUndo);
-                log.debug("Checking for merge. text node: " + textNode.data + ", parent: " + textNode.parentNode.nodeName + ", preceding: " + (precedingTextNode ? precedingTextNode.data : null));
+                log.debug("Checking for merge. text node: " + textNode.data + ", parent: " + dom.inspectNode(textNode.parentNode) + ", preceding: " + (precedingTextNode ? precedingTextNode.data : null));
                 if (precedingTextNode) {
                     if (!currentMerge) {
                         currentMerge = new Merge(precedingTextNode);
@@ -799,7 +789,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
             var i = ranges.length;
 
             while (i--) {
-                //this.undoToRange(ranges[i], arrayWithoutValue(ranges, ranges[i]));
                 this.undoToRange(ranges[i], ranges);
             }
             log.groupEnd();

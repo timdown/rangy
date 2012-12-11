@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript" src="lib/log4javascript.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var appender = new log4javascript.PopUpAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+        var log = log4javascript.getRootLogger();
+        log4javascript.setShowStackTraces(true);
+        //log4javascript.setEnabled(false);
+    </script>
+
+    <script type="text/javascript" src="src/js/core/core.js"></script>
+    <script type="text/javascript" src="src/js/core/dom.js"></script>
+    <script type="text/javascript" src="src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="src/js/modules/rangy-cssclassapplier.js"></script>
+    <style>
+        .demo {
+            color: #6495ed;
+        }
+    </style>
+    <script>
+        var cssApplier;
+        $(function(){
+            rangy.init();
+            cssApplier = rangy.createCssClassApplier('demo', {normalize: true});
+
+            $('#applyToSelection').click(function(){
+                cssApplier.applyToSelection();
+            });
+
+            $('#applyToRange').click(function(){
+                var range = rangy.createRange();
+                // Convenient way to get all text nodes within the main content div
+                // Very unperformant, but no-one is looking at that part :)
+                var allTextNodes = $('#content').find("*").andSelf().contents()
+                        .filter(function() { return this.nodeType == Node.TEXT_NODE; });
+                var startNode = allTextNodes.filter(function() { return this.nodeValue === 't'; }).first();
+                range.setStart(startNode[0], 0);
+                var endNode = allTextNodes.filter(function() { return this.nodeValue.indexOf('$') !== -1; }).first();
+                range.setEnd(endNode[0], 1);
+                console.log(range.inspect());
+                cssApplier.applyToRange(range);
+            });
+        });
+    </script>
+
+
+</head>
+<body>
+<button id="applyToSelection">Apply to selection</button>
+<button id="applyToRange">Apply to defective range</button>
+<div id="content"><span class="demo">t<span class="demo"></span></span> $</div>
+</body>
+</html>
