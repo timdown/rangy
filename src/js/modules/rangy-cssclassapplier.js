@@ -372,7 +372,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 // Compare text node parent element with its sibling
                 adjacentNode = el[propName];
                 log.info("adjacentNode: " + adjacentNode);
-                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)) {
+                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)/* && adjacentNode.hasChildNodes()*/) {
                     return adjacentNode[forward ? "firstChild" : "lastChild"];
                 }
             }
@@ -386,36 +386,43 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
     function Merge(firstNode) {
         this.isElementMerge = (firstNode.nodeType == 1);
-        this.firstTextNode = this.isElementMerge ? firstNode.lastChild : firstNode;
-        this.textNodes = [this.firstTextNode];
+        this.textNodes = [];
+        var firstTextNode = this.isElementMerge ? firstNode.lastChild : firstNode;
+        if (firstTextNode) {
+            this.textNodes[0] = firstTextNode;
+        }
     }
 
     Merge.prototype = {
         doMerge: function(positionsToPreserve) {
-            var textBits = [], combinedTextLength = 0, textNode, parent, text;
-            for (var i = 0, len = this.textNodes.length, j, position; i < len; ++i) {
-                textNode = this.textNodes[i];
-                parent = textNode.parentNode;
-                if (i > 0) {
-                    parent.removeChild(textNode);
-                    if (!parent.hasChildNodes()) {
-                        parent.parentNode.removeChild(parent);
-                    }
-                    if (positionsToPreserve) {
-                        for (j = 0; position = positionsToPreserve[j++]; ) {
-                            // Handle case where position is inside the text node being merged into a preceding node
-                            if (position.node == textNode) {
-                                position.node = this.firstTextNode;
-                                position.offset += combinedTextLength;
+            var textNodes = this.textNodes;
+            var firstTextNode = textNodes[0];
+            if (textNodes.length > 1) {
+                var textParts = [], combinedTextLength = 0, textNode, parent;
+                for (var i = 0, len = textNodes.length, j, position; i < len; ++i) {
+                    textNode = textNodes[i];
+                    parent = textNode.parentNode;
+                    if (i > 0) {
+                        parent.removeChild(textNode);
+                        if (!parent.hasChildNodes()) {
+                            parent.parentNode.removeChild(parent);
+                        }
+                        if (positionsToPreserve) {
+                            for (j = 0; position = positionsToPreserve[j++]; ) {
+                                // Handle case where position is inside the text node being merged into a preceding node
+                                if (position.node == textNode) {
+                                    position.node = firstTextNode;
+                                    position.offset += combinedTextLength;
+                                }
                             }
                         }
                     }
+                    textParts[i] = textNode.data;
+                    combinedTextLength += textNode.data.length;
                 }
-                textBits[i] = textNode.data;
-                combinedTextLength += textNode.data.length;
+                firstTextNode.data = textParts.join("");
             }
-            this.firstTextNode.data = text = textBits.join("");
-            return text;
+            return firstTextNode.data;
         },
 
         getLength: function() {
@@ -603,11 +610,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     }
                     currentMerge.textNodes.push(textNode);
                     if (textNode === firstNode) {
-                        rangeStartNode = currentMerge.firstTextNode;
+                        rangeStartNode = currentMerge.textNodes[0];
                         rangeStartOffset = rangeStartNode.length;
                     }
                     if (textNode === lastNode) {
-                        rangeEndNode = currentMerge.firstTextNode;
+                        rangeEndNode = currentMerge.textNodes[0];
                         rangeEndOffset = currentMerge.getLength();
                     }
                 } else {

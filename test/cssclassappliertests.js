@@ -605,10 +605,16 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
 
     s.test("Issue 139 (Merge bug)", function(t) {
         var applier = rangy.createCssClassApplier("test");
-
         var testEl = document.getElementById("test");
         var range = createRangeInHtml(testEl, '<div><span class="test">[1<span class="test"></span></span> 2]</div>');
         applier.applyToRange(range);
+    });
+
+    s.test("Undo to range with empty span with class", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div>[1<span class="test"><span class="test"></span></span>2]</div>');
+        applier.undoToRange(range);
     });
 
     if (rangy.features.selectionSupportsMultipleRanges) {
