@@ -544,6 +544,7 @@ rangy.createModule("TextRange", function(api, module) {
                 if (pos.isDefinitelyNonEmpty()) {
                     return true;
                 }
+                pos = backward ? pos.previousVisible() : pos.nextVisible();
             }
 
             return false;
@@ -765,7 +766,7 @@ rangy.createModule("TextRange", function(api, module) {
                                 character = "\n";
                             }
                         } else {
-                            log.debug("Character is a collapsible space has not been disallowed");
+                            log.debug("Character is a collapsible space that has not been disallowed");
                             character = " ";
                         }
                     } else {
@@ -1045,23 +1046,18 @@ rangy.createModule("TextRange", function(api, module) {
         var pos = startPos, finished = false;
 
         function next() {
+            log.debug("****** NEXT CALLED> FINISIHED IS " + finished + ", pos is " + pos.inspect());
             var newPos = null;
             if (!finished) {
                 if (!backward) {
                     newPos = pos.nextVisible();
                 }
-                if (pos) {
-                    //log.debug("pos is " + pos.inspect() + ", endPos is " + (endPos ? endPos.inspect() : null) + ", equal is " + pos.equals(endPos));
-                    if (endPos && pos.equals(endPos)) {
-                        finished = true;
-                    }
-                } else {
-                    finished = true;
-                }
+                finished = !newPos || (endPos && newPos.equals(endPos));
                 if (backward) {
                     newPos = pos.previousVisible();
                 }
             }
+            log.info("Finished: " + finished);
             pos = newPos;
             return pos;
         }

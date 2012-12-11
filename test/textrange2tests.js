@@ -155,8 +155,6 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "One Two");
     });
 
-    return;
-
     s.test("innerText on simple text with double space", function(t) {
         t.el.innerHTML = 'One  Two';
         t.assertEquals(rangy.innerText(t.el), "One Two");
