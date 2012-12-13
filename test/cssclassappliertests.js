@@ -608,6 +608,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         var testEl = document.getElementById("test");
         var range = createRangeInHtml(testEl, '<div><span class="test">[1<span class="test"></span></span> 2]</div>');
         applier.applyToRange(range);
+        t.assertEquals('<div><span class="test">[1 2]</span></div>', htmlAndRangeToString(testEl, range));
     });
 
     s.test("Undo to range with empty span with class", function(t) {
@@ -615,6 +616,7 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         var testEl = document.getElementById("test");
         var range = createRangeInHtml(testEl, '<div>[1<span class="test"><span class="test"></span></span>2]</div>');
         applier.undoToRange(range);
+        t.assertEquals('<div>[12]</div>', htmlAndRangeToString(testEl, range));
     });
 
     if (rangy.features.selectionSupportsMultipleRanges) {

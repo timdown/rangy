@@ -681,6 +681,25 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 && this.isModifiable(el);
         },
 
+        isEmptyContainer: function(el) {
+            var childNodeCount = el.childNodes.length;
+            return el.nodeType == 1
+                && this.isRemovable(el)
+                && (childNodeCount == 0 || (childNodeCount == 1 && this.isEmptyContainer(el.firstChild)));
+        },
+        
+        removeEmptyContainers: function(range, positionsToPreserve) {
+            var applier = this;
+            var nodesToRemove = range.getNodes([1], function(el) {
+                return applier.isEmptyContainer(el);
+            });
+            
+            for (var i = 0, node; node = nodesToRemove[i++]; ) {
+                log.debug("Removing empty container " + dom.inspectNode(node));
+                node.parentNode.removeChild(node);
+            }
+        },
+
         undoToTextNode: function(textNode, range, ancestorWithClass, positionsToPreserve) {
             log.info("undoToTextNode", dom.inspectNode(textNode), range.inspect(), dom.inspectNode(ancestorWithClass), range.containsNode(ancestorWithClass));
             if (!range.containsNode(ancestorWithClass)) {
@@ -710,8 +729,12 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
             // Create an array of range boundaries to preserve
             var positionsToPreserve = getRangeBoundaries(rangesToPreserve || []);
-
+            
             range.splitBoundariesPreservingPositions(positionsToPreserve);
+
+            // Tidy up the DOM by removing empty containers 
+            this.removeEmptyContainers(range, positionsToPreserve);
+
             var textNodes = getEffectiveTextNodes(range);
 
             if (textNodes.length) {
@@ -763,6 +786,10 @@ rangy.createModule("CssClassApplier", function(api, module) {
             log.info("undoToRange " + range.inspect(), positionsToPreserve);
 
             range.splitBoundariesPreservingPositions(positionsToPreserve);
+
+            // Tidy up the DOM by removing empty containers 
+            this.removeEmptyContainers(range, positionsToPreserve);
+
             var textNodes = getEffectiveTextNodes(range);
             var textNode, ancestorWithClass;
             var lastTextNode = textNodes[textNodes.length - 1];
