@@ -442,7 +442,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     };
 
-    var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements"];
+    var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements",
+        "removeEmptyElements"];
 
     // TODO: Populate this with every attribute name that corresponds to a property with a different name
     var attrNamesForProperties = {};
@@ -508,6 +509,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         ignoreWhiteSpace: true,
         applyToEditableOnly: false,
         useExistingElements: true,
+        removeEmptyElements: true,
 
         copyPropertiesToElement: function(props, el, createCopy) {
             var s, elStyle, elProps = {}, elPropsStyle, propValue, elPropValue, attrName;
@@ -688,7 +690,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 && (childNodeCount == 0 || (childNodeCount == 1 && this.isEmptyContainer(el.firstChild)));
         },
         
-        removeEmptyContainers: function(range, positionsToPreserve) {
+        removeEmptyContainers: function(range) {
             var applier = this;
             var nodesToRemove = range.getNodes([1], function(el) {
                 return applier.isEmptyContainer(el);
@@ -733,7 +735,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
             range.splitBoundariesPreservingPositions(positionsToPreserve);
 
             // Tidy up the DOM by removing empty containers 
-            this.removeEmptyContainers(range, positionsToPreserve);
+            if (this.removeEmptyElements) {
+                this.removeEmptyContainers(range);
+            }
 
             var textNodes = getEffectiveTextNodes(range);
 
@@ -788,7 +792,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
             range.splitBoundariesPreservingPositions(positionsToPreserve);
 
             // Tidy up the DOM by removing empty containers 
-            this.removeEmptyContainers(range, positionsToPreserve);
+            if (this.removeEmptyElements) {
+                this.removeEmptyContainers(range, positionsToPreserve);
+            }
 
             var textNodes = getEffectiveTextNodes(range);
             var textNode, ancestorWithClass;
