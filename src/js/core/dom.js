@@ -307,7 +307,7 @@ rangy.createModule("DomUtil", function(api, module) {
             return '"' + node.data + '"';
         } else if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
-            return "<" + node.nodeName + idAttr + ">[" + node.childNodes.length + "]";
+            return "<" + node.nodeName + idAttr + ">[" + node.childNodes.length + "][" + node.innerHTML.slice(0, 10) + "]";
         } else {
             return node.nodeName;
         }
