@@ -160,7 +160,11 @@ rangy.createModule("SaveRestore", function(api, module) {
         var rangeInfos = saveRanges(ranges, backward);
 
         // Ensure current selection is unaffected
-        sel.setRanges(ranges);
+        if (backward) {
+            sel.setSingleRange(ranges[0], "backward");
+        } else {
+            sel.setRanges(ranges);
+        }
 
         return {
             win: win,

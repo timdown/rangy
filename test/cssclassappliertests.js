@@ -553,7 +553,6 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         //t.assertEquals('<span class="c1">[one]</span><br><br> two', htmlAndRangeToString(testEl, range));
     });
 
-
     s.test("Test issue 101 (adding style properties)", function(t) {
         var applier = rangy.createCssClassApplier("c1", {
             elementTagName: "a",
