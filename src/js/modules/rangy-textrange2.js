@@ -1,3 +1,68 @@
+/**
+ * Text range module for Rangy.
+ * Text-based manipulation and searching of ranges and selections.
+ *
+ * Features
+ *
+ * - Ability to move range boundaries by character or word offsets
+ * - Customizable word tokenizer
+ * - Ignores text nodes inside <script> or <style> elements or those hidden by CSS display and visibility properties
+ * - Range findText method to search for text or regex within the page or within a range. Flags for whole words and case
+ *   sensitivity
+ * - Selection and range save/restore as text offsets within a node
+ * - Methods to return visible text within a range or selection
+ * - innerText method for elements
+ *
+ * References
+ *
+ * https://www.w3.org/Bugs/Public/show_bug.cgi?id=13145
+ * http://aryeh.name/spec/innertext/innertext.html
+ * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
+ *
+ * Part of Rangy, a cross-browser JavaScript range and selection library
+ * http://code.google.com/p/rangy/
+ *
+ * Depends on Rangy core.
+ *
+ * Copyright %%build:year%%, Tim Down
+ * Licensed under the MIT license.
+ * Version: %%build:version%%
+ * Build date: %%build:date%%
+ */
+
+/**
+ * Problem: handling of trailing spaces before line breaks is handled inconsistently between browsers.
+ *
+ * First, a <br>: this is relatively simple. For the following HTML:
+ *
+ * 1 <br>2
+ *
+ * - IE and WebKit render the space, include it in the selection (i.e. when the content is selected and pasted into a
+ *   textarea, the space is present) and allow the caret to be placed after it.
+ * - Firefox does not acknowledge the space in the selection but it is possible to place the caret after it.
+ * - Opera does not render the space but has two separate caret positions on either side of the space (left and right
+ *   arrow keys show this) and includes the space in the selection.
+ *
+ * The other case is the line break or breaks implied by block elements. For the following HTML:
+ *
+ * <p>1 </p><p>2<p>
+ *
+ * - WebKit does not acknowledge the space in any way
+ * - Firefox, IE and Opera as per <br>
+ *
+ * One more case is trailing spaces before line breaks in elements with white-space: pre-line. For the following HTML:
+ *
+ * <p style="white-space: pre-line">1
+ * 2</p>
+ *
+ * - Firefox and WebKit include the space in caret positions
+ * - IE does not support pre-line up to and including version 9
+ * - Opera ignores the space
+ * - Trailing space only renders if there is a non-collapsed character in the line
+ *
+ * Problem is whether Rangy should ever acknowledge the space and if so, when. Another problem is whether this can be
+ * feature-tested
+ */
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
