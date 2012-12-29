@@ -176,17 +176,17 @@ xn.test.suite("Text Range module tests", function(s) {
     });
 
     s.test("innerText on paragraph with trailing space (includeBlockContentTrailingSpace true)", function(t) {
-        t.el.innerHTML = '<div>One Two </div><div>Three</div>';
+        t.el.innerHTML = '<div>x </div><div>y</div>';
         t.assertEquals(rangy.innerText(t.el, {
             includeBlockContentTrailingSpace: true
-        }), "One Two \nThree");
+        }), "x \ny");
     });
 
     s.test("innerText on paragraph with trailing space (includeBlockContentTrailingSpace false)", function(t) {
-        t.el.innerHTML = '<div>One Two </div><div>Three</div>';
+        t.el.innerHTML = '<div>x </div><div>y</div>';
         t.assertEquals(rangy.innerText(t.el, {
             includeBlockContentTrailingSpace: false
-        }), "One Two\nThree");
+        }), "x\ny");
     });
 
     s.test("innerText on simple text with two trailing spaces", function(t) {

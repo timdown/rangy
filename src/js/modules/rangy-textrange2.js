@@ -715,8 +715,9 @@ rangy.createModule("TextRange", function(api, module) {
                                     visibleChar = " ";
                                     charType = PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK;
                                 } else {
-                                    log.debug("Character is a collapsible space not preceded by another collapsible space, adding");
+                                    log.debug("Character is a collapsible space not preceded by another collapsible space, including but will need to check for whether it precedes a <br> or end of a block");
                                     visibleChar = " ";
+                                    pos.checkForFollowingLineBreak = true;
                                     charType = COLLAPSIBLE_SPACE;
                                 }
                             } else {
@@ -777,6 +778,7 @@ rangy.createModule("TextRange", function(api, module) {
             }
             if (this.checkForTrailingSpace) {
                 var trailingSpace = this.nodeWrapper.getTrailingSpace();
+                log.debug("resolveLeadingAndTrailingSpaces checking for trailing space on " + this.inspect() + ", got '" + trailingSpace + "'");
                 if (trailingSpace) {
                     this.isTrailingSpace = true;
                     this.character = trailingSpace;
@@ -836,7 +838,7 @@ rangy.createModule("TextRange", function(api, module) {
             
             this.resolveLeadingAndTrailingSpaces();
             var collapsible = (this.characterType == COLLAPSIBLE_SPACE);
-            log.info("getCharacter initial character is '" + this.character + "'", collapsible);
+            log.info("getCharacter initial character is '" + this.character + "'", collapsible ? "collapsible" : "");
 
             if (this.isCharFinalized) {
                 character = this.character;
@@ -861,16 +863,28 @@ rangy.createModule("TextRange", function(api, module) {
                     nextPos = this.nextUncollapsed();
                     log.debug("nextPos: " + nextPos.inspect());
                     if (nextPos) {
+                        if (nextPos.isBr) {
+                            this.type = TRAILING_SPACE_BEFORE_BR;
+                        } else if (nextPos.isTrailingSpace && nextPos.character == "\n") {
+                            this.type = TRAILING_SPACE_IN_BLOCK;
+                        }
                         if (nextPos.character === "\n") {
-                            if (this.type == TRAILING_SPACE_BEFORE_BR && nextPos.isBr && !characterOptions.includeSpaceBeforeBr) {
+                            if (this.type == TRAILING_SPACE_BEFORE_BR && !characterOptions.includeSpaceBeforeBr) {
                                 log.debug("Character is a space which is followed by a br. Policy from options is to collapse.");
                             } else if (this.type == TRAILING_SPACE_IN_BLOCK && nextPos.isTrailingSpace && !characterOptions.includeBlockContentTrailingSpace) {
                                 log.debug("Character is a space which is the final character in a block. Policy from options is to collapse.");
                             } else if (this.type == PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK && nextPos.type == NON_SPACE && !characterOptions.includePreLineTrailingSpace) {
                                 log.debug("Character is a space which is followed by a line break in a pre-line element. Policy from options is to collapse.");
+                            } else if (this.character === "\n") {
+                                if (this.isTrailingSpace && nextPos.isTrailingSpace) {
+                                    log.debug("Trailing line break preceding another trailing line break is excluded.");
+                                } else {
+                                    log.debug("Collapsible line break followed by a non-trailing line break is being included.");
+                                    character = "\n";
+                                }
                             } else {
                                 log.debug("Collapsible space followed by a line break is being included.");
-                                character = " ";
+                                character = this.character;
                             }
                         } else {
                             log.debug("Character is a collapsible space or line break that has not been disallowed");
