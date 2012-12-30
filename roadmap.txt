@@ -14,12 +14,14 @@
             four args (startNode, startOffset, endNode, endOffset) (consider this)
 - [ ] Consider range.restrict(node)
 - [ ] Consider filter option in createCssClassApplier() options object
+- [ ] Highlighter module. Review and rewrite existing.
 - [X] Added select() method to range
+- [ ] Rename CSS class applier module to "class applier module"
+- [ ] Add handling for img and similar elements in class applier module
 
 1.4
 ---
 
-- [ ] Highlighter module. Review and rewrite existing.
 - [ ] Commands module with basic inline commands (bold, italic, colour, font face, font size, background colour, etc.)
       (http://stackoverflow.com/questions/2887101/apply-style-to-range-of-text-with-javascript-in-uiwebview/2888969#2888969)
 - [ ] More commands (block? Insert line break? Think about this, don't want to build a WYSIWYG editor)
