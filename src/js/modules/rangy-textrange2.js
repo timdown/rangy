@@ -717,7 +717,7 @@ rangy.createModule("TextRange", function(api, module) {
                                 } else {
                                     log.debug("Character is a collapsible space not preceded by another collapsible space, including but will need to check for whether it precedes a <br> or end of a block");
                                     visibleChar = " ";
-                                    pos.checkForFollowingLineBreak = true;
+                                    //pos.checkForFollowingLineBreak = true;
                                     charType = COLLAPSIBLE_SPACE;
                                 }
                             } else {
@@ -777,7 +777,7 @@ rangy.createModule("TextRange", function(api, module) {
                 this.prepopulateChar();
             }
             if (this.checkForTrailingSpace) {
-                var trailingSpace = this.nodeWrapper.getTrailingSpace();
+                var trailingSpace = this.transaction.getNodeWrapper(this.node.childNodes[this.offset - 1]).getTrailingSpace();
                 log.debug("resolveLeadingAndTrailingSpaces checking for trailing space on " + this.inspect() + ", got '" + trailingSpace + "'");
                 if (trailingSpace) {
                     this.isTrailingSpace = true;
@@ -787,7 +787,7 @@ rangy.createModule("TextRange", function(api, module) {
                 this.checkForTrailingSpace = false;
             }
             if (this.checkForLeadingSpace) {
-                var leadingSpace = this.nodeWrapper.getLeadingSpace();
+                var leadingSpace = this.transaction.getNodeWrapper(this.node.childNodes[this.offset]).getLeadingSpace();
                 log.debug("resolveLeadingAndTrailingSpaces checking for leading space on " + this.inspect() + ", got '" + leadingSpace + "'");
                 if (leadingSpace) {
                     this.isLeadingSpace = true;
@@ -853,7 +853,7 @@ rangy.createModule("TextRange", function(api, module) {
                 var nextPos, previousPos;
 
                 // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-                if (this.character === " " && collapsible &&
+                if (this.character == " " && collapsible &&
                         ( !(previousPos = this.getPrecedingUncollapsedPosition()) || previousPos.isTrailingSpace || previousPos.character == "\n")) {
                     log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
                 }

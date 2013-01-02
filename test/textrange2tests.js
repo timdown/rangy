@@ -189,9 +189,46 @@ xn.test.suite("Text Range module tests", function(s) {
         }), "x\ny");
     });
 
-    s.test("innerText on simple text with two trailing spaces", function(t) {
+    s.test("innerText on paragraph containing br preceded by space (includeSpaceBeforeBr true)", function(t) {
+        t.el.innerHTML = '<div>x <br>y</div>';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeSpaceBeforeBr: true
+        }), "x \ny");
+    });
+
+    s.test("innerText on paragraph containing br preceded by space (includeSpaceBeforeBr false)", function(t) {
+        t.el.innerHTML = '<div>x <br>y</div>';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeSpaceBeforeBr: false
+        }), "x\ny");
+    });
+
+    s.test("innerText on paragraph containing br preceded by two spaces (includeSpaceBeforeBr true)", function(t) {
+        t.el.innerHTML = '<div>x  <br>y</div>';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeSpaceBeforeBr: true
+        }), "x \ny");
+    });
+
+    s.test("innerText on paragraph containing br preceded by two spaces (includeSpaceBeforeBr false)", function(t) {
+        t.el.innerHTML = '<div>x  <br>y</div>';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeSpaceBeforeBr: false
+        }), "x\ny");
+    });
+
+    s.test("innerText on simple text with two trailing spaces (includeBlockContentTrailingSpace true)", function(t) {
         t.el.innerHTML = '1  ';
-        t.assertEquals(rangy.innerText(t.el), "1");
+        t.assertEquals(rangy.innerText(t.el, {
+            includeBlockContentTrailingSpace: true
+        }), "1 ");
+    });
+
+    s.test("innerText on simple text with two trailing spaces (includeBlockContentTrailingSpace false)", function(t) {
+        t.el.innerHTML = '1  ';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeBlockContentTrailingSpace: false
+        }), "1");
     });
 
     s.test("innerText on simple text with leading space in span", function(t) {
@@ -199,9 +236,18 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "One Two");
     });
 
-    s.test("innerText on simple text with trailing space in span", function(t) {
+    s.test("innerText on simple text with trailing space in span (includeBlockContentTrailingSpace true)", function(t) {
         t.el.innerHTML = 'One Two<span> </span>';
-        t.assertEquals(rangy.innerText(t.el), "One Two");
+        t.assertEquals(rangy.innerText(t.el, {
+            includeBlockContentTrailingSpace: true
+        }), "One Two ");
+    });
+
+    s.test("innerText on simple text with trailing space in span (includeBlockContentTrailingSpace false)", function(t) {
+        t.el.innerHTML = 'One Two<span> </span>';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeBlockContentTrailingSpace: false
+        }), "One Two");
     });
 
     s.test("innerText on simple text with non-breaking space in span", function(t) {
@@ -229,9 +275,14 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1\n2");
     });
 
-    s.test("innerText on two paragraphs separated by spaces", function(t) {
-        t.el.innerHTML = '<p>1</p>\n<p>2</p>';
-        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    s.test("innerText on two paragraphs separated by one line break", function(t) {
+        t.el.innerHTML = '<p>x</p>\n<p>y</p>';
+        t.assertEquals(rangy.innerText(t.el), "x\ny");
+    });
+
+    s.test("innerText on two paragraphs separated by two line breaks", function(t) {
+        t.el.innerHTML = '<p>x</p>\n\n<p>y</p>';
+        t.assertEquals(rangy.innerText(t.el), "x\ny");
     });
 
     s.test("innerText on two paragraphs with container", function(t) {
