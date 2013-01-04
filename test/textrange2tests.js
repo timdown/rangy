@@ -275,6 +275,11 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "1\n2");
     });
 
+    s.test("innerText on two paragraphs separated by one space", function(t) {
+        t.el.innerHTML = '<p>x</p> <p>y</p>';
+        t.assertEquals(rangy.innerText(t.el), "x\ny");
+    });
+
     s.test("innerText on two paragraphs separated by one line break", function(t) {
         t.el.innerHTML = '<p>x</p>\n<p>y</p>';
         t.assertEquals(rangy.innerText(t.el), "x\ny");
@@ -313,11 +318,6 @@ xn.test.suite("Text Range module tests", function(s) {
     s.test("innerText on paragraph with two uncollapsed brs", function(t) {
         t.el.innerHTML = '<p>1<br><br>2</p>';
         t.assertEquals(rangy.innerText(t.el), "1\n\n2");
-    });
-
-    s.test("innerText on paragraph with uncollapsed br preceded by space", function(t) {
-        t.el.innerHTML = '<p>1 <br>2</p>';
-        t.assertEquals(rangy.innerText(t.el), "1\n2");
     });
 
     s.test("innerText on two paragraphs with collapsed br", function(t) {
