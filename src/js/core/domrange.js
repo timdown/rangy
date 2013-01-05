@@ -972,6 +972,10 @@ rangy.createModule("DomRange", function(api, module) {
 
                 boundaryUpdater(this, sc, so, ec, eo);
             },
+            
+            setBoundary: function(node, offset, isStart) {
+                this["set" + (isStart ? "Start" : "End")](node, offset);
+            },
 
             setStartBefore: createBeforeAfterNodeSetter(true, true),
             setStartAfter: createBeforeAfterNodeSetter(false, true),

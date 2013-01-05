@@ -749,9 +749,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
                         this.applyToTextNode(textNode, positionsToPreserve);
                     }
                 }
-                range.setStart(textNodes[0], 0);
                 textNode = textNodes[textNodes.length - 1];
-                range.setEnd(textNode, textNode.length);
+                range.setStartAndEnd(textNodes[0], 0, textNode, textNode.length);
                 if (this.normalize) {
                     this.postApply(textNodes, range, positionsToPreserve, false);
                 }
@@ -809,8 +808,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     }
 
                     // Ensure the range is still valid
-                    range.setStart(textNodes[0], 0);
-                    range.setEnd(lastTextNode, lastTextNode.length);
+                    range.setStartAndEnd(textNodes[0], 0, lastTextNode, lastTextNode.length);
                 }
 
                 log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");

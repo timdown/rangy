@@ -181,6 +181,11 @@ rangy.createModule("TextRange", function(api, module) {
         }
     }
 
+    function createCharacterOptions(options) {
+        return createOptions(options, defaultCharacterOptions);
+    }
+
+
     var defaultFindOptions = {
         caseSensitive: false,
         withinRange: null,
@@ -1432,8 +1437,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     function isWholeWord(startPos, endPos, wordOptions) {
         var range = api.createRange(startPos.node);
-        range.setStart(startPos.node, startPos.offset);
-        range.setEnd(endPos.node, endPos.offset);
+        range.setStartAndEnd(startPos.node, startPos.offset, endPos.node, endPos.offset);
         var returnVal = !range.expand("word", wordOptions);
         range.detach();
         return returnVal;
@@ -1542,7 +1546,7 @@ rangy.createModule("TextRange", function(api, module) {
                     unit = CHARACTER;
                 }
                 moveOptions = createOptions(moveOptions, defaultMoveOptions);
-                var characterOptions = createOptions(moveOptions.characterOptions, defaultCharacterOptions);
+                var characterOptions = createCharacterOptions(moveOptions.characterOptions);
                 var wordOptions = createWordOptions(moveOptions.wordOptions);
                 log.debug("** moving boundary. start: " + isStart + ", unit: " + unit + ", count: " + count);
 
@@ -1562,7 +1566,7 @@ rangy.createModule("TextRange", function(api, module) {
     function createRangeTrimmer(isStart) {
         return createEntryPointFunction(
             function(transaction, characterOptions) {
-                characterOptions = createOptions(characterOptions, defaultCharacterOptions);
+                characterOptions = createCharacterOptions(characterOptions);
                 var pos;
                 var it = createRangeCharacterIterator(transaction, this, characterOptions, !isStart);
                 var trimCharCount = 0;
@@ -1601,175 +1605,176 @@ rangy.createModule("TextRange", function(api, module) {
             }
         ),
 
-        expand: function(unit, expandOptions) {
-            var moved = false;
-            expandOptions = createOptions(expandOptions, defaultExpandOptions);
-            var characterOptions = createOptions(expandOptions.characterOptions, defaultCharacterOptions);
-            if (!unit) {
-                unit = CHARACTER;
-            }
-            if (unit == WORD) {
-                var wordOptions = createWordOptions(expandOptions.wordOptions);
-                var startPos = getRangeStartPosition(this);
-                var endPos = getRangeEndPosition(this);
+        expand: createEntryPointFunction(
+            function(transaction, unit, expandOptions) {
+                var moved = false;
+                expandOptions = createOptions(expandOptions, defaultExpandOptions);
+                var characterOptions = createCharacterOptions(expandOptions.characterOptions);
+                if (!unit) {
+                    unit = CHARACTER;
+                }
+                if (unit == WORD) {
+                    var wordOptions = createWordOptions(expandOptions.wordOptions);
+                    var startPos = transaction.getRangeBoundaryPosition(this, true);
+                    var endPos = transaction.getRangeBoundaryPosition(this, false);
 
-                var startTokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
-                var startToken = startTokenizedTextProvider.nextEndToken();
-                var newStartPos = previousVisiblePosition(startToken.chars[0].position);
-                var endToken, newEndPos;
+                    var startTokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
+                    var startToken = startTokenizedTextProvider.nextEndToken();
+                    var newStartPos = startToken.chars[0].previousVisible();
+                    var endToken, newEndPos;
 
-                if (this.collapsed) {
-                    endToken = startToken;
+                    if (this.collapsed) {
+                        endToken = startToken;
+                    } else {
+                        var endTokenizedTextProvider = createTokenizedTextProvider(endPos, characterOptions, wordOptions);
+                        endToken = endTokenizedTextProvider.previousStartToken();
+                    }
+                    newEndPos = endToken.chars[endToken.chars.length - 1].position;
+
+                    if (!newStartPos.equals(startPos)) {
+                        this.setStart(newStartPos.node, newStartPos.offset);
+                        moved = true;
+                    }
+                    if (!newEndPos.equals(endPos)) {
+                        this.setEnd(newEndPos.node, newEndPos.offset);
+                        moved = true;
+                    }
+
+                    if (expandOptions.trim) {
+                        if (expandOptions.trimStart) {
+                            moved = this.trimStart(characterOptions) || moved;
+                        }
+                        if (expandOptions.trimEnd) {
+                            moved = this.trimEnd(characterOptions) || moved;
+                        }
+                    }
+
+                    return moved;
                 } else {
-                    var endTokenizedTextProvider = createTokenizedTextProvider(endPos, characterOptions, wordOptions);
-                    endToken = endTokenizedTextProvider.previousStartToken();
+                    return this.moveEnd(CHARACTER, 1, expandOptions);
                 }
-                newEndPos = endToken.chars[endToken.chars.length - 1].position;
-
-                if (!newStartPos.equals(startPos)) {
-                    this.setStart(newStartPos.node, newStartPos.offset);
-                    moved = true;
-                }
-                if (!newEndPos.equals(endPos)) {
-                    this.setEnd(newEndPos.node, newEndPos.offset);
-                    moved = true;
-                }
-
-                if (expandOptions.trim) {
-                    if (expandOptions.trimStart) {
-                        moved = this.trimStart(characterOptions) || moved;
-                    }
-                    if (expandOptions.trimEnd) {
-                        moved = this.trimEnd(characterOptions) || moved;
-                    }
-                }
-
-                return moved;
-            } else {
-                return this.moveEnd(CHARACTER, 1, expandOptions);
             }
-        },
+        ),
 
         text: createEntryPointFunction(
             function(transaction, characterOptions) {
                 log.info("text. Transaction: " + transaction + ", characterOptions:", characterOptions);
                 return this.collapsed ?
-                    "" : getRangeCharacters(transaction, this, createOptions(characterOptions, defaultCharacterOptions)).join("");
+                    "" : getRangeCharacters(transaction, this, createCharacterOptions(characterOptions)).join("");
             }
         ),
 
-        selectCharacters: function(containerNode, startIndex, endIndex, characterOptions) {
-            var moveOptions = { characterOptions: characterOptions };
-            this.selectNodeContents(containerNode);
-            this.collapse(true);
-            this.moveStart("character", startIndex, moveOptions);
-            this.collapse(true);
-            this.moveEnd("character", endIndex - startIndex, moveOptions);
-        },
+        selectCharacters: createEntryPointFunction(
+            function(transaction, containerNode, startIndex, endIndex, characterOptions) {
+                var moveOptions = { characterOptions: characterOptions };
+                this.selectNodeContents(containerNode);
+                this.collapse(true);
+                this.moveStart("character", startIndex, moveOptions);
+                this.collapse(true);
+                this.moveEnd("character", endIndex - startIndex, moveOptions);
+            }
+        ),
 
         // Character indexes are relative to the start of node
-        toCharacterRange: function(containerNode, characterOptions) {
-            if (!containerNode) {
-                containerNode = document.body;
-            }
-            var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
-            var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
-            var rangeBetween = this.cloneRange();
-            var startIndex, endIndex;
-            if (rangeStartsBeforeNode) {
-                rangeBetween.setStart(this.startContainer, this.startOffset);
-                rangeBetween.setEnd(parent, nodeIndex);
-                startIndex = -rangeBetween.text(characterOptions).length;
-            } else {
-                rangeBetween.setStart(parent, nodeIndex);
-                rangeBetween.setEnd(this.startContainer, this.startOffset);
-                startIndex = rangeBetween.text(characterOptions).length;
-            }
-            endIndex = startIndex + this.text(characterOptions).length;
-
-            return {
-                start: startIndex,
-                end: endIndex
-            };
-        },
-
-        findText: function(searchTermParam, findOptions) {
-            // Set up options
-            findOptions = createOptions(findOptions, defaultFindOptions);
-
-            // Create word options if we're matching whole words only
-            if (findOptions.wholeWordsOnly) {
-                findOptions.wordOptions = createWordOptions(findOptions.wordOptions);
-
-                // We don't ever want trailing spaces for search results
-                findOptions.wordOptions.includeTrailingSpace = false;
-            }
-
-            var backward = isDirectionBackward(findOptions.direction);
-
-            // Create a range representing the search scope if none was provided
-            var searchScopeRange = findOptions.withinRange;
-            if (!searchScopeRange) {
-                searchScopeRange = api.createRange();
-                searchScopeRange.selectNodeContents(this.getDocument());
-            }
-
-            // Examine and prepare the search term
-            var searchTerm = searchTermParam, isRegex = false;
-            if (typeof searchTerm == "string") {
-                if (!findOptions.caseSensitive) {
-                    searchTerm = searchTerm.toLowerCase();
+        toCharacterRange: createEntryPointFunction(
+            function(transaction, containerNode, characterOptions) {
+                if (!containerNode) {
+                    containerNode = document.body;
                 }
-            } else {
-                isRegex = true;
-            }
-
-            var initialPos = backward ? getRangeEndPosition(this) : getRangeStartPosition(this);
-
-            // Adjust initial position if it lies outside the search scope
-            var comparison = searchScopeRange.comparePoint(initialPos.node, initialPos.offset);
-            if (comparison === -1) {
-                initialPos = getRangeStartPosition(searchScopeRange);
-            } else if (comparison === 1) {
-                initialPos = getRangeEndPosition(searchScopeRange);
-            }
-
-            var pos = initialPos;
-            var wrappedAround = false;
-
-            // Try to find a match and ignore invalid ones
-            var findResult;
-            while (true) {
-                findResult = findTextFromPosition(pos, searchTerm, isRegex, searchScopeRange, findOptions);
-
-                if (findResult) {
-                    if (findResult.valid) {
-                        this.setStart(findResult.startPos.node, findResult.startPos.offset);
-                        this.setEnd(findResult.endPos.node, findResult.endPos.offset);
-                        return true;
-                    } else {
-                        // We've found a match that is not a whole word, so we carry on searching from the point immediately
-                        // after the match
-                        pos = backward ? findResult.startPos : findResult.endPos;
-                    }
-                } else if (findOptions.wrap && !wrappedAround) {
-                    // No result found but we're wrapping around and limiting the scope to the unsearched part of the range
-                    searchScopeRange = searchScopeRange.cloneRange();
-                    if (backward) {
-                        pos = getRangeEndPosition(searchScopeRange);
-                        searchScopeRange.setStart(initialPos.node, initialPos.offset);
-                    } else {
-                        pos = getRangeStartPosition(searchScopeRange);
-                        searchScopeRange.setEnd(initialPos.node, initialPos.offset);
-                    }
-                    log.debug("Wrapping search. New search range is " + searchScopeRange.inspect());
-                    wrappedAround = true;
+                var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
+                var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
+                var rangeBetween = this.cloneRange();
+                var startIndex, endIndex;
+                if (rangeStartsBeforeNode) {
+                    rangeBetween.setStartAndEnd(this.startContainer, this.startOffset, parent, nodeIndex);
+                    startIndex = -rangeBetween.text(characterOptions).length;
                 } else {
-                    // Nothing found and we can't wrap around, so we're done
-                    return false;
+                    rangeBetween.setStartAndEnd(parent, nodeIndex, this.startContainer, this.startOffset);
+                    startIndex = rangeBetween.text(characterOptions).length;
+                }
+                endIndex = startIndex + this.text(characterOptions).length;
+    
+                return {
+                    start: startIndex,
+                    end: endIndex
+                };
+            }
+        ),
+
+        findText: createEntryPointFunction(
+            function(transaction, searchTermParam, findOptions) {
+                // Set up options
+                findOptions = createOptions(findOptions, defaultFindOptions);
+    
+                // Create word options if we're matching whole words only
+                if (findOptions.wholeWordsOnly) {
+                    findOptions.wordOptions = createWordOptions(findOptions.wordOptions);
+    
+                    // We don't ever want trailing spaces for search results
+                    findOptions.wordOptions.includeTrailingSpace = false;
+                }
+    
+                var backward = isDirectionBackward(findOptions.direction);
+    
+                // Create a range representing the search scope if none was provided
+                var searchScopeRange = findOptions.withinRange;
+                if (!searchScopeRange) {
+                    searchScopeRange = api.createRange();
+                    searchScopeRange.selectNodeContents(this.getDocument());
+                }
+    
+                // Examine and prepare the search term
+                var searchTerm = searchTermParam, isRegex = false;
+                if (typeof searchTerm == "string") {
+                    if (!findOptions.caseSensitive) {
+                        searchTerm = searchTerm.toLowerCase();
+                    }
+                } else {
+                    isRegex = true;
+                }
+    
+                var initialPos = transaction.getRangeBoundaryPosition(this, !backward);
+    
+                // Adjust initial position if it lies outside the search scope
+                var comparison = searchScopeRange.comparePoint(initialPos.node, initialPos.offset);
+                
+                if (comparison === -1) {
+                    initialPos = transaction.getRangeBoundaryPosition(searchScopeRange, true);
+                } else if (comparison === 1) {
+                    initialPos = transaction.getRangeBoundaryPosition(searchScopeRange, false);
+                }
+    
+                var pos = initialPos;
+                var wrappedAround = false;
+    
+                // Try to find a match and ignore invalid ones
+                var findResult;
+                while (true) {
+                    findResult = findTextFromPosition(pos, searchTerm, isRegex, searchScopeRange, findOptions);
+    
+                    if (findResult) {
+                        if (findResult.valid) {
+                            this.setStartAndEnd(findResult.startPos.node, findResult.startPos.offset, findResult.endPos.node, findResult.endPos.offset);
+                            return true;
+                        } else {
+                            // We've found a match that is not a whole word, so we carry on searching from the point immediately
+                            // after the match
+                            pos = backward ? findResult.startPos : findResult.endPos;
+                        }
+                    } else if (findOptions.wrap && !wrappedAround) {
+                        // No result found but we're wrapping around and limiting the scope to the unsearched part of the range
+                        searchScopeRange = searchScopeRange.cloneRange();
+                        pos = transaction.getRangeBoundaryPosition(searchScopeRange, !backward);
+                        searchScopeRange.setBoundary(initialPos.node, initialPos.offset, backward);
+                        log.debug("Wrapping search. New search range is " + searchScopeRange.inspect());
+                        wrappedAround = true;
+                    } else {
+                        // Nothing found and we can't wrap around, so we're done
+                        return false;
+                    }
                 }
             }
-        },
+        ),
 
         pasteHtml: function(html) {
             this.deleteContents();
@@ -1787,75 +1792,89 @@ rangy.createModule("TextRange", function(api, module) {
     // Extensions to the Rangy Selection object
 
     function createSelectionTrimmer(methodName) {
-        return function(characterOptions) {
-            var trimmed = false;
-            this.changeEachRange(function(range) {
-                trimmed = range[methodName](characterOptions) || trimmed;
-            });
-            return trimmed;
-        }
+        return createEntryPointFunction(
+            function(transaction, characterOptions) {
+                var trimmed = false;
+                this.changeEachRange(function(range) {
+                    trimmed = range[methodName](characterOptions) || trimmed;
+                });
+                return trimmed;
+            }
+        );
     }
 
     extend(api.selectionPrototype, {
-        expand: function(unit, expandOptions) {
-            this.changeEachRange(function(range) {
-                range.expand(unit, expandOptions);
-            });
-        },
-
-        move: function(unit, count, options) {
-            if (this.focusNode) {
-                this.collapse(this.focusNode, this.focusOffset);
-                var range = this.getRangeAt(0);
-                range.move(unit, count, options);
-                this.setSingleRange(range);
+        expand: createEntryPointFunction(
+            function(transaction, unit, expandOptions) {
+                this.changeEachRange(function(range) {
+                    range.expand(unit, expandOptions);
+                });
             }
-        },
+        ),
+
+        move: createEntryPointFunction(
+            function(unit, count, options) {
+                if (this.focusNode) {
+                    this.collapse(this.focusNode, this.focusOffset);
+                    var range = this.getRangeAt(0);
+                    range.move(unit, count, options);
+                    this.setSingleRange(range);
+                }
+            }
+        ),
 
         trimStart: createSelectionTrimmer("trimStart"),
         trimEnd: createSelectionTrimmer("trimEnd"),
         trim: createSelectionTrimmer("trim"),
 
-        selectCharacters: function(containerNode, startIndex, endIndex, direction, characterOptions) {
-            var range = api.createRange(containerNode);
-            range.selectCharacters(containerNode, startIndex, endIndex, characterOptions);
-            this.setSingleRange(range, direction);
-        },
-
-        saveCharacterRanges: function(containerNode, characterOptions) {
-            var ranges = this.getAllRanges(), rangeCount = ranges.length;
-            var characterRanges = [];
-
-            var backward = rangeCount == 1 && this.isBackward();
-
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                characterRanges[i] = {
-                    range: ranges[i].toCharacterRange(containerNode, characterOptions),
-                    backward: backward,
-                    characterOptions: characterOptions
-                };
+        selectCharacters: createEntryPointFunction(
+            function(transaction, containerNode, startIndex, endIndex, direction, characterOptions) {
+                var range = api.createRange(containerNode);
+                range.selectCharacters(containerNode, startIndex, endIndex, characterOptions);
+                this.setSingleRange(range, direction);
             }
+        ),
 
-            return characterRanges;
-        },
-
-        restoreCharacterRanges: function(containerNode, characterRanges) {
-            this.removeAllRanges();
-            for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
-                characterRange = characterRanges[i];
-                range = api.createRange(containerNode);
-                range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end, characterRange.characterOptions);
-                this.addRange(range, characterRange.backward);
+        saveCharacterRanges: createEntryPointFunction(
+            function(transaction, containerNode, characterOptions) {
+                var ranges = this.getAllRanges(), rangeCount = ranges.length;
+                var characterRanges = [];
+    
+                var backward = rangeCount == 1 && this.isBackward();
+    
+                for (var i = 0, len = ranges.length; i < len; ++i) {
+                    characterRanges[i] = {
+                        range: ranges[i].toCharacterRange(containerNode, characterOptions),
+                        backward: backward,
+                        characterOptions: characterOptions
+                    };
+                }
+    
+                return characterRanges;
             }
-        },
+        ),
 
-        text: function(characterOptions) {
-            var rangeTexts = [];
-            for (var i = 0, len = this.rangeCount; i < len; ++i) {
-                rangeTexts[i] = this.getRangeAt(i).text(characterOptions);
+        restoreCharacterRanges: createEntryPointFunction(
+            function(transaction, containerNode, characterRanges) {
+                this.removeAllRanges();
+                for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
+                    characterRange = characterRanges[i];
+                    range = api.createRange(containerNode);
+                    range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end, characterRange.characterOptions);
+                    this.addRange(range, characterRange.backward);
+                }
             }
-            return rangeTexts.join("");
-        }
+        ),
+
+        text: createEntryPointFunction(
+            function(transaction, characterOptions) {
+                var rangeTexts = [];
+                for (var i = 0, len = this.rangeCount; i < len; ++i) {
+                    rangeTexts[i] = this.getRangeAt(i).text(characterOptions);
+                }
+                return rangeTexts.join("");
+            }
+        )
     });
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -1871,35 +1890,44 @@ rangy.createModule("TextRange", function(api, module) {
         return text;
     };
 
-    api.createWordIterator = function(startNode, startOffset, iteratorOptions) {
-        iteratorOptions = createOptions(iteratorOptions, defaultWordIteratorOptions);
-        characterOptions = createOptions(iteratorOptions.characterOptions, defaultCharacterOptions);
-        wordOptions = createWordOptions(iteratorOptions.wordOptions);
-        var startPos = new DomPosition(startNode, startOffset);
-        var tokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
-        var backward = isDirectionBackward(iteratorOptions.direction);
-
-        return {
-            next: function() {
-                return backward ? tokenizedTextProvider.previousStartToken() : tokenizedTextProvider.nextEndToken();
-            },
-
-            dispose: function() {
-                tokenizedTextProvider.dispose();
-                this.next = function() {};
-            }
-        };
-    };
+    api.createWordIterator = createEntryPointFunction(
+        function(transaction, startNode, startOffset, iteratorOptions) {
+            iteratorOptions = createOptions(iteratorOptions, defaultWordIteratorOptions);
+            var characterOptions = createCharacterOptions(iteratorOptions.characterOptions);
+            var wordOptions = createWordOptions(iteratorOptions.wordOptions);
+            var startPos = new DomPosition(startNode, startOffset);
+            var tokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
+            var backward = isDirectionBackward(iteratorOptions.direction);
+    
+            return {
+                next: function() {
+                    return backward ? tokenizedTextProvider.previousStartToken() : tokenizedTextProvider.nextEndToken();
+                },
+    
+                dispose: function() {
+                    tokenizedTextProvider.dispose();
+                    this.next = function() {};
+                }
+            };
+        }
+    );
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
     api.textRange = {
         isBlockNode: isBlockNode,
         isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
-        startTransaction: startTransaction,
-        endTransaction: endTransaction,
-        createPosition: function(node, offset) {
-            return startTransaction().getPosition(node, offset);
-        }
+
+        transaction: function(func) {
+            var transaction = getTransaction();
+            func(transaction);
+            endTransaction();
+        },
+
+        createPosition: createEntryPointFunction(
+            function(transaction, node, offset) {
+                return transaction.getPosition(node, offset);
+            }
+        )
     };
 });

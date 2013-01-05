@@ -183,8 +183,7 @@ rangy.createModule("Serializer", function(api, module) {
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
         var range = api.createRange(doc);
-        range.setStart(start.node, start.offset);
-        range.setEnd(end.node, end.offset);
+        range.setStartAndEnd(start.node, start.offset, end.node, end.offset);
         return range;
     }
 

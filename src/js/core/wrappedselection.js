@@ -306,14 +306,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         getSelectionRangeAt = function(sel) {
             var doc = getDocument(sel.anchorNode);
             var range = api.createRange(doc);
-            range.setStart(sel.anchorNode, sel.anchorOffset);
-            range.setEnd(sel.focusNode, sel.focusOffset);
+            range.setStartAndEnd(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset);
 
             // Handle the case when the selection was selected backwards (from the end to the start in the
             // document)
             if (range.collapsed !== this.isCollapsed) {
-                range.setStart(sel.focusNode, sel.focusOffset);
-                range.setEnd(sel.anchorNode, sel.anchorOffset);
+                range.setStartAndEnd(sel.focusNode, sel.focusOffset, sel.anchorNode, sel.anchorOffset);
             }
 
             return range;
