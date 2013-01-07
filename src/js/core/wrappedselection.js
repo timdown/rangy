@@ -926,11 +926,4 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
         win = null;
     });
-
-    /**
-     * Convenience method to select a range. Any existing selection will be removed.
-     */
-    api.rangePrototype.select = function(direction) {
-        getSelection(this.getDocument()).setSingleRange(this, direction);
-    };
 });

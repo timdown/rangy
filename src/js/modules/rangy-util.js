@@ -72,5 +72,44 @@ rangy.createModule("Util", function(api, module) {
         api.getSelection().selectNodeContents(node);
     };
 
+
+    /**
+     * Convenience method to select a range. Any existing selection will be removed.
+     */
+    rangeProto.select = function(direction) {
+        api.getSelection( this.getDocument() ).setSingleRange(this, direction);
+    };
+
+    rangeProto.selectSelectedTextElements = (function() {
+        function isInlineElement(node) {
+            return node.nodeType == 1 && api.dom.getComputedStyleProperty(node, "display") == "inline";
+        }
+
+        function getOutermostNodeContainingText(range, node) {
+            var outerNode = null;
+            var nodeRange = range.cloneRange();
+            nodeRange.selectNode(node);
+            if (nodeRange.toString() !== "") {
+                while ( (node = node.parentNode) && isInlineElement(node) && range.containsNodeText(node) ) {
+                    outerNode = node;
+                }
+            }
+            nodeRange.detach();
+            return outerNode;
+        }
+
+        return function() {
+            var startNode = getOutermostNodeContainingText(this, this.startContainer);
+            if (startNode) {
+                this.setStartBefore(startNode);
+            }
+
+            var endNode = getOutermostNodeContainingText(this, this.endContainer);
+            if (endNode) {
+                this.setEndAfter(endNode);
+            }
+        };
+    })();
+
     // TODO: simple selection save/restore
 });

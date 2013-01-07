@@ -218,40 +218,7 @@ rangy.createModule("TextRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /* DOM utility functions */
-
-
-    var getComputedStyleProperty;
-    if (typeof window.getComputedStyle != UNDEF) {
-        getComputedStyleProperty = function(el, propName) {
-            return dom.getWindow(el).getComputedStyle(el, null)[propName];
-        };
-    } else if (typeof document.documentElement.currentStyle != UNDEF) {
-        getComputedStyleProperty = function(el, propName) {
-            return el.currentStyle[propName];
-        };
-    } else {
-        module.fail("No means of obtaining computed style properties found");
-    }
-
-
-    /*
-    functions to wrap:
-
-    - isWhitespaceNode
-    - isCollapsedWhitespaceNode?
-    - getComputedDisplay
-    - isCollapsedNode
-    - isIgnoredNode
-
-     */
-
-    function createCachingFunction(func, metadataKey) {
-        return function() {
-            //if ()
-        }
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
+    var getComputedStyleProperty = dom.getComputedStyleProperty;
 
     // Create cachable versions of DOM functions
 

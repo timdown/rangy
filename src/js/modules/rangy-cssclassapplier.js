@@ -187,20 +187,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return true;
     }
 
-    var getComputedStyleProperty;
-
-    if (typeof window.getComputedStyle != "undefined") {
-        getComputedStyleProperty = function(el, propName) {
-            return dom.getWindow(el).getComputedStyle(el, null)[propName];
-        };
-    } else if (typeof document.documentElement.currentStyle != "undefined") {
-        getComputedStyleProperty = function(el, propName) {
-            return el.currentStyle[propName];
-        };
-    } else {
-        module.fail("No means of obtaining computed style properties found");
-    }
-
+    var getComputedStyleProperty = dom.getComputedStyleProperty;
     var isEditableElement;
 
     (function() {
