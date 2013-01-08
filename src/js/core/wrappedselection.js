@@ -14,6 +14,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         DomPosition = dom.DomPosition,
         getNativeSelection,
         selectionIsCollapsed,
+        features = api.features,
         CONTROL = "Control";
 
     var getDocument = dom.getDocument;
@@ -52,8 +53,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var implementsWinGetSelection = api.util.isHostMethod(window, "getSelection"),
         implementsDocSelection = api.util.isHostObject(document, "selection");
 
-    api.features.implementsWinGetSelection = implementsWinGetSelection;
-    api.features.implementsDocSelection = implementsDocSelection;
+    features.implementsWinGetSelection = implementsWinGetSelection;
+    features.implementsDocSelection = implementsDocSelection;
 
     var useDocumentSelection = implementsDocSelection && (!implementsWinGetSelection || api.config.preferTextRange);
 
@@ -84,21 +85,21 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var selectionHasAnchorAndFocus = util.areHostProperties(testSelection,
         ["anchorNode", "focusNode", "anchorOffset", "focusOffset"]);
 
-    api.features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
+    features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test for existence of native selection extend() method
     var selectionHasExtend = util.isHostMethod(testSelection, "extend");
-    api.features.selectionHasExtend = selectionHasExtend;
+    features.selectionHasExtend = selectionHasExtend;
 
     // Test if rangeCount exists
     var selectionHasRangeCount = (typeof testSelection.rangeCount == "number");
-    api.features.selectionHasRangeCount = selectionHasRangeCount;
+    features.selectionHasRangeCount = selectionHasRangeCount;
 
     var selectionSupportsMultipleRanges = false;
     var collapsedNonEditableSelectionsSupported = true;
 
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
-            typeof testSelection.rangeCount == "number" && api.features.implementsDomRange) {
+            typeof testSelection.rangeCount == "number" && features.implementsDomRange) {
 
         (function() {
             // Previously an iframe was used but this caused problems in some circumstances in IE, so tests are
@@ -143,8 +144,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         })();
     }
 
-    api.features.selectionSupportsMultipleRanges = selectionSupportsMultipleRanges;
-    api.features.collapsedNonEditableSelectionsSupported = collapsedNonEditableSelectionsSupported;
+    features.selectionSupportsMultipleRanges = selectionSupportsMultipleRanges;
+    features.collapsedNonEditableSelectionsSupported = collapsedNonEditableSelectionsSupported;
 
     // ControlRanges
     var implementsControlRange = false, testControlRange;
@@ -155,7 +156,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             implementsControlRange = true;
         }
     }
-    api.features.implementsControlRange = implementsControlRange;
+    features.implementsControlRange = implementsControlRange;
 
     // Selection collapsedness
     if (selectionHasAnchorAndFocus) {
@@ -200,7 +201,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             nativeRange.setStart(range.startContainer, range.startOffset);
         } else if (range instanceof WrappedRange) {
             nativeRange = range.nativeRange;
-        } else if (api.features.implementsDomRange && (range instanceof dom.getWindow(range.startContainer).Range)) {
+        } else if (features.implementsDomRange && (range instanceof dom.getWindow(range.startContainer).Range)) {
             nativeRange = range;
         }
         return nativeRange;
@@ -591,7 +592,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 }
             }
         };
-    } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && api.features.implementsDomRange) {
+    } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && features.implementsDomRange) {
         refreshSelection = function(sel) {
             var range, nativeSel = sel.nativeSelection;
             if (nativeSel.anchorNode) {
@@ -689,7 +690,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // Detecting if a selection is backward
     var selectionIsBackward;
-    if (!useDocumentSelection && selectionHasAnchorAndFocus && api.features.implementsDomRange) {
+    if (!useDocumentSelection && selectionHasAnchorAndFocus && features.implementsDomRange) {
         selectionIsBackward = function(sel) {
             var backward = false;
             if (sel.anchorNode) {

@@ -414,25 +414,27 @@ xn.test.suite("Text Range module tests", function(s) {
         });
     }
     
-    return;
-
     s.test("range move() on block inside block (issue 114)", function(t) {
-        t.el.innerHTML = '<div>1<div>2</div></div>';
+        t.el.innerHTML = '<div>x<div>y</div></div>';
         var firstTextNode = t.el.firstChild.firstChild;
         var innerDiv = firstTextNode.nextSibling;
         var secondTextNode = innerDiv.firstChild;
         var range = rangy.createRange();
         range.collapseToPoint(firstTextNode, 1);
         range.move("character", 1);
+
+        t.assertEquals(range.startContainer, secondTextNode);
+        t.assertEquals(range.startOffset, 0);
+
         var newRange = range.cloneRange();
         newRange.move("character", 1);
 
         t.assertEquals(range.startContainer, secondTextNode);
-        t.assertEquals(range.startOffset, 0);
+        t.assertEquals(range.startOffset, 1);
     });
 
     s.test("range move() on block inside block inside block (issue 114)", function(t) {
-        t.el.innerHTML = '<div>1<div><div>2</div></div></div>';
+        t.el.innerHTML = '<div>x<div><div>y</div></div></div>';
         var firstTextNode = t.el.firstChild.firstChild;
         var innerDiv = firstTextNode.nextSibling;
         var secondTextNode = innerDiv.firstChild.firstChild;
@@ -445,6 +447,9 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startContainer, secondTextNode);
         t.assertEquals(range.startOffset, 0);
     });
+
+    return;
+
 
     /*
      s.test("selection move() on block inside block (issue 114)", function(t) {

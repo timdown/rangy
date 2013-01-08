@@ -1316,6 +1316,7 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function movePositionBy(pos, unit, count, characterOptions, wordOptions) {
+        log.group("movePositionBy " + pos.inspect());
         log.info("movePositionBy called " + count);
         var unitsMoved = 0, newPos = pos, charIterator, nextPos, newTextPos, absCount = Math.abs(count), token;
         if (count !== 0) {
@@ -1327,7 +1328,9 @@ rangy.createModule("TextRange", function(api, module) {
                     while ( (newPos = charIterator.next()) && unitsMoved < absCount ) {
                         log.info("*** movePositionBy GOT CHAR " + newPos.character + "[" + newPos.character.charCodeAt(0) + "]");
                         ++unitsMoved;
+                        log.debug("unitsMoved: " + unitsMoved + ", absCount: " + absCount)
                     }
+                    log.debug("DONE DONE DONE")
                     nextPos = newPos;
                     charIterator.dispose();
                     break;
@@ -1373,6 +1376,8 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             }
         }
+
+        log.groupEnd();
 
         return {
             position: newPos,
@@ -1525,6 +1530,7 @@ rangy.createModule("TextRange", function(api, module) {
                 var moveResult = movePositionBy(transaction.getRangeBoundaryPosition(this, boundaryIsStart), unit, count, characterOptions, wordOptions);
                 var newPos = moveResult.position;
                 this[boundaryIsStart ? "setStart" : "setEnd"](newPos.node, newPos.offset);
+                log.debug("*** MOVED " + moveResult.unitsMoved, newPos.inspect())
                 return moveResult.unitsMoved;
             }
         );
