@@ -509,13 +509,13 @@ var xn = new Object();
     /**
      * Cause the test to immediately fail
      */
-    Test.prototype.reportFailure = function(name, msg, ex) {
+    Test.prototype.reportFailure = function(name, timeTaken, msg, ex) {
         this.suite.testFailed = true;
         this.suite.progressBar.className = "failure";
         progressBar.className = "failure";
         this.reportHeading = document.createElement("dt");
         this.reportHeading.className = "failure";
-        var text = document.createTextNode(this.name);
+        var text = document.createTextNode(this.name  + " failed in " + timeTaken + "ms");
         this.reportHeading.appendChild(text);
 
         var dd = document.createElement("dd");
@@ -623,15 +623,16 @@ var xn = new Object();
         }
     };
 
-    Test.prototype.fail = function(msg, ex)	{
+    Test.prototype.fail = function(msg, ex) {
         if (typeof msg != "string") {
             msg = getExceptionStringRep(msg);
         }
         anyFailed = true;
+        var timeTaken = new Date().getTime() - this.startTime.getTime();
         if (this.completed) { return false; }
         this.completed = true;
         // this.log("test [%s] failed", this.name);
-        this.reportFailure(this.name, msg, ex);
+        this.reportFailure(this.name, timeTaken, msg, ex);
         if (this.whenFinished) {
             this.whenFinished();
         }

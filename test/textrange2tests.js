@@ -429,8 +429,8 @@ xn.test.suite("Text Range module tests", function(s) {
         var newRange = range.cloneRange();
         newRange.move("character", 1);
 
-        t.assertEquals(range.startContainer, secondTextNode);
-        t.assertEquals(range.startOffset, 1);
+        t.assertEquals(newRange.startContainer, secondTextNode);
+        t.assertEquals(newRange.startOffset, 1);
     });
 
     s.test("range move() on block inside block inside block (issue 114)", function(t) {
@@ -447,9 +447,6 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startContainer, secondTextNode);
         t.assertEquals(range.startOffset, 0);
     });
-
-    return;
-
 
     /*
      s.test("selection move() on block inside block (issue 114)", function(t) {
