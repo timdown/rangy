@@ -773,7 +773,7 @@ rangy.createModule("TextRange", function(api, module) {
                 }
             }
         }
-        log.info("endPos now " + (endPos ? endPos.inspect() : ""));
+        log.info("endPos now " + (endPos ? endPos.inspect() : "") + ", startPos " + startPos.inspect());
 
         var pos = startPos, finished = false;
 
@@ -1057,7 +1057,7 @@ rangy.createModule("TextRange", function(api, module) {
     };
 
     function movePositionBy(pos, unit, count, characterOptions, wordOptions) {
-        log.info("movePositionBy called " + count);
+        log.info("movePositionBy called " + count + ", pos " + pos.inspect());
         var unitsMoved = 0, newPos = pos, textPos, charIterator, nextTextPos, newTextPos, absCount = Math.abs(count), token;
         if (count !== 0) {
             var backward = (count < 0);

@@ -448,25 +448,25 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startOffset, 0);
     });
 
-    /*
+/*
      s.test("selection move() on block inside block (issue 114)", function(t) {
-     t.el.innerHTML = '<div>1<div>2</div></div>';
-     var firstTextNode = t.el.firstChild.firstChild;
-     var range = rangy.createRange();
-     range.collapseToPoint(firstTextNode, 1);
-     var selRange = range.cloneRange();
-
-     var sel = rangy.getSelection();
-     sel.addRange(range);
-     sel.move("character", 1);
-     selRange.setEnd(sel.focusNode, sel.focusOffset);
-     t.assertEquals(selRange.text(), "\n");
-
-     sel.move("character", 1);
-     selRange.setEnd(sel.focusNode, sel.focusOffset);
-     t.assertEquals(selRange.text(), "\n2");
+         t.el.innerHTML = '<div>1<div>2</div></div>';
+         var firstTextNode = t.el.firstChild.firstChild;
+         var range = rangy.createRange();
+         range.collapseToPoint(firstTextNode, 1);
+         var selRange = range.cloneRange();
+    
+         var sel = rangy.getSelection();
+         sel.addRange(range);
+         sel.move("character", 1);
+         selRange.setEnd(sel.focusNode, sel.focusOffset);
+         t.assertEquals(selRange.text(), "\n");
+    
+         sel.move("character", 1);
+         selRange.setEnd(sel.focusNode, sel.focusOffset);
+         t.assertEquals(selRange.text(), "\n2");
      });
-     */
+*/
 
     s.test("selectCharacters on text node", function(t) {
         t.el.innerHTML = 'One Two';
@@ -548,15 +548,15 @@ xn.test.suite("Text Range module tests", function(s) {
         range.collapseToPoint(textNode, 7);
 
         var charsMoved = range.moveStart("character", -2);
-        t.assertEquals(charsMoved, -2);
         t.assertEquals(range.startContainer, textNode);
         t.assertEquals(range.startOffset, 5);
+        t.assertEquals(charsMoved, -2);
         t.assertEquals(range.text(), "wo");
 
         charsMoved = range.moveStart("character", -2);
-        t.assertEquals(charsMoved, -2);
         t.assertEquals(range.startContainer, textNode);
         t.assertEquals(range.startOffset, 3);
+        t.assertEquals(charsMoved, -2);
         t.assertEquals(range.text(), " Two");
     });
 
@@ -633,53 +633,59 @@ xn.test.suite("Text Range module tests", function(s) {
     s.test("moveStart words on text node", function(t) {
         t.el.innerHTML = 'one two three';
         var textNode = t.el.firstChild;
-        var range = rangy.createRange();
-        range.collapseToPoint(textNode, 1);
 
-        var wordsMoved = range.moveStart("word", 1);
+        textRange.transaction(function() {
+            var range = rangy.createRange();
+            range.collapseToPoint(textNode, 1);
 
-        t.assertEquals(wordsMoved, 1);
-        t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 3);
-        t.assert(range.collapsed);
-        //t.assertEquals(range.text(), "");
+            var wordsMoved = range.moveStart("word", 1);
 
-        wordsMoved = range.moveStart("word", 1);
-        t.assertEquals(wordsMoved, 1);
-        t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 7);
-        //t.assertEquals(range.text(), "");
+            t.assertEquals(wordsMoved, 1);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 3);
+            t.assert(range.collapsed);
+            //t.assertEquals(range.text(), "");
 
-        wordsMoved = range.moveStart("word", 1);
-        t.assertEquals(wordsMoved, 1);
-        t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 13);
-        //t.assertEquals(range.text(), "");
+            wordsMoved = range.moveStart("word", 1);
+            t.assertEquals(wordsMoved, 1);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 7);
+            //t.assertEquals(range.text(), "");
+
+            wordsMoved = range.moveStart("word", 1);
+            t.assertEquals(wordsMoved, 1);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 13);
+            //t.assertEquals(range.text(), "");
+        });
     });
 
     s.test("moveEnd negative words on text node", function(t) {
         t.el.innerHTML = 'one two three';
         var textNode = t.el.firstChild;
-        var range = rangy.createRange();
-        range.collapseToPoint(textNode, 9);
-
-        var wordsMoved = range.moveEnd("word", -1);
-
-        t.assertEquals(wordsMoved, -1);
-        t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 8);
-        t.assert(range.collapsed);
-
-        wordsMoved = range.moveEnd("word", -1);
-        t.assertEquals(wordsMoved, -1);
-        t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 4);
-        //t.assertEquals(range.text(), "");
-
-        wordsMoved = range.moveEnd("word", -1);
-        t.assertEquals(wordsMoved, -1);
-        t.assertEquals(range.startContainer, textNode);
-        t.assertEquals(range.startOffset, 0);
+        textRange.transaction(function() {
+            var range = rangy.createRange();
+            range.collapseToPoint(textNode, 9);
+    
+            var wordsMoved = range.moveEnd("word", -1);
+    
+            t.assertEquals(wordsMoved, -1);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 8);
+            t.assertEquals(range.endOffset, 8);
+            t.assert(range.collapsed);
+    
+            wordsMoved = range.moveEnd("word", -1);
+            t.assertEquals(wordsMoved, -1);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 4);
+            //t.assertEquals(range.text(), "");
+    
+            wordsMoved = range.moveEnd("word", -1);
+            t.assertEquals(wordsMoved, -1);
+            t.assertEquals(range.startContainer, textNode);
+            t.assertEquals(range.startOffset, 0);
+        });
         //t.assertEquals(range.text(), "");
     });
 
@@ -701,19 +707,19 @@ xn.test.suite("Text Range module tests", function(s) {
         var range = rangy.createRange();
         range.collapseToPoint(textNode, 0);
 
-        var wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        var wordsMoved = range.moveEnd("word", 1, { wordOptions: { includeTrailingSpace: true } });
         t.assertEquals(wordsMoved, 1);
         t.assertEquals(range.endContainer, textNode);
         t.assertEquals(range.endOffset, 4);
         t.assertEquals(range.text(), "one ");
 
-        wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        wordsMoved = range.moveEnd("word", 1, { wordOptions: { includeTrailingSpace: true } });
         t.assertEquals(wordsMoved, 1);
         t.assertEquals(range.endContainer, textNode);
         t.assertEquals(range.endOffset, 7);
         t.assertEquals(range.text(), "one two");
 
-        wordsMoved = range.moveEnd("word", 1, { includeTrailingSpace: true });
+        wordsMoved = range.moveEnd("word", 1, { wordOptions: { includeTrailingSpace: true } });
         t.assertEquals(wordsMoved, 1);
         t.assertEquals(range.endContainer, textNode);
         t.assertEquals(range.endOffset, 14);
@@ -788,7 +794,7 @@ xn.test.suite("Text Range module tests", function(s) {
         var range = rangy.createRange();
         range.collapseToPoint(textNode, 5);
 
-        t.assert(range.expand("word", { includeTrailingSpace: true }));
+        t.assert(range.expand("word", { wordOptions: { includeTrailingSpace: true } }));
         testRangeBoundaries(t, range, textNode, 4, textNode, 8);
     });
 
@@ -986,20 +992,22 @@ xn.test.suite("Text Range module tests", function(s) {
     s.test("createWordIterator", function(t) {
         t.el.innerHTML = 'One two three; four';
 
-        var iterator = rangy.createWordIterator(t.el.firstChild, 10);
+        textRange.transaction(function() {
+            var iterator = rangy.createWordIterator(t.el.firstChild, 10);
 
-        t.assertEquals(iterator.next().toString(), "three");
-        t.assertEquals(iterator.next().toString(), "; ");
-        t.assertEquals(iterator.next().toString(), "four");
-        iterator.dispose();
+            t.assertEquals(iterator.next().toString(), "three");
+            t.assertEquals(iterator.next().toString(), "; ");
+            t.assertEquals(iterator.next().toString(), "four");
+            iterator.dispose();
 
-        iterator = rangy.createWordIterator(t.el.firstChild, 10, "backward");
+            iterator = rangy.createWordIterator(t.el.firstChild, 10, {direction: "backward"});
 
-        t.assertEquals(iterator.next().toString(), "three");
-        t.assertEquals(iterator.next().toString(), " ");
-        t.assertEquals(iterator.next().toString(), "two");
-        t.assertEquals(iterator.next().toString(), " ");
-        t.assertEquals(iterator.next().toString(), "One");
+            t.assertEquals(iterator.next().toString(), "three");
+            t.assertEquals(iterator.next().toString(), " ");
+            t.assertEquals(iterator.next().toString(), "two");
+            t.assertEquals(iterator.next().toString(), " ");
+            t.assertEquals(iterator.next().toString(), "One");
+        });
     });
 
     s.test("moveStart word document start boundary test", function(t) {
