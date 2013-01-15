@@ -89,6 +89,27 @@ rangy.createModule("TextRange", function(api, module) {
     var trailingSpaceBeforeBrCollapses = false;
     var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
 
+    (function() {
+        var el = document.createElement("div");
+        el.innerHTML = "<p>1 </p><p></p>";
+        var body = document.body;
+        var p = el.firstChild;
+        var sel = api.getSelection();
+
+        body.appendChild(el);
+        sel.collapse(p.lastChild, 2);
+        sel.setStart(p.firstChild, 0);
+        trailingSpaceInBlockCollapses = ("" + sel).length == 1;
+
+        el.innerHTML = "1 <br>";
+        sel.collapse(el, 2);
+        sel.setStart(el.firstChild, 0);
+        trailingSpaceBeforeBrCollapses = ("" + sel).length == 1;
+        body.removeChild(el);
+
+        sel.removeAllRanges();
+    })();
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // This function must create word and non-word tokens for the whole of the text supplied to it
@@ -145,6 +166,12 @@ rangy.createModule("TextRange", function(api, module) {
         includePreLineTrailingSpace: true
     };
 
+    var defaultCaretCharacterOptions = {
+        includeBlockContentTrailingSpace: !trailingSpaceBeforeLineBreakInPreLineCollapses,
+        includeSpaceBeforeBr: !trailingSpaceBeforeBrCollapses,
+        includePreLineTrailingSpace: true
+    };
+
     var defaultWordOptions = {
         "en": {
             wordRegex: /[a-z0-9]+('[a-z0-9]+)*/gi,
@@ -181,7 +208,11 @@ rangy.createModule("TextRange", function(api, module) {
         return createOptions(options, defaultCharacterOptions);
     }
 
+    function createCaretCharacterOptions(options) {
+        return createOptions(options, defaultCharacterOptions);
+    }
 
+    
     var defaultFindOptions = {
         caseSensitive: false,
         withinRange: null,
@@ -1501,7 +1532,7 @@ rangy.createModule("TextRange", function(api, module) {
         return function() {
             var transactionRunning = !!currentTransaction;
             var transaction = getTransaction();
-            var args = [transaction].concat( Array.prototype.slice.call(arguments, 0) );
+            var args = [transaction].concat( util.toArray(arguments) );
             var returnValue = func.apply(this, args);
             if (!transactionRunning) {
                 endTransaction();
@@ -1799,10 +1830,14 @@ rangy.createModule("TextRange", function(api, module) {
         ),
 
         move: createEntryPointFunction(
-            function(unit, count, options) {
+            function(transaction, unit, count, options) {
                 if (this.focusNode) {
                     this.collapse(this.focusNode, this.focusOffset);
                     var range = this.getRangeAt(0);
+                    if (!options) {
+                        options = {};
+                    }
+                    options.characterOptions = createCaretCharacterOptions(options.characterOptions);
                     range.move(unit, count, options);
                     this.setSingleRange(range);
                 }
@@ -1899,16 +1934,18 @@ rangy.createModule("TextRange", function(api, module) {
     );
 
     /*----------------------------------------------------------------------------------------------------------------*/
+    
+    api.transaction = function(func) {
+        var transaction = getTransaction();
+        func(transaction);
+        endTransaction();
+    };
+
+    api.transaction.createEntryPointFunction = createEntryPointFunction;
 
     api.textRange = {
         isBlockNode: isBlockNode,
         isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
-
-        transaction: function(func) {
-            var transaction = getTransaction();
-            func(transaction);
-            endTransaction();
-        },
 
         createPosition: createEntryPointFunction(
             function(transaction, node, offset) {

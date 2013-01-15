@@ -8,6 +8,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     var BOOLEAN = "boolean",
         dom = api.dom,
         util = api.util,
+        isHostMethod = util.isHostMethod,
         DomRange = api.DomRange,
         WrappedRange = api.WrappedRange,
         DOMException = api.DOMException,
@@ -50,8 +51,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     // Test for the Range/TextRange and Selection features required
     // Test for ability to retrieve selection
-    var implementsWinGetSelection = api.util.isHostMethod(window, "getSelection"),
-        implementsDocSelection = api.util.isHostObject(document, "selection");
+    var implementsWinGetSelection = isHostMethod(window, "getSelection"),
+        implementsDocSelection = util.isHostObject(document, "selection");
 
     features.implementsWinGetSelection = implementsWinGetSelection;
     features.implementsDocSelection = implementsDocSelection;
@@ -88,7 +89,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
 
     // Test for existence of native selection extend() method
-    var selectionHasExtend = util.isHostMethod(testSelection, "extend");
+    var selectionHasExtend = isHostMethod(testSelection, "extend");
     features.selectionHasExtend = selectionHasExtend;
 
     // Test if rangeCount exists
@@ -150,7 +151,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     // ControlRanges
     var implementsControlRange = false, testControlRange;
 
-    if (body && util.isHostMethod(body, "createControlRange")) {
+    if (body && isHostMethod(body, "createControlRange")) {
         testControlRange = body.createControlRange();
         if (util.areHostProperties(testControlRange, ["item", "add"])) {
             implementsControlRange = true;
@@ -292,7 +293,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var getSelectionRangeAt;
 
-    if (util.isHostMethod(testSelection, "getRangeAt")) {
+    if (isHostMethod(testSelection, "getRangeAt")) {
         // try/catch is present because getRangeAt() must have thrown an error in some browser and some situation.
         // Unfortunately, I didn't write a comment about the specifics and am now scared to take it out. Let that be a
         // lesson to us all, especially me.
@@ -488,7 +489,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 }
             }
         };
-    } else if (util.isHostMethod(testSelection, "empty") && util.isHostMethod(testRange, "select") &&
+    } else if (isHostMethod(testSelection, "empty") && isHostMethod(testRange, "select") &&
                implementsControlRange && useDocumentSelection) {
 
         selProto.removeAllRanges = function() {
@@ -575,7 +576,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 updateEmptySelection(sel);
             }
         };
-    } else if (util.isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
+    } else if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
         refreshSelection = function(sel) {
             if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
                 updateControlSelection(sel);
@@ -805,11 +806,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.eachRange(function(range) {
             ranges.push(range);
         });
-/*
-        for (var i = 0, len = this._ranges.length; i < len; ++i) {
-            ranges[i] = this.getRangeAt(i);
-        }
-*/
         return ranges;
     };
 
@@ -835,6 +831,29 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return results;
     };
 
+    selProto.setStartAndEnd = function() {
+        var range = this.rangeCount ? this.getRangeAt(0) : api.createRange(this.win.document);
+        range.setStartAndEnd.apply(range, util.toArray(arguments));
+        this.setSingleRange(range);
+    };
+    
+    function createStartOrEndSetter(isStart) {
+        return function(node, offset) {
+            var range;
+            if (this.rangeCount) {
+                range = this.getRangeAt(0);
+                range["set" + (isStart ? "Start" : "End")](node, offset);
+            } else {
+                range = api.createRange(this.win.document);
+                range.setStartAndEnd(node, offset);
+            }
+            this.setSingleRange(range, this.isBackward());
+        }
+    }
+
+    selProto.setStart = createStartOrEndSetter(true);
+    selProto.setEnd = createStartOrEndSetter(false);
+
     selProto.changeEachRange = function(func) {
         var ranges = [];
         var backward = this.isBackward();
@@ -856,27 +875,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return this.eachRange(function(range) {
             return range.containsNode(node, allowPartial)
         }, true);
-        
-/*
-        for (var i = 0, len = this._ranges.length; i < len; ++i) {
-            if (this._ranges[i].containsNode(node, allowPartial)) {
-                return true;
-            }
-        }
-        return false;
-*/
     };
 
     selProto.toHtml = function() {
         return this.callMethodOnEachRange("toHtml").join("");
-/*
-        if (this.rangeCount) {
-            for (var i = 0, len = this._ranges.length; i < len; ++i) {
-                rangeHtmls.push(this._ranges[i].toHtml());
-            }
-        }
-        return rangeHtmls.join("");
-*/
     };
 
     function inspect(sel) {
@@ -892,7 +894,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
         return "[" + name + "(Ranges: " + rangeInspects.join(", ") +
                 ")(anchor: " + anchor.inspect() + ", focus: " + focus.inspect() + "]";
-
     }
 
     selProto.getName = function() {

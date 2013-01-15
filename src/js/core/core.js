@@ -137,6 +137,33 @@ rangy = rangy || (function() {
         fail("hasOwnProperty not supported");
     }
 
+    // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
+    (function() {
+        var el = document.createElement("div");
+        el.appendChild(document.createElement("span"));
+        var slice = [].slice;
+        var toArray;
+        try {
+            if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
+                toArray = function(arrayLike) {
+                    return slice.call(arrayLike, 0);
+                };
+            }
+        } catch (e) {}
+
+        if (!toArray) {
+            toArray = function(arrayLike) {
+                var arr = [];
+                for (var i = 0, len = arrayLike.length; i < len; ++i) {
+                    arr[i] = arrayLike[i];
+                }
+                return arr;
+            };
+        }
+
+        api.util.toArray = toArray;
+    })();
+
 
     // Very simple event handler wrapper function that doesn't attempt to solve issue such as "this" handling or
     // normalization of event properties

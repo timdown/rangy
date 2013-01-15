@@ -221,7 +221,8 @@ rangy.createModule("DomUtil", function(api, module) {
     function getBody(doc) {
         return util.isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
     }
-
+    
+    // This looks bad. Is it worth it?
     function isWindow(obj) {
         return obj && util.isHostMethod(obj, "setTimeout") && util.isHostObject(obj, "document");
     }

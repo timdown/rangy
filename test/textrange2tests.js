@@ -86,7 +86,7 @@ xn.test.suite("Text Range module tests", function(s) {
             [t.el, 1]
         ];
 
-        textRange.transaction(function() {
+        rangy.transaction(function() {
             var pos = textRange.createPosition(t.el, 0);
 
             // First forwards...
@@ -134,7 +134,7 @@ xn.test.suite("Text Range module tests", function(s) {
             [t.el, 2]
         ];
 
-        textRange.transaction(function() {
+        rangy.transaction(function() {
             var pos = textRange.createPosition(t.el, 0);
     
             // First forwards...
@@ -634,7 +634,7 @@ xn.test.suite("Text Range module tests", function(s) {
         t.el.innerHTML = 'one two three';
         var textNode = t.el.firstChild;
 
-        textRange.transaction(function() {
+        rangy.transaction(function() {
             var range = rangy.createRange();
             range.collapseToPoint(textNode, 1);
 
@@ -663,7 +663,7 @@ xn.test.suite("Text Range module tests", function(s) {
     s.test("moveEnd negative words on text node", function(t) {
         t.el.innerHTML = 'one two three';
         var textNode = t.el.firstChild;
-        textRange.transaction(function() {
+        rangy.transaction(function() {
             var range = rangy.createRange();
             range.collapseToPoint(textNode, 9);
     
@@ -992,7 +992,7 @@ xn.test.suite("Text Range module tests", function(s) {
     s.test("createWordIterator", function(t) {
         t.el.innerHTML = 'One two three; four';
 
-        textRange.transaction(function() {
+        rangy.transaction(function() {
             var iterator = rangy.createWordIterator(t.el.firstChild, 10);
 
             t.assertEquals(iterator.next().toString(), "three");

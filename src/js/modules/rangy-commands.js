@@ -59,31 +59,7 @@ rangy.createModule("Commands", function(api, module) {
         }
     }
 
-
-    var nodeListToArray;
-
-    // Feature detect the browser's ability or otherwise to convert a NodeList into an array using slice
-    (function() {
-        var el = document.createElement("div");
-        el.appendChild(document.createElement("span"));
-        var slice = Array.prototype.slice;
-        try {
-            if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
-                nodeListToArray = function(nodeList) {
-                    return slice.call(nodeList, 0);
-                }
-            }
-        } catch (e) {}
-
-        if (!nodeListToArray) {
-            nodeListToArray = function(nodeList) {
-                for (var i = 0, len = nodeList.length, nodeArray = []; i < len; ++i) {
-                    nodeArray[i] = nodeList[i];
-                }
-                return nodeArray;
-            }
-        }
-    })();
+    var toArray = util.toArray;
 
     /**
      * Returns the furthest ancestor of a Node as defined by DOM Range.
@@ -1218,7 +1194,7 @@ rangy.createModule("Commands", function(api, module) {
             }
 
             // "Let children be the children of current ancestor."
-            var children = nodeListToArray(currentAncestor.childNodes);
+            var children = toArray(currentAncestor.childNodes);
 
             // "If the specified value of current ancestor for command is not null,
             // clear the value of current ancestor."
@@ -1256,7 +1232,7 @@ rangy.createModule("Commands", function(api, module) {
     }
 
     function setChildrenNodeValue(node, context) {
-        var children = nodeListToArray(node.childNodes);
+        var children = toArray(node.childNodes);
         for (var i = 0, len = children.length; i < len; ++i) {
             setNodeValue(children[i], context);
         }
