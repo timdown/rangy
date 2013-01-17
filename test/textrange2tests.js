@@ -1086,5 +1086,58 @@ xn.test.suite("Text Range module tests", function(s) {
         var text = range.text();
     });
 
+    s.test("innerText with two paragraphs, leading space, trailing space, intervening space", function(t) {
+        t.el.innerHTML = "<p>x </p> <p> y</p>";
+        t.assertEquals(rangy.innerText(t.el, { includeBlockContentTrailingSpace: false } ), "x\ny");
+        t.assertEquals(rangy.innerText(t.el, { includeBlockContentTrailingSpace: true } ), "x \ny");
+    });
 
+    s.test("Range move with two paragraphs, leading space, trailing space, intervening space, includeBlockContentTrailingSpace false", function(t) {
+        t.el.innerHTML = "<p>x </p> <p> y</p>";
+        var textNode = t.el.firstChild.firstChild;
+        var secondParaTextNode = t.el.lastChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 1);
+
+        range.move("character", 1, { characterOptions: {includeBlockContentTrailingSpace: false} });
+        testRangeBoundaries(t, range, t.el, 1, t.el, 1);
+
+        range.move("character", 1, { characterOptions: {includeBlockContentTrailingSpace: false} });
+        testRangeBoundaries(t, range, secondParaTextNode, 2, secondParaTextNode, 2);
+    });
+
+    s.test("Range move with two paragraphs, leading space, trailing space, intervening space, includeBlockContentTrailingSpace true", function(t) {
+        t.el.innerHTML = "<p>x </p> <p> y</p>";
+        var textNode = t.el.firstChild.firstChild;
+        var secondParaTextNode = t.el.lastChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 1);
+
+        range.move("character", 1, { characterOptions: {includeBlockContentTrailingSpace: true} });
+        testRangeBoundaries(t, range, textNode, 2, textNode, 2);
+
+        range.move("character", 1, { characterOptions: {includeBlockContentTrailingSpace: true} });
+        testRangeBoundaries(t, range, t.el, 1, t.el, 1);
+
+        range.move("character", 1, { characterOptions: {includeBlockContentTrailingSpace: false} });
+        testRangeBoundaries(t, range, secondParaTextNode, 2, secondParaTextNode, 2);
+    });
+
+    s.test("Selection move test", function(t) {
+        t.el.innerHTML = "<p>x </p> <p> y</p>";
+        var textNode = t.el.firstChild.firstChild;
+        var secondParaTextNode = t.el.lastChild.firstChild;
+        var sel = rangy.getSelection();
+
+        sel.collapse(textNode, 2);
+        sel.move("character", 1);
+        var range = sel.getRangeAt(0);
+        
+        t.assert((range.startContainer == t.el || range.startContainer == secondParaTextNode) && range.startOffset == 1);
+        //testRangeBoundaries(t, range, t.el, 1, t.el, 1);
+
+        sel.move("character", 1);
+        range = sel.getRangeAt(0);
+        testRangeBoundaries(t, range, secondParaTextNode, 2, secondParaTextNode, 2);
+    });
 }, false);

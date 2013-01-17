@@ -209,9 +209,8 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function createCaretCharacterOptions(options) {
-        return createOptions(options, defaultCharacterOptions);
+        return createOptions(options, defaultCaretCharacterOptions);
     }
-
     
     var defaultFindOptions = {
         caseSensitive: false,
@@ -1374,7 +1373,6 @@ rangy.createModule("TextRange", function(api, module) {
                         newPos = currentPos;
                         log.debug("unitsMoved: " + unitsMoved + ", absCount: " + absCount)
                     }
-                    log.debug("DONE DONE DONE " + newPos.inspect())
                     nextPos = currentPos;
                     charIterator.dispose();
                     break;
@@ -1839,7 +1837,9 @@ rangy.createModule("TextRange", function(api, module) {
                     }
                     options.characterOptions = createCaretCharacterOptions(options.characterOptions);
                     range.move(unit, count, options);
+                    log.debug("Selection move setting range " + range.inspect());
                     this.setSingleRange(range);
+                    log.debug("Selection now " + this.inspect());
                 }
             }
         ),
