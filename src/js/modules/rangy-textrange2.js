@@ -1682,6 +1682,9 @@ rangy.createModule("TextRange", function(api, module) {
         selectCharacters: createEntryPointFunction(
             function(transaction, containerNode, startIndex, endIndex, characterOptions) {
                 var moveOptions = { characterOptions: characterOptions };
+                if (!containerNode) {
+                    containerNode = this.getDocument().body;
+                }
                 this.selectNodeContents(containerNode);
                 this.collapse(true);
                 this.moveStart("character", startIndex, moveOptions);
@@ -1694,7 +1697,7 @@ rangy.createModule("TextRange", function(api, module) {
         toCharacterRange: createEntryPointFunction(
             function(transaction, containerNode, characterOptions) {
                 if (!containerNode) {
-                    containerNode = document.body;
+                    containerNode = this.getDocument().body;
                 }
                 var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
                 var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);

@@ -1080,11 +1080,13 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(trimmedCharRange.end, 7);
     });
 
+/*
     s.test("Speed test", function(t) {
         //t.el.innerHTML = new Array(10000).join("<p>One <b>two <i>three</i></b> four<br> </p>\n<p>four </p>");
         var range = rangy.createRange();
         var text = range.text();
     });
+*/
 
     s.test("innerText with two paragraphs, leading space, trailing space, intervening space", function(t) {
         t.el.innerHTML = "<p>x </p> <p> y</p>";

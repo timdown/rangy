@@ -818,10 +818,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
             log.groupEnd();
 
-            ranges.forEach(function(range) {
-                log.debug("Range: " + range.inspect(), range.toString());
-            });
-
             return ranges;
         },
 
