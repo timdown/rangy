@@ -243,6 +243,29 @@ rangy.createModule("TextRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    function CharacterRange(start, end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    CharacterRange.prototype = {
+        intersects: function(charRange) {
+            return this.start < charRange.end && this.end > charRange.start;
+        },
+
+        union: function(charRange) {
+            return new CharacterRange(Math.min(this.start, charRange.start), Math.max(this.end, charRange.end));
+        },
+
+        toString: function() {
+            return "[CharacterRange(" + this.start + ", " + this.end + ")]";
+        }
+    };
+    
+    api.CharacterRange = CharacterRange;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     /* DOM utility functions */
     var getComputedStyleProperty = dom.getComputedStyleProperty;
 
@@ -1712,10 +1735,7 @@ rangy.createModule("TextRange", function(api, module) {
                 }
                 endIndex = startIndex + this.text(characterOptions).length;
     
-                return {
-                    start: startIndex,
-                    end: endIndex
-                };
+                return new CharacterRange(startIndex, endIndex);
             }
         ),
 
