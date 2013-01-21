@@ -32,12 +32,12 @@
 
             highlighter = rangy.createHighlighter();
 
-            highlighter.addCssClassApplier(rangy.createCssClassApplier("highlight", {
+            highlighter.addClassApplier(rangy.createCssClassApplier("highlight", {
                 ignoreWhiteSpace: true,
                 tagNames: ["span", "a"]
             }));
 
-            highlighter.addCssClassApplier(rangy.createCssClassApplier("note", {
+            highlighter.addClassApplier(rangy.createCssClassApplier("note", {
                 ignoreWhiteSpace: true,
                 elementTagName: "a",
                 elementProperties: {

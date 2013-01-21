@@ -33,7 +33,7 @@ rangy.createModule("Highlighter", function(api, module) {
 
     var nextHighlightId = 1;
 
-    function Highlight(doc, characterRange, cssClassApplier, id) {
+    function Highlight(doc, characterRange, classApplier, id) {
         if (id) {
             this.id = id;
             nextHighlightId = Math.max(nextHighlightId, id + 1);
@@ -42,7 +42,7 @@ rangy.createModule("Highlighter", function(api, module) {
         }
         this.characterRange = characterRange;
         this.doc = doc;
-        this.cssClassApplier = cssClassApplier;
+        this.classApplier = classApplier;
         this.applied = false;
     }
 
@@ -58,17 +58,17 @@ rangy.createModule("Highlighter", function(api, module) {
         },
         
         unapply: function() {
-            this.cssClassApplier.undoToRange(this.getRange());
+            this.classApplier.undoToRange(this.getRange());
             this.applied = false;
         },
         
         apply: function() {
-            this.cssClassApplier.applyToRange(this.getRange());
+            this.classApplier.applyToRange(this.getRange());
             this.applied = true;
         },
 
         toString: function() {
-            return "[Highlight(ID: " + this.id + ", class: " + this.cssClassApplier.cssClass + ", character range: " +
+            return "[Highlight(ID: " + this.id + ", class: " + this.classApplier.cssClass + ", character range: " +
                 this.characterRange.start + " - " + this.characterRange.end + ")]";
         }
     };
@@ -78,23 +78,23 @@ rangy.createModule("Highlighter", function(api, module) {
     - Serialize range plus class and id
      */
 
-    function Highlighter(cssClassAppliers) {
+    function Highlighter(classAppliers) {
         var highlighter = this;
         
-        // CSS class applier must normalize so that it can restore the DOM exactly after removing highlights
-        highlighter.cssClassAppliers = {};
+        // Class applier must normalize so that it can restore the DOM exactly after removing highlights
+        highlighter.classAppliers = {};
         highlighter.highlights = [];
 
-        if (cssClassAppliers) {
-            forEach(cssClassAppliers, function(applier) {
-                highlighter.addCssClassApplier(applier);
+        if (classAppliers) {
+            forEach(classAppliers, function(applier) {
+                highlighter.addClassApplier(applier);
             });
         }
     }
 
     Highlighter.prototype = {
-        addCssClassApplier: function(cssClassApplier) {
-            this.cssClassAppliers[cssClassApplier.cssClass] = cssClassApplier;
+        addClassApplier: function(classApplier) {
+            this.classAppliers[classApplier.cssClass] = classApplier;
         },
 
         getHighlightForElement: function(el) {
@@ -135,15 +135,15 @@ rangy.createModule("Highlighter", function(api, module) {
             return intersectingHighlights;
         },
 
-        highlightSelection: function(cssClass, selection) {
+        highlightSelection: function(className, selection) {
             var i, j, len;
             selection = selection || api.getSelection();
-            var cssClassApplier = this.cssClassAppliers[cssClass];
+            var classApplier = this.classAppliers[className];
             var highlights = this.highlights;
             var doc = dom.getDocument(selection.anchorNode), body = doc.body;
 
-            if (!cssClassApplier) {
-                throw new Error("No CSS class applier found for class '" + cssClass + "'");
+            if (!classApplier) {
+                throw new Error("No class applier found for class '" + className + "'");
             }
             
             // Store the existing selection as character ranges
@@ -173,12 +173,12 @@ rangy.createModule("Highlighter", function(api, module) {
                         // Replace the existing highlight in the list of current highlights and add it to the list for
                         // removal
                         highlightsToRemove.push(highlights[j]);
-                        highlights[j] = new Highlight(doc, highlightCharRange.union(selCharRange), cssClassApplier);
+                        highlights[j] = new Highlight(doc, highlightCharRange.union(selCharRange), classApplier);
                     }
                 }
                 
                 if (!merged) {
-                    highlights.push( new Highlight(doc, selCharRange, cssClassApplier) );
+                    highlights.push( new Highlight(doc, selCharRange, classApplier) );
                 }
             }
             
@@ -228,7 +228,7 @@ rangy.createModule("Highlighter", function(api, module) {
                     characterRange.start,
                     characterRange.end,
                     highlight.id,
-                    highlight.cssClassApplier.cssClass
+                    highlight.classApplier.cssClass
                 ].join("$") );
             });
 
@@ -242,12 +242,12 @@ rangy.createModule("Highlighter", function(api, module) {
                 rootNode = document.body;
             }
             var doc = dom.getDocument(rootNode);
-            for (var i = serializedHighlights.length, range, parts, cssClassApplier, highlight; i-- > 0; ) {
+            for (var i = serializedHighlights.length, range, parts, classApplier, highlight; i-- > 0; ) {
                 parts = serializedHighlights[i].split("$");
                 range = api.createRange(doc);
                 range.selectCharacters(rootNode, +parts[0], +parts[1]);
-                cssClassApplier = this.cssClassAppliers[parts[3]];
-                highlight = new Highlight(doc, new api.CharacterRange(+parts[0], +parts[1]), cssClassApplier, parts[2]);
+                classApplier = this.classAppliers[parts[3]];
+                highlight = new Highlight(doc, new api.CharacterRange(+parts[0], +parts[1]), classApplier, parts[2]);
                 highlight.apply();
                 highlights.push(highlight);
             }
@@ -257,7 +257,7 @@ rangy.createModule("Highlighter", function(api, module) {
     
     api.Highlighter = Highlighter;
 
-    api.createHighlighter = function(cssClassAppliers) {
-        return new Highlighter(cssClassAppliers);
+    api.createHighlighter = function(classAppliers) {
+        return new Highlighter(classAppliers);
     };
 });
