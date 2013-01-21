@@ -187,7 +187,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 };
             } else {
                 rangeProto.selectNodeContents = function(node) {
-                    this.setStartAndEnd(node, 0, DomRange.getEndOffset(node));
+                    this.setStartAndEnd(node, 0, dom.getNodeLength(node));
                 };
             }
 
