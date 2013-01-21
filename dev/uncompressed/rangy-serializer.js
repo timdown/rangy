@@ -8,10 +8,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2012, Tim Down
+ * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.681
- * Build date: 20 July 2012
+ * Version: 1.3alpha.738
+ * Build date: 21 January 2013
  */
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
@@ -183,8 +183,7 @@ rangy.createModule("Serializer", function(api, module) {
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
         var range = api.createRange(doc);
-        range.setStart(start.node, start.offset);
-        range.setEnd(end.node, end.offset);
+        range.setStartAndEnd(start.node, start.offset, end.node, end.offset);
         return range;
     }
 

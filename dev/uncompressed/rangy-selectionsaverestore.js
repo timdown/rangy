@@ -7,10 +7,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2012, Tim Down
+ * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.681
- * Build date: 20 July 2012
+ * Version: 1.3alpha.738
+ * Build date: 21 January 2013
  */
 rangy.createModule("SaveRestore", function(api, module) {
     api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
@@ -160,7 +160,11 @@ rangy.createModule("SaveRestore", function(api, module) {
         var rangeInfos = saveRanges(ranges, backward);
 
         // Ensure current selection is unaffected
-        sel.setRanges(ranges);
+        if (backward) {
+            sel.setSingleRange(ranges[0], "backward");
+        } else {
+            sel.setRanges(ranges);
+        }
 
         return {
             win: win,
