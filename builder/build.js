@@ -22,7 +22,8 @@ var modules = [
     "rangy-cssclassapplier.js",
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
-    "rangy-textrange.js"/*,
+    "rangy-textrange.js",
+    "rangy-highlighter"/*,
     "rangy-util.js"*/
 ];
 

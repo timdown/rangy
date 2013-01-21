@@ -18,9 +18,8 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-serializer.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-selectionsaverestore.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-textrange.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-highlighter.js"></script>
     <script type="text/javascript">
         var serializedHighlights = decodeURIComponent(window.location.search.slice(window.location.search.indexOf("=") + 1));
@@ -55,20 +54,17 @@
 
 
             if (serializedHighlights) {
-                //alert("Restoring serializedHighlights " + serializedHighlights);
                 highlighter.deserialize(serializedHighlights);
             }
         };
 
 
         function highlightSelectedText() {
-            var newHighlights = highlighter.highlightSelection("highlight");
-            //alert("Created " + newHighlights.length + " highlights");
+            highlighter.highlightSelection("highlight");
         }
 
         function noteSelectedText() {
-            var newHighlights = highlighter.highlightSelection("note");
-            //alert("Created " + newHighlights.length + " notes");
+            highlighter.highlightSelection("note");
         }
 
         function removeHighlightFromSelectedText() {
@@ -76,7 +72,7 @@
         }
 
         function reloadPage(button) {
-            button.form.elements['serializedHighlights'].value = highlighter.serialize();
+            button.form.elements["serializedHighlights"].value = highlighter.serialize();
             button.form.submit();
         }
         
@@ -89,9 +85,6 @@
         <input type="button" ontouchstart="highlightSelectedText();" onclick="highlightSelectedText();" value="Highlight selection">
         <input type="button" ontouchstart="noteSelectedText();" onclick="noteSelectedText();" value="Add note to selection">
         <input type="button" ontouchstart="removeHighlightFromSelectedText();" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
-<!--
-        <input type="button" onclick="highlighter.deserialize(highlighter.serialize())" value="Serialize and deserialize">
--->
 
         <h3>Preserving highlights between page requests</h3>
         <form action="highlighter.html" method="get">
@@ -105,6 +98,9 @@
 
     <div id="content">
         <h1>Rangy Highlighter Module Demo</h1>
+        <p class="warning">
+            This demo is for Rangy 1.3, which has not yet been fully released.
+        </p>
         <p id="intro">
             Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons
             on the left hand size to create and remove highlights.

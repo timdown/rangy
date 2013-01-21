@@ -21,8 +21,7 @@
     <script type="text/javascript" src="../src/js/modules/rangy-serializer.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-selectionsaverestore.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-textrange2.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-highlighter2.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-highlighter-old.js"></script>
     <script type="text/javascript">
         var serializedHighlights = decodeURIComponent(window.location.search.slice(window.location.search.indexOf("=") + 1));
         var highlighter;
@@ -95,7 +94,7 @@
 -->
 
         <h3>Preserving highlights between page requests</h3>
-        <form action="highlighter2.html" method="get">
+        <form action="highlighter.html" method="get">
             Highlights can be preserved between page requests. Press the following button to reload the page with the
             highlights preserved:
             <br>

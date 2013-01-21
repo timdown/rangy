@@ -256,7 +256,7 @@ var xn = new Object();
 
         function TestLogAppender() {}
 
-        if (log4javascriptEnabled) {
+        if (log4javascriptEnabled && !xn.test.disableLogging) {
             var indentUnit = "  ";
 
             TestLogAppender.prototype = new log4javascript.Appender();
