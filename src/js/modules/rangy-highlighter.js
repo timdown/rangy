@@ -33,6 +33,8 @@ rangy.createModule("Highlighter", function(api, module) {
 
     var nextHighlightId = 1;
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     function Highlight(doc, characterRange, classApplier, id) {
         if (id) {
             this.id = id;
@@ -73,23 +75,20 @@ rangy.createModule("Highlighter", function(api, module) {
         }
     };
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     /*
     - Highlight object with range, class applier and id
     - Serialize range plus class and id
      */
 
-    function Highlighter(classAppliers) {
+    function Highlighter(doc) {
         var highlighter = this;
         
         // Class applier must normalize so that it can restore the DOM exactly after removing highlights
+        highlighter.doc = doc || document;
         highlighter.classAppliers = {};
         highlighter.highlights = [];
-
-        if (classAppliers) {
-            forEach(classAppliers, function(applier) {
-                highlighter.addClassApplier(applier);
-            });
-        }
     }
 
     Highlighter.prototype = {
@@ -140,7 +139,7 @@ rangy.createModule("Highlighter", function(api, module) {
             selection = selection || api.getSelection();
             var classApplier = this.classAppliers[className];
             var highlights = this.highlights;
-            var doc = dom.getDocument(selection.anchorNode), body = doc.body;
+            var doc = this.doc, body = doc.body;
 
             if (!classApplier) {
                 throw new Error("No class applier found for class '" + className + "'");
@@ -235,19 +234,16 @@ rangy.createModule("Highlighter", function(api, module) {
             return serializedHighlights.join("|");
         },
 
-        deserialize: function(serialized, rootNode) {
+        deserialize: function(serialized) {
             var serializedHighlights = serialized.split("|");
             var highlights = [];
-            if (!rootNode) {
-                rootNode = document.body;
-            }
-            var doc = dom.getDocument(rootNode);
+            var body = this.doc.body;
             for (var i = serializedHighlights.length, range, parts, classApplier, highlight; i-- > 0; ) {
                 parts = serializedHighlights[i].split("$");
-                range = api.createRange(doc);
-                range.selectCharacters(rootNode, +parts[0], +parts[1]);
+                range = api.createRange(this.doc);
+                range.selectCharacters(body, +parts[0], +parts[1]);
                 classApplier = this.classAppliers[parts[3]];
-                highlight = new Highlight(doc, new api.CharacterRange(+parts[0], +parts[1]), classApplier, parts[2]);
+                highlight = new Highlight(this.doc, new api.CharacterRange(+parts[0], +parts[1]), classApplier, parts[2]);
                 highlight.apply();
                 highlights.push(highlight);
             }
