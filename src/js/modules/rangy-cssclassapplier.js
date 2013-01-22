@@ -129,21 +129,34 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function rangeSelectsAnyText(range, textNode) {
-        var textRange = range.cloneRange();
-        textRange.selectNodeContents(textNode);
+        var textNodeRange = range.cloneRange();
+        textNodeRange.selectNodeContents(textNode);
 
-        var intersectionRange = textRange.intersection(range);
+        var intersectionRange = textNodeRange.intersection(range);
         var text = intersectionRange ? intersectionRange.toString() : "";
-        textRange.detach();
+        textNodeRange.detach();
 
         return text != "";
     }
 
     function getEffectiveTextNodes(range) {
-        log.debug("Checking node ")
-        return range.getNodes([3], function(textNode) {
-            return rangeSelectsAnyText(range, textNode);
-        });
+        var nodes = range.getNodes([3]);
+        
+        // Optimization as per issue 145
+        
+        // Remove non-intersecting text nodes from the start of the range
+        var start = 0, node;
+        while ( (node = nodes[start]) && !rangeSelectsAnyText(range, node) ) {
+            ++start;
+        }
+
+        // Remove non-intersecting text nodes from the start of the range
+        var end = nodes.length - 1;
+        while ( (node = nodes[end]) && !rangeSelectsAnyText(range, node) ) {
+            --end;
+        }
+        
+        return nodes.slice(start, end + 1);
     }
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
