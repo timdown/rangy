@@ -36,7 +36,7 @@
         window.onload = function() {
             rangy.init();
 
-            highlighter = rangy.createHighlighter(document, "textContent");
+            highlighter = rangy.createHighlighter();
 
             highlighter.addClassApplier(rangy.createCssClassApplier("highlight", {
                 ignoreWhiteSpace: true,

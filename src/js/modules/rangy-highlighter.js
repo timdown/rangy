@@ -20,7 +20,7 @@ rangy.createModule("Highlighter", function(api, module) {
     function compareHighlights(h1, h2) {
         return h1.characterRange.start - h2.characterRange.start;
     }
-    
+
     var forEach = [].forEach ?
         function(arr, func) {
             arr.forEach(func);
@@ -32,6 +32,36 @@ rangy.createModule("Highlighter", function(api, module) {
         };
 
     var nextHighlightId = 1;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    var highlighterTypes = {};
+
+    function HighlighterType(type, converterCreator) {
+        this.type = type;
+        this.converterCreator = converterCreator
+    }
+
+    HighlighterType.prototype.create = function() {
+        var converter = this.converterCreator();
+        converter.type = this.type;
+        return converter;
+    };
+
+    function registerHighlighterType(type, converterCreator) {
+        highlighterTypes[type] = new HighlighterType(type, converterCreator);
+    }
+
+    function getConverter(type) {
+        var highlighterType = highlighterTypes[type];
+        if (highlighterType instanceof HighlighterType) {
+            return highlighterType.create();
+        } else {
+            throw new Error("Highlighter type '" + type + "' is not valid")
+        }
+    }
+
+    api.registerHighlighterType = registerHighlighterType;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -59,10 +89,8 @@ rangy.createModule("Highlighter", function(api, module) {
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
-    
-    var textContentRangeCharacterOffsetConverter = {
-        type: "textContent",
 
+    var textContentConverter = {
         rangeToCharacterRange: function(range) {
             var preSelectionRange = range.cloneRange();
             preSelectionRange.selectNodeContents( range.getDocument().body );
@@ -101,10 +129,10 @@ rangy.createModule("Highlighter", function(api, module) {
                     }
                 }
             }
-            
+
             return range;
         },
-        
+
         serializeSelection: function(selection) {
             var ranges = selection.getAllRanges(), rangeCount = ranges.length;
             var rangeInfos = [];
@@ -133,12 +161,16 @@ rangy.createModule("Highlighter", function(api, module) {
         }
     };
 
+    registerHighlighterType("textContent", function() {
+        return textContentConverter;
+    });
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Lazily load the TextRange-based converter so that the dependency is only checked when required.
-    var getTextRangeRangeCharacterOffsetConverter = (function() {
+    registerHighlighterType("TextRange", (function() {
         var converter;
-        
+
         return function() {
             if (!converter) {
                 // Test that textRangeModule exists and is supported
@@ -148,10 +180,8 @@ rangy.createModule("Highlighter", function(api, module) {
                 } else if (!textRangeModule.supported) {
                     throw new Error("TextRange module is present but not supported.");
                 }
-                
-                converter = {
-                    type: "TextRange",
 
+                converter = {
                     rangeToCharacterRange: function(range) {
                         return CharacterRange.fromCharacterRange( range.toCharacterRange() );
                     },
@@ -171,10 +201,10 @@ rangy.createModule("Highlighter", function(api, module) {
                     }
                 }
             }
-            
+
             return converter;
         }
-    })();
+    })());
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -204,12 +234,12 @@ rangy.createModule("Highlighter", function(api, module) {
         containsElement: function(el) {
             return this.getRange().containsNodeContents(el.firstChild);
         },
-        
+
         unapply: function() {
             this.classApplier.undoToRange(this.getRange());
             this.applied = false;
         },
-        
+
         apply: function() {
             this.classApplier.applyToRange(this.getRange());
             this.applied = true;
@@ -223,14 +253,12 @@ rangy.createModule("Highlighter", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    function Highlighter(doc, rangeCharacterOffsetConverterType) {
-        // Class applier must normalize so that it can restore the DOM exactly after removing highlights
-        rangeCharacterOffsetConverterType = rangeCharacterOffsetConverterType || "";
+    function Highlighter(doc, type) {
+        type = type || "textContent";
         this.doc = doc || document;
         this.classAppliers = {};
         this.highlights = [];
-        this.converter = (!rangeCharacterOffsetConverterType || rangeCharacterOffsetConverterType.toLowerCase() != "textcontent") ?
-            getTextRangeRangeCharacterOffsetConverter() : textContentRangeCharacterOffsetConverter;
+        this.converter = getConverter(type);
     }
 
     Highlighter.prototype = {
@@ -285,10 +313,10 @@ rangy.createModule("Highlighter", function(api, module) {
             if (!classApplier) {
                 throw new Error("No class applier found for class '" + className + "'");
             }
-            
+
             // Store the existing selection as character ranges
             var serializedSelection = converter.serializeSelection(selection);
-            
+
             // Create an array of selected character ranges
             var selCharRanges = [];
             forEach(serializedSelection, function(rangeInfo) {
@@ -306,7 +334,7 @@ rangy.createModule("Highlighter", function(api, module) {
                 // which is the union of the highlight range and the selected range
                 for (j = 0; j < highlights.length; ++j) {
                     highlightCharRange = highlights[j].characterRange;
-                    
+
                     if (highlightCharRange.intersects(selCharRange)) {
                         // Replace the existing highlight in the list of current highlights and add it to the list for
                         // removal
@@ -314,30 +342,30 @@ rangy.createModule("Highlighter", function(api, module) {
                         highlights[j] = new Highlight(doc, highlightCharRange.union(selCharRange), classApplier, converter);
                     }
                 }
-                
+
                 if (!merged) {
                     highlights.push( new Highlight(doc, selCharRange, classApplier, converter) );
                 }
             }
-            
+
             // Remove the old highlights
             forEach(highlightsToRemove, function(highlightToRemove) {
                 highlightToRemove.unapply();
             });
-            
+
             // Apply new highlights
             forEach(highlights, function(highlight) {
                 if (!highlight.applied) {
                     highlight.apply();
                 }
             });
-            
+
             // Restore selection
             converter.restoreSelection(selection, serializedSelection);
 
             return highlights;
         },
-        
+
         unhighlightSelection: function(selection) {
             selection = selection || api.getSelection();
             var intersectingHighlights = this.getIntersectingHighlights( selection.getAllRanges() );
@@ -358,7 +386,7 @@ rangy.createModule("Highlighter", function(api, module) {
         serialize: function() {
             var highlights = this.highlights;
             highlights.sort(compareHighlights);
-            var serializedHighlights = ["converter:" + this.converter.type];
+            var serializedHighlights = ["type:" + this.converter.type];
 
             forEach(highlights, function(highlight) {
                 var characterRange = highlight.characterRange;
@@ -376,22 +404,30 @@ rangy.createModule("Highlighter", function(api, module) {
         deserialize: function(serialized) {
             var serializedHighlights = serialized.split("|");
             var highlights = [];
-            
+
             var firstHighlight = serializedHighlights[0];
             var regexResult;
-            if ( firstHighlight && (regexResult = /^converter:(\w+)$/.exec(firstHighlight)) ) {
-                if (regexResult[1] != this.converter.type) {
-                    throw new Error("Could not deserialize ranges: highlighter types '" + this.converter.type +
-                        "' and '" + regexResult[1] + "' do not match.");
+            var serializationType, serializationConverter, convertType = false;
+            if ( firstHighlight && (regexResult = /^type:(\w+)$/.exec(firstHighlight)) ) {
+                serializationType = regexResult[1];
+                if (serializationType != this.converter.type) {
+                    serializationConverter = getConverter(serializationType);
+                    convertType = true;
                 }
                 serializedHighlights.shift();
             } else {
                 throw new Error("Serialized highlights are invalid.");
             }
-            
+
             for (var i = serializedHighlights.length, parts, classApplier, highlight, characterRange; i-- > 0; ) {
                 parts = serializedHighlights[i].split("$");
                 characterRange = new CharacterRange(+parts[0], +parts[1]);
+
+                // Convert to the current Highlighter's type, if different from the serialization type
+                if (convertType) {
+                    characterRange = this.converter.rangeToCharacterRange( serializationConverter.characterRangeToRange(this.doc, characterRange) );
+                }
+
                 classApplier = this.classAppliers[parts[3]];
                 highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parts[2]);
                 highlight.apply();
@@ -400,7 +436,7 @@ rangy.createModule("Highlighter", function(api, module) {
             this.highlights = highlights;
         }
     };
-    
+
     api.Highlighter = Highlighter;
 
     api.createHighlighter = function(doc, rangeCharacterOffsetConverterType) {
