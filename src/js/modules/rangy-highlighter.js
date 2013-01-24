@@ -96,11 +96,8 @@ rangy.createModule("Highlighter", function(api, module) {
             preSelectionRange.selectNodeContents( range.getDocument().body );
             preSelectionRange.setEnd(range.startContainer, range.startOffset);
             var start = preSelectionRange.toString().length;
-
-            return {
-                start: start,
-                end: start + range.toString().length
-            }
+            
+            return new CharacterRange(start, start + range.toString().length);
         },
 
         characterRangeToRange: function(doc, characterRange) {
