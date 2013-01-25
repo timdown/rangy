@@ -833,7 +833,7 @@ rangy.createModule("DomRange", function(api, module) {
         isValid: function() {
             return isRangeValid(this);
         },
-
+        
         inspect: function() {
             return inspect(this);
         }

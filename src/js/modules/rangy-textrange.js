@@ -91,6 +91,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     (function() {
         var el = document.createElement("div");
+        el.contentEditable = "true";
         el.innerHTML = "<p>1 </p><p></p>";
         var body = document.body;
         var p = el.firstChild;

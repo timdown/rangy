@@ -814,27 +814,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.addRange(range, direction);
     };
 
-    selProto.eachRange = function(func, returnValue) {
-        for (var i = 0, len = this._ranges.length; i < len; ++i) {
-            if (func(this.getRangeAt(i))) {
-                return returnValue;
-            }
-        }
-        return null;
-    };
-
     selProto.callMethodOnEachRange = function(methodName, params) {
         var results = [];
-        this.eachRange(function(range) {
+        this.eachRange( function(range) {
             results[i] = range[methodName](params);
-        });
+        } );
         return results;
-    };
-
-    selProto.setStartAndEnd = function() {
-        var range = this.rangeCount ? this.getRangeAt(0) : api.createRange(this.win.document);
-        range.setStartAndEnd.apply(range, util.toArray(arguments));
-        this.setSingleRange(range);
     };
     
     function createStartOrEndSetter(isStart) {
@@ -853,6 +838,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.setStart = createStartOrEndSetter(true);
     selProto.setEnd = createStartOrEndSetter(false);
+    
+    // Add cheeky select() method to Range prototype
+    api.rangePrototype.select = function(direction) {
+        getSelection( this.getDocument() ).setSingleRange(this, direction);
+    };
 
     selProto.changeEachRange = function(func) {
         var ranges = [];
@@ -872,9 +862,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     selProto.containsNode = function(node, allowPartial) {
-        return this.eachRange(function(range) {
+        return this.eachRange( function(range) {
             return range.containsNode(node, allowPartial)
-        }, true);
+        }, true );
     };
 
     selProto.toHtml = function() {
@@ -923,7 +913,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     api.addCreateMissingNativeApiListener(function(win) {
         if (typeof win.getSelection == "undefined") {
             win.getSelection = function() {
-                return api.getSelection(win);
+                return getSelection(win);
             };
         }
         win = null;
