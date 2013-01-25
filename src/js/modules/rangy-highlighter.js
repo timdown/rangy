@@ -366,12 +366,7 @@ rangy.createModule("Highlighter", function(api, module) {
         unhighlightSelection: function(selection) {
             selection = selection || api.getSelection();
             var intersectingHighlights = this.getIntersectingHighlights( selection.getAllRanges() );
-
-            // Now unhighlight all the highlighted ranges that overlap with the selection
-            forEach(intersectingHighlights, function(highlight) {
-                highlight.unapply();
-            });
-
+            this.removeHighlights(intersectingHighlights);
             selection.removeAllRanges();
         },
 
