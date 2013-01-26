@@ -578,6 +578,18 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assert(sel.isCollapsed);
             }
         });
+
+        if (testSelection.toHtml) {
+            s.test("toHtml", function(t) {
+                var sel = selectionCreator(win);
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 0);
+                range.setEnd(t.nodes.plainText, t.nodes.plainText.length);
+                sel.removeAllRanges();
+                sel.addRange(range);
+                t.assertEquals(sel.toHtml(), t.nodes.plainText.data);
+            });
+        }
     }, false);
 }
 

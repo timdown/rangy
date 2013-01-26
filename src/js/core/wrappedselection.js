@@ -817,7 +817,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     selProto.callMethodOnEachRange = function(methodName, params) {
         var results = [];
         this.eachRange( function(range) {
-            results[i] = range[methodName](params);
+            results.push( range[methodName](params) );
         } );
         return results;
     };
