@@ -23,7 +23,9 @@
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
     <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+<!--
     <script type="text/javascript" src="../src/js/modules/rangy-textrange.js"></script>
+-->
     <script type="text/javascript" src="../src/js/modules/rangy-highlighter.js"></script>
 <!--
     <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-core.js"></script>
@@ -104,8 +106,8 @@
         <input type="button" ontouchstart="noteSelectedText();" onclick="noteSelectedText();" value="Add note to selection">
         <input type="button" ontouchstart="removeHighlightFromSelectedText();" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
         <br>
-        <input type="button" ontouchstart="highlightScopedSelectedText();" onclick="highlightScopedSelectedText();" value="Highlight selection within orange paragraph">
-        <input type="button" ontouchstart="noteScopedSelectedText();" onclick="noteScopedSelectedText();" value="Add note to selection within orange paragraph">
+        <input type="button" ontouchstart="highlightScopedSelectedText();" onclick="highlightScopedSelectedText();" value="Highlight within para">
+        <input type="button" ontouchstart="noteScopedSelectedText();" onclick="noteScopedSelectedText();" value="Annotate selection within para">
 
         <h3>Preserving highlights between page requests</h3>
         <form action="highlighter.html" method="get">

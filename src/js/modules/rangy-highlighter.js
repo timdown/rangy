@@ -456,7 +456,6 @@ rangy.createModule("Highlighter", function(api, module) {
         },
 
         deserialize: function(serialized) {
-            console.log(serialized)
             var serializedHighlights = serialized.split("|");
             var highlights = [];
 
