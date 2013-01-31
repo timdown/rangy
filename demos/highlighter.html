@@ -11,6 +11,10 @@
         .note {
             background-color: limegreen;
         }
+        
+        #summary {
+            border: dotted orange 1px;
+        }
     </style>
     <script type="text/javascript" src="../lib/log4javascript_stub.js"></script>
     <script type="text/javascript" src="../src/js/core/core.js"></script>
@@ -77,6 +81,14 @@
             highlighter.unhighlightSelection();
         }
 
+        function highlightScopedSelectedText() {
+            highlighter.highlightSelection("highlight", null, "summary");
+        }
+
+        function noteScopedSelectedText() {
+            highlighter.highlightSelection("note", null, "summary");
+        }
+
         function reloadPage(button) {
             button.form.elements["serializedHighlights"].value = highlighter.serialize();
             button.form.submit();
@@ -91,6 +103,9 @@
         <input type="button" ontouchstart="highlightSelectedText();" onclick="highlightSelectedText();" value="Highlight selection">
         <input type="button" ontouchstart="noteSelectedText();" onclick="noteSelectedText();" value="Add note to selection">
         <input type="button" ontouchstart="removeHighlightFromSelectedText();" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
+        <br>
+        <input type="button" ontouchstart="highlightScopedSelectedText();" onclick="highlightScopedSelectedText();" value="Highlight selection within orange paragraph">
+        <input type="button" ontouchstart="noteScopedSelectedText();" onclick="noteScopedSelectedText();" value="Add note to selection within orange paragraph">
 
         <h3>Preserving highlights between page requests</h3>
         <form action="highlighter.html" method="get">
@@ -111,7 +126,7 @@
             Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons
             on the left hand size to create and remove highlights.
         </p>
-        <p>
+        <p id="summary">
             <b>Association football</b> is a sport played between two teams. It is usually called <b>football</b>, but in
             some countries, such as the United States, it is called <b>soccer</b>. In
             <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
