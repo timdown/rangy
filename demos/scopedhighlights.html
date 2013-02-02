@@ -39,7 +39,7 @@
 
             highlighter = rangy.createHighlighter();
 
-            highlighter.addClassApplier(rangy.createCssClassApplier("highlight"));
+            highlighter.addClassApplier( rangy.createCssClassApplier("highlight") );
 
             if (serializedHighlights) {
                 highlighter.deserialize(serializedHighlights);
@@ -64,10 +64,11 @@
             var li;
             var sel = rangy.getSelection();
             if (!sel.isCollapsed) {
-                var range = rangy.getSelection().getRangeAt(0);
+                var selection = rangy.getSelection();
+                var range = selection.getRangeAt(0);
                 var containerLi = getContainingLi(range.commonAncestorContainer);
                 if (containerLi) {
-                    highlighter.highlightSelection("highlight", null, containerLi.id);
+                    highlighter.highlightSelection("highlight", selection, containerLi.id);
                 } 
             }
         }

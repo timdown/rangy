@@ -225,7 +225,7 @@ rangy.createModule("Highlighter", function(api, module) {
         this.doc = doc;
         this.classApplier = classApplier;
         this.converter = converter;
-        this.containerElementId = containerElementId;
+        this.containerElementId = containerElementId || null;
         this.applied = false;
     }
 
@@ -319,6 +319,7 @@ rangy.createModule("Highlighter", function(api, module) {
             var doc = this.doc;
             var highlightsToRemove = [];
             var classApplier = this.classAppliers[className];
+            containerElementId = containerElementId || null;
 
             var containerElement, containerElementRange, containerElementCharRange;
             if (containerElementId) {
@@ -331,7 +332,7 @@ rangy.createModule("Highlighter", function(api, module) {
                 }
             }
 
-            var charRange, highlightCharRange, merged;
+            var charRange, highlightCharRange, highlightRange, merged;
             for (i = 0, len = charRanges.length; i < len; ++i) {
                 charRange = charRanges[i];
                 merged = false;
@@ -344,18 +345,15 @@ rangy.createModule("Highlighter", function(api, module) {
                 // Check for intersection with existing highlights. For each intersection, create a new highlight
                 // which is the union of the highlight range and the selected range
                 for (j = 0; j < highlights.length; ++j) {
-                    highlightCharRange = highlights[j].characterRange;
+                    if (containerElementId == highlights[j].containerElementId) {
+                        highlightCharRange = highlights[j].characterRange;
 
-                    // Restrict highlight range to container element, if it exists
-                    if (containerElementCharRange) {
-                        highlightCharRange = highlightCharRange.intersection(containerElementCharRange);
-                    }
-
-                    if (highlightCharRange.intersects(charRange)) {
-                        // Replace the existing highlight in the list of current highlights and add it to the list for
-                        // removal
-                        highlightsToRemove.push(highlights[j]);
-                        highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
+                        if (highlightCharRange.intersects(charRange)) {
+                            // Replace the existing highlight in the list of current highlights and add it to the list for
+                            // removal
+                            highlightsToRemove.push(highlights[j]);
+                            highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
+                        }
                     }
                 }
 
@@ -363,7 +361,7 @@ rangy.createModule("Highlighter", function(api, module) {
                     highlights.push( new Highlight(doc, charRange, classApplier, converter, null, containerElementId) );
                 }
             }
-
+            
             // Remove the old highlights
             forEach(highlightsToRemove, function(highlightToRemove) {
                 highlightToRemove.unapply();
