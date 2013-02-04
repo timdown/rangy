@@ -15,6 +15,7 @@ rangy.createModule("Highlighter", function(api, module) {
     var log = log4javascript.getLogger("rangy.Highlighter");
     var dom = api.dom;
     var contains = dom.arrayContains;
+    var getBody = dom.getBody;
 
     // Puts highlights in order, last in document first.
     function compareHighlights(h1, h2) {
@@ -96,45 +97,17 @@ rangy.createModule("Highlighter", function(api, module) {
 
     var textContentConverter = {
         rangeToCharacterRange: function(range, containerNode) {
-            var preSelectionRange = range.cloneRange();
-            preSelectionRange.selectNodeContents(containerNode);
-            range = preSelectionRange.intersection(range);
-            var start = 0, end = 0;
-            if (range) {
-                preSelectionRange.setEnd(range.startContainer, range.startOffset);
-                start = preSelectionRange.toString().length;
-                end = start + range.toString().length;
-                preSelectionRange.detach();
-            }
-
-            return new CharacterRange(start, end);
+            var bookmark = range.getBookmark(containerNode);
+            return new CharacterRange(bookmark.start, bookmark.end);
         },
 
         characterRangeToRange: function(doc, characterRange, containerNode) {
-            var charIndex = 0, range = api.createRange(doc);
-            range.setStart(containerNode, 0);
-            range.collapse(true);
-            var nodeStack = [containerNode], node, foundStart = false, stop = false;
-
-            while (!stop && (node = nodeStack.pop())) {
-                if (node.nodeType == 3) {
-                    var nextCharIndex = charIndex + node.length;
-                    if (!foundStart && characterRange.start >= charIndex && characterRange.start <= nextCharIndex) {
-                        range.setStart(node, characterRange.start - charIndex);
-                        foundStart = true;
-                    }
-                    if (foundStart && characterRange.end >= charIndex && characterRange.end <= nextCharIndex) {
-                        range.setEnd(node, characterRange.end - charIndex);
-                        stop = true;
-                    }
-                    charIndex = nextCharIndex;
-                } else {
-                    var i = node.childNodes.length;
-                    while (i--) {
-                        nodeStack.push(node.childNodes[i]);
-                    }
-                }
-            }
+            var range = api.createRange(doc);
+            range.moveToBookmark({
+                start: characterRange.start,
+                end: characterRange.end,
+                containerNode: containerNode
+            });
 
             return range;
         },
@@ -231,7 +204,7 @@ rangy.createModule("Highlighter", function(api, module) {
 
     Highlight.prototype = {
         getContainerElement: function() {
-            return this.containerElementId ? this.doc.getElementById(this.containerElementId) : this.doc.body;
+            return this.containerElementId ? this.doc.getElementById(this.containerElementId) : getBody(this.doc);
         },
         
         getRange: function() {
@@ -387,7 +360,7 @@ rangy.createModule("Highlighter", function(api, module) {
 
             forEach(ranges, function(range) {
                 var scopedRange = containerElement ? containerElementRange.intersection(range) : range;
-                selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || range.getDocument().body) );
+                selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || getBody(range.getDocument())) );
             });
             
             this.highlightCharacterRanges(selCharRanges, ranges, containerElementId);
@@ -399,7 +372,7 @@ rangy.createModule("Highlighter", function(api, module) {
             var classApplier = this.classAppliers[className];
             var highlights = this.highlights;
             var doc = selection.win.document;
-            var containerElement = containerElementId ? doc.getElementById(containerElementId) : doc.body;
+            var containerElement = containerElementId ? doc.getElementById(containerElementId) : getBody(doc);
 
             if (!classApplier) {
                 throw new Error("No class applier found for class '" + className + "'");
@@ -477,7 +450,7 @@ rangy.createModule("Highlighter", function(api, module) {
                 parts = serializedHighlights[i].split("$");
                 characterRange = new CharacterRange(+parts[0], +parts[1]);
                 containerElementId = parts[4] || null;
-                containerElement = containerElementId ? this.doc.getElementById(containerElementId) : this.doc.body;
+                containerElement = containerElementId ? this.doc.getElementById(containerElementId) : getBody(this.doc);
                 
 
                 // Convert to the current Highlighter's type, if different from the serialization type

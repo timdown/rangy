@@ -5,20 +5,21 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     api.config.checkSelectionRanges = true;
 
-    var BOOLEAN = "boolean",
-        dom = api.dom,
-        util = api.util,
-        isHostMethod = util.isHostMethod,
-        DomRange = api.DomRange,
-        WrappedRange = api.WrappedRange,
-        DOMException = api.DOMException,
-        DomPosition = dom.DomPosition,
-        getNativeSelection,
-        selectionIsCollapsed,
-        features = api.features,
-        CONTROL = "Control";
-
+    var BOOLEAN = "boolean";
+    var dom = api.dom;
+    var util = api.util;
+    var isHostMethod = util.isHostMethod;
+    var DomRange = api.DomRange;
+    var WrappedRange = api.WrappedRange;
+    var DOMException = api.DOMException;
+    var DomPosition = dom.DomPosition;
+    var getNativeSelection;
+    var selectionIsCollapsed;
+    var features = api.features;
+    var CONTROL = "Control";
     var getDocument = dom.getDocument;
+    var getBody = dom.getBody;
+    var rangesEqual = DomRange.rangesEqual;
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
 
@@ -80,7 +81,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var testSelection = getNativeSelection();
     var testRange = api.createNativeRange(document);
-    var body = dom.getBody(document);
+    var body = getBody(document);
 
     // Obtaining a range from a selection
     var selectionHasAnchorAndFocus = util.areHostProperties(testSelection,
@@ -112,7 +113,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             // selection.
             var sel = window.getSelection();
             if (sel) {
-                var body = dom.getBody(document);
+                var body = getBody(document);
                 var testEl = body.appendChild( document.createElement("div") );
                 testEl.contentEditable = "false";
                 var textNode = testEl.appendChild( document.createTextNode("\u00a0\u00a0\u00a0") );
@@ -276,7 +277,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         // Create a new ControlRange containing all the elements in the selected ControlRange plus the element
         // contained by the supplied range
         var doc = getDocument(controlRange.item(0));
-        var newControlRange = dom.getBody(doc).createControlRange();
+        var newControlRange = getBody(doc).createControlRange();
         for (var i = 0, len = controlRange.length; i < len; ++i) {
             newControlRange.add(controlRange.item(i));
         }
@@ -392,7 +393,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     function createControlSelection(sel, ranges) {
         // Ensure that the selection becomes of type "Control"
         var doc = getDocument(ranges[0].startContainer);
-        var controlRange = dom.getBody(doc).createControlRange();
+        var controlRange = getBody(doc).createControlRange();
         for (var i = 0, el; i < rangeCount; ++i) {
             el = getSingleElementFromRange(ranges[i]);
             try {
@@ -453,7 +454,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                             // the selection
                             if (api.config.checkSelectionRanges) {
                                 var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
-                                if (nativeRange && !DomRange.rangesEqual(nativeRange, range)) {
+                                if (nativeRange && !rangesEqual(nativeRange, range)) {
                                     // Happens in WebKit with, for example, a selection placed at the start of a text node
                                     range = new WrappedRange(nativeRange);
                                 }
@@ -507,11 +508,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
                     } else if (this.docSelection.type == CONTROL) {
                         var controlRange = this.docSelection.createRange();
                         if (controlRange.length) {
-                            doc = getDocument(controlRange.item(0)).body.createTextRange();
+                            doc = getDocument( controlRange.item(0) );
                         }
                     }
                     if (doc) {
-                        var textRange = doc.body.createTextRange();
+                        var textRange = getBody(doc).createTextRange();
                         textRange.select();
                         this.docSelection.empty();
                     }
@@ -563,7 +564,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (api.isSelectionValid(sel.win)) {
                 range = sel.docSelection.createRange();
             } else {
-                range = dom.getBody(sel.win.document).createTextRange();
+                range = getBody(sel.win.document).createTextRange();
                 range.collapse(true);
             }
             log.warn("selection refresh called, selection type: " + sel.docSelection.type);
@@ -633,7 +634,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
             // Finally, compare each range in turn
             while (i--) {
-                if (!DomRange.rangesEqual(oldRanges[i], this._ranges[i])) {
+                if (!rangesEqual(oldRanges[i], this._ranges[i])) {
                     log.debug("Selection.refresh: Range at index " + i + " has changed: was " + oldRanges[i].inspect() + ", is now " + this._ranges[i].inspect());
                     return true;
                 }
@@ -647,7 +648,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         var ranges = sel.getAllRanges();
         sel.removeAllRanges();
         for (var i = 0, len = ranges.length; i < len; ++i) {
-            if (!api.DomRange.rangesEqual(range, ranges[i])) {
+            if (!api.rangesEqual(range, ranges[i])) {
                 sel.addRange(ranges[i]);
             }
         }
@@ -665,7 +666,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 // Create a new ControlRange containing all the elements in the selected ControlRange minus the
                 // element contained by the supplied range
                 var doc = getDocument(controlRange.item(0));
-                var newControlRange = dom.getBody(doc).createControlRange();
+                var newControlRange = getBody(doc).createControlRange();
                 var el, removed = false;
                 for (var i = 0, len = controlRange.length; i < len; ++i) {
                     el = controlRange.item(i);
@@ -817,7 +818,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     selProto.callMethodOnEachRange = function(methodName, params) {
         var results = [];
         this.eachRange( function(range) {
-            results.push( range[methodName](params) );
+            results.push( range[methodName].apply(range, params) );
         } );
         return results;
     };
@@ -865,6 +866,27 @@ rangy.createModule("WrappedSelection", function(api, module) {
         return this.eachRange( function(range) {
             return range.containsNode(node, allowPartial)
         }, true );
+    };
+
+    selProto.getBookmark = function(containerNode) {
+        return {
+            backward: this.isBackward(),
+            rangeBookmarks: this.callMethodOnEachRange("getBookmark", [containerNode])
+        };
+    };
+
+    selProto.moveToBookmark = function(bookmark) {
+        var selRanges = [];
+        for (var i = 0, rangeBookmark, range; rangeBookmark = bookmark.rangeBookmarks[i++]; ) {
+            range = api.createRange(this.win);
+            range.moveToBookmark(rangeBookmark);
+            selRanges.push(range);
+        }
+        if (bookmark.backward) {
+            this.setSingleRange(selRanges[0], "backward");
+        } else {
+            this.setRanges(selRanges);
+        }
     };
 
     selProto.toHtml = function() {

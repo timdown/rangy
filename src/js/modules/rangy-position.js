@@ -109,7 +109,7 @@ rangy.createModule("Position", function(api, module) {
     }
     
     function getTextRangePosition(doc, x, y) {
-        var textRange = doc.body.createTextRange();
+        var textRange = dom.getBody(doc).createTextRange();
         textRange.moveToPoint(x, y);
         var range = new api.WrappedTextRange(textRange);
         return new DomPosition(range.startContainer, range.startOffset);

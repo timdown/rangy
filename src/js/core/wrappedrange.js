@@ -6,6 +6,9 @@ rangy.createModule("WrappedRange", function(api, module) {
     var util = api.util;
     var DomPosition = dom.DomPosition;
     var DomRange = api.DomRange;
+    var getBody = dom.getBody;
+    var getContentDocument = dom.getContentDocument;
+    var isCharacterDataNode = dom.isCharacterDataNode;
 
     var log = log4javascript.getLogger("rangy.WrappedRange");
 
@@ -102,7 +105,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             // Create test range and node for feature detection
 
             var testTextNode = document.createTextNode("test");
-            dom.getBody(document).appendChild(testTextNode);
+            getBody(document).appendChild(testTextNode);
             var range = document.createRange();
 
             /*--------------------------------------------------------------------------------------------------------*/
@@ -231,7 +234,8 @@ rangy.createModule("WrappedRange", function(api, module) {
             var el = document.createElement("div");
             el.innerHTML = "123";
             var textNode = el.firstChild;
-            document.body.appendChild(el);
+            var body = getBody(document);
+            body.appendChild(el);
 
             range.setStart(textNode, 1);
             range.setEnd(textNode, 2);
@@ -254,7 +258,8 @@ rangy.createModule("WrappedRange", function(api, module) {
                 log.info("Incorrect native Range deleteContents() implementation. Using Rangy's own.")
             }
 
-            document.body.removeChild(el);
+            body.removeChild(el);
+            body = null;
 
             /*--------------------------------------------------------------------------------------------------------*/
 
@@ -268,7 +273,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             /*--------------------------------------------------------------------------------------------------------*/
 
             // Clean up
-            dom.getBody(document).removeChild(testTextNode);
+            getBody(document).removeChild(testTextNode);
             range.detach();
             range2.detach();
 
@@ -279,7 +284,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             api.WrappedRange = WrappedRange;
 
             api.createNativeRange = function(doc) {
-                doc = dom.getContentDocument(doc, module, "createNativeRange");
+                doc = getContentDocument(doc, module, "createNativeRange");
                 return doc.createRange();
             };
         })();
@@ -398,7 +403,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             // so have identified the node we want
             boundaryNode = workingNode.nextSibling;
 
-            if (comparison == -1 && boundaryNode && dom.isCharacterDataNode(boundaryNode)) {
+            if (comparison == -1 && boundaryNode && isCharacterDataNode(boundaryNode)) {
                 // This is a character data node (text, comment, cdata). The working range is collapsed at the start of the
                 // node containing the text range's boundary, so we move the end of the working range to the boundary point
                 // and measure the length of its text to get the boundary's offset within the node.
@@ -460,9 +465,9 @@ rangy.createModule("WrappedRange", function(api, module) {
                 log.info("workingNode: " + dom.inspectNode(workingNode));
                 log.info("previousNode: " + dom.inspectNode(previousNode));
                 log.info("nextNode: " + dom.inspectNode(nextNode));
-                if (nextNode && dom.isCharacterDataNode(nextNode)) {
+                if (nextNode && isCharacterDataNode(nextNode)) {
                     boundaryPosition = new DomPosition(nextNode, 0);
-                } else if (previousNode && dom.isCharacterDataNode(previousNode)) {
+                } else if (previousNode && isCharacterDataNode(previousNode)) {
                     boundaryPosition = new DomPosition(previousNode, previousNode.data.length);
                 } else {
                     boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
@@ -487,8 +492,8 @@ rangy.createModule("WrappedRange", function(api, module) {
         var createBoundaryTextRange = function(boundaryPosition, isStart) {
             var boundaryNode, boundaryParent, boundaryOffset = boundaryPosition.offset;
             var doc = dom.getDocument(boundaryPosition.node);
-            var workingNode, childNodes, workingRange = doc.body.createTextRange();
-            var nodeIsDataNode = dom.isCharacterDataNode(boundaryPosition.node);
+            var workingNode, childNodes, workingRange = getBody(doc).createTextRange();
+            var nodeIsDataNode = isCharacterDataNode(boundaryPosition.node);
 
             if (nodeIsDataNode) {
                 boundaryNode = boundaryPosition.node;
@@ -577,7 +582,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             } else {
                 var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
                 var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
-                var textRange = dom.getDocument(range.startContainer).body.createTextRange();
+                var textRange = getBody( DomRange.getRangeDocument(range) ).createTextRange();
                 textRange.setEndPoint("StartToStart", startRange);
                 textRange.setEndPoint("EndToEnd", endRange);
                 return textRange;
@@ -596,8 +601,8 @@ rangy.createModule("WrappedRange", function(api, module) {
             }
 
             api.createNativeRange = function(doc) {
-                doc = dom.getContentDocument(doc, module, "createNativeRange");
-                return doc.body.createTextRange();
+                doc = getContentDocument(doc, module, "createNativeRange");
+                return getBody(doc).createTextRange();
             };
 
             api.WrappedRange = WrappedTextRange;
@@ -605,12 +610,12 @@ rangy.createModule("WrappedRange", function(api, module) {
     }
 
     api.createRange = function(doc) {
-        doc = dom.getContentDocument(doc, module, "createRange");
+        doc = getContentDocument(doc, module, "createRange");
         return new api.WrappedRange(api.createNativeRange(doc));
     };
 
     api.createRangyRange = function(doc) {
-        doc = dom.getContentDocument(doc, module, "createRangyRange");
+        doc = getContentDocument(doc, module, "createRangyRange");
         return new DomRange(doc);
     };
 

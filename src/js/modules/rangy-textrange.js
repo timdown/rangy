@@ -70,6 +70,7 @@ rangy.createModule("TextRange", function(api, module) {
     var CHARACTER = "character", WORD = "word";
     var dom = api.dom, util = api.util;
     var extend = util.extend;
+    var getBody = dom.getBody;
 
     var log = log4javascript.getLogger("rangy.textrange");
 
@@ -93,7 +94,7 @@ rangy.createModule("TextRange", function(api, module) {
         var el = document.createElement("div");
         el.contentEditable = "true";
         el.innerHTML = "<p>1 </p><p></p>";
-        var body = document.body;
+        var body = getBody(document);
         var p = el.firstChild;
         var sel = api.getSelection();
 
@@ -253,9 +254,10 @@ rangy.createModule("TextRange", function(api, module) {
     var tableCssDisplayBlock;
     (function() {
         var table = document.createElement("table");
-        document.body.appendChild(table);
+        var body = getBody(document);
+        body.appendChild(table);
         tableCssDisplayBlock = (getComputedStyleProperty(table, "display") == "block");
-        document.body.removeChild(table);
+        body.removeChild(table);
     })();
 
     api.features.tableCssDisplayBlock = tableCssDisplayBlock;
@@ -1691,7 +1693,7 @@ rangy.createModule("TextRange", function(api, module) {
             function(session, containerNode, startIndex, endIndex, characterOptions) {
                 var moveOptions = { characterOptions: characterOptions };
                 if (!containerNode) {
-                    containerNode = this.getDocument().body;
+                    containerNode = getBody( this.getDocument() );
                 }
                 this.selectNodeContents(containerNode);
                 this.collapse(true);
@@ -1705,7 +1707,7 @@ rangy.createModule("TextRange", function(api, module) {
         toCharacterRange: createEntryPointFunction(
             function(session, containerNode, characterOptions) {
                 if (!containerNode) {
-                    containerNode = this.getDocument().body;
+                    containerNode = getBody( this.getDocument() );
                 }
                 var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
                 var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);

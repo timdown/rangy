@@ -68,6 +68,10 @@ rangy = rangy || (function() {
     function isTextRange(range) {
         return range && areHostMethods(range, textRangeMethods) && areHostProperties(range, textRangeProperties);
     }
+    
+    function getBody(doc) {
+        return isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
+    }
 
     var modules = {};
     
@@ -83,7 +87,8 @@ rangy = rangy || (function() {
             areHostMethods: areHostMethods,
             areHostObjects: areHostObjects,
             areHostProperties: areHostProperties,
-            isTextRange: isTextRange
+            isTextRange: isTextRange,
+            getBody: getBody
         },
 
         features: {},
@@ -214,7 +219,7 @@ rangy = rangy || (function() {
             testRange.detach();
         }
 
-        var body = isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+        var body = getBody(document);
         if (!body || body.nodeName.toLowerCase() != "body") {
             fail("No body element found");
             return;
