@@ -101,11 +101,17 @@ rangy = rangy || (function() {
         }
     };
 
+    function consoleLog(msg) {
+        if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
+            window.console.log(msg);
+        }
+    }
+
     function alertOrLog(msg, shouldAlert) {
         if (shouldAlert) {
             window.alert(msg);
-        } else if (typeof window.console != UNDEFINED && typeof window.console.log != UNDEFINED) {
-            window.console.log(msg);
+        } else  {
+            consoleLog(msg);
         }
     }
 
@@ -190,12 +196,6 @@ rangy = rangy || (function() {
     api.util.addListener = addListener;
 
     var initListeners = [];
-    
-    function consoleLog(msg) {
-        if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
-            window.console.log(msg);
-        }
-    }
     
     function getErrorDesc(ex) {
         return ex.message || ex.description || String(ex);
