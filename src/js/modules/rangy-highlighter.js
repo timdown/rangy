@@ -228,6 +228,10 @@ rangy.createModule("Highlighter", function(api, module) {
             this.classApplier.applyToRange(this.getRange());
             this.applied = true;
         },
+        
+        getHighlightElements: function() {
+            return this.classApplier.getElementsWithClassIntersectingRange(this.getRange());
+        },
 
         toString: function() {
             return "[Highlight(ID: " + this.id + ", class: " + this.classApplier.cssClass + ", character range: " +
@@ -341,11 +345,15 @@ rangy.createModule("Highlighter", function(api, module) {
             });
 
             // Apply new highlights
+            var newHighlights = [];
             forEach(highlights, function(highlight) {
                 if (!highlight.applied) {
                     highlight.apply();
+                    newHighlights.push(highlight);
                 }
             });
+            
+            return newHighlights;
         },
 
         highlightRanges: function(className, ranges, containerElement) {
@@ -363,7 +371,7 @@ rangy.createModule("Highlighter", function(api, module) {
                 selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || getBody(range.getDocument())) );
             });
             
-            this.highlightCharacterRanges(selCharRanges, ranges, containerElementId);
+            return this.highlightCharacterRanges(selCharRanges, ranges, containerElementId);
         },
 
         highlightSelection: function(className, selection, containerElementId) {
@@ -387,12 +395,12 @@ rangy.createModule("Highlighter", function(api, module) {
                 selCharRanges.push( CharacterRange.fromCharacterRange(rangeInfo.characterRange) );
             });
             
-            this.highlightCharacterRanges(className, selCharRanges, containerElementId);
+            var newHighlights = this.highlightCharacterRanges(className, selCharRanges, containerElementId);
 
             // Restore selection
             converter.restoreSelection(selection, serializedSelection, containerElement);
 
-            return highlights;
+            return newHighlights;
         },
 
         unhighlightSelection: function(selection) {
