@@ -274,6 +274,10 @@ rangy.createModule("Highlighter", function(api, module) {
             }
         },
 
+        removeAllHighlights: function() {
+            this.removeHighlights(this.highlights);
+        },
+
         getIntersectingHighlights: function(ranges) {
             // Test each range against each of the highlighted ranges to see whether they overlap
             var intersectingHighlights = [], highlights = this.highlights, converter = this.converter;
