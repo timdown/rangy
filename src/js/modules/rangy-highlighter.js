@@ -214,6 +214,10 @@ rangy.createModule("Highlighter", function(api, module) {
         fromRange: function(range) {
             this.characterRange = this.converter.rangeToCharacterRange(range, this.getContainerElement());
         },
+        
+        getText: function() {
+            return this.getRange().toString();
+        },
 
         containsElement: function(el) {
             return this.getRange().containsNodeContents(el.firstChild);
@@ -419,20 +423,24 @@ rangy.createModule("Highlighter", function(api, module) {
             return this.getIntersectingHighlights(selection.getAllRanges()).length > 0;
         },
 
-        serialize: function() {
+        serialize: function(options) {
             var highlights = this.highlights;
             highlights.sort(compareHighlights);
             var serializedHighlights = ["type:" + this.converter.type];
 
             forEach(highlights, function(highlight) {
                 var characterRange = highlight.characterRange;
-                serializedHighlights.push( [
+                var parts = [
                     characterRange.start,
                     characterRange.end,
                     highlight.id,
                     highlight.classApplier.cssClass,
                     highlight.containerElementId
-                ].join("$") );
+                ];
+                if (options && options.serializeHighlightText) {
+                    parts.push(highlight.getText());
+                }
+                serializedHighlights.push( parts.join("$") );
             });
 
             return serializedHighlights.join("|");
