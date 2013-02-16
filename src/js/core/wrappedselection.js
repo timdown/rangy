@@ -726,7 +726,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     function assertNodeInSameDocument(sel, node) {
-        if (sel.anchorNode && (getDocument(sel.anchorNode) !== getDocument(node))) {
+        if (sel.win.document != getDocument(node)) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
     }
