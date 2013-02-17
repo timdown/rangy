@@ -296,18 +296,47 @@ rangy.createModule("DomUtil", function(api, module) {
         }
     }
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Test for IE's crash (IE 6/7) or exception (IE >= 8) when a reference to garbage-collected text node is queried
+    var crashyTextNodes = false;
+
+    function isBrokenNode(node) {
+        try {
+            node.parentNode;
+            return false;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    (function() {
+        var el = document.createElement("b");
+        el.innerHTML = "1";
+        var textNode = el.firstChild;
+        el.innerHTML = "<br>";
+        crashyTextNodes = isBrokenNode(textNode);
+
+        api.features.crashyTextNodes = crashyTextNodes;
+    })();
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     function inspectNode(node) {
         if (!node) {
             return "[No node]";
         }
+        if (crashyTextNodes && isBrokenNode(node)) {
+            return "[Broken node]";
+        }
         if (isCharacterDataNode(node)) {
             return '"' + node.data + '"';
-        } else if (node.nodeType == 1) {
+        }
+        if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
             return "<" + node.nodeName + idAttr + ">[" + node.childNodes.length + "][" + node.innerHTML.slice(0, 20) + "]";
-        } else {
-            return node.nodeName;
         }
+        return node.nodeName;
     }
 
     function fragmentFromNodeChildren(node) {
@@ -432,6 +461,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getContentDocument: getContentDocument,
         getRootContainer: getRootContainer,
         comparePoints: comparePoints,
+        isBrokenNode: isBrokenNode,
         inspectNode: inspectNode,
         getComputedStyleProperty: getComputedStyleProperty,
         fragmentFromNodeChildren: fragmentFromNodeChildren,
