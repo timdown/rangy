@@ -854,10 +854,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isAppliedToRange: function(range) {
-            if (range.collapsed) {
+            if (range.collapsed || range.toString() == "") {
                 return !!this.getSelfOrAncestorWithClass(range.commonAncestorContainer);
             } else {
                 var textNodes = range.getNodes( [3] );
+                if (textNodes.length)
                 for (var i = 0, textNode; textNode = textNodes[i++]; ) {
                     if (!this.isIgnorableWhiteSpaceNode(textNode) && rangeSelectsAnyText(range, textNode)
                             && this.isModifiable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {

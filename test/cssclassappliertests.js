@@ -618,6 +618,21 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('<div>[12]</div>', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Issue 148 (isAppliedToRange on range containing just an image)", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+
+        var range = createRangeInHtml(testEl, 'one [] two');
+        t.assertFalse(applier.isAppliedToRange(range));
+        range = createRangeInHtml(testEl, 'one [<img src="fake.png">] two');
+        t.assertFalse(applier.isAppliedToRange(range));
+
+        range = createRangeInHtml(testEl, '<span class="test">one [] two</span>');
+        t.assert(applier.isAppliedToRange(range));
+        range = createRangeInHtml(testEl, '<span class="test">one [<img src="fake.png">] two</span>');
+        t.assert(applier.isAppliedToRange(range));
+    });
+
     if (rangy.features.selectionSupportsMultipleRanges) {
         s.test("Undo to multiple ranges", function(t) {
             var testEl = document.getElementById("test");
