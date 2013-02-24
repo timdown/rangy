@@ -471,7 +471,6 @@ rangy.createModule("Highlighter", function(api, module) {
                 characterRange = new CharacterRange(+parts[0], +parts[1]);
                 containerElementId = parts[4] || null;
                 containerElement = containerElementId ? this.doc.getElementById(containerElementId) : getBody(this.doc);
-                
 
                 // Convert to the current Highlighter's type, if different from the serialization type
                 if (convertType) {
@@ -482,7 +481,7 @@ rangy.createModule("Highlighter", function(api, module) {
                 }
 
                 classApplier = this.classAppliers[parts[3]];
-                highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parts[2], containerElementId);
+                highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parseInt(parts[2]), containerElementId);
                 highlight.apply();
                 highlights.push(highlight);
             }
