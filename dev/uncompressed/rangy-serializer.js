@@ -10,8 +10,8 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.738
- * Build date: 21 January 2013
+ * Version: 1.3alpha.772
+ * Build date: 26 February 2013
  */
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
@@ -131,11 +131,8 @@ rangy.createModule("Serializer", function(api, module) {
     }
 
     function deserializePosition(serialized, rootNode, doc) {
-        if (rootNode) {
-            doc = doc || dom.getDocument(rootNode);
-        } else {
-            doc = doc || document;
-            rootNode = doc.documentElement;
+        if (!rootNode) {
+            rootNode = (doc || document).documentElement;
         }
         var bits = serialized.split(":");
         var node = rootNode;
@@ -188,11 +185,8 @@ rangy.createModule("Serializer", function(api, module) {
     }
 
     function canDeserializeRange(serialized, rootNode, doc) {
-        if (rootNode) {
-            doc = doc || dom.getDocument(rootNode);
-        } else {
-            doc = doc || document;
-            rootNode = doc.documentElement;
+        if (!rootNode) {
+            rootNode = (doc || document).documentElement;
         }
         var result = /^([^,]+),([^,]+)(\{([^}]+)\})?$/.exec(serialized);
         var checksum = result[3];

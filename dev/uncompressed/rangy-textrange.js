@@ -26,8 +26,8 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.738
- * Build date: 21 January 2013
+ * Version: 1.3alpha.772
+ * Build date: 26 February 2013
  */
 
 /**
@@ -70,6 +70,7 @@ rangy.createModule("TextRange", function(api, module) {
     var CHARACTER = "character", WORD = "word";
     var dom = api.dom, util = api.util;
     var extend = util.extend;
+    var getBody = dom.getBody;
 
 
     var spacesRegex = /^[ \t\f\r\n]+$/;
@@ -90,8 +91,9 @@ rangy.createModule("TextRange", function(api, module) {
 
     (function() {
         var el = document.createElement("div");
+        el.contentEditable = "true";
         el.innerHTML = "<p>1 </p><p></p>";
-        var body = document.body;
+        var body = getBody(document);
         var p = el.firstChild;
         var sel = api.getSelection();
 
@@ -242,29 +244,6 @@ rangy.createModule("TextRange", function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    function CharacterRange(start, end) {
-        this.start = start;
-        this.end = end;
-    }
-
-    CharacterRange.prototype = {
-        intersects: function(charRange) {
-            return this.start < charRange.end && this.end > charRange.start;
-        },
-
-        union: function(charRange) {
-            return new CharacterRange(Math.min(this.start, charRange.start), Math.max(this.end, charRange.end));
-        },
-
-        toString: function() {
-            return "[CharacterRange(" + this.start + ", " + this.end + ")]";
-        }
-    };
-    
-    api.CharacterRange = CharacterRange;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
     /* DOM utility functions */
     var getComputedStyleProperty = dom.getComputedStyleProperty;
 
@@ -274,9 +253,10 @@ rangy.createModule("TextRange", function(api, module) {
     var tableCssDisplayBlock;
     (function() {
         var table = document.createElement("table");
-        document.body.appendChild(table);
+        var body = getBody(document);
+        body.appendChild(table);
         tableCssDisplayBlock = (getComputedStyleProperty(table, "display") == "block");
-        document.body.removeChild(table);
+        body.removeChild(table);
     })();
 
     api.features.tableCssDisplayBlock = tableCssDisplayBlock;
@@ -503,18 +483,26 @@ rangy.createModule("TextRange", function(api, module) {
         }
     };
 
+    var cachedCount = 0, uncachedCount = 0;
+    
     function createCachingGetter(methodName, func, objProperty) {
         return function(args) {
             var cache = this.cache;
             if (cache.hasOwnProperty(methodName)) {
+                cachedCount++;
                 return cache[methodName];
             } else {
+                uncachedCount++;
                 var value = func.call(this, objProperty ? this[objProperty] : this, args);
                 cache[methodName] = value;
                 return value;
             }
         };
     }
+    
+    api.report = function() {
+        console.log("Cached: " + cachedCount + ", uncached: " + uncachedCount);
+    };
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -1490,7 +1478,7 @@ rangy.createModule("TextRange", function(api, module) {
                 endSession();
             }
             return returnValue;
-        }
+        };
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -1634,7 +1622,7 @@ rangy.createModule("TextRange", function(api, module) {
             function(session, containerNode, startIndex, endIndex, characterOptions) {
                 var moveOptions = { characterOptions: characterOptions };
                 if (!containerNode) {
-                    containerNode = this.getDocument().body;
+                    containerNode = getBody( this.getDocument() );
                 }
                 this.selectNodeContents(containerNode);
                 this.collapse(true);
@@ -1648,7 +1636,7 @@ rangy.createModule("TextRange", function(api, module) {
         toCharacterRange: createEntryPointFunction(
             function(session, containerNode, characterOptions) {
                 if (!containerNode) {
-                    containerNode = this.getDocument().body;
+                    containerNode = getBody( this.getDocument() );
                 }
                 var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
                 var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
@@ -1663,7 +1651,10 @@ rangy.createModule("TextRange", function(api, module) {
                 }
                 endIndex = startIndex + this.text(characterOptions).length;
     
-                return new CharacterRange(startIndex, endIndex);
+                return {
+                    start: startIndex,
+                    end: endIndex
+                };
             }
         ),
 
@@ -1779,6 +1770,7 @@ rangy.createModule("TextRange", function(api, module) {
 
         move: createEntryPointFunction(
             function(session, unit, count, options) {
+                var unitsMoved = 0;
                 if (this.focusNode) {
                     this.collapse(this.focusNode, this.focusOffset);
                     var range = this.getRangeAt(0);
@@ -1786,9 +1778,10 @@ rangy.createModule("TextRange", function(api, module) {
                         options = {};
                     }
                     options.characterOptions = createCaretCharacterOptions(options.characterOptions);
-                    range.move(unit, count, options);
+                    unitsMoved = range.move(unit, count, options);
                     this.setSingleRange(range);
                 }
+                return unitsMoved;
             }
         ),
 
@@ -1807,30 +1800,31 @@ rangy.createModule("TextRange", function(api, module) {
         saveCharacterRanges: createEntryPointFunction(
             function(session, containerNode, characterOptions) {
                 var ranges = this.getAllRanges(), rangeCount = ranges.length;
-                var characterRanges = [];
+                var rangeInfos = [];
     
                 var backward = rangeCount == 1 && this.isBackward();
     
                 for (var i = 0, len = ranges.length; i < len; ++i) {
-                    characterRanges[i] = {
-                        range: ranges[i].toCharacterRange(containerNode, characterOptions),
+                    rangeInfos[i] = {
+                        characterRange: ranges[i].toCharacterRange(containerNode, characterOptions),
                         backward: backward,
                         characterOptions: characterOptions
                     };
                 }
     
-                return characterRanges;
+                return rangeInfos;
             }
         ),
 
         restoreCharacterRanges: createEntryPointFunction(
-            function(session, containerNode, characterRanges) {
+            function(session, containerNode, saved) {
                 this.removeAllRanges();
-                for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
-                    characterRange = characterRanges[i];
+                for (var i = 0, len = saved.length, range, rangeInfo, characterRange; i < len; ++i) {
+                    rangeInfo = saved[i];
+                    characterRange = rangeInfo.characterRange;
                     range = api.createRange(containerNode);
-                    range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end, characterRange.characterOptions);
-                    this.addRange(range, characterRange.backward);
+                    range.selectCharacters(containerNode, characterRange.start, characterRange.end, rangeInfo.characterOptions);
+                    this.addRange(range, rangeInfo.backward);
                 }
             }
         ),

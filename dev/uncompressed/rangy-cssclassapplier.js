@@ -1,6 +1,6 @@
 /**
- * CSS Class Applier module for Rangy.
- * Adds, removes and toggles CSS classes on Ranges and Selections
+ * Class Applier module for Rangy.
+ * Adds, removes and toggles classes on Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
@@ -9,14 +9,15 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.738
- * Build date: 21 January 2013
+ * Version: 1.3alpha.772
+ * Build date: 26 February 2013
  */
 rangy.createModule("CssClassApplier", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
+    var contains = dom.arrayContains;
 
 
     var defaultTagName = "span";
@@ -127,20 +128,34 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function rangeSelectsAnyText(range, textNode) {
-        var textRange = range.cloneRange();
-        textRange.selectNodeContents(textNode);
+        var textNodeRange = range.cloneRange();
+        textNodeRange.selectNodeContents(textNode);
 
-        var intersectionRange = textRange.intersection(range);
+        var intersectionRange = textNodeRange.intersection(range);
         var text = intersectionRange ? intersectionRange.toString() : "";
-        textRange.detach();
+        textNodeRange.detach();
 
         return text != "";
     }
 
     function getEffectiveTextNodes(range) {
-        return range.getNodes([3], function(textNode) {
-            return rangeSelectsAnyText(range, textNode);
-        });
+        var nodes = range.getNodes([3]);
+        
+        // Optimization as per issue 145
+        
+        // Remove non-intersecting text nodes from the start of the range
+        var start = 0, node;
+        while ( (node = nodes[start]) && !rangeSelectsAnyText(range, node) ) {
+            ++start;
+        }
+
+        // Remove non-intersecting text nodes from the start of the range
+        var end = nodes.length - 1;
+        while ( (node = nodes[end]) && !rangeSelectsAnyText(range, node) ) {
+            --end;
+        }
+        
+        return nodes.slice(start, end + 1);
     }
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
@@ -160,7 +175,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
     function elementHasNonClassAttributes(el, exceptions) {
         for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
             attrName = el.attributes[i].name;
-            if ( !(exceptions && dom.arrayContains(exceptions, attrName)) && el.attributes[i].specified && attrName != "class") {
+            if ( !(exceptions && contains(exceptions, attrName)) && el.attributes[i].specified && attrName != "class") {
                 return true;
             }
         }
@@ -430,7 +445,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
     // TODO: Populate this with every attribute name that corresponds to a property with a different name
     var attrNamesForProperties = {};
 
-    function CssClassApplier(cssClass, options, tagNames) {
+    function ClassApplier(cssClass, options, tagNames) {
         this.cssClass = cssClass;
         var normalize, i, len, propName;
 
@@ -485,7 +500,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
     }
 
-    CssClassApplier.prototype = {
+    ClassApplier.prototype = {
         elementTagName: defaultTagName,
         elementProperties: {},
         ignoreWhiteSpace: true,
@@ -547,7 +562,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         hasClass: function(node) {
             return node.nodeType == 1 &&
-                dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) &&
+                contains(this.tagNames, node.tagName.toLowerCase()) &&
                 hasClass(node, this.cssClass);
         },
 
@@ -637,7 +652,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             var parent = textNode.parentNode;
             if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
-                    dom.arrayContains(this.tagNames, parent.tagName.toLowerCase()) &&
+                    contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProps(parent, this.elementProperties)) {
 
                 addClass(parent, this.cssClass);
@@ -813,10 +828,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         isAppliedToRange: function(range) {
-            if (range.collapsed) {
+            if (range.collapsed || range.toString() == "") {
                 return !!this.getSelfOrAncestorWithClass(range.commonAncestorContainer);
             } else {
                 var textNodes = range.getNodes( [3] );
+                if (textNodes.length)
                 for (var i = 0, textNode; textNode = textNodes[i++]; ) {
                     if (!this.isIgnorableWhiteSpaceNode(textNode) && rangeSelectsAnyText(range, textNode)
                             && this.isModifiable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
@@ -865,15 +881,42 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 this.applyToSelection(win);
             }
         },
+        
+        getElementsWithClassIntersectingRange: function(range) {
+            var elements = [];
+            var applier = this;
+            range.getNodes([3], function(textNode) {
+                var el = applier.getSelfOrAncestorWithClass(textNode);
+                if (el && !contains(elements, el)) {
+                    elements.push(el);
+                }
+            });
+            return elements;
+        },
+
+        getElementsWithClassIntersectingSelection: function(win) {
+            var sel = api.getSelection(win);
+            var elements = [];
+            var applier = this;
+            sel.eachRange(function(range) {
+                var rangeElements = applier.getElementsWithClassIntersectingRange(range);
+                for (var i = 0, el; el = rangeElements[i++]; ) {
+                    if (!contains(elements, el)) {
+                        elements.push(el);
+                    }
+                }
+            });
+            return elements;
+        },
 
         detach: function() {}
     };
 
-    function createCssClassApplier(cssClass, options, tagNames) {
-        return new CssClassApplier(cssClass, options, tagNames);
+    function createClassApplier(cssClass, options, tagNames) {
+        return new ClassApplier(cssClass, options, tagNames);
     }
 
-    CssClassApplier.util = {
+    ClassApplier.util = {
         hasClass: hasClass,
         addClass: addClass,
         removeClass: removeClass,
@@ -887,6 +930,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
         isEditable: isEditable
     };
 
-    api.CssClassApplier = CssClassApplier;
-    api.createCssClassApplier = createCssClassApplier;
+    api.CssClassApplier = api.ClassApplier = ClassApplier;
+    api.createCssClassApplier = api.createClassApplier = createClassApplier;
 });
