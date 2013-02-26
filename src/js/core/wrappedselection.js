@@ -834,7 +834,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 range.setStartAndEnd(node, offset);
             }
             this.setSingleRange(range, this.isBackward());
-        }
+        };
     }
 
     selProto.setStart = createStartOrEndSetter(true);
@@ -864,7 +864,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.containsNode = function(node, allowPartial) {
         return this.eachRange( function(range) {
-            return range.containsNode(node, allowPartial)
+            return range.containsNode(node, allowPartial);
         }, true );
     };
 

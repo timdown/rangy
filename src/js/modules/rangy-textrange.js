@@ -1546,7 +1546,7 @@ rangy.createModule("TextRange", function(api, module) {
                 endSession();
             }
             return returnValue;
-        }
+        };
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/

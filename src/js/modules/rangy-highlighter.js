@@ -40,7 +40,7 @@ rangy.createModule("Highlighter", function(api, module) {
 
     function HighlighterType(type, converterCreator) {
         this.type = type;
-        this.converterCreator = converterCreator
+        this.converterCreator = converterCreator;
     }
 
     HighlighterType.prototype.create = function() {
@@ -58,7 +58,7 @@ rangy.createModule("Highlighter", function(api, module) {
         if (highlighterType instanceof HighlighterType) {
             return highlighterType.create();
         } else {
-            throw new Error("Highlighter type '" + type + "' is not valid")
+            throw new Error("Highlighter type '" + type + "' is not valid");
         }
     }
 
@@ -178,11 +178,11 @@ rangy.createModule("Highlighter", function(api, module) {
                     restoreSelection: function(selection, savedSelection, containerNode) {
                         selection.restoreCharacterRanges(containerNode, savedSelection);
                     }
-                }
+                };
             }
 
             return converter;
-        }
+        };
     })());
 
     /*----------------------------------------------------------------------------------------------------------------*/

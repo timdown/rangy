@@ -131,11 +131,8 @@ rangy.createModule("Serializer", function(api, module) {
     }
 
     function deserializePosition(serialized, rootNode, doc) {
-        if (rootNode) {
-            doc = doc || dom.getDocument(rootNode);
-        } else {
-            doc = doc || document;
-            rootNode = doc.documentElement;
+        if (!rootNode) {
+            rootNode = (doc || document).documentElement;
         }
         var bits = serialized.split(":");
         var node = rootNode;
@@ -188,11 +185,8 @@ rangy.createModule("Serializer", function(api, module) {
     }
 
     function canDeserializeRange(serialized, rootNode, doc) {
-        if (rootNode) {
-            doc = doc || dom.getDocument(rootNode);
-        } else {
-            doc = doc || document;
-            rootNode = doc.documentElement;
+        if (!rootNode) {
+            rootNode = (doc || document).documentElement;
         }
         var result = /^([^,]+),([^,]+)(\{([^}]+)\})?$/.exec(serialized);
         var checksum = result[3];

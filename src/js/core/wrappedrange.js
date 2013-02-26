@@ -388,7 +388,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                         // We know the endth child node is after the range boundary, so we must be done.
                         break;
                     } else {
-                        start = nodeIndex
+                        start = nodeIndex;
                     }
                 } else {
                     end = (end == start + 1) ? start : nodeIndex;
