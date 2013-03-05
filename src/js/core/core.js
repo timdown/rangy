@@ -358,6 +358,17 @@ rangy = rangy || (function() {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
+    // Ensure rangy.rangePrototype and rangy.selectionPrototype are available immediately
+
+    function RangePrototype() {}
+    api.RangePrototype = RangePrototype;
+    api.rangePrototype = new RangePrototype();
+
+    function SelectionPrototype() {}
+    api.selectionPrototype = new SelectionPrototype();
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
     // Wait for document to load before running tests
 
     var docReady = false;

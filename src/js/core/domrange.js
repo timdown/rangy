@@ -536,9 +536,7 @@ rangy.createModule("DomRange", function(api, module) {
     var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
     var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
 
-    function RangePrototype() {}
-
-    RangePrototype.prototype = {
+    util.extend(api.rangePrototype, {
         compareBoundaryPoints: function(how, range) {
             assertRangeValid(this);
             assertSameDocumentOrFragment(this.startContainer, range.startContainer);
@@ -899,7 +897,7 @@ rangy.createModule("DomRange", function(api, module) {
         inspect: function() {
             return inspect(this);
         }
-    };
+    });
 
     function copyComparisonConstantsToObject(obj) {
         obj.START_TO_START = s2s;
@@ -989,7 +987,10 @@ rangy.createModule("DomRange", function(api, module) {
             }
         }
 
-        constructor.prototype = new RangePrototype();
+        // Set up inheritance
+        var F = function() {};
+        F.prototype = api.rangePrototype;
+        constructor.prototype = new F();
 
         util.extend(constructor.prototype, {
             setStart: function(node, offset) {
@@ -1220,8 +1221,6 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     createPrototypeRange(Range, updateBoundaries, detach);
-
-    api.rangePrototype = RangePrototype.prototype;
 
     util.extend(Range, {
         rangeProperties: rangeProperties,

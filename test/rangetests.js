@@ -1386,7 +1386,21 @@ if (hasNativeDomRange) {
     testAcid3(createNativeDomRange, "native Range");
 }
 
+var hasRangyRangePrototype = "rangePrototype" in rangy;
+rangy.rangePrototype.preInitTest = function() {
+    return true;
+};
+
+
 xn.test.suite("Range miscellaneous", function(s) {
+    s.test("rangy.rangePrototype existence test", function(t) {
+        t.assert(hasRangyRangePrototype);
+    });
+
+    s.test("Range prototype pre-init extension", function(t) {
+        t.assert(rangy.createRange().preInitTest(), "test");
+    });
+
     s.test("Range prototype extension", function(t) {
         rangy.rangePrototype.fooBar = "test";
 

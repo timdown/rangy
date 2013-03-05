@@ -329,6 +329,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.refresh();
     }
 
+    WrappedSelection.prototype = api.selectionPrototype;
+
     function deleteProperties(sel) {
         sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
         sel.rangeCount = sel.anchorOffset = sel.focusOffset = 0;

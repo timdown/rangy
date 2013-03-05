@@ -666,7 +666,20 @@ xn.addEventListener(window, "load", function() {
     iframeWin[0] = win;
 });
 
+var hasRangySelectionPrototype = "rangePrototype" in rangy;
+rangy.selectionPrototype.preInitTest = function() {
+    return true;
+};
+
 xn.test.suite("Miscellaneous selection tests", function(s) {
+    s.test("rangy.selectionPrototype existence test", function(t) {
+        t.assert(hasRangySelectionPrototype);
+    });
+
+    s.test("Selection prototype pre-init extension", function(t) {
+        t.assert(rangy.getSelection().preInitTest(), "test");
+    });
+
     s.test("Selection prototype extension", function(t) {
         rangy.selectionPrototype.fooBar = "test";
 
