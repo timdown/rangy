@@ -396,12 +396,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         // Ensure that the selection becomes of type "Control"
         var doc = getDocument(ranges[0].startContainer);
         var controlRange = getBody(doc).createControlRange();
-        for (var i = 0, el; i < rangeCount; ++i) {
+        for (var i = 0, el, len = ranges.length; i < len; ++i) {
             el = getSingleElementFromRange(ranges[i]);
             try {
                 controlRange.add(el);
             } catch (ex) {
-                throw module.createError("setRanges(): Element within the one of the specified Ranges could not be added to control selection (does it have layout?)");
+                throw module.createError("setRanges(): Element within one of the specified Ranges could not be added to control selection (does it have layout?)");
             }
         }
         controlRange.select();
