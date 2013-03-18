@@ -650,7 +650,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
         var ranges = sel.getAllRanges();
         sel.removeAllRanges();
         for (var i = 0, len = ranges.length; i < len; ++i) {
-            if (!api.rangesEqual(range, ranges[i])) {
+            if (!rangesEqual(range, ranges[i])) {
                 sel.addRange(ranges[i]);
             }
         }
