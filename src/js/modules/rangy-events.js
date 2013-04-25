@@ -12,9 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("Events", function(api, module) {
-    api.requireModules( ["Position"] );
-
+rangy.createModule("Events", ["Position"], function(api, module) {
     var log = log4javascript.getLogger("rangy.events");
     var DomPosition = api.dom.DomPosition;
     

@@ -1,6 +1,4 @@
-rangy.createModule("WrappedRange", function(api, module) {
-    api.requireModules( ["DomUtil", "DomRange"] );
-
+rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
     var WrappedRange, WrappedTextRange;
     var dom = api.dom;
     var util = api.util;

@@ -12,9 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("Position", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
-
+rangy.createModule("Position", ["WrappedSelection"], function(api, module) {
     //var log = log4javascript.getLogger("rangy.position");
 
     var NUMBER = "number", UNDEF = "undefined";

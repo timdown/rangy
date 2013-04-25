@@ -12,9 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("TextCommands", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
-
+rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
 
     var log = log4javascript.getLogger("rangy.textcommands");

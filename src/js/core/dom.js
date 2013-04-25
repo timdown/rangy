@@ -1,4 +1,4 @@
-rangy.createModule("DomUtil", function(api, module) {
+rangy.createCoreModule("DomUtil", [], function(api, module) {
     var log = log4javascript.getLogger("rangy.dom");
     var UNDEF = "undefined";
     var util = api.util;

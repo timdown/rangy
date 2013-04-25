@@ -12,9 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("Util", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
-
+rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
     var rangeProto = api.rangePrototype;
     var selProto = api.selectionPrototype;
 

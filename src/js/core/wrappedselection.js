@@ -1,8 +1,6 @@
 // This module creates a selection object wrapper that conforms as closely as possible to the Selection specification
 // in the HTML Editing spec (http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections)
-rangy.createModule("WrappedSelection", function(api, module) {
-    api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
-
+rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], function(api, module) {
     api.config.checkSelectionRanges = true;
 
     var BOOLEAN = "boolean";
@@ -766,8 +764,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         assertNodeInSameDocument(this, node);
         var range = api.createRange(node);
         range.selectNodeContents(node);
-        this.removeAllRanges();
-        this.addRange(range);
+        console.log("before", range.inspect());
+        this.setSingleRange(range);
+        console.log("after", this._ranges[0].inspect());
     };
 
     selProto.deleteFromDocument = function() {

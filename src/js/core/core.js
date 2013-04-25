@@ -8,9 +8,9 @@
  * Build date: %%build:date%%
  */
 
-var rangy;
-rangy = rangy || (function() {
+(function(global) {
     var log = log4javascript.getLogger("rangy.core");
+    var amdSupported = (typeof global.define == "function" && global.define.amd);
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
 
@@ -68,13 +68,13 @@ rangy = rangy || (function() {
     function isTextRange(range) {
         return range && areHostMethods(range, textRangeMethods) && areHostProperties(range, textRangeProperties);
     }
-    
+
     function getBody(doc) {
         return isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
     }
 
     var modules = {};
-    
+
     var api = {
         version: "%%build:version%%",
         initialized: false,
@@ -178,7 +178,7 @@ rangy = rangy || (function() {
     })();
 
 
-    // Very simple event handler wrapper function that doesn't attempt to solve issue such as "this" handling or
+    // Very simple event handler wrapper function that doesn't attempt to solve issues such as "this" handling or
     // normalization of event properties
     var addListener;
     if (isHostMethod(document, "addEventListener")) {
@@ -192,11 +192,11 @@ rangy = rangy || (function() {
     } else {
         fail("Document does not have required addEventListener or attachEvent method");
     }
-    
+
     api.util.addListener = addListener;
 
     var initListeners = [];
-    
+
     function getErrorDesc(ex) {
         return ex.message || ex.description || String(ex);
     }
@@ -247,10 +247,10 @@ rangy = rangy || (function() {
         var module, errorMessage;
         for (var moduleName in modules) {
             if ( (module = modules[moduleName]) instanceof Module ) {
-                module.init();
+                module.init(module, api);
             }
         }
-        
+
         // Call init listeners
         for (var i = 0, len = initListeners.length; i < len; ++i) {
             try {
@@ -293,14 +293,36 @@ rangy = rangy || (function() {
 
     api.createMissingNativeApi = createMissingNativeApi;
 
-    function Module(name, initializer) {
+    function Module(name, dependencies, initializer) {
         this.name = name;
+        this.dependencies = dependencies;
         this.initialized = false;
         this.supported = false;
-        this.init = initializer;
+        this.initializer = initializer;
     }
 
     Module.prototype = {
+        init: function(api) {
+            var requiredModuleNames = this.dependencies || [];
+            for (var i = 0, len = requiredModuleNames.length, requiredModule, moduleName; i < len; ++i) {
+                moduleName = requiredModuleNames[i];
+
+                requiredModule = modules[moduleName];
+                if (!requiredModule || !(requiredModule instanceof Module)) {
+                    throw new Error("required module '" + moduleName + "' not found");
+                }
+
+                requiredModule.init();
+
+                if (!requiredModule.supported) {
+                    throw new Error("required module '" + moduleName + "' not supported");
+                }
+            }
+            
+            // Now run initializer
+            this.initializer(this)
+        },
+        
         fail: function(reason) {
             this.initialized = true;
             this.supported = false;
@@ -321,9 +343,9 @@ rangy = rangy || (function() {
             return new Error("Error in Rangy " + this.name + " module: " + msg);
         }
     };
-
-    api.createModule = function(name, initFunc) {
-        var module = new Module(name, function() {
+    
+    function createModule(isCore, name, dependencies, initFunc) {
+        var newModule = new Module(name, dependencies, function(module) {
             if (!module.initialized) {
                 module.initialized = true;
                 try {
@@ -336,24 +358,33 @@ rangy = rangy || (function() {
                 }
             }
         });
-        modules[name] = module;
+        modules[name] = newModule;
+        
+/*
+        // Add module AMD support
+        if (!isCore && amdSupported) {
+            global.define(["rangy-core"], function(rangy) {
+                
+            });
+        }
+*/
+    }
+
+    api.createModule = function(name) {
+        // Allow 2 or 3 arguments (second argument is an optional array of dependencies)
+        var initFunc, dependencies;
+        if (arguments.length == 2) {
+            initFunc = arguments[1];
+            dependencies = [];
+        } else {
+            initFunc = arguments[2];
+            dependencies = arguments[1];
+        }
+        createModule(false, name, dependencies, initFunc);
     };
 
-    api.requireModules = function(moduleNames) {
-        for (var i = 0, len = moduleNames.length, module, moduleName; i < len; ++i) {
-            moduleName = moduleNames[i];
-            
-            module = modules[moduleName];
-            if (!module || !(module instanceof Module)) {
-                throw new Error("required module '" + moduleName + "' not found");
-            }
-
-            module.init();
-            
-            if (!module.supported) {
-                throw new Error("required module '" + moduleName + "' not supported");
-            }
-        }
+    api.createCoreModule = function(name, dependencies, initFunc) {
+        createModule(true, name, dependencies, initFunc);
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -400,5 +431,19 @@ rangy = rangy || (function() {
     // Add a fallback in case the DOMContentLoaded event isn't supported
     addListener(window, "load", loadHandler);
 
-    return api;
-})();
+    /*----------------------------------------------------------------------------------------------------------------*/
+    
+    // AMD, for those who like this kind of thing
+
+    if (amdSupported) {
+        // AMD. Register as an anonymous module.
+        global.define(function() {
+            api.amd = true;
+            return api;
+        });
+    }
+    
+    // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple
+    // module system) rely on the existence of this global property
+    global.rangy = api;
+})(this);    

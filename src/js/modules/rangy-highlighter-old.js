@@ -9,9 +9,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("Highlighter", function(api, module) {
-    api.requireModules( ["SaveRestore", "Serializer", "CssClassApplier"] );
-
+rangy.createModule("Highlighter", ["SaveRestore", "Serializer", "ClassApplier"], function(api, module) {
     var log = log4javascript.getLogger("rangy.Highlighter");
     var dom = api.dom;
     var contains = dom.arrayContains;

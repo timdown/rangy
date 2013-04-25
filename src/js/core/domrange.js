@@ -1,6 +1,4 @@
-rangy.createModule("DomRange", function(api, module) {
-    api.requireModules( ["DomUtil"] );
-
+rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     var log = log4javascript.getLogger("rangy.DomRange");
     var dom = api.dom;
     var util = api.util;

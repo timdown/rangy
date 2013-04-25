@@ -18,14 +18,12 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("Commands", function(api, module) {
+rangy.createModule("Commands", ["WrappedSelection"], function(api, module) {
     /*
     http://aryeh.name/spec/editcommands/autoimplementation.html
     https://bitbucket.org/ms2ger/dom-range/src/tip/test/
     http://aryeh.name/gitweb.cgi?p=editcommands;a=blob_plain;f=editcommands.html;hb=HEAD
      */
-
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
 
     var dom = api.dom;
     var log = log4javascript.getLogger("rangy.commands");

@@ -12,9 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("SaveRestore", function(api, module) {
-    api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
-
+rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
     var dom = api.dom;
 
     var markerTextChar = "\ufeff";

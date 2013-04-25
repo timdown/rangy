@@ -13,8 +13,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("Serializer", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
+rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
 
     // encodeURIComponent and decodeURIComponent are required for cookie handling

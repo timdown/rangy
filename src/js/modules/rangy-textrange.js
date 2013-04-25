@@ -63,9 +63,7 @@
  * Problem is whether Rangy should ever acknowledge the space and if so, when. Another problem is whether this can be
  * feature-tested
  */
-rangy.createModule("TextRange", function(api, module) {
-    api.requireModules( ["WrappedSelection"] );
-
+rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
     var CHARACTER = "character", WORD = "word";
     var dom = api.dom, util = api.util;
