@@ -525,7 +525,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
             if (this.docSelection.type == CONTROL) {
                 addRangeToControlSelection(this, range);
             } else {
-                WrappedRange.rangeToTextRange(range).select();
+                api.WrappedTextRange.rangeToTextRange(range).select();
                 this._ranges[0] = range;
                 this.rangeCount = 1;
                 this.isCollapsed = this._ranges[0].collapsed;
