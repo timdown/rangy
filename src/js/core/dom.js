@@ -272,9 +272,13 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
             // Case 3: node C (container A or an ancestor) is a child node of B
             return getNodeIndex(nodeC) < offsetB  ? -1 : 1;
         } else {
-            log.debug("case 4");
-            // Case 4: containers are siblings or descendants of siblings
             root = getCommonAncestor(nodeA, nodeB);
+            if (!root) {
+                throw new Error("comparePoints error: nodes have no common ancestor");
+            }
+
+            // Case 4: containers are siblings or descendants of siblings
+            log.debug("case 4");
             childA = (nodeA === root) ? root : getClosestAncestorIn(nodeA, root, true);
             childB = (nodeB === root) ? root : getClosestAncestorIn(nodeB, root, true);
 
