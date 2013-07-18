@@ -269,7 +269,7 @@ xn.test.suite("Class Applier module tests", function(s) {
         }
 
         function getHtml(node, includeSelf) {
-            var html = "";
+            var html = "", i, len, attr, children;
             if (node.nodeType == 1) {
                 if (includeSelf) {
                     html = "<" + node.tagName.toLowerCase();
@@ -282,10 +282,16 @@ xn.test.suite("Class Applier module tests", function(s) {
                     if (node.href) {
                         html += ' href="' + node.href + '"';
                     }
+                    for ( i = 0, len = node.attributes.length; i < len; ++i) {
+                        attr = node.attributes[i];
+                        if (!/^(id|href|class|style)$/.test(attr.name)) {
+                            html += ' ' + attr.name + '="' + node.getAttribute(attr.name) + '"';
+                        }
+                    }
                     html += ">";
                 }
 
-                for (var i = 0, children = node.childNodes, len = children.length; i <= len; ++i) {
+                for (i = 0, children = node.childNodes, len = children.length; i <= len; ++i) {
                     if (isElementRangeBoundary(node, i, range, true)) {
                         html += "|";
                     }
@@ -631,6 +637,38 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assert(applier.isAppliedToRange(range));
         range = createRangeInHtml(testEl, '<span class="test">one [<img src="fake.png">] two</span>');
         t.assert(applier.isAppliedToRange(range));
+    });
+
+    s.test("Apply elementAttributes", function(t) {
+        var applier = rangy.createCssClassApplier("test", {
+            elementAttributes: {
+                "data-test": "foo"
+            }
+        });
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div>1[2]3</div>');
+        applier.applyToRange(range);
+        t.assertEquals('<div>1<span class="test" data-test="foo">[2]</span>3</div>', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Unapply simple", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div>1[<span class="test">2</span>]3</div>');
+        applier.undoToRange(range);
+        t.assertEquals('<div>1[2]3</div>', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Unapply elementAttributes", function(t) {
+        var applier = rangy.createCssClassApplier("test", {
+            elementAttributes: {
+                "data-test": "foo"
+            }
+        });
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div>1[<span class="test" data-test="foo">2</span>]3</div>');
+        applier.undoToRange(range);
+        t.assertEquals('<div>1[2]3</div>', htmlAndRangeToString(testEl, range));
     });
 
     if (rangy.features.selectionSupportsMultipleRanges) {
