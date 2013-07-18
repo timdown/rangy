@@ -1,4 +1,4 @@
-xn.test.suite("CSS Class Applier module tests", function(s) {
+xn.test.suite("Class Applier module tests", function(s) {
     s.tearDown = function() {
         document.getElementById("test").innerHTML = "";
     };

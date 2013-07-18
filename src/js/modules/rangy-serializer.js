@@ -164,6 +164,8 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
         return serialized;
     }
 
+    var deserializeRegex = /^([^,]+),([^,\{]+)(\{([^}]+)\})?$/;
+    
     function deserializeRange(serialized, rootNode, doc) {
         if (rootNode) {
             doc = doc || dom.getDocument(rootNode);
@@ -171,7 +173,7 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
             doc = doc || document;
             rootNode = doc.documentElement;
         }
-        var result = /^([^,]+),([^,\{]+)(\{([^}]+)\})?$/.exec(serialized);
+        var result = deserializeRegex.exec(serialized);
         var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
         if (checksum && checksum !== getElementChecksum(rootNode)) {
             throw module.createError("deserializeRange(): checksums of serialized range root node (" + checksum +
@@ -187,7 +189,7 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
         if (!rootNode) {
             rootNode = (doc || document).documentElement;
         }
-        var result = /^([^,]+),([^,]+)(\{([^}]+)\})?$/.exec(serialized);
+        var result = deserializeRegex.exec(serialized);
         var checksum = result[3];
         return !checksum || checksum === getElementChecksum(rootNode);
     }
