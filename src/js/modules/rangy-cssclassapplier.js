@@ -172,6 +172,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             name = attr1.name;
             if (name != "class") {
                 attr2 = el2.attributes.getNamedItem(name);
+                if ( (attr1 === null) != (attr2 === null) ) return false;
                 if (attr1.specified != attr2.specified) return false;
                 if (attr1.specified && attr1.nodeValue !== attr2.nodeValue) return false;
             }
@@ -360,11 +361,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function createAdjacentMergeableTextNodeGetter(forward) {
-        var propName = forward ? "nextSibling" : "previousSibling";
+        var siblingPropName = forward ? "nextSibling" : "previousSibling";
 
         return function(textNode, checkParentElement) {
             var el = textNode.parentNode;
-            var adjacentNode = textNode[propName];
+            var adjacentNode = textNode[siblingPropName];
             if (adjacentNode) {
                 // Can merge if the node's previous/next sibling is a text node
                 if (adjacentNode && adjacentNode.nodeType == 3) {
@@ -372,10 +373,13 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 }
             } else if (checkParentElement) {
                 // Compare text node parent element with its sibling
-                adjacentNode = el[propName];
+                adjacentNode = el[siblingPropName];
                 log.info("adjacentNode: " + adjacentNode);
-                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)/* && adjacentNode.hasChildNodes()*/) {
-                    return adjacentNode[forward ? "firstChild" : "lastChild"];
+                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)) {
+                    var adjacentNodeChild = adjacentNode[forward ? "firstChild" : "lastChild"];
+                    if (adjacentNodeChild && adjacentNodeChild.nodeType == 3) {
+                        return adjacentNodeChild;
+                    }
                 }
             }
             return null;
@@ -620,7 +624,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             for (var i = 0, len = textNodes.length; i < len; ++i) {
                 textNode = textNodes[i];
                 precedingTextNode = getPreviousMergeableTextNode(textNode, !isUndo);
-                log.debug("Checking for merge. text node: " + textNode.data + ", parent: " + dom.inspectNode(textNode.parentNode) + ", preceding: " + (precedingTextNode ? precedingTextNode.data : null));
+                log.debug("Checking for merge. text node: " + textNode.data + ", parent: " + dom.inspectNode(textNode.parentNode) + ", preceding: " + dom.inspectNode(precedingTextNode));
                 if (precedingTextNode) {
                     if (!currentMerge) {
                         currentMerge = new Merge(precedingTextNode);

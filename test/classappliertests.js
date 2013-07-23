@@ -284,7 +284,8 @@ xn.test.suite("Class Applier module tests", function(s) {
                     }
                     for ( i = 0, len = node.attributes.length; i < len; ++i) {
                         attr = node.attributes[i];
-                        if (!/^(id|href|class|style)$/.test(attr.name)) {
+                        if (!attr) { alert(i) }
+                        if (attr.specified && !/^(id|href|class|style)$/.test(attr.name)) {
                             html += ' ' + attr.name + '="' + node.getAttribute(attr.name) + '"';
                         }
                     }
@@ -669,6 +670,28 @@ xn.test.suite("Class Applier module tests", function(s) {
         var range = createRangeInHtml(testEl, '<div>1[<span class="test" data-test="foo">2</span>]3</div>');
         applier.undoToRange(range);
         t.assertEquals('<div>1[2]3</div>', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Merge error (issue 176)", function(t) {
+        var applier = rangy.createCssClassApplier("one");
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = '<span class="one"><span class="two"><span>a</span></span></span>b';
+        var range = rangy.createRange();
+        range.selectNode(testEl);
+        applier.applyToRange(range);
+        //t.assertEquals('[<span class="one"><span class="two"><span>a</span></span></span>b]', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Apply with className element property (issue 177)", function(t) {
+        var applier = rangy.createCssClassApplier("test", {
+            elementProperties: {
+                "className": "foo"
+            }
+        });
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '[1]');
+        applier.applyToRange(range);
+        t.assertEquals('<span class="foo test">[1]</span>', htmlAndRangeToString(testEl, range));
     });
 
     if (rangy.features.selectionSupportsMultipleRanges) {
