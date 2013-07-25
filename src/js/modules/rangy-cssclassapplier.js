@@ -333,10 +333,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             while ( (child = descendantNode.childNodes[descendantOffset]) ) {
                 movePreservingPositions(child, newNode, newChildIndex++, positionsToPreserve);
-                //newNode.appendChild(child);
             }
             movePreservingPositions(newNode, parentNode, dom.getNodeIndex(descendantNode) + 1, positionsToPreserve);
-            //dom.insertAfter(newNode, descendantNode);
             return (descendantNode == node) ? newNode : splitNodeAt(node, parentNode, dom.getNodeIndex(newNode), positionsToPreserve);
         } else if (node != descendantNode) {
             newNode = descendantNode.parentNode;
@@ -449,7 +447,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     };
 
     var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements",
-        "removeEmptyElements"];
+        "removeEmptyElements", "onElementCreate"];
 
     // TODO: Populate this with every attribute name that corresponds to a property with a different name. Really??
     var attrNamesForProperties = {};
@@ -522,6 +520,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         applyToEditableOnly: false,
         useExistingElements: true,
         removeEmptyElements: true,
+        onElementCreate: null,
 
         copyPropertiesToElement: function(props, el, createCopy) {
             var s, elStyle, elProps = {}, elPropsStyle, propValue, elPropValue, attrName;
@@ -675,6 +674,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             this.copyPropertiesToElement(this.elementProperties, el, false);
             this.copyAttributesToElement(this.elementAttributes, el);
             addClass(el, this.cssClass);
+            if (this.onElementCreate) {
+                this.onElementCreate(el, this);
+            }
             return el;
         },
 

@@ -694,6 +694,25 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals('<span class="foo test">[1]</span>', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("onElementCreate test", function(t) {
+        var elementDataTest;
+        
+        var applier = rangy.createCssClassApplier("test", {
+            elementAttributes: {
+                "data-test": "foo"
+            },
+            onElementCreate: function(el) {
+                elementDataTest = el.getAttribute("data-test");
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '[1]');
+        applier.applyToRange(range);
+
+        t.assertEquals(elementDataTest, "foo");
+    });
+
     if (rangy.features.selectionSupportsMultipleRanges) {
         s.test("Undo to multiple ranges", function(t) {
             var testEl = document.getElementById("test");
