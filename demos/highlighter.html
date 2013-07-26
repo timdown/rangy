@@ -106,8 +106,8 @@
         <input type="button" ontouchstart="noteSelectedText();" onclick="noteSelectedText();" value="Add note to selection">
         <input type="button" ontouchstart="removeHighlightFromSelectedText();" onclick="removeHighlightFromSelectedText();" value="Remove highlights from selection">
         <br>
-        <input type="button" ontouchstart="highlightScopedSelectedText();" onclick="highlightScopedSelectedText();" value="Highlight within para">
-        <input type="button" ontouchstart="noteScopedSelectedText();" onclick="noteScopedSelectedText();" value="Annotate selection within para">
+        <input type="button" ontouchstart="highlightScopedSelectedText();" onclick="highlightScopedSelectedText();" value="Highlight within outlined paragraph">
+        <input type="button" ontouchstart="noteScopedSelectedText();" onclick="noteScopedSelectedText();" value="Annotate selection within outlined paragraph">
 
         <h3>Preserving highlights between page requests</h3>
         <form action="highlighter.html" method="get">
@@ -140,14 +140,14 @@
             match has 90 minutes of play, with a break of 15 minutes in the middle. The break in the middle is called
             half-time.
         </p>
-        <h2>Competitions <span class="smaller">(this section is editable)</span></h2>
-        <p contenteditable="true">
+        <h2>Competitions</h2>
+        <p>
             There are many competitions for football, for both football clubs and countries. Football clubs usually play
             other teams in their own country, with a few exceptions. <b>Cardiff City F.C.</b> from Wales for example, play
             in the English leagues and in the English FA Cup.
         </p>
-        <h2>Who plays football <span class="smaller">(this section is editable and in pre-formatted text)</span></h2>
-        <pre contenteditable="true">
+        <h2>Who plays football <span class="smaller">(this section is in pre-formatted text)</span></h2>
+        <pre>
 Football is the world's most popular sport. It is played in more
 countries than any other game. In fact, FIFA (the Federation
 Internationale de Football Association) has more members than the
@@ -157,9 +157,6 @@ It is played by both males and females.
 
 
 </pre>
-        <p id="controlRange" style="display: none" contenteditable="true">
-            Some controls to put in a ControlRange: <input> and <input> and <input>
-        </p>
     </div>
 
     <p class="small">
