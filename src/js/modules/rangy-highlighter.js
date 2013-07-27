@@ -315,7 +315,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 }
             }
 
-            var charRange, highlightCharRange, highlightRange, merged;
+            var charRange, highlightCharRange, merged;
             for (i = 0, len = charRanges.length; i < len; ++i) {
                 charRange = charRanges[i];
                 merged = false;

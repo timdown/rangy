@@ -70,14 +70,6 @@ rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
         api.getSelection().selectNodeContents(node);
     };
 
-
-    /**
-     * Convenience method to select a range. Any existing selection will be removed.
-     */
-    rangeProto.select = function(direction) {
-        api.getSelection( this.getDocument() ).setSingleRange(this, direction);
-    };
-
     rangeProto.selectSelectedTextElements = (function() {
         function isInlineElement(node) {
             return node.nodeType == 1 && api.dom.getComputedStyleProperty(node, "display") == "inline";
