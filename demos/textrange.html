@@ -140,7 +140,9 @@
         function initSnapToWords2() {
             gEBI("demo2").onmouseup = function() {
                 rangy.getSelection().expand("word", {
-                    includeTrailingSpace: true
+                    wordOptions: {
+                        includeTrailingSpace: true
+                    }
                 });
             };
         }
@@ -148,7 +150,9 @@
         function initSnapToWords3() {
             gEBI("demo3").onmouseup = function() {
                 rangy.getSelection().expand("word", {
-                    wordRegex: /[a-z0-9]+(['\-][a-z0-9]+)*/gi
+                    wordOptions: {
+                        wordRegex: /[a-z0-9]+(['\-][a-z0-9]+)*/gi
+                    }
                 });
             };
         }
