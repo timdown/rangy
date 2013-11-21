@@ -204,22 +204,18 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     var getComputedStyleProperty = dom.getComputedStyleProperty;
-    var isEditableElement;
-
-    (function() {
+    var isEditableElement = (function() {
         var testEl = document.createElement("div");
-        if (typeof testEl.isContentEditable == "boolean") {
-            isEditableElement = function(node) {
+        return typeof testEl.isContentEditable == "boolean" ?
+            function (node) {
                 return node && node.nodeType == 1 && node.isContentEditable;
-            };
-        } else {
-            isEditableElement = function(node) {
+            } :
+            function (node) {
                 if (!node || node.nodeType != 1 || node.contentEditable == "false") {
                     return false;
                 }
                 return node.contentEditable == "true" || isEditableElement(node.parentNode);
             };
-        }
     })();
 
     function isEditingHost(node) {
@@ -864,6 +860,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             sel.setRanges(ranges);
         },
 
+/*
         getTextSelectedByRange: function(textNode, range) {
             var textRange = range.cloneRange();
             textRange.selectNodeContents(textNode);
@@ -874,6 +871,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             return text;
         },
+*/
 
         isAppliedToRange: function(range) {
             if (range.collapsed || range.toString() == "") {
@@ -917,6 +915,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             }
         },
 
+/*
         toggleRanges: function(ranges) {
             if (this.isAppliedToRanges(ranges)) {
                 this.undoToRanges(ranges);
@@ -924,6 +923,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 this.applyToRanges(ranges);
             }
         },
+*/
 
         toggleSelection: function(win) {
             if (this.isAppliedToSelection(win)) {
@@ -945,6 +945,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             return elements;
         },
 
+/*
         getElementsWithClassIntersectingSelection: function(win) {
             var sel = api.getSelection(win);
             var elements = [];
@@ -959,6 +960,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             });
             return elements;
         },
+*/
 
         detach: function() {}
     };

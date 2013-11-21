@@ -120,22 +120,22 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     }
 
     function serializePosition(node, offset, rootNode) {
-        var pathBits = [], n = node;
+        var pathParts = [], n = node;
         rootNode = rootNode || dom.getDocument(node).documentElement;
         while (n && n != rootNode) {
-            pathBits.push(dom.getNodeIndex(n, true));
+            pathParts.push(dom.getNodeIndex(n, true));
             n = n.parentNode;
         }
-        return pathBits.join("/") + ":" + offset;
+        return pathParts.join("/") + ":" + offset;
     }
 
     function deserializePosition(serialized, rootNode, doc) {
         if (!rootNode) {
             rootNode = (doc || document).documentElement;
         }
-        var bits = serialized.split(":");
+        var parts = serialized.split(":");
         var node = rootNode;
-        var nodeIndices = bits[0] ? bits[0].split("/") : [], i = nodeIndices.length, nodeIndex;
+        var nodeIndices = parts[0] ? parts[0].split("/") : [], i = nodeIndices.length, nodeIndex;
 
         while (i--) {
             nodeIndex = parseInt(nodeIndices[i], 10);
@@ -147,7 +147,7 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
             }
         }
 
-        return new dom.DomPosition(node, parseInt(bits[1], 10));
+        return new dom.DomPosition(node, parseInt(parts[1], 10));
     }
 
     function serializeRange(range, omitChecksum, rootNode) {

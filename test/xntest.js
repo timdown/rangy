@@ -44,7 +44,7 @@ if (!Function.prototype.apply) {
 
 /* -------------------------------------------------------------------------- */
 
-var xn = new Object();
+var xn = {};
 
 (function() {
     // Utility functions
@@ -222,6 +222,9 @@ var xn = new Object();
     var startTime;
     var loaded = false;
     var anyFailed = false;
+    var runningSingleTest = false;
+    var singleTestId = null;
+    var singleTest = null;
 
     var log4javascriptEnabled = false;
 
@@ -235,6 +238,13 @@ var xn = new Object();
 
     var init = function() {
         if (initialized) { return true; }
+        
+        var query = window.location.search, matches;
+        
+        if ( query && (matches = query.match(/^\?test=([\d]+)/)) ) {
+            runningSingleTest = true;
+            singleTestId = parseInt(matches[1]);
+        }
 
         container = document.createElement("div");
 
@@ -333,11 +343,18 @@ var xn = new Object();
         this.log("adding a test named " + name);
         var t = new Test(name, callback, this, setUp, tearDown);
         this.tests.push(t);
+        
+        console.log(t.index, singleTestId)
+        if (runningSingleTest && t.index == singleTestId) {
+            singleTest = t;
+        }
+        return t;
     };
 
     Suite.prototype.build = function() {
         // Build the elements used by the suite
         var suite = this;
+        
         this.testFailed = false;
         this.container = document.createElement("div");
         this.container.className = "xn_test_suite_container";
@@ -376,16 +393,26 @@ var xn = new Object();
         // invoke callback to build the tests
         this.callback.apply(this, [this]);
 
+        if (runningSingleTest) {
+            if (singleTest.suite == this) {
+                this.tests = [singleTest];
+            } else {
+                container.removeChild(this.container);
+            }
+        }
+
         this.headingTextNode.data = this.name + " [" + this.tests.length + "]"
     };
 
     Suite.prototype.run = function() {
-        this.log("running suite '%s'", this.name);
-        this.startTime = new Date();
+        if (!runningSingleTest || singleTest.suite == this) {
+            this.log("running suite '%s'", this.name);
+            this.startTime = new Date();
 
-        // now run the first test
-        this._currentIndex = 0;
-        this.runNextTest();
+            // now run the first test
+            this._currentIndex = 0;
+            this.runNextTest();
+        }
     };
 
     Suite.prototype.updateProgressBar = function() {
@@ -474,6 +501,9 @@ var xn = new Object();
     /**
      * Create a new test
      */
+        
+    var testIndex = 0;
+
     var Test = function(name, callback, suite, setUp, tearDown) {
         this.name = name;
         this.callback = callback;
@@ -485,6 +515,20 @@ var xn = new Object();
         this.assertCount = 0;
         this.logMessages = [];
         this.logExpanded = false;
+        this.index = ++testIndex;
+    };
+
+    Test.prototype.createSingleTestButton = function() {
+        var test = this;
+        var frag = document.createDocumentFragment();
+        frag.appendChild( document.createTextNode(" (") );
+        var singleTestButton = frag.appendChild( document.createElement("a") );
+        singleTestButton.innerHTML = "This test only";
+        var l = window.location;
+        var currentUrl = l.search ? l.href.replace(l.search, "") : l.href;
+        singleTestButton.href = currentUrl + "?test=" + test.index;
+        frag.appendChild( document.createTextNode(")") );
+        return frag;
     };
 
     /**
@@ -496,6 +540,7 @@ var xn = new Object();
         var text = this.name + " passed in " + timeTaken + "ms";
 
         this.reportHeading.appendChild(document.createTextNode(text));
+        this.reportHeading.appendChild(this.createSingleTestButton());
 
         this.reportHeading.className = "success";
         var dd = document.createElement("dd");
@@ -517,6 +562,7 @@ var xn = new Object();
         this.reportHeading.className = "failure";
         var text = document.createTextNode(this.name  + " failed in " + timeTaken + "ms");
         this.reportHeading.appendChild(text);
+        this.reportHeading.appendChild(this.createSingleTestButton());
 
         var dd = document.createElement("dd");
         dd.appendChild(document.createTextNode(msg));

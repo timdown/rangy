@@ -448,25 +448,58 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startOffset, 0);
     });
 
-/*
-     s.test("selection move() on block inside block (issue 114)", function(t) {
-         t.el.innerHTML = '<div>1<div>2</div></div>';
-         var firstTextNode = t.el.firstChild.firstChild;
-         var range = rangy.createRange();
-         range.collapseToPoint(firstTextNode, 1);
-         var selRange = range.cloneRange();
-    
-         var sel = rangy.getSelection();
-         sel.addRange(range);
-         sel.move("character", 1);
-         selRange.setEnd(sel.focusNode, sel.focusOffset);
-         t.assertEquals(selRange.text(), "\n");
-    
-         sel.move("character", 1);
-         selRange.setEnd(sel.focusNode, sel.focusOffset);
-         t.assertEquals(selRange.text(), "\n2");
-     });
-*/
+    s.test("range move() on br inside block", function(t) {
+        t.el.innerHTML = '<div>x<div><br></div></div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 0);
+        range.move("character", 2);
+
+        t.assertEquals(range.startContainer, t.el);
+        t.assertEquals(range.startOffset, 1);
+    });
+
+    s.test("range move() on br inside block 2", function(t) {
+        t.el.innerHTML = '<div>x<div><br></div>y</div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 0);
+        range.move("character", 2);
+
+        t.assertEquals(range.startContainer, t.el.firstChild.lastChild);
+        t.assertEquals(range.startOffset, 0);
+    });
+
+    s.test("innerText on br inside block 1", function(t) {
+        t.el.innerHTML = '<div><br></div>';
+        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "\\n");
+    });
+
+    s.test("innerText on br inside block 2", function(t) {
+        t.el.innerHTML = '<div>x<div><br></div></div>';
+        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\n");
+    });
+
+    s.test("innerText on br inside block 3", function(t) {
+        t.el.innerHTML = '<div>x<div><br></div>y</div>z';
+        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\ny\\nz");
+    });
+
+    s.test("innerText on br inside block 4", function(t) {
+        t.el.innerHTML = '<div>x<div><br></div>y</div>z';
+        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\ny\\nz");
+    });
+
+    s.test("innerText on br inside block 5", function(t) {
+        t.el.innerHTML = 'x<div><br></div><div><br></div>';
+        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\n\\n");
+    });
+
+    s.test("innerText on br inside block 6", function(t) {
+        t.el.innerHTML = '<div><div><br></div></div>';
+        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "\\n");
+    });
+
 
     s.test("selectCharacters on text node", function(t) {
         t.el.innerHTML = 'One Two';
