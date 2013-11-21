@@ -344,7 +344,6 @@ var xn = {};
         var t = new Test(name, callback, this, setUp, tearDown);
         this.tests.push(t);
         
-        console.log(t.index, singleTestId)
         if (runningSingleTest && t.index == singleTestId) {
             singleTest = t;
         }

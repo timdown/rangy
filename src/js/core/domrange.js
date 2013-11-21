@@ -164,9 +164,25 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
 
         var nodes = [];
         iterateSubtree(new RangeIterator(range, false), function(node) {
-            if ((!filterNodeTypes || regex.test(node.nodeType)) && (!filterExists || filter(node))) {
-                nodes.push(node);
+            if (filterNodeTypes && !regex.test(node.nodeType)) {
+                return;
             }
+            if (filterExists && !filter(node)) {
+                return;
+            }
+            // Don't include a boundary container if it is a character data node and the range does not contain any
+            // of its character data. See issue 190.
+            var sc = range.startContainer;
+            if (node == sc && isCharacterDataNode(sc) && range.startOffset == sc.length) {
+                return;
+            }
+
+            var ec = range.endContainer;
+            if (node == ec && isCharacterDataNode(ec) && range.endOffset == 0) {
+                return;
+            }
+
+            nodes.push(node);
         });
         return nodes;
     }

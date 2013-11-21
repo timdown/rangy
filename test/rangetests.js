@@ -29,7 +29,6 @@ function testExceptionCode(t, func, code) {
 function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
     xn.test.suite(rangeCreatorName + " in " + docName + " document", function(s) {
         var doc;
-        var DomRange = rangy.DomRange;
         var DOMException = rangy.DOMException;
         var RangeException = rangy.RangeException;
         var testRange = rangeCreator(document);
@@ -644,6 +643,48 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assertEquals(0, range.startOffset);
                 t.assertEquals(b, range.endContainer);
                 t.assertEquals(3, range.endOffset);
+            });
+
+            function concatRangeTextNodes(range) {
+                var text = "";
+                var nodes = range.getNodes([3]);
+                for (var i = 0, len = nodes.length; i < len; ++i) {
+                    text += nodes[i].nodeValue;
+                }
+                return text;
+            }
+            
+            s.test("Concatenate getNodes([3]) after splitBoundaries same as toString - simple", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartAndEnd(t.nodes.plainText, 1, t.nodes.boldText, 3);
+                t.assertEquals(concatRangeTextNodes(range), "plainbold");
+                range.splitBoundaries();
+                t.assertEquals(concatRangeTextNodes(range), "lainbol");
+                t.assertEquals(range.toString(), "lainbol");
+            });
+
+            s.test("Concatenate getNodes([3]) after splitBoundaries same as toString - end at position 0 in text node (issue 190)", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartAndEnd(t.nodes.plainText, 1, t.nodes.boldText, 0);
+                range.splitBoundaries();
+                t.assertEquals(concatRangeTextNodes(range), "lain");
+                t.assertEquals(range.toString(), "lain");
+            });
+
+            s.test("Concatenate getNodes([3]) after splitBoundaries same as toString - start position at end of text node (issue 190)", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartAndEnd(t.nodes.plainText, 5, t.nodes.boldText, 3);
+                range.splitBoundaries();
+                t.assertEquals(concatRangeTextNodes(range), "bol");
+                t.assertEquals(range.toString(), "bol");
+            });
+
+            s.test("Concatenate getNodes([3]) after splitBoundaries same as toString - start position at end of text node and end at position 0 in text node (issue 190)", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartAndEnd(t.nodes.plainText, 5, t.nodes.boldText, 0);
+                range.splitBoundaries();
+                t.assertEquals(concatRangeTextNodes(range), "");
+                t.assertEquals(range.toString(), "");
             });
         }
 
