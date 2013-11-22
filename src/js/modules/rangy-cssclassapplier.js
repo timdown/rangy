@@ -434,11 +434,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         toString: function() {
-            var textBits = [];
+            var textParts = [];
             for (var i = 0, len = this.textNodes.length; i < len; ++i) {
-                textBits[i] = "'" + this.textNodes[i].data + "'";
+                textParts[i] = "'" + this.textNodes[i].data + "'";
             }
-            return "[Merge(" + textBits.join(",") + ")]";
+            return "[Merge(" + textParts.join(",") + ")]";
         }
     };
 

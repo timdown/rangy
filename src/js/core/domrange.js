@@ -659,16 +659,16 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             if (sc === this.endContainer && isCharacterDataNode(sc)) {
                 return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
             } else {
-                var textBits = [], iterator = new RangeIterator(this, true);
+                var textParts = [], iterator = new RangeIterator(this, true);
                 log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
                 iterateSubtree(iterator, function(node) {
                     // Accept only text or CDATA nodes, not comments
                     if (node.nodeType == 3 || node.nodeType == 4) {
-                        textBits.push(node.data);
+                        textParts.push(node.data);
                     }
                 });
                 iterator.detach();
-                return textBits.join("");
+                return textParts.join("");
             }
         },
 

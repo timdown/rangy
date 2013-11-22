@@ -184,11 +184,11 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
 
     Merge.prototype = {
         doMerge: function() {
-            var textBits = [], textNode, parent, text;
+            var textParts = [], textNode, parent, text;
             for (var i = 0, len = this.textNodes.length; i < len; ++i) {
                 textNode = this.textNodes[i];
                 parent = textNode.parentNode;
-                textBits[i] = textNode.data;
+                textParts[i] = textNode.data;
                 if (i) {
                     parent.removeChild(textNode);
                     if (!parent.hasChildNodes()) {
@@ -196,7 +196,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
                     }
                 }
             }
-            this.firstTextNode.data = text = textBits.join("");
+            this.firstTextNode.data = text = textParts.join("");
             return text;
         },
 
@@ -209,11 +209,11 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         },
 
         toString: function() {
-            var textBits = [];
+            var textParts = [];
             for (var i = 0, len = this.textNodes.length; i < len; ++i) {
-                textBits[i] = "'" + this.textNodes[i].data + "'";
+                textParts[i] = "'" + this.textNodes[i].data + "'";
             }
-            return "[Merge(" + textBits.join(",") + ")]";
+            return "[Merge(" + textParts.join(",") + ")]";
         }
     };
 

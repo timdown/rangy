@@ -4,6 +4,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     api.config.checkSelectionRanges = true;
 
     var BOOLEAN = "boolean";
+    var NUMBER = "number";
     var dom = api.dom;
     var util = api.util;
     var isHostMethod = util.isHostMethod;
@@ -24,7 +25,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     // Utility function to support direction parameters in the API that may be a string ("backward" or "forward") or a
     // Boolean (true for backwards).
     function isDirectionBackward(dir) {
-        return (typeof dir == "string") ? (dir == "backward") : !!dir;
+        return (typeof dir == "string") ? /^backward(s)?$/i.test(dir) : !!dir;
     }
 
     function getWindow(win, methodName) {
@@ -46,6 +47,14 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
     function getDocSelection(winParam) {
         return getWindow(winParam, "getDocSelection").document.selection;
+    }
+    
+    function winSelectionIsBackward(sel) {
+        var backward = false;
+        if (sel.anchorNode) {
+            backward = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
+        }
+        return backward;
     }
 
     // Test for the Range/TextRange and Selection features required
@@ -90,16 +99,25 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     // Test for existence of native selection extend() method
     var selectionHasExtend = isHostMethod(testSelection, "extend");
     features.selectionHasExtend = selectionHasExtend;
-
+    
     // Test if rangeCount exists
-    var selectionHasRangeCount = (typeof testSelection.rangeCount == "number");
+    var selectionHasRangeCount = (typeof testSelection.rangeCount == NUMBER);
     features.selectionHasRangeCount = selectionHasRangeCount;
 
     var selectionSupportsMultipleRanges = false;
     var collapsedNonEditableSelectionsSupported = true;
 
+    var addRangeBackwardToNative = selectionHasExtend ?
+        function(nativeSelection, range) {
+            var doc = DomRange.getRangeDocument(range);
+            var endRange = api.createRange(doc);
+            endRange.collapseToPoint(range.endContainer, range.endOffset);
+            nativeSelection.addRange(getNativeRange(endRange));
+            nativeSelection.extend(range.startContainer, range.startOffset);
+        } : null;
+
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
-            typeof testSelection.rangeCount == "number" && features.implementsDomRange) {
+            typeof testSelection.rangeCount == NUMBER && features.implementsDomRange) {
 
         (function() {
             // Previously an iframe was used but this caused problems in some circumstances in IE, so tests are
@@ -111,6 +129,16 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
             // selection.
             var sel = window.getSelection();
             if (sel) {
+                // Store the current selection
+                var originalSelectionRangeCount = sel.rangeCount;
+                var selectionHasMultipleRanges = (originalSelectionRangeCount > 1);
+                var originalSelectionRanges = [];
+                var originalSelectionBackward = winSelectionIsBackward(sel); 
+                for (var i = 0; i < originalSelectionRangeCount; ++i) {
+                    originalSelectionRanges[i] = sel.getRangeAt(i);
+                }
+                
+                // Create some test elements
                 var body = getBody(document);
                 var testEl = body.appendChild( document.createElement("div") );
                 testEl.contentEditable = "false";
@@ -126,20 +154,35 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 sel.removeAllRanges();
 
                 // Test whether the native selection is capable of supporting multiple ranges
-                var r2 = r1.cloneRange();
-                r1.setStart(textNode, 0);
-                r2.setEnd(textNode, 3);
-                r2.setStart(textNode, 2);
-                sel.addRange(r1);
-                sel.addRange(r2);
+                if (!selectionHasMultipleRanges) {
+                    var r2 = r1.cloneRange();
+                    r1.setStart(textNode, 0);
+                    r2.setEnd(textNode, 3);
+                    r2.setStart(textNode, 2);
+                    sel.addRange(r1);
+                    sel.addRange(r2);
 
-                selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                    selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                    r2.detach();
+                }
 
                 // Clean up
                 body.removeChild(testEl);
                 sel.removeAllRanges();
                 r1.detach();
-                r2.detach();
+
+                for (i = 0; i < originalSelectionRangeCount; ++i) {
+                    if (i == 0 && originalSelectionBackward) {
+                        if (addRangeBackwardToNative) {
+                            addRangeBackwardToNative(sel, originalSelectionRanges[i]);
+                        } else {
+                            api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because browser does not support Selection.extend");
+                            sel.addRange(originalSelectionRanges[i])
+                        }
+                    } else {
+                        sel.addRange(originalSelectionRanges[i])
+                    }
+                }
             }
         })();
     }
@@ -337,7 +380,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
     var cachedRangySelections = [];
 
-    function findCachedSelection(win, action) {
+    function actOnCachedSelection(win, action) {
         var i = cachedRangySelections.length, cached, sel;
         while (i--) {
             cached = cachedRangySelections[i];
@@ -368,7 +411,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
         win = getWindow(win, "getNativeSelection");
 
-        var sel = findCachedSelection(win);
+        var sel = actOnCachedSelection(win);
         var nativeSel = getNativeSelection(win), docSel = implementsDocSelection ? getDocSelection(win) : null;
         if (sel) {
             sel.nativeSelection = nativeSel;
@@ -416,11 +459,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         };
 
         var addRangeBackward = function(sel, range) {
-            var doc = DomRange.getRangeDocument(range);
-            var endRange = api.createRange(doc);
-            endRange.collapseToPoint(range.endContainer, range.endOffset);
-            sel.nativeSelection.addRange(getNativeRange(endRange));
-            sel.nativeSelection.extend(range.startContainer, range.startOffset);
+            addRangeBackwardToNative(sel.nativeSelection, range);
             sel.refresh();
         };
 
@@ -577,7 +616,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 updateEmptySelection(sel);
             }
         };
-    } else if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == "number") {
+    } else if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == NUMBER) {
         refreshSelection = function(sel) {
             if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
                 updateControlSelection(sel);
@@ -693,13 +732,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     // Detecting if a selection is backward
     var selectionIsBackward;
     if (!useDocumentSelection && selectionHasAnchorAndFocus && features.implementsDomRange) {
-        selectionIsBackward = function(sel) {
-            var backward = false;
-            if (sel.anchorNode) {
-                backward = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
-            }
-            return backward;
-        };
+        selectionIsBackward = winSelectionIsBackward;
 
         selProto.isBackward = function() {
             return selectionIsBackward(this);
@@ -770,7 +803,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     };
 
     selProto.deleteFromDocument = function() {
-        // Sepcial behaviour required for Control selections
+        // Sepcial behaviour required for IE's control selections
         if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
             var controlRange = this.docSelection.createRange();
             var element;
@@ -918,12 +951,12 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     };
 
     selProto.detach = function() {
-        findCachedSelection(this.win, "delete");
+        actOnCachedSelection(this.win, "delete");
         deleteProperties(this);
     };
 
     WrappedSelection.detachAll = function() {
-        findCachedSelection(null, "deleteAll");
+        actOnCachedSelection(null, "deleteAll");
     };
 
     WrappedSelection.inspect = inspect;
