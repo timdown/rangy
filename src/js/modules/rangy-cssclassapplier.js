@@ -76,11 +76,10 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
         var node = position.node, offset = position.offset;
-
         var newNode = node, newOffset = offset;
 
         if (node == newParent && offset > newIndex) {
-            newOffset++;
+            ++newOffset;
         }
 
         if (node == oldParent && (offset == oldIndex  || offset == oldIndex + 1)) {
@@ -89,11 +88,18 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         }
 
         if (node == oldParent && offset > oldIndex + 1) {
-            newOffset--;
+            --newOffset;
         }
 
         position.node = newNode;
         position.offset = newOffset;
+    }
+    
+    function movePositionWhenRemovingNode(position, parentNode, index) {
+        log.debug("movePositionWhenRemovingNode " + position, position.node == parentNode, position.offset, index)
+        if (position.node == parentNode && position.offset > index) {
+            --position.offset;
+        }
     }
 
     function movePreservingPositions(node, newParent, newIndex, positionsToPreserve) {
@@ -116,6 +122,19 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         } else {
             newParent.insertBefore(node, newParent.childNodes[newIndex]);
         }
+    }
+    
+    function removePreservingPositions(node, positionsToPreserve) {
+        log.debug("removePreservingPositions " + dom.inspectNode(node), positionsToPreserve);
+
+        var oldParent = node.parentNode;
+        var oldIndex = dom.getNodeIndex(node);
+
+        for (var i = 0, position; position = positionsToPreserve[i++]; ) {
+            movePositionWhenRemovingNode(position, oldParent, oldIndex);
+        }
+
+        node.parentNode.removeChild(node);
     }
 
     function moveChildrenPreservingPositions(node, newParent, newIndex, removeNode, positionsToPreserve) {
@@ -715,10 +734,16 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 return applier.isEmptyContainer(el);
             });
             
+            var rangesToPreserve = [range]
+            var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
+            
             for (var i = 0, node; node = nodesToRemove[i++]; ) {
                 log.debug("Removing empty container " + dom.inspectNode(node));
-                node.parentNode.removeChild(node);
+                removePreservingPositions(node, positionsToPreserve);
             }
+
+            // Update the range from the preserved boundary positions
+            updateRangesFromBoundaries(rangesToPreserve, positionsToPreserve);
         },
 
         undoToTextNode: function(textNode, range, ancestorWithClass, positionsToPreserve) {
