@@ -9,12 +9,10 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.772
- * Build date: 26 February 2013
+ * Version: 1.3alpha.799
+ * Build date: 27 November 2013
  */
-rangy.createModule("CssClassApplier", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
-
+rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var contains = dom.arrayContains;
@@ -22,6 +20,17 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
     var defaultTagName = "span";
 
+    function each(obj, func) {
+        for (var i in obj) {
+            if (obj.hasOwnProperty(i)) {
+                if (func(i, obj[i]) === false) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
     function trim(str) {
         return str.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
     }
@@ -64,17 +73,12 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return getSortedClassName(el1) == getSortedClassName(el2);
     }
 
-    function compareRanges(r1, r2) {
-        return r1.compareBoundaryPoints(r2.START_TO_START, r2);
-    }
-
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
         var node = position.node, offset = position.offset;
-
         var newNode = node, newOffset = offset;
 
         if (node == newParent && offset > newIndex) {
-            newOffset++;
+            ++newOffset;
         }
 
         if (node == oldParent && (offset == oldIndex  || offset == oldIndex + 1)) {
@@ -83,11 +87,17 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
 
         if (node == oldParent && offset > oldIndex + 1) {
-            newOffset--;
+            --newOffset;
         }
 
         position.node = newNode;
         position.offset = newOffset;
+    }
+    
+    function movePositionWhenRemovingNode(position, parentNode, index) {
+        if (position.node == parentNode && position.offset > index) {
+            --position.offset;
+        }
     }
 
     function movePreservingPositions(node, newParent, newIndex, positionsToPreserve) {
@@ -109,6 +119,18 @@ rangy.createModule("CssClassApplier", function(api, module) {
         } else {
             newParent.insertBefore(node, newParent.childNodes[newIndex]);
         }
+    }
+    
+    function removePreservingPositions(node, positionsToPreserve) {
+
+        var oldParent = node.parentNode;
+        var oldIndex = dom.getNodeIndex(node);
+
+        for (var i = 0, position; position = positionsToPreserve[i++]; ) {
+            movePositionWhenRemovingNode(position, oldParent, oldIndex);
+        }
+
+        node.parentNode.removeChild(node);
     }
 
     function moveChildrenPreservingPositions(node, newParent, newIndex, removeNode, positionsToPreserve) {
@@ -165,6 +187,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             name = attr1.name;
             if (name != "class") {
                 attr2 = el2.attributes.getNamedItem(name);
+                if ( (attr1 === null) != (attr2 === null) ) return false;
                 if (attr1.specified != attr2.specified) return false;
                 if (attr1.specified && attr1.nodeValue !== attr2.nodeValue) return false;
             }
@@ -182,40 +205,32 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return false;
     }
 
-    function elementHasProps(el, props) {
-        var propValue;
-        for (var p in props) {
-            if (props.hasOwnProperty(p)) {
-                propValue = props[p];
-                if (typeof propValue == "object") {
-                    if (!elementHasProps(el[p], propValue)) {
-                        return false;
-                    }
-                } else if (el[p] !== propValue) {
+    function elementHasProperties(el, props) {
+        each(props, function(p, propValue) {
+            if (typeof propValue == "object") {
+                if (!elementHasProperties(el[p], propValue)) {
                     return false;
                 }
+            } else if (el[p] !== propValue) {
+                return false;
             }
-        }
+        });
         return true;
     }
 
     var getComputedStyleProperty = dom.getComputedStyleProperty;
-    var isEditableElement;
-
-    (function() {
+    var isEditableElement = (function() {
         var testEl = document.createElement("div");
-        if (typeof testEl.isContentEditable == "boolean") {
-            isEditableElement = function(node) {
+        return typeof testEl.isContentEditable == "boolean" ?
+            function (node) {
                 return node && node.nodeType == 1 && node.isContentEditable;
-            };
-        } else {
-            isEditableElement = function(node) {
+            } :
+            function (node) {
                 if (!node || node.nodeType != 1 || node.contentEditable == "false") {
                     return false;
                 }
                 return node.contentEditable == "true" || isEditableElement(node.parentNode);
             };
-        }
     })();
 
     function isEditingHost(node) {
@@ -328,10 +343,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
             while ( (child = descendantNode.childNodes[descendantOffset]) ) {
                 movePreservingPositions(child, newNode, newChildIndex++, positionsToPreserve);
-                //newNode.appendChild(child);
             }
             movePreservingPositions(newNode, parentNode, dom.getNodeIndex(descendantNode) + 1, positionsToPreserve);
-            //dom.insertAfter(newNode, descendantNode);
             return (descendantNode == node) ? newNode : splitNodeAt(node, parentNode, dom.getNodeIndex(newNode), positionsToPreserve);
         } else if (node != descendantNode) {
             newNode = descendantNode.parentNode;
@@ -356,11 +369,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function createAdjacentMergeableTextNodeGetter(forward) {
-        var propName = forward ? "nextSibling" : "previousSibling";
+        var siblingPropName = forward ? "nextSibling" : "previousSibling";
 
         return function(textNode, checkParentElement) {
             var el = textNode.parentNode;
-            var adjacentNode = textNode[propName];
+            var adjacentNode = textNode[siblingPropName];
             if (adjacentNode) {
                 // Can merge if the node's previous/next sibling is a text node
                 if (adjacentNode && adjacentNode.nodeType == 3) {
@@ -368,9 +381,12 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 }
             } else if (checkParentElement) {
                 // Compare text node parent element with its sibling
-                adjacentNode = el[propName];
-                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)/* && adjacentNode.hasChildNodes()*/) {
-                    return adjacentNode[forward ? "firstChild" : "lastChild"];
+                adjacentNode = el[siblingPropName];
+                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)) {
+                    var adjacentNodeChild = adjacentNode[forward ? "firstChild" : "lastChild"];
+                    if (adjacentNodeChild && adjacentNodeChild.nodeType == 3) {
+                        return adjacentNodeChild;
+                    }
                 }
             }
             return null;
@@ -431,34 +447,35 @@ rangy.createModule("CssClassApplier", function(api, module) {
         },
 
         toString: function() {
-            var textBits = [];
+            var textParts = [];
             for (var i = 0, len = this.textNodes.length; i < len; ++i) {
-                textBits[i] = "'" + this.textNodes[i].data + "'";
+                textParts[i] = "'" + this.textNodes[i].data + "'";
             }
-            return "[Merge(" + textBits.join(",") + ")]";
+            return "[Merge(" + textParts.join(",") + ")]";
         }
     };
 
     var optionProperties = ["elementTagName", "ignoreWhiteSpace", "applyToEditableOnly", "useExistingElements",
-        "removeEmptyElements"];
+        "removeEmptyElements", "onElementCreate"];
 
-    // TODO: Populate this with every attribute name that corresponds to a property with a different name
+    // TODO: Populate this with every attribute name that corresponds to a property with a different name. Really??
     var attrNamesForProperties = {};
 
     function ClassApplier(cssClass, options, tagNames) {
-        this.cssClass = cssClass;
-        var normalize, i, len, propName;
+        var normalize, i, len, propName, applier = this;
+        applier.cssClass = cssClass;
 
-        var elementPropertiesFromOptions = null;
+        var elementPropertiesFromOptions = null, elementAttributes = {};
 
         // Initialize from options object
         if (typeof options == "object" && options !== null) {
             tagNames = options.tagNames;
             elementPropertiesFromOptions = options.elementProperties;
+            elementAttributes = options.elementAttributes;
 
             for (i = 0; propName = optionProperties[i++]; ) {
                 if (options.hasOwnProperty(propName)) {
-                    this[propName] = options[propName];
+                    applier[propName] = options[propName];
                 }
             }
             normalize = options.normalize;
@@ -467,46 +484,52 @@ rangy.createModule("CssClassApplier", function(api, module) {
         }
 
         // Backward compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
-        this.normalize = (typeof normalize == "undefined") ? true : normalize;
+        applier.normalize = (typeof normalize == "undefined") ? true : normalize;
 
         // Initialize element properties and attribute exceptions
-        this.attrExceptions = [];
-        var el = document.createElement(this.elementTagName);
-        this.elementProperties = this.copyPropertiesToElement(elementPropertiesFromOptions, el, true);
+        applier.attrExceptions = [];
+        var el = document.createElement(applier.elementTagName);
+        applier.elementProperties = applier.copyPropertiesToElement(elementPropertiesFromOptions, el, true);
+        each(elementAttributes, function(attrName) {
+            applier.attrExceptions.push(attrName);
+        });
+        applier.elementAttributes = elementAttributes;
 
-        this.elementSortedClassName = this.elementProperties.hasOwnProperty("className") ?
-            this.elementProperties.className : cssClass;
+        applier.elementSortedClassName = applier.elementProperties.hasOwnProperty("className") ?
+            applier.elementProperties.className : cssClass;
 
         // Initialize tag names
-        this.applyToAnyTagName = false;
+        applier.applyToAnyTagName = false;
         var type = typeof tagNames;
         if (type == "string") {
             if (tagNames == "*") {
-                this.applyToAnyTagName = true;
+                applier.applyToAnyTagName = true;
             } else {
-                this.tagNames = trim(tagNames.toLowerCase()).split(/\s*,\s*/);
+                applier.tagNames = trim(tagNames.toLowerCase()).split(/\s*,\s*/);
             }
         } else if (type == "object" && typeof tagNames.length == "number") {
-            this.tagNames = [];
+            applier.tagNames = [];
             for (i = 0, len = tagNames.length; i < len; ++i) {
                 if (tagNames[i] == "*") {
-                    this.applyToAnyTagName = true;
+                    applier.applyToAnyTagName = true;
                 } else {
-                    this.tagNames.push(tagNames[i].toLowerCase());
+                    applier.tagNames.push(tagNames[i].toLowerCase());
                 }
             }
         } else {
-            this.tagNames = [this.elementTagName];
+            applier.tagNames = [applier.elementTagName];
         }
     }
 
     ClassApplier.prototype = {
         elementTagName: defaultTagName,
         elementProperties: {},
+        elementAttributes: {},
         ignoreWhiteSpace: true,
         applyToEditableOnly: false,
         useExistingElements: true,
         removeEmptyElements: true,
+        onElementCreate: null,
 
         copyPropertiesToElement: function(props, el, createCopy) {
             var s, elStyle, elProps = {}, elPropsStyle, propValue, elPropValue, attrName;
@@ -549,7 +572,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                         if (createCopy) {
                             elProps[p] = el[p];
 
-                            // Not all properties map to identically named attributes
+                            // Not all properties map to identically-named attributes
                             attrName = attrNamesForProperties.hasOwnProperty(p) ? attrNamesForProperties[p] : p;
                             this.attrExceptions.push(attrName);
                         }
@@ -558,6 +581,14 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
 
             return createCopy ? elProps : "";
+        },
+        
+        copyAttributesToElement: function(attrs, el) {
+            for (var attrName in attrs) {
+                if (attrs.hasOwnProperty(attrName)) {
+                    el.setAttribute(attrName, attrs[attrName]);
+                }
+            }
         },
 
         hasClass: function(node) {
@@ -644,7 +675,11 @@ rangy.createModule("CssClassApplier", function(api, module) {
         createContainer: function(doc) {
             var el = doc.createElement(this.elementTagName);
             this.copyPropertiesToElement(this.elementProperties, el, false);
+            this.copyAttributesToElement(this.elementAttributes, el);
             addClass(el, this.cssClass);
+            if (this.onElementCreate) {
+                this.onElementCreate(el, this);
+            }
             return el;
         },
 
@@ -653,7 +688,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
-                    elementHasProps(parent, this.elementProperties)) {
+                    elementHasProperties(parent, this.elementProperties)) {
 
                 addClass(parent, this.cssClass);
             } else {
@@ -666,7 +701,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         isRemovable: function(el) {
             return el.tagName.toLowerCase() == this.elementTagName
                 && getSortedClassName(el) == this.elementSortedClassName
-                && elementHasProps(el, this.elementProperties)
+                && elementHasProperties(el, this.elementProperties)
                 && !elementHasNonClassAttributes(el, this.attrExceptions)
                 && this.isModifiable(el);
         },
@@ -684,9 +719,15 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 return applier.isEmptyContainer(el);
             });
             
+            var rangesToPreserve = [range]
+            var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
+            
             for (var i = 0, node; node = nodesToRemove[i++]; ) {
-                node.parentNode.removeChild(node);
+                removePreservingPositions(node, positionsToPreserve);
             }
+
+            // Update the range from the preserved boundary positions
+            updateRangesFromBoundaries(rangesToPreserve, positionsToPreserve);
         },
 
         undoToTextNode: function(textNode, range, ancestorWithClass, positionsToPreserve) {
@@ -816,6 +857,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             sel.setRanges(ranges);
         },
 
+/*
         getTextSelectedByRange: function(textNode, range) {
             var textRange = range.cloneRange();
             textRange.selectNodeContents(textNode);
@@ -826,6 +868,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
             return text;
         },
+*/
 
         isAppliedToRange: function(range) {
             if (range.collapsed || range.toString() == "") {
@@ -845,6 +888,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         isAppliedToRanges: function(ranges) {
             var i = ranges.length;
+            if (i == 0) {
+                return false;
+            }
             while (i--) {
                 if (!this.isAppliedToRange(ranges[i])) {
                     return false;
@@ -866,6 +912,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             }
         },
 
+/*
         toggleRanges: function(ranges) {
             if (this.isAppliedToRanges(ranges)) {
                 this.undoToRanges(ranges);
@@ -873,6 +920,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 this.applyToRanges(ranges);
             }
         },
+*/
 
         toggleSelection: function(win) {
             if (this.isAppliedToSelection(win)) {
@@ -894,6 +942,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             return elements;
         },
 
+/*
         getElementsWithClassIntersectingSelection: function(win) {
             var sel = api.getSelection(win);
             var elements = [];
@@ -908,6 +957,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
             });
             return elements;
         },
+*/
 
         detach: function() {}
     };

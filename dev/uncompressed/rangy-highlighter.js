@@ -6,12 +6,10 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.772
- * Build date: 26 February 2013
+ * Version: 1.3alpha.799
+ * Build date: 27 November 2013
  */
-rangy.createModule("Highlighter", function(api, module) {
-    api.requireModules( ["CssClassApplier"] );
-
+rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
     var dom = api.dom;
     var contains = dom.arrayContains;
     var getBody = dom.getBody;
@@ -316,7 +314,7 @@ rangy.createModule("Highlighter", function(api, module) {
                 }
             }
 
-            var charRange, highlightCharRange, highlightRange, merged;
+            var charRange, highlightCharRange, merged;
             for (i = 0, len = charRanges.length; i < len; ++i) {
                 charRange = charRanges[i];
                 merged = false;
@@ -385,7 +383,6 @@ rangy.createModule("Highlighter", function(api, module) {
             var converter = this.converter;
             selection = selection || api.getSelection();
             var classApplier = this.classAppliers[className];
-            var highlights = this.highlights;
             var doc = selection.win.document;
             var containerElement = containerElementId ? doc.getElementById(containerElementId) : getBody(doc);
 
@@ -415,11 +412,16 @@ rangy.createModule("Highlighter", function(api, module) {
             var intersectingHighlights = this.getIntersectingHighlights( selection.getAllRanges() );
             this.removeHighlights(intersectingHighlights);
             selection.removeAllRanges();
+            return intersectingHighlights;
+        },
+
+        getHighlightsInSelection: function(selection) {
+            selection = selection || api.getSelection();
+            return this.getIntersectingHighlights(selection.getAllRanges());
         },
 
         selectionOverlapsHighlight: function(selection) {
-            selection = selection || api.getSelection();
-            return this.getIntersectingHighlights(selection.getAllRanges()).length > 0;
+            return this.getHighlightsInSelection(selection).length > 0;
         },
 
         serialize: function(options) {

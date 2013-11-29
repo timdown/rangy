@@ -26,8 +26,8 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.772
- * Build date: 26 February 2013
+ * Version: 1.3alpha.799
+ * Build date: 27 November 2013
  */
 
 /**
@@ -63,9 +63,7 @@
  * Problem is whether Rangy should ever acknowledge the space and if so, when. Another problem is whether this can be
  * feature-tested
  */
-rangy.createModule("TextRange", function(api, module) {
-    api.requireModules( ["WrappedSelection"] );
-
+rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
     var CHARACTER = "character", WORD = "word";
     var dom = api.dom, util = api.util;
@@ -87,6 +85,7 @@ rangy.createModule("TextRange", function(api, module) {
     // but not other browsers). Also test whether trailing spaces before <br> elements are collapsed.
     var trailingSpaceInBlockCollapses = false;
     var trailingSpaceBeforeBrCollapses = false;
+    var trailingSpaceBeforeBlockCollapses = false;
     var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
 
     (function() {
@@ -106,8 +105,13 @@ rangy.createModule("TextRange", function(api, module) {
         sel.collapse(el, 2);
         sel.setStart(el.firstChild, 0);
         trailingSpaceBeforeBrCollapses = ("" + sel).length == 1;
-        body.removeChild(el);
 
+        el.innerHTML = "1 <p>1</p>";
+        sel.collapse(el, 2);
+        sel.setStart(el.firstChild, 0);
+        trailingSpaceBeforeBlockCollapses = ("" + sel).length == 1;
+
+        body.removeChild(el);
         sel.removeAllRanges();
     })();
 
@@ -164,15 +168,17 @@ rangy.createModule("TextRange", function(api, module) {
     var defaultCharacterOptions = {
         includeBlockContentTrailingSpace: true,
         includeSpaceBeforeBr: true,
+        includeSpaceBeforeBlock: true,
         includePreLineTrailingSpace: true
     };
 
     var defaultCaretCharacterOptions = {
         includeBlockContentTrailingSpace: !trailingSpaceBeforeLineBreakInPreLineCollapses,
         includeSpaceBeforeBr: !trailingSpaceBeforeBrCollapses,
+        includeSpaceBeforeBlock: !trailingSpaceBeforeBlockCollapses,
         includePreLineTrailingSpace: true
     };
-
+    
     var defaultWordOptions = {
         "en": {
             wordRegex: /[a-z0-9]+('[a-z0-9]+)*/gi,
@@ -337,26 +343,6 @@ rangy.createModule("TextRange", function(api, module) {
         return getAncestors(node).concat([node]);
     }
 
-    // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
-    function isHtmlNode(node) {
-        var ns;
-        return typeof (ns = node.namespaceURI) == UNDEF || (ns === null || ns == "http://www.w3.org/1999/xhtml");
-    }
-
-    function isHtmlElement(node, tagNames) {
-        if (!node || node.nodeType != 1 || !isHtmlNode(node)) {
-            return false;
-        }
-        switch (typeof tagNames) {
-            case "string":
-                return node.tagName.toLowerCase() == tagNames.toLowerCase();
-            case "object":
-                return new RegExp("^(" + tagNames.join("|S") + ")$", "i").test(node.tagName);
-            default:
-                return true;
-        }
-    }
-
     function nextNodeDescendants(node) {
         while (node && !node.nextSibling) {
             node = node.parentNode;
@@ -389,8 +375,6 @@ rangy.createModule("TextRange", function(api, module) {
         }
         return null;
     }
-
-
 
     // Adpated from Aryeh's code.
     // "A whitespace node is either a Text node whose data is the empty string; or
@@ -530,10 +514,11 @@ rangy.createModule("TextRange", function(api, module) {
         NON_SPACE = "NON_SPACE",
         UNCOLLAPSIBLE_SPACE = "UNCOLLAPSIBLE_SPACE",
         COLLAPSIBLE_SPACE = "COLLAPSIBLE_SPACE",
+        TRAILING_SPACE_BEFORE_BLOCK = "TRAILING_SPACE_BEFORE_BLOCK",
         TRAILING_SPACE_IN_BLOCK = "TRAILING_SPACE_IN_BLOCK",
         TRAILING_SPACE_BEFORE_BR = "TRAILING_SPACE_BEFORE_BR",
-        PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK = "PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK";
-
+        PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK = "PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK",
+        TRAILING_LINE_BREAK_AFTER_BR = "TRAILING_LINE_BREAK_AFTER_BR";
 
     extend(nodeProto, {
         isCharacterDataNode: createCachingGetter("isCharacterDataNode", dom.isCharacterDataNode, "node"),
@@ -620,6 +605,17 @@ rangy.createModule("TextRange", function(api, module) {
 
             return false;
         }, "node"),
+        
+        isRenderedBlock: createCachingGetter("isRenderedBlock", function(el) {
+            // Ensure that a block element containing a <br> is considered to have inner text 
+            var brs = el.getElementsByTagName("br");
+            for (var i = 0, len = brs.length; i < len; ++i) {
+                if (!isCollapsedNode(brs[i])) {
+                    return true;
+                }
+            }
+            return this.hasInnerText();
+        }, "node"),
 
         getTrailingSpace: createCachingGetter("trailingSpace", function(el) {
             if (el.tagName.toLowerCase() == "br") {
@@ -644,7 +640,7 @@ rangy.createModule("TextRange", function(api, module) {
                     case "table-cell":
                         return "\t";
                     default:
-                        return this.hasInnerText(true) ? "\n" : "";
+                        return this.isRenderedBlock(true) ? "\n" : "";
                 }
             }
             return "";
@@ -661,7 +657,7 @@ rangy.createModule("TextRange", function(api, module) {
                 case "table-cell":
                     break;
                 default:
-                    return this.hasInnerText(false) ? "\n" : "";
+                    return this.isRenderedBlock(false) ? "\n" : "";
             }
             return "";
         }, "node")
@@ -854,15 +850,31 @@ rangy.createModule("TextRange", function(api, module) {
                             this.type = TRAILING_SPACE_BEFORE_BR;
                         } else if (nextPos.isTrailingSpace && nextPos.character == "\n") {
                             this.type = TRAILING_SPACE_IN_BLOCK;
+                        } else if (nextPos.isLeadingSpace && nextPos.character == "\n") {
+                            this.type = TRAILING_SPACE_BEFORE_BLOCK;
                         }
+                        
                         if (nextPos.character === "\n") {
                             if (this.type == TRAILING_SPACE_BEFORE_BR && !characterOptions.includeSpaceBeforeBr) {
+                            } else if (this.type == TRAILING_SPACE_BEFORE_BLOCK && !characterOptions.includeSpaceBeforeBlock) {
                             } else if (this.type == TRAILING_SPACE_IN_BLOCK && nextPos.isTrailingSpace && !characterOptions.includeBlockContentTrailingSpace) {
                             } else if (this.type == PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK && nextPos.type == NON_SPACE && !characterOptions.includePreLineTrailingSpace) {
                             } else if (this.character === "\n") {
                                 if (nextPos.isTrailingSpace) {
                                     if (this.isTrailingSpace) {
                                     } else if (this.isBr) {
+                                        nextPos.type = TRAILING_LINE_BREAK_AFTER_BR;
+                                        
+                                        if (getPreviousPos() && previousPos.isLeadingSpace && previousPos.character == "\n") {
+                                            nextPos.character = "";
+                                        } else {
+                                            //character = "\n";
+                                            //nextPos
+                                            /*
+                                             nextPos.character = "";
+                                             character = "\n";
+                                             */
+                                        }
                                     }
                                 } else {
                                     character = "\n";
@@ -1437,6 +1449,8 @@ rangy.createModule("TextRange", function(api, module) {
                 chars.push(pos);
                 text += currentChar;
             }
+            
+            //console.log("text " + text)
 
             if (isRegex) {
                 result = searchTerm.exec(text);
@@ -1457,6 +1471,7 @@ rangy.createModule("TextRange", function(api, module) {
                 returnValue = handleMatch(matchStartIndex, matchStartIndex + searchTerm.length);
                 break;
             }
+            console.log(text.replace(/\s/g, function(m) { return "[" + m.charCodeAt(0) + "]"}), matchStartIndex)
         }
 
         // Check whether regex match extends to the end of the range
@@ -1824,6 +1839,7 @@ rangy.createModule("TextRange", function(api, module) {
                     characterRange = rangeInfo.characterRange;
                     range = api.createRange(containerNode);
                     range.selectCharacters(containerNode, characterRange.start, characterRange.end, rangeInfo.characterOptions);
+                    console.log("New selected range: " + range.inspect())
                     this.addRange(range, rangeInfo.backward);
                 }
             }

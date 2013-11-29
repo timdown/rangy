@@ -10,11 +10,10 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.772
- * Build date: 26 February 2013
+ * Version: 1.3alpha.799
+ * Build date: 27 November 2013
  */
-rangy.createModule("Serializer", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
+rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
 
     // encodeURIComponent and decodeURIComponent are required for cookie handling
@@ -121,22 +120,22 @@ rangy.createModule("Serializer", function(api, module) {
     }
 
     function serializePosition(node, offset, rootNode) {
-        var pathBits = [], n = node;
+        var pathParts = [], n = node;
         rootNode = rootNode || dom.getDocument(node).documentElement;
         while (n && n != rootNode) {
-            pathBits.push(dom.getNodeIndex(n, true));
+            pathParts.push(dom.getNodeIndex(n, true));
             n = n.parentNode;
         }
-        return pathBits.join("/") + ":" + offset;
+        return pathParts.join("/") + ":" + offset;
     }
 
     function deserializePosition(serialized, rootNode, doc) {
         if (!rootNode) {
             rootNode = (doc || document).documentElement;
         }
-        var bits = serialized.split(":");
+        var parts = serialized.split(":");
         var node = rootNode;
-        var nodeIndices = bits[0] ? bits[0].split("/") : [], i = nodeIndices.length, nodeIndex;
+        var nodeIndices = parts[0] ? parts[0].split("/") : [], i = nodeIndices.length, nodeIndex;
 
         while (i--) {
             nodeIndex = parseInt(nodeIndices[i], 10);
@@ -148,7 +147,7 @@ rangy.createModule("Serializer", function(api, module) {
             }
         }
 
-        return new dom.DomPosition(node, parseInt(bits[1], 10));
+        return new dom.DomPosition(node, parseInt(parts[1], 10));
     }
 
     function serializeRange(range, omitChecksum, rootNode) {
@@ -165,6 +164,8 @@ rangy.createModule("Serializer", function(api, module) {
         return serialized;
     }
 
+    var deserializeRegex = /^([^,]+),([^,\{]+)(\{([^}]+)\})?$/;
+    
     function deserializeRange(serialized, rootNode, doc) {
         if (rootNode) {
             doc = doc || dom.getDocument(rootNode);
@@ -172,7 +173,7 @@ rangy.createModule("Serializer", function(api, module) {
             doc = doc || document;
             rootNode = doc.documentElement;
         }
-        var result = /^([^,]+),([^,\{]+)(\{([^}]+)\})?$/.exec(serialized);
+        var result = deserializeRegex.exec(serialized);
         var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
         if (checksum && checksum !== getElementChecksum(rootNode)) {
             throw module.createError("deserializeRange(): checksums of serialized range root node (" + checksum +
@@ -188,7 +189,7 @@ rangy.createModule("Serializer", function(api, module) {
         if (!rootNode) {
             rootNode = (doc || document).documentElement;
         }
-        var result = /^([^,]+),([^,]+)(\{([^}]+)\})?$/.exec(serialized);
+        var result = deserializeRegex.exec(serialized);
         var checksum = result[3];
         return !checksum || checksum === getElementChecksum(rootNode);
     }
