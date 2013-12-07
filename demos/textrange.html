@@ -57,9 +57,9 @@
 
         function initFind() {
             // Enable buttons
-            var cssClassApplierModule = rangy.modules.CssClassApplier;
+            var cssClassApplierModule = rangy.modules.ClassApplier;
             if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
-                searchResultApplier = rangy.createCssClassApplier("searchResult");
+                searchResultApplier = rangy.createClassApplier("searchResult");
 
                 var searchBox = gEBI("search"),
                     regexCheckBox = gEBI("regex"),
@@ -184,7 +184,7 @@
                 rangy.getSelection().restoreCharacterRanges(containerElement, savedSel);
             };
 
-            var redItalicApplier = rangy.createCssClassApplier("redItalic");
+            var redItalicApplier = rangy.createClassApplier("redItalic");
             var textLength = rangy.innerText(containerElement).length;
 
             changeFormattingButton.disabled = false;
