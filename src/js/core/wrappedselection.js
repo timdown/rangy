@@ -797,9 +797,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         assertNodeInSameDocument(this, node);
         var range = api.createRange(node);
         range.selectNodeContents(node);
-        console.log("before", range.inspect());
         this.setSingleRange(range);
-        console.log("after", this._ranges[0].inspect());
     };
 
     selProto.deleteFromDocument = function() {
