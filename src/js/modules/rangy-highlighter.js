@@ -482,7 +482,12 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     );
                 }
 
-                classApplier = this.classAppliers[parts[3]];
+                classApplier = this.classAppliers[ parts[3] ];
+                
+                if (!classApplier) {
+                    throw new Error("No class applier found for class '" + parts[3] + "'");
+                }
+
                 highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parseInt(parts[2]), containerElementId);
                 highlight.apply();
                 highlights.push(highlight);
