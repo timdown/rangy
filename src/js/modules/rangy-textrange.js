@@ -188,38 +188,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         }
     };
 
-    function createOptions(optionsParam, defaults) {
-        if (!optionsParam) {
-            return defaults;
-        } else {
-            var options = {};
-            extend(options, defaults);
-            extend(options, optionsParam);
-            return options;
-        }
-    }
-
-    function createWordOptions(options) {
-        var lang, defaults;
-        if (!options) {
-            return defaultWordOptions[defaultLanguage];
-        } else {
-            lang = options.language || defaultLanguage;
-            defaults = {};
-            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
-            extend(defaults, options);
-            return defaults;
-        }
-    }
-
-    function createCharacterOptions(options) {
-        return createOptions(options, defaultCharacterOptions);
-    }
-
-    function createCaretCharacterOptions(options) {
-        return createOptions(options, defaultCaretCharacterOptions);
-    }
-    
     var defaultFindOptions = {
         caseSensitive: false,
         withinRange: null,
@@ -249,6 +217,44 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         direction: "forward"
     };
 
+    function createOptions(optionsParam, defaults) {
+        if (!optionsParam) {
+            return defaults;
+        } else {
+            var options = {};
+            extend(options, defaults);
+            extend(options, optionsParam, true);
+            return options;
+        }
+    }
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            extend(defaults, options);
+            return defaults;
+        }
+    }
+
+    function createCharacterOptions(options) {
+        return createOptions(options, defaultCharacterOptions);
+    }
+
+    function createCaretCharacterOptions(options) {
+        return createOptions(options, defaultCaretCharacterOptions);
+    }
+
+    function createFindOptions(optionsParam) {
+        var options = createOptions(optionsParam, defaultFindOptions);
+        options.characterOptions = createCharacterOptions(options.wordOptions);
+        return options;
+    }
+    
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /* DOM utility functions */
@@ -1214,7 +1220,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
         function next() {
             log.debug("****** NEXT CALLED. FINISHED IS " + finished + ", pos is " + (pos ? pos.inspect() : "non-existent"));
-            var newPos = null, charPos = null;
+            var charPos = null;
             if (backward) {
                 charPos = pos;
                 if (!finished) {
@@ -1494,7 +1500,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             initialPos,
             backward,
             initialPos.session.getRangeBoundaryPosition(searchScopeRange, backward),
-            findOptions
+            findOptions.characterOptions
         );
         var text = "", chars = [], pos, currentChar, matchStartIndex, matchEndIndex;
         var result, insideRegexMatch;
@@ -1755,7 +1761,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         findText: createEntryPointFunction(
             function(session, searchTermParam, findOptions) {
                 // Set up options
-                findOptions = createOptions(findOptions, defaultFindOptions);
+                findOptions = createFindOptions(findOptions);
     
                 // Create word options if we're matching whole words only
                 if (findOptions.wholeWordsOnly) {

@@ -1096,7 +1096,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
                 // no non-text nodes.
                 var iterator = new RangeIterator(this, true);
-                var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                var boundariesInvalid = (iterator._first && isNonTextPartiallySelected(iterator._first, this) ||
                         (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
                 iterator.detach();
                 return !boundariesInvalid;
