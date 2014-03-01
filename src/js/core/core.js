@@ -137,12 +137,15 @@
                 if (props.hasOwnProperty(i)) {
                     o = obj[i];
                     p = props[i];
-                    //if (deep) alert([o !== null, typeof o == "object", p !== null, typeof p == "object"])
                     if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
                         api.util.extend(o, p, true);
                     }
                     obj[i] = p;
                 }
+            }
+            // Special case for toString, which does not show up in for...in loops in IE <= 8
+            if (props.hasOwnProperty("toString")) {
+                obj.toString = props.toString;
             }
             return obj;
         };
