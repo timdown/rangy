@@ -4,8 +4,8 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.799
- * Build date: 27 November 2013
+ * Version: 1.3alpha.804
+ * Build date: 8 December 2013
  */
 
 (function(global) {
@@ -75,7 +75,7 @@
     var modules = {};
 
     var api = {
-        version: "1.3alpha.799",
+        version: "1.3alpha.804",
         initialized: false,
         supported: true,
 
@@ -3560,9 +3560,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         assertNodeInSameDocument(this, node);
         var range = api.createRange(node);
         range.selectNodeContents(node);
-        console.log("before", range.inspect());
         this.setSingleRange(range);
-        console.log("after", this._ranges[0].inspect());
     };
 
     selProto.deleteFromDocument = function() {

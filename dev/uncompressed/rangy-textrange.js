@@ -26,8 +26,8 @@
  *
  * Copyright 2013, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.799
- * Build date: 27 November 2013
+ * Version: 1.3alpha.804
+ * Build date: 8 December 2013
  */
 
 /**
@@ -484,9 +484,11 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         };
     }
     
+/*
     api.report = function() {
         console.log("Cached: " + cachedCount + ", uncached: " + uncachedCount);
     };
+*/
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -1471,7 +1473,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 returnValue = handleMatch(matchStartIndex, matchStartIndex + searchTerm.length);
                 break;
             }
-            console.log(text.replace(/\s/g, function(m) { return "[" + m.charCodeAt(0) + "]"}), matchStartIndex)
         }
 
         // Check whether regex match extends to the end of the range
@@ -1839,7 +1840,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                     characterRange = rangeInfo.characterRange;
                     range = api.createRange(containerNode);
                     range.selectCharacters(containerNode, characterRange.start, characterRange.end, rangeInfo.characterOptions);
-                    console.log("New selected range: " + range.inspect())
                     this.addRange(range, rangeInfo.backward);
                 }
             }
