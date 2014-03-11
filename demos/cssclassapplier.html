@@ -44,11 +44,13 @@
             rangy.init();
 
             // Enable buttons
-            var cssClassApplierModule = rangy.modules.CssClassApplier;
+
+            // ClassApplier is the name for the module in 1.3. CssClassApplier is for 1.2 and earlier.
+            var classApplierModule = rangy.modules.ClassApplier || rangy.modules.CssClassApplier;
 
             // Next line is pure paranoia: it will only return false if the browser has no support for ranges,
             // selections or TextRanges. Even IE 5 would pass this test.
-            if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
+            if (rangy.supported && classApplierModule && classApplierModule.supported) {
                 boldRedApplier = rangy.createCssClassApplier("boldRed");
 
                 italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", {
