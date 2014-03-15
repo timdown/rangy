@@ -431,6 +431,16 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertFalse(applier.isAppliedToRange(range));
     });
 
+    s.test("Test issue 202 (undoToRanges)", function(t) {
+        var applier = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = '1<span class="c1">2</span>';
+        var range = rangy.createRange();
+        range.setStartAndEnd(testEl.firstChild, 1, testEl, 2);
+        applier.undoToRanges([range]);
+    });
+
     s.test("Test whitespace 1 (non-ignorable whitespace)", function(t) {
         var applier = rangy.createCssClassApplier("c1");
 

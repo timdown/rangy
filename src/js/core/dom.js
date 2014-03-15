@@ -338,7 +338,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
         }
         if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
-            return "<" + node.nodeName + idAttr + ">[" + getNodeIndex(node) + "][" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
+            return "<" + node.nodeName + idAttr + ">[index:" + getNodeIndex(node) + ",length:" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
         }
         return node.nodeName;
     }
