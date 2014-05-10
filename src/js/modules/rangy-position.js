@@ -253,7 +253,6 @@ rangy.createModule("Position", ["WrappedSelection"], function(api, module) {
         var testRange = api.createNativeRange();
         rangeSupportsGetClientRects = util.isHostMethod(testRange, "getClientRects");
         rangeSupportsGetBoundingClientRect = util.isHostMethod(testRange, "getBoundingClientRect");
-        testRange.detach();
     }
 
     util.extend(api.features, {

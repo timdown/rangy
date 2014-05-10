@@ -1147,7 +1147,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         range.setStart(startPos.node, startPos.offset);
         range.setEnd(endPos.node, endPos.offset);
         var returnVal = !range.expand("word", wordOptions);
-        range.detach();
         return returnVal;
     }
 
@@ -1568,7 +1567,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         var range = api.createRange(el);
         range.selectNodeContents(el);
         var text = range.text(characterOptions);
-        range.detach();
         log.debug("innerText is '" + text.replace(/\s/g, function(matched) { return "[" + matched.charCodeAt(0) + "]"; }) + "'");
         return text;
     };

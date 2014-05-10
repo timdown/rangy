@@ -219,7 +219,6 @@
             if (areHostMethods(testRange, domRangeMethods) && areHostProperties(testRange, domRangeProperties)) {
                 implementsDomRange = true;
             }
-            testRange.detach();
         }
 
         var body = getBody(document);

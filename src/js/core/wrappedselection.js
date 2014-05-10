@@ -160,6 +160,10 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                     r2.setEnd(textNode, 3);
                     r2.setStart(textNode, 2);
                     sel.addRange(r1);
+
+                    // Next line causes Chrome 36 to print a console error of
+                    // "Discontiguous selection is not supported.".
+                    // https://code.google.com/p/chromium/issues/detail?id=353069#c4
                     sel.addRange(r2);
 
                     selectionSupportsMultipleRanges = (sel.rangeCount == 2);
@@ -169,14 +173,13 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 // Clean up
                 body.removeChild(testEl);
                 sel.removeAllRanges();
-                r1.detach();
 
                 for (i = 0; i < originalSelectionRangeCount; ++i) {
                     if (i == 0 && originalSelectionBackward) {
                         if (addRangeBackwardToNative) {
                             addRangeBackwardToNative(sel, originalSelectionRanges[i]);
                         } else {
-                            api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because browser does not support Selection.extend");
+                            api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because the browser does not support Selection.extend");
                             sel.addRange(originalSelectionRanges[i])
                         }
                     } else {

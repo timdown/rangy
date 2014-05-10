@@ -311,7 +311,6 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     containerElementRange = api.createRange(this.doc);
                     containerElementRange.selectNodeContents(containerElement);
                     containerElementCharRange = new CharacterRange(0, containerElementRange.toString().length);
-                    containerElementRange.detach();
                 }
             }
 

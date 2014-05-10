@@ -441,10 +441,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
             textRange.selectNodeContents(textNode);
 
             var intersectionRange = textRange.intersection(range);
-            var text = intersectionRange ? intersectionRange.toString() : "";
-            textRange.detach();
-
-            return text;
+            return intersectionRange ? intersectionRange.toString() : "";
         },
 
         isAppliedToElement: function(el) {

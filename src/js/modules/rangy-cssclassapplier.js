@@ -161,7 +161,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         var intersectionRange = textNodeRange.intersection(range);
         var text = intersectionRange ? intersectionRange.toString() : "";
-        textNodeRange.detach();
 
         return text != "";
     }
@@ -212,7 +211,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function elementHasProperties(el, props) {
-        each(props, function(p, propValue) {
+        return each(props, function(p, propValue) {
             if (typeof propValue == "object") {
                 if (!elementHasProperties(el[p], propValue)) {
                     return false;
@@ -221,7 +220,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 return false;
             }
         });
-        return true;
     }
 
     var getComputedStyleProperty = dom.getComputedStyleProperty;

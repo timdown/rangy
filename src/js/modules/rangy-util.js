@@ -84,7 +84,6 @@ rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
                     outerNode = node;
                 }
             }
-            nodeRange.detach();
             return outerNode;
         }
 

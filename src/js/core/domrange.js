@@ -77,7 +77,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             if (partiallySelected) {
                 subIterator = iterator.getSubtreeIterator();
                 node.appendChild(cloneSubtree(subIterator));
-                subIterator.detach(true);
+                subIterator.detach();
             }
 
             if (node.nodeType == 10) { // DocumentType
@@ -102,7 +102,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                     // the node selected by the Range.
                     subRangeIterator = rangeIterator.getSubtreeIterator();
                     iterateSubtree(subRangeIterator, func, iteratorState);
-                    subRangeIterator.detach(true);
+                    subRangeIterator.detach();
                     if (iteratorState.stop) {
                         return;
                     }
@@ -127,7 +127,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             if (iterator.isPartiallySelectedSubtree()) {
                 subIterator = iterator.getSubtreeIterator();
                 deleteSubtree(subIterator);
-                subIterator.detach(true);
+                subIterator.detach();
             } else {
                 iterator.remove();
             }
@@ -143,7 +143,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 node = node.cloneNode(false);
                 subIterator = iterator.getSubtreeIterator();
                 node.appendChild(extractSubtree(subIterator));
-                subIterator.detach(true);
+                subIterator.detach();
             } else {
                 iterator.remove();
             }
@@ -309,10 +309,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             return new RangeIterator(subRange, this.clonePartiallySelectedTextNodes);
         },
 
-        detach: function(detachRange) {
-            if (detachRange) {
-                this.range.detach();
-            }
+        detach: function() {
             this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
         }
     };
@@ -815,7 +812,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 var lastTextNode = textNodes.pop();
                 nodeRange.setEnd(lastTextNode, lastTextNode.length);
                 var contains = this.containsRange(nodeRange);
-                nodeRange.detach();
                 return contains;
             } else {
                 return this.containsNodeContents(node);
@@ -856,7 +852,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 preSelectionRange.setEnd(range.startContainer, range.startOffset);
                 start = preSelectionRange.toString().length;
                 end = start + range.toString().length;
-                preSelectionRange.detach();
             }
 
             return {

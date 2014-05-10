@@ -568,7 +568,7 @@ rangy.createModule("Commands", ["WrappedSelection"], function(api, module) {
                 // node selected by the Range.
                 subRangeIterator = rangeIterator.getSubtreeIterator();
                 decomposeSubtree(subRangeIterator, nodes);
-                subRangeIterator.detach(true);
+                subRangeIterator.detach();
             } else {
                 nodes.push(node);
             }

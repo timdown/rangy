@@ -39,7 +39,6 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
         markerEl.appendChild(doc.createTextNode(markerTextChar));
 
         boundaryRange.insertNode(markerEl);
-        boundaryRange.detach();
         return markerEl;
     }
 

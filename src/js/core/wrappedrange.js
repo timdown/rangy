@@ -44,7 +44,6 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
             }
 
             function detach(range) {
-                range.nativeRange.detach();
                 range.detached = true;
                 var i = rangeProperties.length;
                 while (i--) {
@@ -263,8 +262,6 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
 
             // Clean up
             getBody(document).removeChild(testTextNode);
-            range.detach();
-            range2.detach();
 
             rangeProto.getName = function() {
                 return "WrappedRange";
