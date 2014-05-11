@@ -175,9 +175,9 @@ rangy.createModule("Commands", ["WrappedSelection"], function(api, module) {
     // or the Element child of a Document whose designMode is enabled."
     function isEditingHost(node) {
         var parent;
-        return node && node.nodeType == 1
-            && (( (parent = node.parentNode) && parent.nodeType == 9 && parent.designMode == "on")
-            || (isEditableElement(node) && !isEditableElement(node.parentNode)));
+        return node && node.nodeType == 1 &&
+            (( (parent = node.parentNode) && parent.nodeType == 9 && parent.designMode == "on") ||
+            (isEditableElement(node) && !isEditableElement(node.parentNode)));
     }
 
     // The spec says "Something is editable if it is a node which is not an editing host, does
@@ -408,8 +408,8 @@ rangy.createModule("Commands", ["WrappedSelection"], function(api, module) {
         }
         var computedWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
 
-        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace))
-            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
+        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace)) ||
+            (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
     }
 
     // "node is a collapsed whitespace node if the following algorithm returns

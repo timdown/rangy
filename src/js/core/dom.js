@@ -232,8 +232,8 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
         // Test if a DOM node has been passed and obtain a document object for it if so
         else if (util.isHostProperty(obj, "nodeType")) {
-            doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe")
-                ? getIframeDocument(obj) : getDocument(obj);
+            doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe") ?
+                getIframeDocument(obj) : getDocument(obj);
         }
 
         // Test if the doc parameter appears to be a Window object
@@ -306,8 +306,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     var crashyTextNodes = false;
 
     function isBrokenNode(node) {
+        var n;
         try {
-            node.parentNode;
+            n = node.parentNode;
             return false;
         } catch (e) {
             return true;

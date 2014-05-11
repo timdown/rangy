@@ -83,9 +83,9 @@ rangy.createModule("Commands", ["WrappedSelection"], function(api, module) {
     // parent node is not an element or whose isContentEditable property returns false, or a Document whose designMode
     // is enabled."
     function isEditingHost(node) {
-        return node
-            && ((node.nodeType == 9 && node.designMode == "on")
-            || (isEditableElement(node) && !isEditableElement(node.parentNode)));
+        return node &&
+            ((node.nodeType == 9 && node.designMode == "on") ||
+            (isEditableElement(node) && !isEditableElement(node.parentNode)));
     }
 
     // The spec says "Something is editable if it is a node which is not an editing host, does

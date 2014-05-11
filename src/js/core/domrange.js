@@ -411,11 +411,11 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     }
 
     function isRangeValid(range) {
-        return (!!range.startContainer && !!range.endContainer
-                && !isOrphan(range.startContainer)
-                && !isOrphan(range.endContainer)
-                && isValidOffset(range.startContainer, range.startOffset)
-                && isValidOffset(range.endContainer, range.endOffset));
+        return (!!range.startContainer && !!range.endContainer &&
+                !isOrphan(range.startContainer) &&
+                !isOrphan(range.endContainer) &&
+                isValidOffset(range.startContainer, range.startOffset) &&
+                isValidOffset(range.endContainer, range.endOffset));
     }
 
     function assertRangeValid(range) {
@@ -473,9 +473,9 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             // and element's local name is "html" and element's namespace is the HTML
             // namespace"
             if (el === null || (
-                el.nodeName == "HTML"
-                && dom.isHtmlNamespace(getDocument(el).documentElement)
-                && dom.isHtmlNamespace(el)
+                el.nodeName == "HTML" &&
+                dom.isHtmlNamespace(getDocument(el).documentElement) &&
+                dom.isHtmlNamespace(el)
             )) {
 
             // "let element be a new Element with "body" as its local name and the HTML

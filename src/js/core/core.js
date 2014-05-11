@@ -322,7 +322,7 @@
             }
             
             // Now run initializer
-            this.initializer(this)
+            this.initializer(this);
         },
         
         fail: function(reason) {
@@ -337,8 +337,8 @@
         },
 
         deprecationNotice: function(deprecated, replacement) {
-            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use "
-                + replacement + " instead");
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use " +
+                replacement + " instead");
         },
 
         createError: function(msg) {

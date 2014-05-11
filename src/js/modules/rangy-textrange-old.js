@@ -126,9 +126,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     // resolved value "inline" or "inline-block" or "inline-table" or "none", or a
     // Document, or a DocumentFragment."
     function isBlockNode(node) {
-        return node
-            && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node)))
-            || node.nodeType == 9 || node.nodeType == 11);
+        return node &&
+            ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node))) ||
+            node.nodeType == 9 || node.nodeType == 11);
     }
 
     function getLastDescendantOrSelf(node) {
@@ -137,8 +137,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     }
 
     function containsPositions(node) {
-        return dom.isCharacterDataNode(node)
-            || !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
+        return dom.isCharacterDataNode(node) ||
+            !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
     }
 
     function getAncestors(node) {
@@ -220,9 +220,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     function isVisibilityHiddenTextNode(textNode) {
         var el;
-        return textNode.nodeType == 3
-            && (el = textNode.parentNode)
-            && getComputedStyleProperty(el, "visibility") == "hidden";
+        return textNode.nodeType == 3 &&
+            (el = textNode.parentNode) &&
+            getComputedStyleProperty(el, "visibility") == "hidden";
     }
 
     // Adpated from Aryeh's code.
@@ -247,8 +247,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         }
         var computedWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
 
-        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace))
-            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
+        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace)) ||
+            (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
     }
 
     // Adpated from Aryeh's code.
@@ -365,28 +365,28 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     function getComputedDisplay(el, win) {
         var display = getComputedStyleProperty(el, "display", win);
         var tagName = el.tagName.toLowerCase();
-        return (display == "block"
-                && tableCssDisplayBlock
-                && defaultDisplayValueForTag.hasOwnProperty(tagName))
-            ? defaultDisplayValueForTag[tagName] : display;
+        return (display == "block" &&
+                tableCssDisplayBlock &&
+                defaultDisplayValueForTag.hasOwnProperty(tagName)) ?
+            defaultDisplayValueForTag[tagName] : display;
     }
 
     function isCollapsedNode(node) {
         var type = node.nodeType;
         //log.debug("isCollapsedNode", isHidden(node), /^(script|style)$/i.test(node.nodeName), isCollapsedWhitespaceNode(node));
-        return type == 7 /* PROCESSING_INSTRUCTION */
-            || type == 8 /* COMMENT */
-            || isHidden(node)
-            || /^(script|style)$/i.test(node.nodeName)
-            || isVisibilityHiddenTextNode(node)
-            || isCollapsedWhitespaceNode(node);
+        return type == 7 /* PROCESSING_INSTRUCTION */  ||
+            type == 8 /* COMMENT */ ||
+            isHidden(node) ||
+            /^(script|style)$/i.test(node.nodeName) ||
+            isVisibilityHiddenTextNode(node) ||
+            isCollapsedWhitespaceNode(node);
     }
 
     function isIgnoredNode(node, win) {
         var type = node.nodeType;
-        return type == 7 /* PROCESSING_INSTRUCTION */
-            || type == 8 /* COMMENT */
-            || (type == 1 && getComputedDisplay(node, win) == "none");
+        return type == 7 /* PROCESSING_INSTRUCTION */ ||
+            type == 8 /* COMMENT */ ||
+            (type == 1 && getComputedDisplay(node, win) == "none");
     }
 
     function hasInnerText(node) {

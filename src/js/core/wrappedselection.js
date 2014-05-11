@@ -180,10 +180,10 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                             addRangeBackwardToNative(sel, originalSelectionRanges[i]);
                         } else {
                             api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because the browser does not support Selection.extend");
-                            sel.addRange(originalSelectionRanges[i])
+                            sel.addRange(originalSelectionRanges[i]);
                         }
                     } else {
-                        sel.addRange(originalSelectionRanges[i])
+                        sel.addRange(originalSelectionRanges[i]);
                     }
                 }
             }

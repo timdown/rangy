@@ -153,9 +153,8 @@ function copyModuleScripts() {
 }
 
 function clean() {
-    var rimraf = require("rimraf");
     rimraf(gitDir, function() {
-        console.log("Deleted SVN directory");
+        console.log("Deleted Git directory");
         callback();
     });
 }
@@ -269,7 +268,7 @@ function minify() {
                 ascii_only: true
             });
 
-            fs.writeFileSync(dest, licence + "\r\n" + final_code, FILE_ENCODING);
+            fs.writeFileSync(dest, licence + "\r\n" + final_code.code, FILE_ENCODING);
         } catch (ex) {
             console.log(ex, ex.stack);
             error = true;
