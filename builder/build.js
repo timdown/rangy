@@ -1,20 +1,23 @@
 var http = require("http");
 var fs = require("fs");
-var wrench = require("wrench");
 var path = require("path");
 var util = require("util");
 var exec = require("child_process").exec;
+var uglifyJs = require("uglify-js");
+var rimraf = require("rimraf");
+var jshint = require("jshint");
 
 var FILE_ENCODING = "utf-8";
 
 var buildSpec = {
     baseVersion: "1.3alpha",
-    svnUrl: "http://rangy.googlecode.com/svn/trunk/src/js/"
+    gitUrl: "https://github.com/timdown/rangy.git",
+    gitBranch: "master"
 };
 
 var buildDir = "build/";
 
-var svnDir = buildDir + "checkout/", srcDir = svnDir + "js/";
+var gitDir = buildDir + "repository/", srcDir = gitDir + "src/js/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
@@ -57,7 +60,7 @@ function copyFileSync(srcFile, destFile) {
 
 function deleteBuildDir() {
     // Delete the old build directory
-    if (path.existsSync(buildDir)) {
+    if (fs.existsSync(buildDir)) {
         var rimraf = require("rimraf");
         rimraf(buildDir, function() {
             console.log("Deleted old build directory");
@@ -71,13 +74,37 @@ function deleteBuildDir() {
 
 function createBuildDir() {
     fs.mkdirSync(buildDir);
-    fs.mkdirSync(svnDir);
+    fs.mkdirSync(gitDir);
     console.log("Created build directory " + path.resolve(buildDir));
     callback();
 }
 
+function cloneGitRepository() {
+    var cloneCmd = "git clone " + buildSpec.gitUrl + " " + gitDir;
+    console.log("Cloning Git repo: " + cloneCmd);
+    exec(cloneCmd, function(error, stdout, stderr) {
+        console.log("Cloned Git repository");
+        callback();
+    });
+}
+
+function getVersion() {
+    console.log("Getting version from Git repo");
+    exec("git describe", function(error, stdout, stderr) {
+        console.log(error, stdout, stderr);
+        buildVersion = stdout.trim();
+        zipDir = buildDir + "rangy-" + buildVersion + "/";
+        fs.mkdirSync(zipDir);
+        uncompressedBuildDir = zipDir + "uncompressed/";
+        fs.mkdirSync(uncompressedBuildDir);
+        console.log("Got git version " + stdout);
+        callback();
+    });
+}
+
+/*
 function checkoutSvnRepository() {
-    exec("svn checkout " + buildSpec.svnUrl, { cwd: svnDir }, function(error, stdout, stderr) {
+    exec("svn checkout " + buildSpec.svnUrl, { cwd: gitDir }, function(error, stdout, stderr) {
         console.log("Checked out SVN repository ", stdout, stderr);
         callback();
     });
@@ -94,6 +121,7 @@ function getVersion() {
         callback();
     });
 }
+*/
 
 function concatCoreScripts() {
     function prependJsPath(fileList) {
@@ -126,7 +154,7 @@ function copyModuleScripts() {
 
 function clean() {
     var rimraf = require("rimraf");
-    rimraf(svnDir, function() {
+    rimraf(gitDir, function() {
         console.log("Deleted SVN directory");
         callback();
     });
@@ -188,8 +216,6 @@ function substituteBuildVars() {
 
 function lint() {
     // Run JSHint only on non-library code
-    var jshint = require("jshint");
-
     function doLint(file) {
         var buf = fs.readFileSync(file, FILE_ENCODING);
         // Remove Byte Order Mark
@@ -200,8 +226,10 @@ function lint() {
             loopfunc: true,
             scripturl: true,
             eqeqeq: false,
-            eqnull: false,
-            laxbreak: true
+            browser: true,
+            plusplus: false,
+            '-W041': true,
+            '-W018': true
         });
 
         var errors = jshint.JSHINT.errors;
@@ -235,15 +263,9 @@ function minify() {
     // Uglify
     function uglify(src, dest) {
         var licence = getLicence(src);
-        var uglify = require("uglify-js");
-        var jsp = uglify.parser;
-        var pro = uglify.uglify;
 
         try {
-            var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
-            ast = pro.ast_mangle(ast); // get a new AST with mangled names
-            ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-            var final_code = pro.gen_code(ast, {
+            var final_code = uglifyJs.minify(src, {
                 ascii_only: true
             });
 
@@ -294,7 +316,7 @@ function zip() {
 var actions = [
     deleteBuildDir,
     createBuildDir,
-    checkoutSvnRepository,
+    cloneGitRepository,
     getVersion,
     concatCoreScripts,
     copyModuleScripts,
