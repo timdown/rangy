@@ -81,7 +81,7 @@ function createBuildDir() {
 
 function cloneGitRepository() {
     var cloneCmd = "git clone " + buildSpec.gitUrl + " " + gitDir;
-    console.log("Cloning Git repo: " + cloneCmd);
+    console.log("Cloning Git repository: " + cloneCmd);
     exec(cloneCmd, function(error, stdout, stderr) {
         console.log("Cloned Git repository");
         callback();
@@ -92,7 +92,9 @@ function getVersion() {
     console.log("Getting version from Git repo");
     exec("git describe", function(error, stdout, stderr) {
         console.log(error, stdout, stderr);
-        buildVersion = stdout.trim();
+        var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
+        var commitNumber = parseInt(result[1]) + 811;
+        buildVersion = buildSpec.baseVersion + "." + commitNumber;
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";
