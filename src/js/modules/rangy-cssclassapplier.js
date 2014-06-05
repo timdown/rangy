@@ -366,7 +366,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName &&
+        return el1.tagName.toLowerCase() == el2.tagName.toLowerCase() &&
             haveSameClasses(el1, el2) &&
             elementsHaveSameNonClassAttributes(el1, el2) &&
             getComputedStyleProperty(el1, "display") == "inline" &&
