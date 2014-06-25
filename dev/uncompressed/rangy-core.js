@@ -2276,9 +2276,25 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
                 };
 
                 rangeProto.setEnd = function(node, offset) {
-                    this.nativeRange.setEnd(node, offset);
-                    updateRangeProperties(this);
-                };
+		var error = false;
+ 
+		if (navigator.userAgent.indexOf('Mozilla') != -1 && node.attributes !== undefined && node.attributes.length > 0) {
+		    for (var i in node.attributes) {
+			if (node.attributes[i].name == "contenteditable" && node.attributes[i].value == "true") {
+			    error = true;
+			    break;
+			}
+		    }
+		    
+		    
+		}
+
+
+		if (!error) {
+		    this.nativeRange.setEnd(node, offset);
+			updateRangeProperties(this);
+		}
+		};
 
                 createBeforeAfterNodeSetter = function(name) {
                     return function(node) {
