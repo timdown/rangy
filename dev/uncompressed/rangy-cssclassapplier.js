@@ -690,6 +690,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProperties(parent, this.elementProperties)) {
 
+		this.copyAttributesToElement(this.elementAttributes, parent); // consider elementAttributes
                 addClass(parent, this.cssClass);
             } else {
                 var el = this.createContainer(dom.getDocument(textNode));
@@ -748,6 +749,13 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 replaceWithOwnChildrenPreservingPositions(ancestorWithClass, positionsToPreserve);
             } else {
                 removeClass(ancestorWithClass, this.cssClass);
+		// check for attr
+		if (this.elementAttributes) {
+		    for (var i in this.elementAttributes) {
+			// remove attr
+			ancestorWithClass.removeAttribute(i);
+		    }		    
+		}
             }
         },
 
