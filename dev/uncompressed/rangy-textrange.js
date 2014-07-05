@@ -24,10 +24,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.20140706
+ * Build date: 6 July 2014
  */
 
 /**
@@ -187,38 +187,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         }
     };
 
-    function createOptions(optionsParam, defaults) {
-        if (!optionsParam) {
-            return defaults;
-        } else {
-            var options = {};
-            extend(options, defaults);
-            extend(options, optionsParam);
-            return options;
-        }
-    }
-
-    function createWordOptions(options) {
-        var lang, defaults;
-        if (!options) {
-            return defaultWordOptions[defaultLanguage];
-        } else {
-            lang = options.language || defaultLanguage;
-            defaults = {};
-            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
-            extend(defaults, options);
-            return defaults;
-        }
-    }
-
-    function createCharacterOptions(options) {
-        return createOptions(options, defaultCharacterOptions);
-    }
-
-    function createCaretCharacterOptions(options) {
-        return createOptions(options, defaultCaretCharacterOptions);
-    }
-    
     var defaultFindOptions = {
         caseSensitive: false,
         withinRange: null,
@@ -248,6 +216,44 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         direction: "forward"
     };
 
+    function createOptions(optionsParam, defaults) {
+        if (!optionsParam) {
+            return defaults;
+        } else {
+            var options = {};
+            extend(options, defaults);
+            extend(options, optionsParam, true);
+            return options;
+        }
+    }
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            extend(defaults, options);
+            return defaults;
+        }
+    }
+
+    function createCharacterOptions(options) {
+        return createOptions(options, defaultCharacterOptions);
+    }
+
+    function createCaretCharacterOptions(options) {
+        return createOptions(options, defaultCaretCharacterOptions);
+    }
+
+    function createFindOptions(optionsParam) {
+        var options = createOptions(optionsParam, defaultFindOptions);
+        options.characterOptions = createCharacterOptions(options.wordOptions);
+        return options;
+    }
+    
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /* DOM utility functions */
@@ -284,10 +290,10 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     function getComputedDisplay(el, win) {
         var display = getComputedStyleProperty(el, "display", win);
         var tagName = el.tagName.toLowerCase();
-        return (display == "block"
-            && tableCssDisplayBlock
-            && defaultDisplayValueForTag.hasOwnProperty(tagName))
-            ? defaultDisplayValueForTag[tagName] : display;
+        return (display == "block" &&
+                tableCssDisplayBlock &&
+                defaultDisplayValueForTag.hasOwnProperty(tagName)) ?
+            defaultDisplayValueForTag[tagName] : display;
     }
 
     function isHidden(node) {
@@ -303,9 +309,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     function isVisibilityHiddenTextNode(textNode) {
         var el;
-        return textNode.nodeType == 3
-            && (el = textNode.parentNode)
-            && getComputedStyleProperty(el, "visibility") == "hidden";
+        return textNode.nodeType == 3 &&
+            (el = textNode.parentNode) &&
+            getComputedStyleProperty(el, "visibility") == "hidden";
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -315,9 +321,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     // resolved value "inline" or "inline-block" or "inline-table" or "none", or a
     // Document, or a DocumentFragment."
     function isBlockNode(node) {
-        return node
-            && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node)))
-            || node.nodeType == 9 || node.nodeType == 11);
+        return node &&
+            ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node))) ||
+            node.nodeType == 9 || node.nodeType == 11);
     }
 
     function getLastDescendantOrSelf(node) {
@@ -326,8 +332,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     }
 
     function containsPositions(node) {
-        return dom.isCharacterDataNode(node)
-            || !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
+        return dom.isCharacterDataNode(node) ||
+            !/^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param)$/i.test(node.nodeName);
     }
 
     function getAncestors(node) {
@@ -398,8 +404,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         }
         var computedWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
 
-        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace))
-            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
+        return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace)) ||
+            (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
     }
 
     // Adpated from Aryeh's code.
@@ -434,19 +440,19 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     function isCollapsedNode(node) {
         var type = node.nodeType;
-        return type == 7 /* PROCESSING_INSTRUCTION */
-            || type == 8 /* COMMENT */
-            || isHidden(node)
-            || /^(script|style)$/i.test(node.nodeName)
-            || isVisibilityHiddenTextNode(node)
-            || isCollapsedWhitespaceNode(node);
+        return type == 7 /* PROCESSING_INSTRUCTION */ ||
+            type == 8 /* COMMENT */ ||
+            isHidden(node) ||
+            /^(script|style)$/i.test(node.nodeName) ||
+            isVisibilityHiddenTextNode(node) ||
+            isCollapsedWhitespaceNode(node);
     }
 
     function isIgnoredNode(node, win) {
         var type = node.nodeType;
-        return type == 7 /* PROCESSING_INSTRUCTION */
-            || type == 8 /* COMMENT */
-            || (type == 1 && getComputedDisplay(node, win) == "none");
+        return type == 7 /* PROCESSING_INSTRUCTION */ ||
+            type == 8 /* COMMENT */ ||
+            (type == 1 && getComputedDisplay(node, win) == "none");
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -1161,7 +1167,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         var pos = startPos, finished = false;
 
         function next() {
-            var newPos = null, charPos = null;
+            var charPos = null;
             if (backward) {
                 charPos = pos;
                 if (!finished) {
@@ -1410,7 +1416,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         var range = api.createRange(startPos.node);
         range.setStartAndEnd(startPos.node, startPos.offset, endPos.node, endPos.offset);
         var returnVal = !range.expand("word", wordOptions);
-        range.detach();
         return returnVal;
     }
 
@@ -1420,7 +1425,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             initialPos,
             backward,
             initialPos.session.getRangeBoundaryPosition(searchScopeRange, backward),
-            findOptions
+            findOptions.characterOptions
         );
         var text = "", chars = [], pos, currentChar, matchStartIndex, matchEndIndex;
         var result, insideRegexMatch;
@@ -1677,7 +1682,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         findText: createEntryPointFunction(
             function(session, searchTermParam, findOptions) {
                 // Set up options
-                findOptions = createOptions(findOptions, defaultFindOptions);
+                findOptions = createFindOptions(findOptions);
     
                 // Create word options if we're matching whole words only
                 if (findOptions.wholeWordsOnly) {
@@ -1864,7 +1869,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         var range = api.createRange(el);
         range.selectNodeContents(el);
         var text = range.text(characterOptions);
-        range.detach();
         return text;
     };
 

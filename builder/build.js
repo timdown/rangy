@@ -94,7 +94,8 @@ function getVersion() {
         console.log(error, stdout, stderr);
         var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
         var commitNumber = parseInt(result[1]);
-        buildVersion = buildSpec.baseVersion + "." + commitNumber;
+        var now = new Date();
+        buildVersion = buildSpec.baseVersion + "." + [now.getFullYear(), ("" + (101 + now.getMonth())).slice(1), ("" + (100 + now.getDate())).slice(1)].join("");
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";
