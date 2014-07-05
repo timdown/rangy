@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript" src="lib/log4javascript.js"></script>
+    <script>
+        var appender = new log4javascript.PopUpAppender();
+        log4javascript.getRootLogger().addAppender(appender);
+    </script>
+    <script type="text/javascript" src="src/js/core/core.js"></script>
+    <script type="text/javascript" src="src/js/core/dom.js"></script>
+    <script type="text/javascript" src="src/js/core/domrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="src/js/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="src/js/modules/rangy-textrange.js"></script>
+</head>
+<body>
+
+<table>
+    <tr>
+        <td>
+            <p contenteditable="true" onclick="rangy.getSelection().expand('word')">Select the end of this</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p contenteditable="true">
+                ŠŠŠŠŠŠ
+            </p>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
