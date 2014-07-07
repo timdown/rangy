@@ -2287,8 +2287,9 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
  
 		if (navigator.userAgent.indexOf('Mozilla') != -1 && node.attributes !== undefined && node.attributes.length > 0) {
 		    for (var i in node.attributes) {
-			if (node.attributes[i].name == "contenteditable" && node.attributes[i].value == "true") {
+			if (node.nodeName == 'DIV' && node.attributes[i].name == "contenteditable" && node.attributes[i].value == "true") {
 			    error = true;
+			    console.log('Caught Firefox Node boundray problem');
 			    break;
 			}
 		    }
