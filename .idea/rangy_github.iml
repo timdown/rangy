@@ -5,10 +5,10 @@
       <excludeFolder url="file://$MODULE_DIR$/build" />
       <excludeFolder url="file://$MODULE_DIR$/builder/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/currentrelease" />
-      <excludeFolder url="file://$MODULE_DIR$/dev" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Node.js v0.10.24 Core Modules" level="application" />
   </component>
 </module>
 

@@ -8,10 +8,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.20140706
+ * Build date: 6 July 2014
  */
 rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
@@ -174,10 +174,13 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
             rootNode = doc.documentElement;
         }
         var result = deserializeRegex.exec(serialized);
-        var checksum = result[4], rootNodeChecksum = getElementChecksum(rootNode);
-        if (checksum && checksum !== getElementChecksum(rootNode)) {
-            throw module.createError("deserializeRange(): checksums of serialized range root node (" + checksum +
+        var checksum = result[4];
+        if (checksum) {
+            var rootNodeChecksum = getElementChecksum(rootNode);
+            if (checksum !== rootNodeChecksum) {
+                throw module.createError("deserializeRange(): checksums of serialized range root node (" + checksum +
                     ") and target root node (" + rootNodeChecksum + ") do not match");
+            }
         }
         var start = deserializePosition(result[1], rootNode, doc), end = deserializePosition(result[2], rootNode, doc);
         var range = api.createRange(doc);

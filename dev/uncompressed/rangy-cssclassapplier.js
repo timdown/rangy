@@ -7,10 +7,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.20140706
+ * Build date: 6 July 2014
  */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
@@ -74,19 +74,19 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
-        var node = position.node, offset = position.offset;
-        var newNode = node, newOffset = offset;
+        var posNode = position.node, posOffset = position.offset;
+        var newNode = posNode, newOffset = posOffset;
 
-        if (node == newParent && offset > newIndex) {
+        if (posNode == newParent && posOffset > newIndex) {
             ++newOffset;
         }
 
-        if (node == oldParent && (offset == oldIndex  || offset == oldIndex + 1)) {
+        if (posNode == oldParent && (posOffset == oldIndex  || posOffset == oldIndex + 1)) {
             newNode = newParent;
             newOffset += newIndex - oldIndex;
         }
 
-        if (node == oldParent && offset > oldIndex + 1) {
+        if (posNode == oldParent && posOffset > oldIndex + 1) {
             --newOffset;
         }
 
@@ -140,7 +140,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             children.push(child);
         }
         if (removeNode) {
-            node.parentNode.removeChild(node);
+            removePreservingPositions(node, positionsToPreserve);
         }
         return children;
     }
@@ -155,7 +155,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         var intersectionRange = textNodeRange.intersection(range);
         var text = intersectionRange ? intersectionRange.toString() : "";
-        textNodeRange.detach();
 
         return text != "";
     }
@@ -206,7 +205,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function elementHasProperties(el, props) {
-        each(props, function(p, propValue) {
+        return each(props, function(p, propValue) {
             if (typeof propValue == "object") {
                 if (!elementHasProperties(el[p], propValue)) {
                     return false;
@@ -215,7 +214,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 return false;
             }
         });
-        return true;
     }
 
     var getComputedStyleProperty = dom.getComputedStyleProperty;
@@ -235,9 +233,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function isEditingHost(node) {
         var parent;
-        return node && node.nodeType == 1
-            && (( (parent = node.parentNode) && parent.nodeType == 9 && parent.designMode == "on")
-            || (isEditableElement(node) && !isEditableElement(node.parentNode)));
+        return node && node.nodeType == 1 &&
+            (( (parent = node.parentNode) && parent.nodeType == 9 && parent.designMode == "on") ||
+            (isEditableElement(node) && !isEditableElement(node.parentNode)));
     }
 
     function isEditable(node) {
@@ -326,8 +324,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             } else if (descendantOffset == descendantNode.length) {
                 descendantOffset = descendantIndex + 1;
             } else {
-                throw module.createError("splitNodeAt() should not be called with offset in the middle of a data node ("
-                    + descendantOffset + " in " + descendantNode.data);
+                throw module.createError("splitNodeAt() should not be called with offset in the middle of a data node (" +
+                    descendantOffset + " in " + descendantNode.data);
             }
             descendantNode = descendantNode.parentNode;
         }
@@ -361,11 +359,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName
-            && haveSameClasses(el1, el2)
-            && elementsHaveSameNonClassAttributes(el1, el2)
-            && getComputedStyleProperty(el1, "display") == "inline"
-            && getComputedStyleProperty(el2, "display") == "inline";
+        return el1.tagName == el2.tagName &&
+            haveSameClasses(el1, el2) &&
+            elementsHaveSameNonClassAttributes(el1, el2) &&
+            getComputedStyleProperty(el1, "display") == "inline" &&
+            getComputedStyleProperty(el2, "display") == "inline";
     }
 
     function createAdjacentMergeableTextNodeGetter(forward) {
@@ -411,6 +409,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var textNodes = this.textNodes;
             var firstTextNode = textNodes[0];
             if (textNodes.length > 1) {
+                var firstTextNodeIndex = dom.getNodeIndex(firstTextNode);
                 var textParts = [], combinedTextLength = 0, textNode, parent;
                 for (var i = 0, len = textNodes.length, j, position; i < len; ++i) {
                     textNode = textNodes[i];
@@ -426,6 +425,14 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                                 if (position.node == textNode) {
                                     position.node = firstTextNode;
                                     position.offset += combinedTextLength;
+                                }
+                                // Handle case where both text nodes precede the position within the same parent node
+                                if (position.node == parent && position.offset > firstTextNodeIndex) {
+                                    --position.offset;
+                                    if (position.offset == firstTextNodeIndex + 1 && i < len - 1) {
+                                        position.node = firstTextNode;
+                                        position.offset = combinedTextLength;
+                                    }
                                 }
                             }
                         }
@@ -700,18 +707,18 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == this.elementTagName
-                && getSortedClassName(el) == this.elementSortedClassName
-                && elementHasProperties(el, this.elementProperties)
-                && !elementHasNonClassAttributes(el, this.attrExceptions)
-                && this.isModifiable(el);
+            return el.tagName.toLowerCase() == this.elementTagName &&
+                getSortedClassName(el) == this.elementSortedClassName &&
+                elementHasProperties(el, this.elementProperties) &&
+                !elementHasNonClassAttributes(el, this.attrExceptions) &&
+                this.isModifiable(el);
         },
 
         isEmptyContainer: function(el) {
             var childNodeCount = el.childNodes.length;
-            return el.nodeType == 1
-                && this.isRemovable(el)
-                && (childNodeCount == 0 || (childNodeCount == 1 && this.isEmptyContainer(el.firstChild)));
+            return el.nodeType == 1 &&
+                this.isRemovable(el) &&
+                (childNodeCount == 0 || (childNodeCount == 1 && this.isEmptyContainer(el.firstChild)));
         },
         
         removeEmptyContainers: function(range) {
@@ -720,7 +727,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 return applier.isEmptyContainer(el);
             });
             
-            var rangesToPreserve = [range]
+            var rangesToPreserve = [range];
             var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
             
             for (var i = 0, node; node = nodesToRemove[i++]; ) {
@@ -776,8 +783,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             if (textNodes.length) {
                 for (var i = 0, textNode; textNode = textNodes[i++]; ) {
-                    if (!this.isIgnorableWhiteSpaceNode(textNode) && !this.getSelfOrAncestorWithClass(textNode)
-                            && this.isModifiable(textNode)) {
+                    if (!this.isIgnorableWhiteSpaceNode(textNode) && !this.getSelfOrAncestorWithClass(textNode) &&
+                            this.isModifiable(textNode)) {
                         this.applyToTextNode(textNode, positionsToPreserve);
                     }
                 }
@@ -885,8 +892,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 var textNodes = range.getNodes( [3] );
                 if (textNodes.length)
                 for (var i = 0, textNode; textNode = textNodes[i++]; ) {
-                    if (!this.isIgnorableWhiteSpaceNode(textNode) && rangeSelectsAnyText(range, textNode)
-                            && this.isModifiable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
+                    if (!this.isIgnorableWhiteSpaceNode(textNode) && rangeSelectsAnyText(range, textNode) &&
+                            this.isModifiable(textNode) && !this.getSelfOrAncestorWithClass(textNode)) {
                         return false;
                     }
                 }

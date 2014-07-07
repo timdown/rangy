@@ -93,8 +93,9 @@ function getVersion() {
     exec("git describe", function(error, stdout, stderr) {
         console.log(error, stdout, stderr);
         var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
-        var commitNumber = parseInt(result[1]) + 811;
-        buildVersion = buildSpec.baseVersion + "." + commitNumber;
+        var commitNumber = parseInt(result[1]);
+        var now = new Date();
+        buildVersion = buildSpec.baseVersion + "." + [now.getFullYear(), ("" + (101 + now.getMonth())).slice(1), ("" + (100 + now.getDate())).slice(1)].join("");
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";
@@ -103,27 +104,6 @@ function getVersion() {
         callback();
     });
 }
-
-/*
-function checkoutSvnRepository() {
-    exec("svn checkout " + buildSpec.svnUrl, { cwd: gitDir }, function(error, stdout, stderr) {
-        console.log("Checked out SVN repository ", stdout, stderr);
-        callback();
-    });
-}
-
-function getVersion() {
-    exec("svnversion", function(error, stdout, stderr) {
-        buildVersion = buildSpec.baseVersion + "." + stdout.trim().replace(/:/g, "_");
-        zipDir = buildDir + "rangy-" + buildVersion + "/";
-        fs.mkdirSync(zipDir);
-        uncompressedBuildDir = zipDir + "uncompressed/";
-        fs.mkdirSync(uncompressedBuildDir);
-        console.log("Got SVN version ", stdout, stderr);
-        callback();
-    });
-}
-*/
 
 function concatCoreScripts() {
     function prependJsPath(fileList) {

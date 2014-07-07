@@ -435,14 +435,24 @@
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
-    // AMD, for those who like this kind of thing
-
+    // AMD support, for those who like that kind of thing.
     if (amdSupported) {
-        // AMD. Register as an anonymous module.
-        global.define(function() {
-            api.amd = true;
-            return api;
-        });
+        /**
+         * Register Rangy as an anonymous module.
+         * 
+         * According to the AMD docs (https://github.com/amdjs/amdjs-api/wiki/AMD#usage-notes-):
+         * "It is recommended that define calls be in the literal form of 'define(...)' in
+         * order to work properly with static analysis tools (like build tools).".
+         * See also Rangy issue #204 (https://github.com/timdown/rangy/issues/204).
+         * 
+         * We therefore dutifully jump through this little hoop.
+         */
+        (function(define) {
+            define(function() {
+                api.amd = true;
+                return api;
+            });
+        })(global.define);
     }
     
     // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple

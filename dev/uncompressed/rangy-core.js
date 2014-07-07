@@ -2,10 +2,10 @@
  * Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.20140706
+ * Build date: 6 July 2014
  */
 
 (function(global) {
@@ -75,7 +75,7 @@
     var modules = {};
 
     var api = {
-        version: "1.3alpha.804",
+        version: "1.3alpha.20140706",
         initialized: false,
         supported: true,
 
@@ -136,12 +136,15 @@
                 if (props.hasOwnProperty(i)) {
                     o = obj[i];
                     p = props[i];
-                    //if (deep) alert([o !== null, typeof o == "object", p !== null, typeof p == "object"])
                     if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
                         api.util.extend(o, p, true);
                     }
                     obj[i] = p;
                 }
+            }
+            // Special case for toString, which does not show up in for...in loops in IE <= 8
+            if (props.hasOwnProperty("toString")) {
+                obj.toString = props.toString;
             }
             return obj;
         };
@@ -215,7 +218,6 @@
             if (areHostMethods(testRange, domRangeMethods) && areHostProperties(testRange, domRangeProperties)) {
                 implementsDomRange = true;
             }
-            testRange.detach();
         }
 
         var body = getBody(document);
@@ -318,7 +320,7 @@
             }
             
             // Now run initializer
-            this.initializer(this)
+            this.initializer(this);
         },
         
         fail: function(reason) {
@@ -332,8 +334,8 @@
         },
 
         deprecationNotice: function(deprecated, replacement) {
-            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use "
-                + replacement + " instead");
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use " +
+                replacement + " instead");
         },
 
         createError: function(msg) {
@@ -428,14 +430,24 @@
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
-    // AMD, for those who like this kind of thing
-
+    // AMD support, for those who like that kind of thing.
     if (amdSupported) {
-        // AMD. Register as an anonymous module.
-        global.define(function() {
-            api.amd = true;
-            return api;
-        });
+        /**
+         * Register Rangy as an anonymous module.
+         * 
+         * According to the AMD docs (https://github.com/amdjs/amdjs-api/wiki/AMD#usage-notes-):
+         * "It is recommended that define calls be in the literal form of 'define(...)' in
+         * order to work properly with static analysis tools (like build tools).".
+         * See also Rangy issue #204 (https://github.com/timdown/rangy/issues/204).
+         * 
+         * We therefore dutifully jump through this little hoop.
+         */
+        (function(define) {
+            define(function() {
+                api.amd = true;
+                return api;
+            });
+        })(global.define);
     }
     
     // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple
@@ -675,8 +687,8 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
         // Test if a DOM node has been passed and obtain a document object for it if so
         else if (util.isHostProperty(obj, "nodeType")) {
-            doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe")
-                ? getIframeDocument(obj) : getDocument(obj);
+            doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe") ?
+                getIframeDocument(obj) : getDocument(obj);
         }
 
         // Test if the doc parameter appears to be a Window object
@@ -744,8 +756,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     var crashyTextNodes = false;
 
     function isBrokenNode(node) {
+        var n;
         try {
-            node.parentNode;
+            n = node.parentNode;
             return false;
         } catch (e) {
             return true;
@@ -776,7 +789,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
         }
         if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
-            return "<" + node.nodeName + idAttr + ">[" + getNodeIndex(node) + "][" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
+            return "<" + node.nodeName + idAttr + ">[index:" + getNodeIndex(node) + ",length:" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
         }
         return node.nodeName;
     }
@@ -990,7 +1003,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             if (partiallySelected) {
                 subIterator = iterator.getSubtreeIterator();
                 node.appendChild(cloneSubtree(subIterator));
-                subIterator.detach(true);
+                subIterator.detach();
             }
 
             if (node.nodeType == 10) { // DocumentType
@@ -1014,7 +1027,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                     // the node selected by the Range.
                     subRangeIterator = rangeIterator.getSubtreeIterator();
                     iterateSubtree(subRangeIterator, func, iteratorState);
-                    subRangeIterator.detach(true);
+                    subRangeIterator.detach();
                     if (iteratorState.stop) {
                         return;
                     }
@@ -1039,7 +1052,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             if (iterator.isPartiallySelectedSubtree()) {
                 subIterator = iterator.getSubtreeIterator();
                 deleteSubtree(subIterator);
-                subIterator.detach(true);
+                subIterator.detach();
             } else {
                 iterator.remove();
             }
@@ -1053,7 +1066,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 node = node.cloneNode(false);
                 subIterator = iterator.getSubtreeIterator();
                 node.appendChild(extractSubtree(subIterator));
-                subIterator.detach(true);
+                subIterator.detach();
             } else {
                 iterator.remove();
             }
@@ -1214,10 +1227,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             return new RangeIterator(subRange, this.clonePartiallySelectedTextNodes);
         },
 
-        detach: function(detachRange) {
-            if (detachRange) {
-                this.range.detach();
-            }
+        detach: function() {
             this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
         }
     };
@@ -1319,11 +1329,11 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     }
 
     function isRangeValid(range) {
-        return (!!range.startContainer && !!range.endContainer
-                && !isOrphan(range.startContainer)
-                && !isOrphan(range.endContainer)
-                && isValidOffset(range.startContainer, range.startOffset)
-                && isValidOffset(range.endContainer, range.endOffset));
+        return (!!range.startContainer && !!range.endContainer &&
+                !isOrphan(range.startContainer) &&
+                !isOrphan(range.endContainer) &&
+                isValidOffset(range.startContainer, range.startOffset) &&
+                isValidOffset(range.endContainer, range.endOffset));
     }
 
     function assertRangeValid(range) {
@@ -1381,9 +1391,9 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             // and element's local name is "html" and element's namespace is the HTML
             // namespace"
             if (el === null || (
-                el.nodeName == "HTML"
-                && dom.isHtmlNamespace(getDocument(el).documentElement)
-                && dom.isHtmlNamespace(el)
+                el.nodeName == "HTML" &&
+                dom.isHtmlNamespace(getDocument(el).documentElement) &&
+                dom.isHtmlNamespace(el)
             )) {
 
             // "let element be a new Element with "body" as its local name and the HTML
@@ -1713,7 +1723,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 var lastTextNode = textNodes.pop();
                 nodeRange.setEnd(lastTextNode, lastTextNode.length);
                 var contains = this.containsRange(nodeRange);
-                nodeRange.detach();
                 return contains;
             } else {
                 return this.containsNodeContents(node);
@@ -1754,7 +1763,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 preSelectionRange.setEnd(range.startContainer, range.startOffset);
                 start = preSelectionRange.toString().length;
                 end = start + range.toString().length;
-                preSelectionRange.detach();
             }
 
             return {
@@ -1994,7 +2002,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
                 // no non-text nodes.
                 var iterator = new RangeIterator(this, true);
-                var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                var boundariesInvalid = (iterator._first && isNonTextPartiallySelected(iterator._first, this) ||
                         (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
                 iterator.detach();
                 return !boundariesInvalid;
@@ -2197,7 +2205,6 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
             }
 
             function detach(range) {
-                range.nativeRange.detach();
                 range.detached = true;
                 var i = rangeProperties.length;
                 while (i--) {
@@ -2429,8 +2436,6 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
 
             // Clean up
             getBody(document).removeChild(testTextNode);
-            range.detach();
-            range2.detach();
 
             rangeProto.getName = function() {
                 return "WrappedRange";
@@ -2944,6 +2949,10 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                     r2.setEnd(textNode, 3);
                     r2.setStart(textNode, 2);
                     sel.addRange(r1);
+
+                    // Next line causes Chrome 36 to print a console error of
+                    // "Discontiguous selection is not supported.".
+                    // https://code.google.com/p/chromium/issues/detail?id=353069#c4
                     sel.addRange(r2);
 
                     selectionSupportsMultipleRanges = (sel.rangeCount == 2);
@@ -2953,18 +2962,17 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 // Clean up
                 body.removeChild(testEl);
                 sel.removeAllRanges();
-                r1.detach();
 
                 for (i = 0; i < originalSelectionRangeCount; ++i) {
                     if (i == 0 && originalSelectionBackward) {
                         if (addRangeBackwardToNative) {
                             addRangeBackwardToNative(sel, originalSelectionRanges[i]);
                         } else {
-                            api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because browser does not support Selection.extend");
-                            sel.addRange(originalSelectionRanges[i])
+                            api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because the browser does not support Selection.extend");
+                            sel.addRange(originalSelectionRanges[i]);
                         }
                     } else {
-                        sel.addRange(originalSelectionRanges[i])
+                        sel.addRange(originalSelectionRanges[i]);
                     }
                 }
             }
