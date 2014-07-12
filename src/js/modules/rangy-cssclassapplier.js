@@ -20,6 +20,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var log = log4javascript.getLogger("rangy.classapplier");
 
     var defaultTagName = "span";
+    var defaultNamespace = "http://www.w3.org/1999/xhtml";
 
     function each(obj, func) {
         for (var i in obj) {
@@ -63,7 +64,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     })();
 
     function sortClassName(className) {
-        return className.split(/\s+/).sort().join(" ");
+        return className && className.split(/\s+/).sort().join(" ");
     }
 
     function getSortedClassName(el) {
@@ -366,7 +367,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName &&
+        return el1.namespaceURI == el2.namespaceURI &&
+            el1.tagName.toLowerCase() == el2.tagName.toLowerCase() &&
             haveSameClasses(el1, el2) &&
             elementsHaveSameNonClassAttributes(el1, el2) &&
             getComputedStyleProperty(el1, "display") == "inline" &&
@@ -710,6 +712,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var parent = textNode.parentNode;
             if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
+                    parent.namespaceURI == defaultNamespace &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProperties(parent, this.elementProperties)) {
 
@@ -723,7 +726,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == this.elementTagName &&
+            return el.namespaceURI == defaultNamespace &&
+                el.tagName.toLowerCase() == this.elementTagName &&
                 getSortedClassName(el) == this.elementSortedClassName &&
                 elementHasProperties(el, this.elementProperties) &&
                 !elementHasNonClassAttributes(el, this.attrExceptions) &&
