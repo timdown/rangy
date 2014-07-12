@@ -16,11 +16,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var contains = dom.arrayContains;
+    var isHtmlNamespace = dom.isHtmlNamespace;
 
     var log = log4javascript.getLogger("rangy.classapplier");
 
     var defaultTagName = "span";
-    var defaultNamespace = "http://www.w3.org/1999/xhtml";
 
     function each(obj, func) {
         for (var i in obj) {
@@ -712,7 +712,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var parent = textNode.parentNode;
             if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
-                    parent.namespaceURI == defaultNamespace &&
+                    isHtmlNamespace(parent) &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProperties(parent, this.elementProperties)) {
 
@@ -726,7 +726,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.namespaceURI == defaultNamespace &&
+            return isHtmlNamespace(el) &&
                 el.tagName.toLowerCase() == this.elementTagName &&
                 getSortedClassName(el) == this.elementSortedClassName &&
                 elementHasProperties(el, this.elementProperties) &&
