@@ -30,7 +30,6 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
     xn.test.suite(rangeCreatorName + " in " + docName + " document", function(s) {
         var doc;
         var DOMException = rangy.DOMException;
-        var RangeException = rangy.RangeException;
         var testRange = rangeCreator(document);
 
         s.setUp = function(t) {
@@ -180,9 +179,10 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
 
                 range.detach();
 
-                testExceptionCode(t, function() {
+                // Detach is now a no-op  according to DOM4. Not according to Chrome 35 though.
+                t.assertNoError(function() {
                     range[methodName](t.nodes.div2, 0);
-                }, DOMException.prototype.INVALID_STATE_ERR);
+                });
             });
 
             s.test(methodName + " move to other document test", function(t) {
@@ -205,17 +205,18 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
 
                 testExceptionCode(t, function() {
                     range[methodName](doc);
-                }, RangeException.prototype.INVALID_NODE_TYPE_ERR);
+                }, DOMException.prototype.INVALID_NODE_TYPE_ERR);
 
                 testExceptionCode(t, function() {
                     range[methodName](doc.createDocumentFragment());
-                }, RangeException.prototype.INVALID_NODE_TYPE_ERR);
+                }, DOMException.prototype.INVALID_NODE_TYPE_ERR);
 
                 range.detach();
 
-                testExceptionCode(t, function() {
+                // Detach is now a no-op  according to DOM4. Not according to Chrome 35 though.
+                t.assertNoError(function() {
                     range[methodName](t.nodes.div2);
-                }, DOMException.prototype.INVALID_STATE_ERR);
+                });
             });
         };
 
@@ -478,8 +479,10 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 var range = rangeCreator(doc);
                 range.setStartBefore(t.nodes.b);
                 range.collapse(true);
-                t.assert(range.intersectsNode(t.nodes.b, true));
-                t.assertFalse(range.intersectsNode(t.nodes.b, false));
+                if (range.intersectsNode.length == 2) {
+                    t.assert(range.intersectsNode(t.nodes.b, true));
+                }
+                t.assertFalse(range.intersectsNode(t.nodes.b));
             });
 
             s.test("intersectsNode 3", function(t) {
@@ -1176,13 +1179,16 @@ function testAcid3(rangeCreator, rangeCreatorName) {
                 r.setEndBefore(doc);
                 msg = "no exception thrown for setEndBefore() the document itself";
             } catch (e) {
+                /*
+                This section is now commented out in 2011 Acid3 update
+
                 if (e.BAD_BOUNDARYPOINTS_ERR != 1)
                   msg = 'not a RangeException';
                 else if (e.INVALID_NODE_TYPE_ERR != 2)
                   msg = 'RangeException has no INVALID_NODE_TYPE_ERR';
                 else if ("INVALID_ACCESS_ERR" in e)
                   msg = 'RangeException has DOMException constants';
-                else if (e.code != e.INVALID_NODE_TYPE_ERR)
+                else*/ if (e.code != e.INVALID_NODE_TYPE_ERR)
                   msg = 'wrong exception raised from setEndBefore()';
             }
             t.assert(msg == "", msg);
@@ -1269,6 +1275,8 @@ function testAcid3(rangeCreator, rangeCreatorName) {
 
         s.test("Acid3 test 10: Ranges and Attribute Nodes", function(t) {
             // test 10: Ranges and Attribute Nodes
+            // COMMENTED OUT FOR 2011 UPDATE - turns out instead of dropping Attr entirely, as Acid3 originally expected, the API is just being refactored
+            /*
             var e = document.getElementById('test');
             if (!e.getAttributeNode) {
                 return; // support for attribute nodes is optional in Acid3, because attribute nodes might be removed from DOM Core in the future.
@@ -1286,6 +1294,7 @@ function testAcid3(rangeCreator, rangeCreatorName) {
             t.assertEquals(r.toString(), '', "extracting contents didn't empty attribute value; instead equals '" + r.toString() + "'");
             t.assertEquals(e.getAttribute('id'), '', "extracting contents didn't change 'id' attribute to empty string");
             e.id = 'test';
+            */
         });
 
         s.test("Acid3 test 11: Ranges and Comments", function(t) {
@@ -1316,8 +1325,9 @@ function testAcid3(rangeCreator, rangeCreatorName) {
                 r.surroundContents(doc.createElement('a'));
                 msg = 'no exception raised';
             } catch (e) {
-                if ('code' in e) msg += '; code = ' + e.code;
-                if (e.code == 1) msg = '';
+                // COMMENTED OUT FOR 2011 UPDATE - DOM Core changes the exception from RangeException.BAD_BOUNDARYPOINTS_ERR (1) to DOMException.INVALID_STATE_ERR (11)
+                /*if ('code' in e) msg += '; code = ' + e.code;
+                if (e.code == 1) */msg = '';
             }
             t.assert(msg == '', "when trying to surround two halves of comment: " + msg);
             t.assertEquals(r.toString(), "", "comments returned text");
