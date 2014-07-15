@@ -9,8 +9,8 @@
  *
  * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.20140706
- * Build date: 6 July 2014
+ * Version: 1.3alpha.20140716
+ * Build date: 16 July 2014
  */
 rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
     var dom = api.dom;

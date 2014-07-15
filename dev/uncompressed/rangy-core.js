@@ -4,8 +4,8 @@
  *
  * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.20140706
- * Build date: 6 July 2014
+ * Version: 1.3alpha.20140716
+ * Build date: 16 July 2014
  */
 
 (function(global) {
@@ -75,7 +75,7 @@
     var modules = {};
 
     var api = {
-        version: "1.3alpha.20140706",
+        version: "1.3alpha.20140716",
         initialized: false,
         supported: true,
 
@@ -886,7 +886,8 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
         NO_MODIFICATION_ALLOWED_ERR: 7,
         NOT_FOUND_ERR: 8,
         NOT_SUPPORTED_ERR: 9,
-        INVALID_STATE_ERR: 11
+        INVALID_STATE_ERR: 11,
+        INVALID_NODE_TYPE_ERR: 24
     };
 
     DOMException.prototype.toString = function() {
@@ -1234,25 +1235,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // Exceptions
-
-    function RangeException(codeName) {
-        this.code = this[codeName];
-        this.codeName = codeName;
-        this.message = "RangeException: " + this.codeName;
-    }
-
-    RangeException.prototype = {
-        BAD_BOUNDARYPOINTS_ERR: 1,
-        INVALID_NODE_TYPE_ERR: 2
-    };
-
-    RangeException.prototype.toString = function() {
-        return this.message;
-    };
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
     var beforeAfterNodeTypes = [1, 3, 4, 5, 7, 8, 10];
     var rootContainerNodeTypes = [2, 9, 11];
     var readonlyNodeTypes = [5, 6, 10, 12];
@@ -1279,19 +1261,13 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
 
     function assertNoDocTypeNotationEntityAncestor(node, allowSelf) {
         if (getDocTypeNotationEntityAncestor(node, allowSelf)) {
-            throw new RangeException("INVALID_NODE_TYPE_ERR");
-        }
-    }
-
-    function assertNotDetached(range) {
-        if (!range.startContainer) {
-            throw new DOMException("INVALID_STATE_ERR");
+            throw new DOMException("INVALID_NODE_TYPE_ERR");
         }
     }
 
     function assertValidNodeType(node, invalidTypes) {
         if (!arrayContains(invalidTypes, node.nodeType)) {
-            throw new RangeException("INVALID_NODE_TYPE_ERR");
+            throw new DOMException("INVALID_NODE_TYPE_ERR");
         }
     }
 
@@ -1337,7 +1313,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     }
 
     function assertRangeValid(range) {
-        assertNotDetached(range);
         if (!isRangeValid(range)) {
             throw new Error("Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
         }
@@ -1421,7 +1396,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
         // In this case, innerHTML cannot be trusted, so fall back to a simpler, non-conformant implementation that
         // previous versions of Rangy used (with the exception of using a body element rather than a div)
         function(fragmentStr) {
-            assertNotDetached(this);
             var doc = getRangeDocument(this);
             var el = doc.createElement("body");
             el.innerHTML = fragmentStr;
@@ -1532,7 +1506,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             assertValidNodeType(node, surroundNodeTypes);
 
             if (!this.canSurroundContents()) {
-                throw new RangeException("BAD_BOUNDARYPOINTS_ERR");
+                throw new DOMException("INVALID_STATE_ERR");
             }
 
             // Extract the contents
@@ -1693,7 +1667,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 }
                 return unionRange;
             } else {
-                throw new RangeException("Ranges do not intersect");
+                throw new DOMException("Ranges do not intersect");
             }
         },
 
@@ -1722,8 +1696,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 nodeRange.setStart(textNodes[0], 0);
                 var lastTextNode = textNodes.pop();
                 nodeRange.setEnd(lastTextNode, lastTextNode.length);
-                var contains = this.containsRange(nodeRange);
-                return contains;
+                return this.containsRange(nodeRange);
             } else {
                 return this.containsNodeContents(node);
             }
@@ -1739,15 +1712,11 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
         },
 
         collapseBefore: function(node) {
-            assertNotDetached(this);
-
             this.setEndBefore(node);
             this.collapse(false);
         },
 
         collapseAfter: function(node) {
-            assertNotDetached(this);
-
             this.setStartAfter(node);
             this.collapse(true);
         },
@@ -1816,6 +1785,10 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
         
         inspect: function() {
             return inspect(this);
+        },
+        
+        detach: function() {
+            // In DOM4, detach() is now a no-op.
         }
     });
 
@@ -1869,10 +1842,9 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
         };
     }
 
-    function createPrototypeRange(constructor, boundaryUpdater, detacher) {
+    function createPrototypeRange(constructor, boundaryUpdater) {
         function createBeforeAfterNodeSetter(isBefore, isStart) {
             return function(node) {
-                assertNotDetached(this);
                 assertValidNodeType(node, beforeAfterNodeTypes);
                 assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
 
@@ -1914,7 +1886,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
 
         util.extend(constructor.prototype, {
             setStart: function(node, offset) {
-                assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
 
@@ -1922,7 +1893,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             },
 
             setEnd: function(node, offset) {
-                assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
 
@@ -1938,8 +1908,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
              *   startNode and ending at endOffset in endNode
              */
             setStartAndEnd: function() {
-                assertNotDetached(this);
-
                 var args = arguments;
                 var sc = args[0], so = args[1], ec = sc, eo = so;
 
@@ -1975,14 +1943,12 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             },
 
             selectNodeContents: function(node) {
-                assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
 
                 boundaryUpdater(this, node, 0, node, getNodeLength(node));
             },
 
             selectNode: function(node) {
-                assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, false);
                 assertValidNodeType(node, beforeAfterNodeTypes);
 
@@ -2006,10 +1972,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                         (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
                 iterator.detach();
                 return !boundariesInvalid;
-            },
-
-            detach: function() {
-                detacher(this);
             },
 
             splitBoundaries: function() {
@@ -2096,7 +2058,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
             },
 
             collapseToPoint: function(node, offset) {
-                assertNotDetached(this);
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
                 this.setStartAndEnd(node, offset);
@@ -2125,12 +2086,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
         updateCollapsedAndCommonAncestor(range);
     }
 
-    function detach(range) {
-        assertNotDetached(range);
-        range.startContainer = range.startOffset = range.endContainer = range.endOffset = range.document = null;
-        range.collapsed = range.commonAncestorContainer = null;
-    }
-
     function Range(doc) {
         this.startContainer = doc;
         this.startOffset = 0;
@@ -2140,7 +2095,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
         updateCollapsedAndCommonAncestor(this);
     }
 
-    createPrototypeRange(Range, updateBoundaries, detach);
+    createPrototypeRange(Range, updateBoundaries);
 
     util.extend(Range, {
         rangeProperties: rangeProperties,
@@ -2158,7 +2113,6 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     });
 
     api.DomRange = Range;
-    api.RangeException = RangeException;
 });
 rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
     var WrappedRange, WrappedTextRange;
@@ -2204,14 +2158,6 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
                 }
             }
 
-            function detach(range) {
-                range.detached = true;
-                var i = rangeProperties.length;
-                while (i--) {
-                    range[ rangeProperties[i] ] = null;
-                }
-            }
-
             var createBeforeAfterNodeSetter;
 
             WrappedRange = function(range) {
@@ -2222,7 +2168,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
                 updateRangeProperties(this);
             };
 
-            DomRange.createPrototypeRange(WrappedRange, updateNativeRange, detach);
+            DomRange.createPrototypeRange(WrappedRange, updateNativeRange);
 
             rangeProto = WrappedRange.prototype;
 
