@@ -840,6 +840,14 @@ var xn = {};
         }
     };
 
+    Test.prototype.assertNoError = function(f) {
+        try {
+            f();
+        } catch (e) {
+            this.fail("Expected no error to be thrown but error was thrown: " + e);
+        }
+    };
+
     var indexOf = Array.prototype.indexOf ?
         function(arr, val, from) {
             return arr.indexOf(val, from);

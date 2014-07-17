@@ -436,7 +436,8 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
         NO_MODIFICATION_ALLOWED_ERR: 7,
         NOT_FOUND_ERR: 8,
         NOT_SUPPORTED_ERR: 9,
-        INVALID_STATE_ERR: 11
+        INVALID_STATE_ERR: 11,
+        INVALID_NODE_TYPE_ERR: 24
     };
 
     DOMException.prototype.toString = function() {

@@ -9,13 +9,14 @@
  *
  * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.20140706
- * Build date: 6 July 2014
+ * Version: 1.3alpha.20140716
+ * Build date: 16 July 2014
  */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var contains = dom.arrayContains;
+    var isHtmlNamespace = dom.isHtmlNamespace;
 
 
     var defaultTagName = "span";
@@ -62,7 +63,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     })();
 
     function sortClassName(className) {
-        return className.split(/\s+/).sort().join(" ");
+        return className && className.split(/\s+/).sort().join(" ");
     }
 
     function getSortedClassName(el) {
@@ -359,7 +360,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName &&
+        return el1.namespaceURI == el2.namespaceURI &&
+            el1.tagName.toLowerCase() == el2.tagName.toLowerCase() &&
             haveSameClasses(el1, el2) &&
             elementsHaveSameNonClassAttributes(el1, el2) &&
             getComputedStyleProperty(el1, "display") == "inline" &&
@@ -694,6 +696,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var parent = textNode.parentNode;
             if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
+                    isHtmlNamespace(parent) &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProperties(parent, this.elementProperties)) {
 
@@ -707,7 +710,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == this.elementTagName &&
+            return isHtmlNamespace(el) &&
+                el.tagName.toLowerCase() == this.elementTagName &&
                 getSortedClassName(el) == this.elementSortedClassName &&
                 elementHasProperties(el, this.elementProperties) &&
                 !elementHasNonClassAttributes(el, this.attrExceptions) &&

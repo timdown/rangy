@@ -91,14 +91,10 @@
             if (range) {
                 var el = document.createElement("span");
                 el.style.backgroundColor = "pink";
-                try {
+                if (range.canSurroundContents(el)) {
                     range.surroundContents(el);
-                } catch(ex) {
-                    if ((ex instanceof rangy.RangeException || Object.prototype.toString.call(ex) == "[object RangeException]") && ex.code == 1) {
-                        alert("Unable to surround range because range partially selects a non-text node. See DOM Level 2 Range spec for more information.\n\n" + ex);
-                    } else {
-                        alert("Unexpected errror: " + ex);
-                    }
+                } else {
+                    alert("Unable to surround range because range partially selects a non-text node. See DOM4 spec for more information.");
                 }
             }
         }

@@ -43,14 +43,6 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
                 }
             }
 
-            function detach(range) {
-                range.detached = true;
-                var i = rangeProperties.length;
-                while (i--) {
-                    range[ rangeProperties[i] ] = null;
-                }
-            }
-
             var createBeforeAfterNodeSetter;
 
             WrappedRange = function(range) {
@@ -61,7 +53,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
                 updateRangeProperties(this);
             };
 
-            DomRange.createPrototypeRange(WrappedRange, updateNativeRange, detach);
+            DomRange.createPrototypeRange(WrappedRange, updateNativeRange);
 
             rangeProto = WrappedRange.prototype;
 

@@ -747,6 +747,75 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals(range.endOffset, 2);
     });
 
+    if (document.createElementNS) {
+        s.test("Apply ignores non-HTML elements (issue #178)", function(t) {
+            var applier = rangy.createCssClassApplier("test");
+            var testEl = document.getElementById("test");
+            var customElement = document.createElementNS('my:custom:ns', 'span');
+            customElement.appendChild(document.createTextNode('b'));
+            testEl.appendChild(customElement);
+            var range = rangy.createRange();
+            range.selectNode(testEl);
+            applier.applyToRange(range);
+            t.assertEquals(testEl.childNodes.length, 1);
+            t.assertEquals(testEl.firstChild, customElement);
+            t.assertEquals(testEl.firstChild.childNodes.length, 1);
+            // Some browsers don't put a valid innerHTML on custom namespaced elements
+            if (rangy.util.isHostProperty(testEl.firstChild.firstChild.outerHTML)) {
+                t.assertEquals(testEl.firstChild.firstChild.outerHTML, '<span class="test">b</span>');
+            }
+        });
+
+        s.test("Unapply ignores non-HTML elements (issue #178)", function(t) {
+            var applier = rangy.createCssClassApplier("test");
+            var testEl = document.getElementById("test");
+            var customElement = document.createElementNS('my:custom:ns', 'span');
+            // Make the custom element look somewhat like a HTML element
+            customElement.setAttribute("class", "test");
+            customElement.appendChild(document.createTextNode('b'));
+            testEl.appendChild(customElement);
+            var range = rangy.createRange();
+            range.selectNode(testEl);
+            applier.undoToRange(range);
+            t.assertEquals(testEl.childNodes.length, 1);
+            t.assertEquals(testEl.firstChild, customElement);
+            t.assertEquals(testEl.firstChild.childNodes.length, 1);
+            t.assertEquals(testEl.firstChild.firstChild.nodeType, 3 /*Node.TEXT_NODE*/);
+            t.assertEquals(testEl.firstChild.firstChild.textContent, "b");
+        });
+
+        s.test("removeEmptyContainers ignores non-HTML elements (issue #178)", function(t) {
+            var applier = rangy.createCssClassApplier("test");
+            var testEl = document.getElementById("test");
+            var customElement = document.createElementNS('my:custom:ns', 'span');
+            // Make the custom element look somewhat like a HTML element
+            customElement.setAttribute("class", "test");
+            testEl.appendChild(customElement);
+            var range = rangy.createRange();
+            range.selectNode(testEl);
+            applier.applyToRange(range);
+            t.assertEquals(testEl.childNodes.length, 1);
+            t.assertEquals(testEl.firstChild, customElement);
+        });
+
+        s.test("Merging ignores non-HTML elements (issue #178)", function(t) {
+            var applier = rangy.createCssClassApplier("test");
+            var testEl = document.getElementById("test");
+            testEl.innerHTML = "a";
+            var customElement = document.createElementNS('my:custom:ns', 'span');
+            // Make the custom element look somewhat like a HTML element
+            customElement.setAttribute("class", "test");
+            customElement.appendChild(document.createTextNode('b'));
+            testEl.appendChild(customElement);
+            var range = rangy.createRange();
+            range.selectNode(testEl);
+            applier.applyToRange(range);
+            t.assertEquals(testEl.childNodes.length, 2);
+            t.assertEquals(testEl.childNodes[0].outerHTML, '<span class="test">a</span>');
+            t.assertEquals(testEl.childNodes[1], customElement);
+        });
+    }
+
     if (rangy.features.selectionSupportsMultipleRanges) {
         s.test("Undo to multiple ranges", function(t) {
             var testEl = document.getElementById("test");
