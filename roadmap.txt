@@ -6,30 +6,32 @@
 - [X] Allow Window, Document, iframe and DOM node as params to range/selection creation methods
 - [X] Add rangy.features.implementsWinGetSelection and rangy.features.implementsDocSelection
 - [ ] Either a utils module or an FAQ page with code snippets for common use cases, including:
-      - [ ] Simple selection save/restore (bookmark?) (is this necessary?)
+      - [X] Simple selection save/restore (bookmark?) (is this necessary?)
       - [ ] Insert HTML
             (http://stackoverflow.com/questions/2213376/how-to-find-cursor-position-in-a-contenteditable-div/2213514#2213514)
-      - [ ] Check Range and Selection against WHATWG Range spec algorithms
-      - [ ] Add Range setStartAndEnd(). Overloaded? eg. two args collapsed, three args (node, startOffset, endOffset),
+      - [X] Add Range setStartAndEnd(). Overloaded? eg. two args collapsed, three args (node, startOffset, endOffset),
             four args (startNode, startOffset, endNode, endOffset) (consider this)
-- [ ] Consider range.restrict(node)
-- [ ] Consider filter option in createCssClassApplier() options object
-- [ ] Highlighter module. Review and rewrite existing.
+- [ ] Check Range and Selection against WHATWG Range spec algorithms
+- [?] Consider range.restrict(node)
+- [?] Consider filter option in createClassApplier() options object
+- [X] Highlighter module. Review and rewrite existing.
 - [X] Added select() method to range
-- [ ] Rename CSS class applier module to "class applier module"
-- [ ] Add handling for img and similar elements in class applier module
+- [X] Rename CSS class applier module to "class applier module"
+- [?] Add handling for img and similar elements in class applier module
+- [ ] AMD support. How does this work with Rangy's modules?
 
 1.4
 ---
 
-- [ ] Commands module with basic inline commands (bold, italic, colour, font face, font size, background colour, etc.)
+- [?] Commands module with basic inline commands (bold, italic, colour, font face, font size, background colour, etc.)
       (http://stackoverflow.com/questions/2887101/apply-style-to-range-of-text-with-javascript-in-uiwebview/2888969#2888969)
-- [ ] More commands (block? Insert line break? Think about this, don't want to build a WYSIWYG editor)
-- [ ] Some kind of jQuery integration module?
+- [?] More commands (block? Insert line break? Think about this, don't want to build a WYSIWYG editor)
+- [?] Some kind of jQuery integration module?
+- [ ] Move IE <= 8 support into a separate optional module
 
 Possible features for some version
 ----------------------------------
 
 - [?] Positions module
       (http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495)
-- [ ] Add selection extend()
+- [ ] Add selection extend()? Don't think this is possible.
