@@ -16,7 +16,7 @@
         // Node/CommonJS style for Browserify
         module.exports = factory;
     } else {
-        // No AMD or CommonJS support so we place 
+        // No AMD or CommonJS support so we place Rangy in a global variable
         global.rangy = factory();
     }
 })(function() {
@@ -450,4 +450,8 @@
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /* build:includeCoreModule(wrappedselection.js) */
-}, this);    
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    return api;
+}, this);
