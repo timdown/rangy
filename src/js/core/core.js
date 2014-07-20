@@ -8,9 +8,19 @@
  * Build date: %%build:date%%
  */
 
-(function(global) {
+(function(factory, global) {
+    if (typeof define == "function" && define.amd) {
+        // AMD. Register as an anonymous module.
+        define([rangy], factory);
+    } else if (typeof exports == "object") {
+        // Node/CommonJS style for Browserify
+        module.exports = factory;
+    } else {
+        // No AMD or CommonJS support so we place 
+        global.rangy = factory();
+    }
+})(function() {
     var log = log4javascript.getLogger("rangy.core");
-    var amdSupported = (typeof global.define == "function" && global.define.amd);
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
 
@@ -98,7 +108,7 @@
             alertOnFail: true,
             alertOnWarn: false,
             preferTextRange: false,
-            autoInitialize: (typeof global.rangyAutoInitialize == UNDEFINED) ? global.rangyAutoInitialize : true
+            autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? rangyAutoInitialize : true
         }
     };
 
@@ -362,15 +372,6 @@
             }
         });
         modules[name] = newModule;
-        
-/*
-        // Add module AMD support
-        if (!isCore && amdSupported) {
-            global.define(["rangy-core"], function(rangy) {
-                
-            });
-        }
-*/
     }
 
     api.createModule = function(name) {
@@ -436,32 +437,6 @@
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
-    // AMD support
-    if (amdSupported) {
-        /**
-         * Register Rangy as an anonymous module.
-         * 
-         * According to the AMD docs (https://github.com/amdjs/amdjs-api/wiki/AMD#usage-notes-):
-         * "It is recommended that define calls be in the literal form of 'define(...)' in
-         * order to work properly with static analysis tools (like build tools).".
-         * See also Rangy issue #204 (https://github.com/timdown/rangy/issues/204).
-         * 
-         * We therefore dutifully jump through this little hoop.
-         */
-        (function(define) {
-            define(function() {
-                api.amd = true;
-                return api;
-            });
-        })(global.define);
-    }
-
-    // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple
-    // module system) rely on the existence of this global property
-    global.rangy = api;
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
     /* build:includeCoreModule(dom.js) */
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -475,4 +450,4 @@
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /* build:includeCoreModule(wrappedselection.js) */
-})(this);    
+}, this);    
