@@ -454,7 +454,7 @@
             });
         })(global.define);
     }
-    
+
     // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple
     // module system) rely on the existence of this global property
     global.rangy = api;

@@ -104,24 +104,22 @@ function getVersion() {
     });
 }
 
-function concatCoreScripts() {
-    function prependJsPath(fileList) {
-        return fileList.map(function(filePath) {
-            return srcDir + "core/" + filePath;
-        });
-    }
-
+function assembleCoreScript() {
     // Read in the list of files to build
-    var files = ["core.js", "dom.js", "domrange.js", "wrappedrange.js", "wrappedselection.js"];
+    var fileNames = ["core.js", "dom.js", "domrange.js", "wrappedrange.js", "wrappedselection.js"];
+    var files = {};
+    fileNames.forEach(function(fileName) {
+        files[fileName] = fs.readFileSync(srcDir + "core/" + fileName, FILE_ENCODING);
+    });
 
-    // Append js directory path to scripts
-    var scripts = prependJsPath(files);
-    console.log("Obtained list of scripts", files);
+    // Substitute scripts for build directives
+    var combinedScript = files["core.js"].replace(/\/\*\s?build:includeCoreModule\((.*?)\)\s?\*\//g, function(match, scriptName) {
+        return files[scriptName].split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
+    });
 
-    // Build a single concatenated JS file
-    concat(scripts, uncompressedBuildDir + coreFilename);
-
-    console.log("Concatenated core scripts");
+    fs.writeFileSync(uncompressedBuildDir + coreFilename, combinedScript, FILE_ENCODING);
+    
+    console.log("Assembled core script");
     callback();
 }
 
@@ -169,11 +167,15 @@ function removeLoggingFromScripts() {
 
 function substituteBuildVars() {
     // Substitute build vars in scripts
-    function substituteBuildVars(file, buildVars) {
+    function doSubstituteBuildVars(file, buildVars) {
         var contents = fs.readFileSync(file, FILE_ENCODING);
         contents = contents.replace(/%%build:([^%]+)%%/g, function(matched, buildVarName) {
             return buildVars[buildVarName];
         });
+        
+        // Now do replacements specified by build directives
+        contents = contents.replace(/\/\*\s?build:replaceWith\((.*?)\)\s?\*\/.*?\*\s?build:replaceEnd\s?\*\//g, "$1");
+        
         fs.writeFileSync(file, contents, FILE_ENCODING);
     }
 
@@ -187,7 +189,7 @@ function substituteBuildVars() {
     };
 
     allScripts.forEach(function(fileName) {
-        substituteBuildVars(uncompressedBuildDir + fileName, buildVars);
+        doSubstituteBuildVars(uncompressedBuildDir + fileName, buildVars);
     });
 
     console.log("Substituted build vars in scripts");
@@ -298,7 +300,7 @@ var actions = [
     createBuildDir,
     cloneGitRepository,
     getVersion,
-    concatCoreScripts,
+    assembleCoreScript,
     copyModuleScripts,
     clean,
     removeLoggingFromScripts,

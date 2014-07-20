@@ -161,13 +161,13 @@
                     r2.setStart(textNode, 2);
                     sel.addRange(r1);
 
-                    // Next line causes Chrome 36 to print a console error of
-                    // "Discontiguous selection is not supported.".
+                    // Next line causes Chrome 36 (and presumably later versions) to print a console error of
+                    // "Discontiguous selection is not supported.". There's nothing we can do about this while retaining
+                    // this feature test.
                     // https://code.google.com/p/chromium/issues/detail?id=353069#c4
                     sel.addRange(r2);
 
                     selectionSupportsMultipleRanges = (sel.rangeCount == 2);
-                    r2.detach();
                 }
 
                 // Clean up
