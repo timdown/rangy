@@ -97,7 +97,8 @@
         config: {
             alertOnFail: true,
             alertOnWarn: false,
-            preferTextRange: false
+            preferTextRange: false,
+            autoInitialize: true
         }
     };
 
@@ -410,7 +411,7 @@
         log.info("loadHandler, event is " + e.type);
         if (!docReady) {
             docReady = true;
-            if (!api.initialized) {
+            if (!api.initialized && api.config.autoInitialize) {
                 init();
             }
         }
