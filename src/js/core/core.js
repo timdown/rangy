@@ -108,7 +108,7 @@
             alertOnFail: true,
             alertOnWarn: false,
             preferTextRange: false,
-            autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? rangyAutoInitialize : true
+            autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? true : rangyAutoInitialize
         }
     };
 
