@@ -277,23 +277,23 @@
         }
     };
 
-    var createMissingNativeApiListeners = [];
+    var shimListeners = [];
 
-    api.addCreateMissingNativeApiListener = function(listener) {
-        createMissingNativeApiListeners.push(listener);
+    api.addShimListener = function(listener) {
+        shimListeners.push(listener);
     };
 
-    function createMissingNativeApi(win) {
+    function shim(win) {
         win = win || window;
         init();
 
         // Notify listeners
-        for (var i = 0, len = createMissingNativeApiListeners.length; i < len; ++i) {
-            createMissingNativeApiListeners[i](win);
+        for (var i = 0, len = shimListeners.length; i < len; ++i) {
+            shimListeners[i](win);
         }
     }
 
-    api.createMissingNativeApi = createMissingNativeApi;
+    api.shim = api.createMissingNativeApi = shim;
 
     function Module(name, dependencies, initializer) {
         this.name = name;
@@ -435,7 +435,7 @@
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
-    // AMD support, for those who like that kind of thing.
+    // AMD support
     if (amdSupported) {
         /**
          * Register Rangy as an anonymous module.
@@ -458,4 +458,20 @@
     // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple
     // module system) rely on the existence of this global property
     global.rangy = api;
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(dom.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(domrange.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(wrappedrange.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(wrappedselection.js) */
 })(this);    

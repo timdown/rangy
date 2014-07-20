@@ -1,4 +1,5 @@
-rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
+// Pure JavaScript implementation of DOM Range
+/* build:replaceWith(api) */rangy/* build:replaceEnd */.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     var log = log4javascript.getLogger("rangy.DomRange");
     var dom = api.dom;
     var util = api.util;
