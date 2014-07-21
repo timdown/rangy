@@ -332,6 +332,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                         if (highlightCharRange.intersects(charRange)) {
                             // Replace the existing highlight in the list of current highlights and add it to the list for
                             // removal
+                            merged = true;
                             highlightsToRemove.push(highlights[j]);
                             highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
                         }
