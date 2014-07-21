@@ -339,7 +339,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     }
                 }
 
-                if (!merged) {
+                if (!merged && charRange.start != charRange.end) {
                     highlights.push( new Highlight(doc, charRange, classApplier, converter, null, containerElementId) );
                 }
             }
