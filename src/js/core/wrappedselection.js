@@ -523,7 +523,7 @@
         }
 
         selProto.setRanges = function(ranges) {
-            if (implementsControlRange && ranges.length > 1) {
+            if (implementsControlRange && implementsDocSelection && ranges.length > 1) {
                 createControlSelection(this, ranges);
             } else {
                 this.removeAllRanges();
@@ -699,7 +699,7 @@
         }
     };
 
-    if (implementsControlRange) {
+    if (implementsControlRange && implementsDocSelection) {
         selProto.removeRange = function(range) {
             if (this.docSelection.type == CONTROL) {
                 var controlRange = this.docSelection.createRange();
@@ -900,7 +900,7 @@
     selProto.containsNode = function(node, allowPartial) {
         return this.eachRange( function(range) {
             return range.containsNode(node, allowPartial);
-        }, true );
+        }, true ) || false;
     };
 
     selProto.getBookmark = function(containerNode) {
@@ -925,8 +925,30 @@
     };
 
     selProto.toHtml = function() {
-        return this.callMethodOnEachRange("toHtml").join("");
+        var rangeHtmls = [];
+        this.eachRange(function(range) {
+            rangeHtmls.push( DomRange.toHtml(range) );
+        });
+        return rangeHtmls.join("");
     };
+
+    if (features.implementsTextRange) {
+        selProto.getNativeTextRange = function() {
+            var sel, textRange;
+            if ( (sel = this.docSelection) ) {
+                var range = sel.createRange();
+                if (isTextRange(range)) {
+                    return range;
+                } else {
+                    throw module.createError("getNativeTextRange: selection is a control selection"); 
+                }
+            } else if (this.rangeCount > 0) {
+                return api.WrappedTextRange.rangeToTextRange( this.getRangeAt(0) );
+            } else {
+                throw module.createError("getNativeTextRange: selection contains no range");
+            }
+        };
+    }
 
     function inspect(sel) {
         var rangeInspects = [];

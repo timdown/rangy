@@ -512,6 +512,13 @@
         range.setStartAndEnd(sc, so, ec, eo);
         log.debug("splitBoundaries done");
     }
+    
+    function rangeToHtml(range) {
+        assertRangeValid(range);
+        var container = range.commonAncestorContainer.parentNode.cloneNode(false);
+        container.appendChild( range.cloneContents() );
+        return container.innerHTML;
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -682,10 +689,7 @@
         createContextualFragment: createContextualFragment,
 
         toHtml: function() {
-            assertRangeValid(this);
-            var container = this.commonAncestorContainer.parentNode.cloneNode(false);
-            container.appendChild(this.cloneContents());
-            return container.innerHTML;
+            return rangeToHtml(this);
         },
 
         // touchingIsIntersecting determines whether this method considers a node that borders a range intersects
@@ -1192,6 +1196,7 @@
         copyComparisonConstants: copyComparisonConstants,
         createPrototypeRange: createPrototypeRange,
         inspect: inspect,
+        toHtml: rangeToHtml,
         getRangeDocument: getRangeDocument,
         rangesEqual: function(r1, r2) {
             return r1.startContainer === r2.startContainer &&
