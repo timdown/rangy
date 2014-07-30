@@ -1,4 +1,5 @@
-rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
+// Wrappers for the browser's native DOM Range and/or TextRange implementation 
+/* build:replaceWith(api) */rangy/* build:replaceEnd */.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
     var WrappedRange, WrappedTextRange;
     var dom = api.dom;
     var util = api.util;
@@ -607,7 +608,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
         return api.createRangyRange(iframeEl);
     };
 
-    api.addCreateMissingNativeApiListener(function(win) {
+    api.addShimListener(function(win) {
         var doc = win.document;
         if (typeof doc.createRange == "undefined") {
             doc.createRange = function() {

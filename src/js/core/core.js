@@ -8,9 +8,19 @@
  * Build date: %%build:date%%
  */
 
-(function(global) {
+(function(factory, global) {
+    if (typeof define == "function" && define.amd) {
+        // AMD. Register as an anonymous module.
+        define([rangy], factory);
+    } else if (typeof exports == "object") {
+        // Node/CommonJS style for Browserify
+        module.exports = factory;
+    } else {
+        // No AMD or CommonJS support so we place Rangy in a global variable
+        global.rangy = factory();
+    }
+})(function() {
     var log = log4javascript.getLogger("rangy.core");
-    var amdSupported = (typeof global.define == "function" && global.define.amd);
 
     var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
 
@@ -97,7 +107,8 @@
         config: {
             alertOnFail: true,
             alertOnWarn: false,
-            preferTextRange: false
+            preferTextRange: false,
+            autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? true : rangyAutoInitialize
         }
     };
 
@@ -277,23 +288,23 @@
         }
     };
 
-    var createMissingNativeApiListeners = [];
+    var shimListeners = [];
 
-    api.addCreateMissingNativeApiListener = function(listener) {
-        createMissingNativeApiListeners.push(listener);
+    api.addShimListener = function(listener) {
+        shimListeners.push(listener);
     };
 
-    function createMissingNativeApi(win) {
+    function shim(win) {
         win = win || window;
         init();
 
         // Notify listeners
-        for (var i = 0, len = createMissingNativeApiListeners.length; i < len; ++i) {
-            createMissingNativeApiListeners[i](win);
+        for (var i = 0, len = shimListeners.length; i < len; ++i) {
+            shimListeners[i](win);
         }
     }
 
-    api.createMissingNativeApi = createMissingNativeApi;
+    api.shim = api.createMissingNativeApi = shim;
 
     function Module(name, dependencies, initializer) {
         this.name = name;
@@ -361,15 +372,6 @@
             }
         });
         modules[name] = newModule;
-        
-/*
-        // Add module AMD support
-        if (!isCore && amdSupported) {
-            global.define(["rangy-core"], function(rangy) {
-                
-            });
-        }
-*/
     }
 
     api.createModule = function(name) {
@@ -410,7 +412,7 @@
         log.info("loadHandler, event is " + e.type);
         if (!docReady) {
             docReady = true;
-            if (!api.initialized) {
+            if (!api.initialized && api.config.autoInitialize) {
                 init();
             }
         }
@@ -435,27 +437,21 @@
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
-    // AMD support, for those who like that kind of thing.
-    if (amdSupported) {
-        /**
-         * Register Rangy as an anonymous module.
-         * 
-         * According to the AMD docs (https://github.com/amdjs/amdjs-api/wiki/AMD#usage-notes-):
-         * "It is recommended that define calls be in the literal form of 'define(...)' in
-         * order to work properly with static analysis tools (like build tools).".
-         * See also Rangy issue #204 (https://github.com/timdown/rangy/issues/204).
-         * 
-         * We therefore dutifully jump through this little hoop.
-         */
-        (function(define) {
-            define(function() {
-                api.amd = true;
-                return api;
-            });
-        })(global.define);
-    }
-    
-    // Create a "rangy" property of the global object in any case. Other Rangy modules (which use Rangy's own simple
-    // module system) rely on the existence of this global property
-    global.rangy = api;
-})(this);    
+    /* build:includeCoreModule(dom.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(domrange.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(wrappedrange.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    /* build:includeCoreModule(wrappedselection.js) */
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    return api;
+}, this);

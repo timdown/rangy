@@ -1,6 +1,6 @@
 // This module creates a selection object wrapper that conforms as closely as possible to the Selection specification
 // in the HTML Editing spec (http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections)
-rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], function(api, module) {
+/* build:replaceWith(api) */rangy/* build:replaceEnd */.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], function(api, module) {
     api.config.checkSelectionRanges = true;
 
     var BOOLEAN = "boolean";
@@ -161,13 +161,13 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                     r2.setStart(textNode, 2);
                     sel.addRange(r1);
 
-                    // Next line causes Chrome 36 to print a console error of
-                    // "Discontiguous selection is not supported.".
+                    // Next line causes Chrome 36 (and presumably later versions) to print a console error of
+                    // "Discontiguous selection is not supported.". There's nothing we can do about this while retaining
+                    // this feature test.
                     // https://code.google.com/p/chromium/issues/detail?id=353069#c4
                     sel.addRange(r2);
 
                     selectionSupportsMultipleRanges = (sel.rangeCount == 2);
-                    r2.detach();
                 }
 
                 // Clean up
@@ -967,7 +967,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
     api.selectionPrototype = selProto;
 
-    api.addCreateMissingNativeApiListener(function(win) {
+    api.addShimListener(function(win) {
         if (typeof win.getSelection == "undefined") {
             win.getSelection = function() {
                 return getSelection(win);
