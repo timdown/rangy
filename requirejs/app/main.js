@@ -1,14 +1,19 @@
 define(function (require) {
-    // Load any app-specific modules
-    // with a relative require call,
-    // like:
     var rangy = require("rangy");
-    
-    require("rangy-classapplier");
-
+    var stupidMagicAvoidance = require;
     rangy.init();
-    
-    window.rangy = rangy;
+
+
+
+
+    //window.rangy = rangy;
 
     console.log(rangy);
+
+    window.setTimeout(function() {
+        stupidMagicAvoidance(["./rangy-classapplier.js"], function() {
+            console.log(rangy.modules.ClassApplier);
+        });
+
+    }, 500);
 });

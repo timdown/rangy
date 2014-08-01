@@ -316,6 +316,7 @@
 
     Module.prototype = {
         init: function(api) {
+            console.log("init called on module " + this.name);
             var requiredModuleNames = this.dependencies || [];
             for (var i = 0, len = requiredModuleNames.length, requiredModule, moduleName; i < len; ++i) {
                 moduleName = requiredModuleNames[i];
@@ -370,6 +371,7 @@
             }
         });
         modules[name] = newModule;
+        return newModule;
     }
 
     api.createModule = function(name) {
@@ -382,7 +384,12 @@
             initFunc = arguments[2];
             dependencies = arguments[1];
         }
-        createModule(false, name, dependencies, initFunc);
+        var module = createModule(false, name, dependencies, initFunc);
+        
+        // Initialize the module immediately if the core is already initialized
+        if (api.initialized) {
+            module.init();
+        }
     };
 
     api.createCoreModule = function(name, dependencies, initFunc) {

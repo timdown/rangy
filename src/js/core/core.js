@@ -388,7 +388,13 @@
             initFunc = arguments[2];
             dependencies = arguments[1];
         }
-        createModule(false, name, dependencies, initFunc);
+
+        var module = createModule(false, name, dependencies, initFunc);
+
+        // Initialize the module immediately if the core is already initialized
+        if (api.initialized) {
+            module.init();
+        }
     };
 
     api.createCoreModule = function(name, dependencies, initFunc) {

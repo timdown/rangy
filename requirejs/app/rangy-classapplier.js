@@ -12,7 +12,7 @@
  * Version: 1.3alpha.20140731
  * Build date: 31 July 2014
  */
-
+console.log("CLASS APPLIER");
 (function(factory, global) {
     if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module with a dependency on Rangy.
@@ -1009,4 +1009,6 @@
         api.CssClassApplier = api.ClassApplier = ClassApplier;
         api.createCssClassApplier = api.createClassApplier = createClassApplier;
     });
+    
+    return rangy;
 });
