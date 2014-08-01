@@ -22,7 +22,7 @@ var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
 var modules = [
-    "rangy-cssclassapplier.js",
+    "rangy-classapplier.js",
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
     "rangy-textrange.js",

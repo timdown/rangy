@@ -57,8 +57,8 @@
 
         function initFind() {
             // Enable buttons
-            var cssClassApplierModule = rangy.modules.ClassApplier;
-            if (rangy.supported && cssClassApplierModule && cssClassApplierModule.supported) {
+            var classApplierModule = rangy.modules.ClassApplier;
+            if (rangy.supported && classApplierModule && classApplierModule.supported) {
                 searchResultApplier = rangy.createClassApplier("searchResult");
 
                 var searchBox = gEBI("search"),
