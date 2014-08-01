@@ -567,7 +567,7 @@
             }
         };
 
-        WrappedTextRange.rangeToTextRange = rangeToTextRange
+        WrappedTextRange.rangeToTextRange = rangeToTextRange;
 
         WrappedTextRange.prototype.toTextRange = function() {
             return rangeToTextRange(this);

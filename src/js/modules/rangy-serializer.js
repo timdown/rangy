@@ -13,6 +13,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
+/* build:modularizeWithDependencies(["rangy"]) */
 rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
 
@@ -296,3 +297,4 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     api.getElementChecksum = getElementChecksum;
     api.nodeToInfoString = nodeToInfoString;
 });
+/* build:modularizeEnd */

@@ -12,8 +12,6 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-
-
 /* build:modularizeWithDependencies(["rangy"]) */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;

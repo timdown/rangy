@@ -104,6 +104,10 @@ function getVersion() {
     });
 }
 
+function indent(str) {
+    return str.split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
+}
+
 function assembleCoreScript() {
     // Read in the list of files to build
     var fileNames = ["core.js", "dom.js", "domrange.js", "wrappedrange.js", "wrappedselection.js"];
@@ -114,7 +118,7 @@ function assembleCoreScript() {
 
     // Substitute scripts for build directives
     var combinedScript = files["core.js"].replace(/\/\*\s?build:includeCoreModule\((.*?)\)\s?\*\//g, function(match, scriptName) {
-        return files[scriptName].split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
+        return indent(files[scriptName]);
     });
 
     fs.writeFileSync(uncompressedBuildDir + coreFilename, combinedScript, FILE_ENCODING);
@@ -125,7 +129,30 @@ function assembleCoreScript() {
 
 function copyModuleScripts() {
     modules.forEach(function(moduleFile) {
-        copyFileSync(srcDir + "modules/" + moduleFile, uncompressedBuildDir + moduleFile);
+        var moduleCode = fs.readFileSync(srcDir + "modules/" + moduleFile, FILE_ENCODING);
+
+        // Run build directives
+        moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithDependencies\((.*?)\)\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, dependencies, code) {
+            var dependenciesArray = eval(dependencies);
+            return [
+                '(function(factory, global) {',
+                '    if (typeof define == "function" && define.amd) {',
+                '        // AMD. Register as an anonymous module with a dependency on Rangy.',
+                '        define(' + dependencies + ', factory);',
+                '        /*',
+                '         } else if (typeof exports == "object") {',
+                '         // Node/CommonJS style for Browserify',
+                '         module.exports = factory;',
+                '         */',
+                '    } else {',
+                '        // No AMD or CommonJS support so we use the rangy global variable',
+                '        factory(global.rangy);',
+                '    }',
+                '})(function(' + dependenciesArray.join(", ") + ') {'
+            ].join("\n") + indent(code) + "\n});";
+        });
+
+        fs.writeFileSync(uncompressedBuildDir + moduleFile, moduleCode, FILE_ENCODING);
     });
     console.log("Copied module scripts");
     callback();
