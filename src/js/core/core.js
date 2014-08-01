@@ -11,10 +11,14 @@
 (function(factory, global) {
     if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module.
-        define([rangy], factory);
+        define(factory);
+/*
+    TODO: look into this properly.
+    
     } else if (typeof exports == "object") {
         // Node/CommonJS style for Browserify
         module.exports = factory;
+*/
     } else {
         // No AMD or CommonJS support so we place Rangy in a global variable
         global.rangy = factory();

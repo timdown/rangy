@@ -14,6 +14,7 @@
  */
 
 
+/* build:modularizeWithDependencies(["rangy"]) */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
@@ -1026,3 +1027,4 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     api.CssClassApplier = api.ClassApplier = ClassApplier;
     api.createCssClassApplier = api.createClassApplier = createClassApplier;
 });
+/* build:modularizeEnd */
