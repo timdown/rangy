@@ -319,7 +319,7 @@
     }
 
     Module.prototype = {
-        init: function(api) {
+        init: function() {
             var requiredModuleNames = this.dependencies || [];
             for (var i = 0, len = requiredModuleNames.length, requiredModule, moduleName; i < len; ++i) {
                 moduleName = requiredModuleNames[i];

@@ -5,6 +5,7 @@ var exec = require("child_process").exec;
 var uglifyJs = require("uglify-js");
 var rimraf = require("rimraf");
 var jshint = require("jshint");
+var archiver = require("archiver");
 
 var FILE_ENCODING = "utf-8";
 
@@ -297,26 +298,46 @@ function minify() {
     }
 }
 
-function zip() {
-    var zipFileName = "rangy-" + buildVersion + ".zip";
-    var tarName = "rangy-" + buildVersion + ".tar";
-    var tarGzName = "rangy-" + buildVersion + ".tar.gz";
-    var zipExe = "..\\builder\\tools\\7za";
-    var dir = "rangy-" + buildVersion + "/";
+function createArchiver(fileExtension, archiveCreatorFunc) {
+    return function() {
+        var compressedFileName = "rangy-" + buildVersion + "." + fileExtension;
 
-    exec(zipExe + " a -tzip " + zipFileName + " " + dir, { cwd: buildDir }, function(error, stdout, stderr) {
-        console.log("Zipped", stdout, stderr);
+        var output = fs.createWriteStream(buildDir + compressedFileName);
+        var archive = archiveCreatorFunc();
 
-        exec(zipExe + " a -ttar " + tarName + " " + dir, { cwd: buildDir }, function(error, stdout, stderr) {
-            console.log("Tarred", stdout, stderr);
-            exec(zipExe + " a -tgzip " + tarGzName + " " + tarName, { cwd: buildDir }, function(error, stdout, stderr) {
-                console.log("Gzipped", stdout, stderr);
-                fs.unlinkSync(buildDir + tarName);
-                callback();
-            });
+        output.on("close", function () {
+            console.log("Compressed " + archive.pointer() + " total bytes to " + compressedFileName);
+            callback();
         });
-    });
+
+        archive.on("error", function(err){
+            throw err;
+        });
+
+        archive.pipe(output);
+        archive.bulk([
+            {
+                expand: true,
+                cwd: buildDir,
+                src: ["**", "!*.tar", "!*.gz", "!*.tgz", "!*.zip"]
+            }
+        ]);
+        archive.finalize();
+    }
 }
+
+var zip = createArchiver("zip", function() {
+    return archiver.create("zip");
+});
+
+var tarGz = createArchiver("tar.gz", function() {
+    return archiver.create("tar", {
+        gzip: true,
+        gzipOptions: {
+            level: 1
+        }
+    });
+});
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -334,7 +355,8 @@ var actions = [
     substituteBuildVars,
     lint,
     minify,
-    zip
+    zip,
+    tarGz
 ];
 
 
