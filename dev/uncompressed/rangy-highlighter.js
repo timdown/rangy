@@ -72,13 +72,27 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         intersects: function(charRange) {
             return this.start < charRange.end && this.end > charRange.start;
         },
-
+        
         union: function(charRange) {
             return new CharacterRange(Math.min(this.start, charRange.start), Math.max(this.end, charRange.end));
         },
         
         intersection: function(charRange) {
             return new CharacterRange(Math.max(this.start, charRange.start), Math.min(this.end, charRange.end));
+        },
+
+        complements : function(charRange) {
+            var ranges = [];
+            if (this.start >= charRange.start) {
+                if (this.end <= charRange.end)
+                    return [];
+                ranges.push(new CharacterRange(charRange.end, this.end));
+            } else {
+                ranges.push(new CharacterRange(this.start, Math.min(this.end, charRange.start)));
+                if (this.end > charRange.end)
+                    ranges.push(new CharacterRange(charRange.end, this.end));
+            }
+            return ranges;
         },
 
         toString: function() {
@@ -294,14 +308,15 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return intersectingHighlights;
         },
         
-        highlightCharacterRanges: function(className, charRanges, containerElementId) {
+        highlightCharacterRanges: function(className, charRanges, containerElementId, exclusive) {
             var i, len, j;
             var highlights = this.highlights;
             var converter = this.converter;
             var doc = this.doc;
             var highlightsToRemove = [];
-            var classApplier = this.classAppliers[className];
+            var classApplier = className ? this.classAppliers[className] : false;
             containerElementId = containerElementId || null;
+            exclusive = exclusive || false;
 
             var containerElement, containerElementRange, containerElementCharRange;
             if (containerElementId) {
@@ -313,34 +328,66 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 }
             }
 
-            var charRange, highlightCharRange, merged;
+            var charRange, highlightCharRange, removeHighlight, isSameClassApplier, highlightsToKeep, splitHighlight;
+
             for (i = 0, len = charRanges.length; i < len; ++i) {
                 charRange = charRanges[i];
-                merged = false;
+                highlightsToKeep = [];
 
                 // Restrict character range to container element, if it exists
                 if (containerElementCharRange) {
                     charRange = charRange.intersection(containerElementCharRange);
                 }
 
+                // Ignore empty ranges
+                if (charRange.start == charRange.end) {
+                    continue;
+                }
+
                 // Check for intersection with existing highlights. For each intersection, create a new highlight
                 // which is the union of the highlight range and the selected range
                 for (j = 0; j < highlights.length; ++j) {
+
+                    removeHighlight = false;
+
                     if (containerElementId == highlights[j].containerElementId) {
                         highlightCharRange = highlights[j].characterRange;
+                        isSameClassApplier = classApplier == highlights[j].classApplier;
+                        splitHighlight = !isSameClassApplier && exclusive;
 
-                        if (highlightCharRange.intersects(charRange)) {
-                            // Replace the existing highlight in the list of current highlights and add it to the list for
-                            // removal
-                            highlightsToRemove.push(highlights[j]);
-                            highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
+                        // Replace the existing highlight if needs to be:
+                        //  1. merged (isSameClassApplier)
+                        //  2. partially or entirely ereased (className = false)
+                        //  3. partially or entirely replaced (isSameClassApplier == false && exclusive == true)
+
+                        if (highlightCharRange.intersects(charRange) && (isSameClassApplier || splitHighlight)) {
+
+                            // Remove existing Highlights, keep unselected parts
+                            if (splitHighlight) {
+                                forEach(highlightCharRange.complements(charRange), function(rangeToAdd) {
+                                    highlightsToKeep.push( new Highlight(doc, rangeToAdd, highlights[j].classApplier, converter, null, containerElementId) );
+                                });
+                            }
+
+                            removeHighlight = true;
+                            if (isSameClassApplier)
+                                charRange = highlightCharRange.union(charRange);
                         }
+                    }
+
+                    if (removeHighlight) {
+                        highlightsToRemove.push(highlights[j]);
+                    }
+                    else {
+                        highlightsToKeep.push(highlights[j]);
                     }
                 }
 
-                if (!merged) {
-                    highlights.push( new Highlight(doc, charRange, classApplier, converter, null, containerElementId) );
+                // Add new range (only if cssApplier is not false)
+                if (classApplier) {
+                    highlightsToKeep.push(new Highlight(doc, charRange, classApplier, converter, null, containerElementId));
                 }
+                this.highlights = highlights = highlightsToKeep;
             }
             
             // Remove the old highlights
@@ -356,11 +403,11 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     newHighlights.push(highlight);
                 }
             });
-            
+
             return newHighlights;
         },
 
-        highlightRanges: function(className, ranges, containerElement) {
+        highlightRanges: function(className, ranges, containerElement, exclusive) {
             var selCharRanges = [];
             var converter = this.converter;
             var containerElementId = containerElement ? containerElement.id : null;
@@ -375,17 +422,17 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || getBody(range.getDocument())) );
             });
             
-            return this.highlightCharacterRanges(selCharRanges, ranges, containerElementId);
+            return this.highlightCharacterRanges(className, selCharRanges, containerElementId, exclusive);
         },
 
-        highlightSelection: function(className, selection, containerElementId) {
+        highlightSelection: function(className, selection, containerElementId, exclusive) {
             var converter = this.converter;
             selection = selection || api.getSelection();
-            var classApplier = this.classAppliers[className];
+            var classApplier = className ? this.classAppliers[className] : false;
             var doc = selection.win.document;
             var containerElement = containerElementId ? doc.getElementById(containerElementId) : getBody(doc);
 
-            if (!classApplier) {
+            if (!classApplier && className !== false) {
                 throw new Error("No class applier found for class '" + className + "'");
             }
 
@@ -398,7 +445,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 selCharRanges.push( CharacterRange.fromCharacterRange(rangeInfo.characterRange) );
             });
             
-            var newHighlights = this.highlightCharacterRanges(className, selCharRanges, containerElementId);
+            var newHighlights = this.highlightCharacterRanges(className, selCharRanges, containerElementId, exclusive);
 
             // Restore selection
             converter.restoreSelection(selection, serializedSelection, containerElement);
