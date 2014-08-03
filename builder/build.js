@@ -150,7 +150,7 @@ function copyModuleScripts() {
                 '        factory(global.rangy);',
                 '    }',
                 '})(function(' + dependenciesArray.join(", ") + ') {'
-            ].join("\n") + indent(code) + "\n});";
+            ].join("\n") + indent(code) + "\n}, this);";
         });
 
         fs.writeFileSync(uncompressedBuildDir + moduleFile, moduleCode, FILE_ENCODING);
