@@ -18,7 +18,7 @@
 - [X] Added select() method to range
 - [X] Rename CSS class applier module to "class applier module"
 - [?] Add handling for img and similar elements in class applier module
-- [ ] AMD support. How does this work with Rangy's modules?
+- [X] AMD support
 - [X] Add getNativeTextRange() to selection for IE 11
 - [ ] Add withinRange and withinNode options to move(), moveStart() and moveEnd() methods
 
