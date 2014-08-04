@@ -419,7 +419,9 @@
     var docReady = false;
 
     var loadHandler = function(e) {
-        log.info("loadHandler, event is " + e.type);
+        if (e) {
+            log.info("loadHandler, event is " + e.type);
+        }
         if (!docReady) {
             docReady = true;
             if (!api.initialized && api.config.autoInitialize) {
@@ -438,12 +440,17 @@
         return;
     }
 
-    if (isHostMethod(document, "addEventListener")) {
-        document.addEventListener("DOMContentLoaded", loadHandler, false);
-    }
+    // Test whether the document has already been loaded
+    if (document.readyState === "complete") {
+        loadHandler()
+    } else {
+        if (isHostMethod(document, "addEventListener")) {
+            document.addEventListener("DOMContentLoaded", loadHandler, false);
+        }
 
-    // Add a fallback in case the DOMContentLoaded event isn't supported
-    addListener(window, "load", loadHandler);
+        // Add a fallback in case the DOMContentLoaded event isn't supported
+        addListener(window, "load", loadHandler);
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
     
