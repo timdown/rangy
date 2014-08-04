@@ -419,9 +419,7 @@
     var docReady = false;
 
     var loadHandler = function(e) {
-        if (e) {
-            log.info("loadHandler, event is " + e.type);
-        }
+        log.info("loadHandler triggered by " + (e ? e.type + " event" : "document already loaded"));
         if (!docReady) {
             docReady = true;
             if (!api.initialized && api.config.autoInitialize) {
@@ -441,8 +439,8 @@
     }
 
     // Test whether the document has already been loaded
-    if (document.readyState === "complete") {
-        loadHandler()
+    if (/^(?:complete|interactive)$/.test(document.readyState)) {
+        loadHandler();
     } else {
         if (isHostMethod(document, "addEventListener")) {
             document.addEventListener("DOMContentLoaded", loadHandler, false);
