@@ -74,6 +74,10 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return this.start < charRange.end && this.end > charRange.start;
         },
 
+        contiguous: function(charRange) {
+            return this.start == charRange.end || this.end == charRange.start;
+        },
+
         union: function(charRange) {
             return new CharacterRange(Math.min(this.start, charRange.start), Math.max(this.end, charRange.end));
         },
@@ -361,7 +365,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                         //  2. partially or entirely ereased (className = false)
                         //  3. partially or entirely replaced (isSameClassApplier == false && exclusive == true)
 
-                        if (highlightCharRange.intersects(charRange) && (isSameClassApplier || splitHighlight)) {
+                        if ((highlightCharRange.intersects(charRange) || highlightCharRange.contiguous(charRange)) && (isSameClassApplier || splitHighlight)) {
 
                             // Remove existing Highlights, keep unselected parts
                             if (splitHighlight) {
