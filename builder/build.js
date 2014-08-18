@@ -5,6 +5,7 @@ var exec = require("child_process").exec;
 var uglifyJs = require("uglify-js");
 var rimraf = require("rimraf");
 var jshint = require("jshint");
+var archiver = require("archiver");
 
 var FILE_ENCODING = "utf-8";
 
@@ -21,7 +22,7 @@ var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
 var modules = [
-    "rangy-cssclassapplier.js",
+    "rangy-classapplier.js",
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
     "rangy-textrange.js",
@@ -104,6 +105,10 @@ function getVersion() {
     });
 }
 
+function indent(str) {
+    return str.split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
+}
+
 function assembleCoreScript() {
     // Read in the list of files to build
     var fileNames = ["core.js", "dom.js", "domrange.js", "wrappedrange.js", "wrappedselection.js"];
@@ -114,7 +119,7 @@ function assembleCoreScript() {
 
     // Substitute scripts for build directives
     var combinedScript = files["core.js"].replace(/\/\*\s?build:includeCoreModule\((.*?)\)\s?\*\//g, function(match, scriptName) {
-        return files[scriptName].split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
+        return indent(files[scriptName]);
     });
 
     fs.writeFileSync(uncompressedBuildDir + coreFilename, combinedScript, FILE_ENCODING);
@@ -125,7 +130,30 @@ function assembleCoreScript() {
 
 function copyModuleScripts() {
     modules.forEach(function(moduleFile) {
-        copyFileSync(srcDir + "modules/" + moduleFile, uncompressedBuildDir + moduleFile);
+        var moduleCode = fs.readFileSync(srcDir + "modules/" + moduleFile, FILE_ENCODING);
+
+        // Run build directives
+        moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithDependencies\((.*?)\)\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, dependencies, code) {
+            var dependenciesArray = eval(dependencies);
+            return [
+                '(function(factory, global) {',
+                '    if (typeof define == "function" && define.amd) {',
+                '        // AMD. Register as an anonymous module with a dependency on Rangy.',
+                '        define(' + dependencies + ', factory);',
+                '        /*',
+                '         } else if (typeof exports == "object") {',
+                '         // Node/CommonJS style for Browserify',
+                '         module.exports = factory;',
+                '         */',
+                '    } else {',
+                '        // No AMD or CommonJS support so we use the rangy global variable',
+                '        factory(global.rangy);',
+                '    }',
+                '})(function(' + dependenciesArray.join(", ") + ') {'
+            ].join("\n") + indent(code) + "\n}, this);";
+        });
+
+        fs.writeFileSync(uncompressedBuildDir + moduleFile, moduleCode, FILE_ENCODING);
     });
     console.log("Copied module scripts");
     callback();
@@ -270,26 +298,46 @@ function minify() {
     }
 }
 
-function zip() {
-    var zipFileName = "rangy-" + buildVersion + ".zip";
-    var tarName = "rangy-" + buildVersion + ".tar";
-    var tarGzName = "rangy-" + buildVersion + ".tar.gz";
-    var zipExe = "..\\builder\\tools\\7za";
-    var dir = "rangy-" + buildVersion + "/";
+function createArchiver(fileExtension, archiveCreatorFunc) {
+    return function() {
+        var compressedFileName = "rangy-" + buildVersion + "." + fileExtension;
 
-    exec(zipExe + " a -tzip " + zipFileName + " " + dir, { cwd: buildDir }, function(error, stdout, stderr) {
-        console.log("Zipped", stdout, stderr);
+        var output = fs.createWriteStream(buildDir + compressedFileName);
+        var archive = archiveCreatorFunc();
 
-        exec(zipExe + " a -ttar " + tarName + " " + dir, { cwd: buildDir }, function(error, stdout, stderr) {
-            console.log("Tarred", stdout, stderr);
-            exec(zipExe + " a -tgzip " + tarGzName + " " + tarName, { cwd: buildDir }, function(error, stdout, stderr) {
-                console.log("Gzipped", stdout, stderr);
-                fs.unlinkSync(buildDir + tarName);
-                callback();
-            });
+        output.on("close", function () {
+            console.log("Compressed " + archive.pointer() + " total bytes to " + compressedFileName);
+            callback();
         });
-    });
+
+        archive.on("error", function(err){
+            throw err;
+        });
+
+        archive.pipe(output);
+        archive.bulk([
+            {
+                expand: true,
+                cwd: buildDir,
+                src: ["**", "!*.tar", "!*.gz", "!*.tgz", "!*.zip"]
+            }
+        ]);
+        archive.finalize();
+    }
 }
+
+var zip = createArchiver("zip", function() {
+    return archiver.create("zip");
+});
+
+var tarGz = createArchiver("tar.gz", function() {
+    return archiver.create("tar", {
+        gzip: true,
+        gzipOptions: {
+            level: 1
+        }
+    });
+});
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -307,7 +355,8 @@ var actions = [
     substituteBuildVars,
     lint,
     minify,
-    zip
+    zip,
+    tarGz
 ];
 
 

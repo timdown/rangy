@@ -11,10 +11,14 @@
 (function(factory, global) {
     if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module.
-        define([rangy], factory);
+        define(factory);
+/*
+    TODO: look into this properly.
+    
     } else if (typeof exports == "object") {
         // Node/CommonJS style for Browserify
         module.exports = factory;
+*/
     } else {
         // No AMD or CommonJS support so we place Rangy in a global variable
         global.rangy = factory();
@@ -315,7 +319,7 @@
     }
 
     Module.prototype = {
-        init: function(api) {
+        init: function() {
             var requiredModuleNames = this.dependencies || [];
             for (var i = 0, len = requiredModuleNames.length, requiredModule, moduleName; i < len; ++i) {
                 moduleName = requiredModuleNames[i];
@@ -384,7 +388,13 @@
             initFunc = arguments[2];
             dependencies = arguments[1];
         }
-        createModule(false, name, dependencies, initFunc);
+
+        var module = createModule(false, name, dependencies, initFunc);
+
+        // Initialize the module immediately if the core is already initialized
+        if (api.initialized) {
+            module.init();
+        }
     };
 
     api.createCoreModule = function(name, dependencies, initFunc) {
@@ -409,7 +419,7 @@
     var docReady = false;
 
     var loadHandler = function(e) {
-        log.info("loadHandler, event is " + e.type);
+        log.info("loadHandler triggered by " + (e ? e.type + " event" : "document already loaded"));
         if (!docReady) {
             docReady = true;
             if (!api.initialized && api.config.autoInitialize) {
@@ -428,12 +438,17 @@
         return;
     }
 
-    if (isHostMethod(document, "addEventListener")) {
-        document.addEventListener("DOMContentLoaded", loadHandler, false);
-    }
+    // Test whether the document has already been loaded
+    if (/^(?:complete|interactive)$/.test(document.readyState)) {
+        loadHandler();
+    } else {
+        if (isHostMethod(document, "addEventListener")) {
+            document.addEventListener("DOMContentLoaded", loadHandler, false);
+        }
 
-    // Add a fallback in case the DOMContentLoaded event isn't supported
-    addListener(window, "load", loadHandler);
+        // Add a fallback in case the DOMContentLoaded event isn't supported
+        addListener(window, "load", loadHandler);
+    }
 
     /*----------------------------------------------------------------------------------------------------------------*/
     

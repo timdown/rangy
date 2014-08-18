@@ -15,17 +15,17 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-classapplier.js"></script>
     <script type="text/javascript">
 
         var highlightApplier, idApplier;
         var cssClassMutator1, cssClassMutator2;
 
         rangy.addInitListener(function(rangy) {
-            cssClassMutator1 = rangy.createCssClassApplier("test1", true, "*");
-            cssClassMutator2 = rangy.createCssClassApplier("test2", true);
-            highlightApplier = rangy.createCssClassApplier("highlight", true);
-            idApplier = rangy.createCssClassApplier("id1", true);
+            cssClassMutator1 = rangy.createClassApplier("test1", true, "*");
+            cssClassMutator2 = rangy.createClassApplier("test2", true);
+            highlightApplier = rangy.createClassApplier("highlight", true);
+            idApplier = rangy.createClassApplier("id1", true);
         });
 
         function toggleHighlight() {

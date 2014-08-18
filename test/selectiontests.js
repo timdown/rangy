@@ -190,7 +190,12 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.rangeCount, 1);
                 sel.addRange(range2);
                 t.assertEquals(sel.rangeCount, 1);
-                t.assertEquivalent(range2, sel.getRangeAt(0));
+                
+                // According to the spec, a reference to the added range should be stored by the selection so that the
+                // same range object is returned by getRangeAt(). However, most browsers don't do this (WebKit, IE) and
+                // Rangy doesn't do this either because it sometimes needs to change the range boundary points to make
+                // them valid selection boundaries.
+                //t.assertEquivalent(range2, sel.getRangeAt(0));
                 sel.removeRange(range1);
                 t.assertEquals(sel.rangeCount, 1);
                 sel.removeRange(range2);
@@ -232,9 +237,19 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 sel.addRange(range);
                 sel.collapse(t.nodes.b, 1);
                 var otherDoc = getOtherDocument();
+                
+                // The spec doesn't seem to suggest an exception should be thrown any more. Browser behaviour varies,
+                // it's an edge case so allow either by not testing
+/*
                 testExceptionCode(t, function() {
                     sel.collapse(otherDoc.body, 0);
                 }, DOMException.prototype.WRONG_DOCUMENT_ERR);
+*/
+/*
+                t.assertNoError(function() {
+                    sel.collapse(otherDoc.body, 0);
+                });
+*/
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
             s.test("collapseToStart test (non-editable)", function(t) {
@@ -305,9 +320,19 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             sel.addRange(range);
             sel.collapse(t.nodes.b, 1);
             var otherDoc = getOtherDocument();
+
+            // The spec doesn't seem to suggest an exception should be thrown any more. Browser behaviour varies, it's an edge
+            // case so allow either by not testing
+/*
             testExceptionCode(t, function() {
                 sel.collapse(otherDoc.body, 0);
             }, DOMException.prototype.WRONG_DOCUMENT_ERR);
+*/
+/*
+            t.assertNoError(function() {
+                sel.collapse(otherDoc.body, 0);
+            });
+*/
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("collapseToStart test (editable)", function(t) {
@@ -550,6 +575,10 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             }
         });
 
+        // The behaviour tested by the next two tests is the opposite of what is in the spec (see
+        // https://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#dom-selection-addrange), but Rangy simply cannot
+        // respect the spec in this instance because many browsers (WebKit) mangle ranges as they are added to the
+        // selection.
         s.test("Selection and range independence: addRange", function(t) {
             var sel = selectionCreator(win);
             if (sel.setSingleRange) {
@@ -588,6 +617,19 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 sel.removeAllRanges();
                 sel.addRange(range);
                 t.assertEquals(sel.toHtml(), t.nodes.plainText.data);
+            });
+        }
+
+        if (testSelection.getNativeTextRange) {
+            s.test("getNativeTextRange", function(t) {
+                var sel = selectionCreator(win);
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.plainText, 3);
+                sel.setSingleRange(range);
+                var textRange = sel.getNativeTextRange();
+                t.assertEquals(textRange.text, "la");
+                t.assertEquals(textRange.parentElement(), t.nodes.div);
             });
         }
     }, false);

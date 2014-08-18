@@ -1089,8 +1089,6 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assertFalse(range2.containsRange(range1));
             });
         }
-
-        testRange.detach();
     }, false);
 }
 
