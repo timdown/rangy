@@ -362,7 +362,6 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 // Check for intersection with existing highlights. For each intersection, create a new highlight
                 // which is the union of the highlight range and the selected range
                 for (j = 0; j < highlights.length; ++j) {
-
                     removeHighlight = false;
 
                     if (containerElementId == highlights[j].containerElementId) {
@@ -377,7 +376,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                         if (    (highlightCharRange.intersects(charRange) || highlightCharRange.isContiguousWith(charRange)) &&
                                 (isSameClassApplier || splitHighlight) ) {
 
-                            // Remove existing Highlights, keep unselected parts
+                            // Remove existing highlights, keeping the unselected parts
                             if (splitHighlight) {
                                 forEach(highlightCharRange.getComplements(charRange), function(rangeToAdd) {
                                     highlightsToKeep.push( new Highlight(doc, rangeToAdd, highlights[j].classApplier, converter, null, containerElementId) );
