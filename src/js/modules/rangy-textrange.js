@@ -69,6 +69,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var CHARACTER = "character", WORD = "word";
     var dom = api.dom, util = api.util;
     var extend = util.extend;
+    var createOptions = util.createOptions;
     var getBody = dom.getBody;
 
     var log = log4javascript.getLogger("rangy.textrange");
@@ -217,17 +218,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         characterOptions: null,
         direction: "forward"
     };
-
-    function createOptions(optionsParam, defaults) {
-        if (!optionsParam) {
-            return defaults;
-        } else {
-            var options = {};
-            extend(options, defaults);
-            extend(options, optionsParam, true);
-            return options;
-        }
-    }
 
     function createWordOptions(options) {
         var lang, defaults;

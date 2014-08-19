@@ -22,7 +22,7 @@
     <script type="text/javascript" src="../src/js/core/domrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../src/js/modules/rangy-classapplier.js"></script>
 <!--
     <script type="text/javascript" src="../src/js/modules/rangy-textrange.js"></script>
 -->
@@ -84,11 +84,11 @@
         }
 
         function highlightScopedSelectedText() {
-            highlighter.highlightSelection("highlight", null, "summary");
+            highlighter.highlightSelection("highlight", { containerElementId: "summary" });
         }
 
         function noteScopedSelectedText() {
-            highlighter.highlightSelection("note", null, "summary");
+            highlighter.highlightSelection("note", { containerElementId: "summary" });
         }
 
         function reloadPage(button) {

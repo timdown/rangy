@@ -15,6 +15,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
     var dom = api.dom;
     var contains = dom.arrayContains;
     var getBody = dom.getBody;
+    var createOptions = api.util.createOptions;
 
     // Puts highlights in order, last in document first.
     function compareHighlights(h1, h2) {
@@ -75,7 +76,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return this.start < charRange.end && this.end > charRange.start;
         },
 
-        contiguous: function(charRange) {
+        isContiguousWith: function(charRange) {
             return this.start == charRange.end || this.end == charRange.start;
         },
 
@@ -87,16 +88,18 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return new CharacterRange(Math.max(this.start, charRange.start), Math.min(this.end, charRange.end));
         },
 
-        complements : function(charRange) {
+        getComplements: function(charRange) {
             var ranges = [];
             if (this.start >= charRange.start) {
-                if (this.end <= charRange.end)
+                if (this.end <= charRange.end) {
                     return [];
+                }
                 ranges.push(new CharacterRange(charRange.end, this.end));
             } else {
                 ranges.push(new CharacterRange(this.start, Math.min(this.end, charRange.start)));
-                if (this.end > charRange.end)
+                if (this.end > charRange.end) {
                     ranges.push(new CharacterRange(charRange.end, this.end));
+                }
             }
             return ranges;
         },
@@ -314,15 +317,21 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return intersectingHighlights;
         },
         
-        highlightCharacterRanges: function(className, charRanges, containerElementId, exclusive) {
+        highlightCharacterRanges: function(className, charRanges, options) {
             var i, len, j;
             var highlights = this.highlights;
             var converter = this.converter;
             var doc = this.doc;
             var highlightsToRemove = [];
-            var classApplier = className ? this.classAppliers[className] : false;
-            containerElementId = containerElementId || null;
-            exclusive = exclusive || false;
+            var classApplier = className ? this.classAppliers[className] : null;
+
+            options = createOptions(options, {
+                containerElementId: null,
+                exclusive: true
+            });
+            
+            var containerElementId = options.containerElementId;
+            var exclusive = options.exclusive;
 
             var containerElement, containerElementRange, containerElementCharRange;
             if (containerElementId) {
@@ -358,34 +367,34 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
                     if (containerElementId == highlights[j].containerElementId) {
                         highlightCharRange = highlights[j].characterRange;
-                        isSameClassApplier = classApplier == highlights[j].classApplier;
+                        isSameClassApplier = (classApplier == highlights[j].classApplier);
                         splitHighlight = !isSameClassApplier && exclusive;
 
-                        // Replace the existing highlight if needs to be:
+                        // Replace the existing highlight if it needs to be:
                         //  1. merged (isSameClassApplier)
-                        //  2. partially or entirely ereased (className = false)
+                        //  2. partially or entirely erased (className === null)
                         //  3. partially or entirely replaced (isSameClassApplier == false && exclusive == true)
-
-                        if ((highlightCharRange.intersects(charRange) || highlightCharRange.contiguous(charRange)) && (isSameClassApplier || splitHighlight)) {
+                        if (    (highlightCharRange.intersects(charRange) || highlightCharRange.isContiguousWith(charRange)) &&
+                                (isSameClassApplier || splitHighlight) ) {
 
                             // Remove existing Highlights, keep unselected parts
                             if (splitHighlight) {
-                                forEach(highlightCharRange.complements(charRange), function(rangeToAdd) {
+                                forEach(highlightCharRange.getComplements(charRange), function(rangeToAdd) {
                                     highlightsToKeep.push( new Highlight(doc, rangeToAdd, highlights[j].classApplier, converter, null, containerElementId) );
                                 });
                             }
 
                             removeHighlight = true;
-                            if (isSameClassApplier)
+                            if (isSameClassApplier) {
                                 charRange = highlightCharRange.union(charRange);
+                            }
                         }
                     }
 
                     if (removeHighlight) {
-                            highlightsToRemove.push(highlights[j]);
-                            highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
-                        }
-                    else {
+                        highlightsToRemove.push(highlights[j]);
+                        highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
+                    } else {
                         highlightsToKeep.push(highlights[j]);
                     }
                 }
@@ -414,9 +423,16 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return newHighlights;
         },
 
-        highlightRanges: function(className, ranges, containerElement, exclusive) {
+        highlightRanges: function(className, ranges, options) {
             var selCharRanges = [];
             var converter = this.converter;
+
+            options = createOptions(options, {
+                containerElement: null,
+                exclusive: true
+            });
+
+            var containerElement = options.containerElement;
             var containerElementId = containerElement ? containerElement.id : null;
             var containerElementRange;
             if (containerElement) {
@@ -429,13 +445,25 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || getBody(range.getDocument())) );
             });
             
-            return this.highlightCharacterRanges(className, selCharRanges, containerElementId, exclusive);
+            return this.highlightCharacterRanges(className, selCharRanges, {
+                containerElementId: containerElementId,
+                exclusive: options.exclusive
+            });
         },
 
-        highlightSelection: function(className, selection, containerElementId, exclusive) {
+        highlightSelection: function(className, options) {
             var converter = this.converter;
-            selection = selection || api.getSelection();
             var classApplier = className ? this.classAppliers[className] : false;
+
+            options = createOptions(options, {
+                containerElementId: null,
+                selection: api.getSelection(),
+                exclusive: true
+            });
+
+            var containerElementId = options.containerElementId;
+            var exclusive = options.exclusive;
+            var selection = options.selection;
             var doc = selection.win.document;
             var containerElement = containerElementId ? doc.getElementById(containerElementId) : getBody(doc);
 
@@ -452,7 +480,10 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 selCharRanges.push( CharacterRange.fromCharacterRange(rangeInfo.characterRange) );
             });
             
-            var newHighlights = this.highlightCharacterRanges(className, selCharRanges, containerElementId, exclusive);
+            var newHighlights = this.highlightCharacterRanges(className, selCharRanges, {
+                containerElementId: containerElementId,
+                exclusive: exclusive
+            });
 
             // Restore selection
             converter.restoreSelection(selection, serializedSelection, containerElement);
@@ -481,6 +512,9 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             var highlights = this.highlights;
             highlights.sort(compareHighlights);
             var serializedHighlights = ["type:" + this.converter.type];
+            options = createOptions(options, {
+                serializeHighlightText: false
+            });
 
             forEach(highlights, function(highlight) {
                 var characterRange = highlight.characterRange;
@@ -491,7 +525,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     highlight.classApplier.cssClass,
                     highlight.containerElementId
                 ];
-                if (options && options.serializeHighlightText) {
+                if (options.serializeHighlightText) {
                     parts.push(highlight.getText());
                 }
                 serializedHighlights.push( parts.join("$") );

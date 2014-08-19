@@ -89,24 +89,23 @@
 
     var modules = {};
 
+    var util = {
+        isHostMethod: isHostMethod,
+        isHostObject: isHostObject,
+        isHostProperty: isHostProperty,
+        areHostMethods: areHostMethods,
+        areHostObjects: areHostObjects,
+        areHostProperties: areHostProperties,
+        isTextRange: isTextRange,
+        getBody: getBody
+    };
+
     var api = {
         version: "%%build:version%%",
         initialized: false,
         supported: true,
-
-        util: {
-            isHostMethod: isHostMethod,
-            isHostObject: isHostObject,
-            isHostProperty: isHostProperty,
-            areHostMethods: areHostMethods,
-            areHostObjects: areHostObjects,
-            areHostProperties: areHostProperties,
-            isTextRange: isTextRange,
-            getBody: getBody
-        },
-
+        util: util,
         features: {},
-
         modules: modules,
         config: {
             alertOnFail: true,
@@ -145,15 +144,16 @@
     api.warn = warn;
 
     // Add utility extend() method
+    var extend;
     if ({}.hasOwnProperty) {
-        api.util.extend = function(obj, props, deep) {
+        util.extend = extend = function(obj, props, deep) {
             var o, p;
             for (var i in props) {
                 if (props.hasOwnProperty(i)) {
                     o = obj[i];
                     p = props[i];
                     if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
-                        api.util.extend(o, p, true);
+                        extend(o, p, true);
                     }
                     obj[i] = p;
                 }
@@ -164,6 +164,15 @@
             }
             return obj;
         };
+
+        util.createOptions = function(optionsParam, defaults) {
+            var options = {};
+            extend(options, defaults);
+            if (optionsParam) {
+                extend(options, optionsParam, true);
+            }
+            return options;
+        }
     } else {
         fail("hasOwnProperty not supported");
     }
@@ -192,9 +201,8 @@
             };
         }
 
-        api.util.toArray = toArray;
+        util.toArray = toArray;
     })();
-
 
     // Very simple event handler wrapper function that doesn't attempt to solve issues such as "this" handling or
     // normalization of event properties
@@ -211,7 +219,7 @@
         fail("Document does not have required addEventListener or attachEvent method");
     }
 
-    api.util.addListener = addListener;
+    util.addListener = addListener;
 
     var initListeners = [];
 
