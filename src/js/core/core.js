@@ -183,11 +183,12 @@
 
     // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
     (function() {
+        var toArray;
+
         if (isBrowser) {
             var el = document.createElement("div");
             el.appendChild(document.createElement("span"));
             var slice = [].slice;
-            var toArray;
             try {
                 if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
                     toArray = function(arrayLike) {
