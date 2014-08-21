@@ -17,7 +17,7 @@ var buildSpec = {
 
 var buildDir = "dist/";
 
-var gitDir = buildDir + "repository/", srcDir = gitDir + "src/js/";
+var gitDir = buildDir + "repository/", srcDir = gitDir + "src/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
