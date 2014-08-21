@@ -12,7 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-/* build:modularizeWithDependencies(["rangy-core"]) */
+/* build:modularizeWithDependencies(["./rangy-core"]) */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
@@ -38,17 +38,17 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         return str.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
     }
 
-    function hasClass(el, cssClass) {
-        return el.className && new RegExp("(?:^|\\s)" + cssClass + "(?:\\s|$)").test(el.className);
+    function hasClass(el, className) {
+        return el.className && new RegExp("(?:^|\\s)" + className + "(?:\\s|$)").test(el.className);
     }
 
-    function addClass(el, cssClass) {
+    function addClass(el, className) {
         if (el.className) {
-            if (!hasClass(el, cssClass)) {
-                el.className += " " + cssClass;
+            if (!hasClass(el, className)) {
+                el.className += " " + className;
             }
         } else {
-            el.className = cssClass;
+            el.className = className;
         }
     }
 
@@ -57,9 +57,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             return (whiteSpaceBefore && whiteSpaceAfter) ? " " : "";
         }
 
-        return function(el, cssClass) {
+        return function(el, className) {
             if (el.className) {
-                el.className = el.className.replace(new RegExp("(^|\\s)" + cssClass + "(\\s|$)"), replacer);
+                el.className = el.className.replace(new RegExp("(^|\\s)" + className + "(\\s|$)"), replacer);
             }
         };
     })();
@@ -479,9 +479,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     // TODO: Populate this with every attribute name that corresponds to a property with a different name. Really??
     var attrNamesForProperties = {};
 
-    function ClassApplier(cssClass, options, tagNames) {
+    function ClassApplier(className, options, tagNames) {
         var normalize, i, len, propName, applier = this;
-        applier.cssClass = cssClass;
+        applier.cssClass = applier.className = className; // cssClass property is for backward compatibility
 
         var elementPropertiesFromOptions = null, elementAttributes = {};
 
@@ -514,7 +514,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         applier.elementAttributes = elementAttributes;
 
         applier.elementSortedClassName = applier.elementProperties.hasOwnProperty("className") ?
-            applier.elementProperties.className : cssClass;
+            applier.elementProperties.className : className;
 
         // Initialize tag names
         applier.applyToAnyTagName = false;
@@ -561,7 +561,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     // own to simplify checks when removing styling elements
                     if (p == "className") {
                         addClass(el, propValue);
-                        addClass(el, this.cssClass);
+                        addClass(el, this.className);
                         el[p] = sortClassName(el[p]);
                         if (createCopy) {
                             elProps[p] = el[p];
@@ -612,7 +612,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         hasClass: function(node) {
             return node.nodeType == 1 &&
                 contains(this.tagNames, node.tagName.toLowerCase()) &&
-                hasClass(node, this.cssClass);
+                hasClass(node, this.className);
         },
 
         getSelfOrAncestorWithClass: function(node) {
@@ -700,7 +700,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var el = doc.createElement(this.elementTagName);
             this.copyPropertiesToElement(this.elementProperties, el, false);
             this.copyAttributesToElement(this.elementAttributes, el);
-            addClass(el, this.cssClass);
+            addClass(el, this.className);
             if (this.onElementCreate) {
                 this.onElementCreate(el, this);
             }
@@ -708,8 +708,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         applyToTextNode: function(textNode, positionsToPreserve) {
-            log.group("Apply CSS class '" + this.cssClass + "'. textNode: " + textNode.data);
-            log.info("Apply CSS class  '" + this.cssClass + "'. textNode: " + textNode.data);
+            log.group("Apply CSS class '" + this.className + "'. textNode: " + textNode.data);
+            log.info("Apply CSS class  '" + this.className + "'. textNode: " + textNode.data);
             var parent = textNode.parentNode;
             if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
@@ -717,7 +717,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProperties(parent, this.elementProperties)) {
 
-                addClass(parent, this.cssClass);
+                addClass(parent, this.className);
             } else {
                 var el = this.createContainer(dom.getDocument(textNode));
                 textNode.parentNode.insertBefore(el, textNode);
@@ -780,7 +780,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             if (this.isRemovable(ancestorWithClass)) {
                 replaceWithOwnChildrenPreservingPositions(ancestorWithClass, positionsToPreserve);
             } else {
-                removeClass(ancestorWithClass, this.cssClass);
+                removeClass(ancestorWithClass, this.className);
             }
         },
 
@@ -1004,8 +1004,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         detach: function() {}
     };
 
-    function createClassApplier(cssClass, options, tagNames) {
-        return new ClassApplier(cssClass, options, tagNames);
+    function createClassApplier(className, options, tagNames) {
+        return new ClassApplier(className, options, tagNames);
     }
 
     ClassApplier.util = {

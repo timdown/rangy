@@ -15,7 +15,7 @@ var buildSpec = {
     gitBranch: "master"
 };
 
-var buildDir = "build/";
+var buildDir = "dist/";
 
 var gitDir = buildDir + "repository/", srcDir = gitDir + "src/js/";
 var zipDir;
@@ -41,6 +41,7 @@ function concat(fileList, destPath) {
     fs.writeFileSync(destPath, out.join("\n"), FILE_ENCODING);
 }
 
+/*
 function copyFileSync(srcFile, destFile) {
     var BUF_LENGTH, buff, bytesRead, fdr, fdw, pos;
     BUF_LENGTH = 64 * 1024;
@@ -56,6 +57,43 @@ function copyFileSync(srcFile, destFile) {
     }
     fs.closeSync(fdr);
     return fs.closeSync(fdw);
+}
+*/
+
+function copyFileSync(srcFile, destFile, preserveTimestamps) {
+    var contents = fs.readFileSync(srcFile);
+    fs.writeFileSync(destFile, contents);
+    var stat = fs.lstatSync(srcFile);
+    fs.chmodSync(destFile, stat.mode);
+    if (preserveTimestamps) {
+        fs.utimesSync(destFile, stat.atime, stat.mtime)
+    }
+}
+
+function copyFilesRecursive(srcDir, destDir) {
+    if (fs.existsSync(destDir)) {
+        if (!fs.statSync(destDir).isDirectory()) {
+            throw new Error("Destination exists and is not a directory");
+        }
+    } else {
+        fs.mkdirSync(destDir, fs.statSync(srcDir).mode);
+    }
+
+    var files = fs.readdirSync(srcDir);
+
+    Array.prototype.forEach.call(files, function(fileName) {
+        var srcFilePath = path.join(srcDir, fileName);
+        var destFilePath = path.join(destDir, fileName);
+        var srcFileInfo = fs.lstatSync(srcFilePath);
+
+        if (srcFileInfo.isDirectory()) {
+            copyFilesRecursive(srcFilePath, destFilePath);
+        } else if (srcFileInfo.isSymbolicLink()) {
+            throw new Error("Symbolic links are not supported");
+        } else {
+            copyFileSync(srcFilePath, destFilePath);
+        }
+    });
 }
 
 function deleteBuildDir() {
@@ -140,11 +178,9 @@ function copyModuleScripts() {
                 '    if (typeof define == "function" && define.amd) {',
                 '        // AMD. Register as an anonymous module with a dependency on Rangy.',
                 '        define(' + dependencies + ', factory);',
-                '        /*',
-                '         } else if (typeof exports == "object") {',
+                '    } else if (typeof module != "undefined" && typeof exports == "object") {',
                 '         // Node/CommonJS style for Browserify',
                 '         module.exports = factory;',
-                '         */',
                 '    } else {',
                 '        // No AMD or CommonJS support so we use the rangy global variable',
                 '        factory(global.rangy);',
@@ -339,6 +375,10 @@ var tarGz = createArchiver("tar.gz", function() {
     });
 });
 
+function copyToLib() {
+    copyFilesRecursive(uncompressedBuildDir, "lib/");
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 // Start the build
@@ -356,7 +396,8 @@ var actions = [
     lint,
     minify,
     zip,
-    tarGz
+    tarGz,
+    copyToLib
 ];
 
 

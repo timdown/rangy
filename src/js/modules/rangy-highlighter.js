@@ -9,7 +9,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-/* build:modularizeWithDependencies(["rangy-core"]) */
+/* build:modularizeWithDependencies(["./rangy-core"]) */
 rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
     var log = log4javascript.getLogger("rangy.Highlighter");
     var dom = api.dom;
@@ -258,7 +258,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         },
 
         toString: function() {
-            return "[Highlight(ID: " + this.id + ", class: " + this.classApplier.cssClass + ", character range: " +
+            return "[Highlight(ID: " + this.id + ", class: " + this.classApplier.className + ", character range: " +
                 this.characterRange.start + " - " + this.characterRange.end + ")]";
         }
     };
@@ -275,7 +275,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
     Highlighter.prototype = {
         addClassApplier: function(classApplier) {
-            this.classAppliers[classApplier.cssClass] = classApplier;
+            this.classAppliers[classApplier.className] = classApplier;
         },
 
         getHighlightForElement: function(el) {
@@ -521,7 +521,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     characterRange.start,
                     characterRange.end,
                     highlight.id,
-                    highlight.classApplier.cssClass,
+                    highlight.classApplier.className,
                     highlight.containerElementId
                 ];
                 if (options.serializeHighlightText) {

@@ -63,7 +63,7 @@
  * Problem is whether Rangy should ever acknowledge the space and if so, when. Another problem is whether this can be
  * feature-tested
  */
-/* build:modularizeWithDependencies(["rangy-core"]) */
+/* build:modularizeWithDependencies(["./rangy-core"]) */
 rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
     var CHARACTER = "character", WORD = "word";

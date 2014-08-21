@@ -12,7 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-/* build:modularizeWithDependencies(["rangy-core"]) */
+/* build:modularizeWithDependencies(["./rangy-core"]) */
 rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
     var rangeProto = api.rangePrototype;
     var selProto = api.selectionPrototype;
