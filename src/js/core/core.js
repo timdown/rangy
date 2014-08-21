@@ -131,7 +131,7 @@
     function fail(reason) {
         api.initialized = true;
         api.supported = false;
-        alertOrLog("Rangy is not supported on this page in your browser. Reason: " + reason, api.config.alertOnFail);
+        alertOrLog("Rangy is not supported in this environment. Reason: " + reason, api.config.alertOnFail);
     }
 
     api.fail = fail;
