@@ -174,28 +174,28 @@
         };
     } else {
         fail("hasOwnProperty not supported");
-        return api;
     }
     
     // Test whether we're in a browser and bail out if not
     if (!isBrowser) {
         fail("Rangy can only run in a browser");
-        return api;
     }
 
     // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
     (function() {
-        var el = document.createElement("div");
-        el.appendChild(document.createElement("span"));
-        var slice = [].slice;
-        var toArray;
-        try {
-            if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
-                toArray = function(arrayLike) {
-                    return slice.call(arrayLike, 0);
-                };
-            }
-        } catch (e) {}
+        if (isBrowser) {
+            var el = document.createElement("div");
+            el.appendChild(document.createElement("span"));
+            var slice = [].slice;
+            var toArray;
+            try {
+                if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
+                    toArray = function(arrayLike) {
+                        return slice.call(arrayLike, 0);
+                    };
+                }
+            } catch (e) {}
+        }
 
         if (!toArray) {
             toArray = function(arrayLike) {
@@ -213,20 +213,21 @@
     // Very simple event handler wrapper function that doesn't attempt to solve issues such as "this" handling or
     // normalization of event properties
     var addListener;
-    if (isHostMethod(document, "addEventListener")) {
-        addListener = function(obj, eventType, listener) {
-            obj.addEventListener(eventType, listener, false);
-        };
-    } else if (isHostMethod(document, "attachEvent")) {
-        addListener = function(obj, eventType, listener) {
-            obj.attachEvent("on" + eventType, listener);
-        };
-    } else {
-        fail("Document does not have required addEventListener or attachEvent method");
-        return api;
-    }
+    if (isBrowser) {
+        if (isHostMethod(document, "addEventListener")) {
+            addListener = function(obj, eventType, listener) {
+                obj.addEventListener(eventType, listener, false);
+            };
+        } else if (isHostMethod(document, "attachEvent")) {
+            addListener = function(obj, eventType, listener) {
+                obj.attachEvent("on" + eventType, listener);
+            };
+        } else {
+            fail("Document does not have required addEventListener or attachEvent method");
+        }
 
-    util.addListener = addListener;
+        util.addListener = addListener;
+    }
 
     var initListeners = [];
 
@@ -236,7 +237,7 @@
 
     // Initialization
     function init() {
-        if (api.initialized) {
+        if (!isBrowser || api.initialized) {
             return;
         }
         var testRange;
@@ -323,7 +324,9 @@
         }
     }
 
-    api.shim = api.createMissingNativeApi = shim;
+    if (isBrowser) {
+        api.shim = api.createMissingNativeApi = shim;
+    }
 
     function Module(name, dependencies, initializer) {
         this.name = name;
@@ -376,8 +379,8 @@
         }
     };
     
-    function createModule(isCore, name, dependencies, initFunc) {
-        var newModule = new Module(name, dependencies, function(module) {
+    function createModule(name, dependencies, initFunc) {
+        modules[name] = new Module(name, dependencies, function(module) {
             if (!module.initialized) {
                 module.initialized = true;
                 try {
@@ -390,7 +393,6 @@
                 }
             }
         });
-        modules[name] = newModule;
     }
 
     api.createModule = function(name) {
@@ -404,7 +406,7 @@
             dependencies = arguments[1];
         }
 
-        var module = createModule(false, name, dependencies, initFunc);
+        var module = createModule(name, dependencies, initFunc);
 
         // Initialize the module immediately if the core is already initialized
         if (api.initialized) {
@@ -413,7 +415,7 @@
     };
 
     api.createCoreModule = function(name, dependencies, initFunc) {
-        createModule(true, name, dependencies, initFunc);
+        createModule(name, dependencies, initFunc);
     };
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -443,16 +445,18 @@
         }
     };
 
-    // Test whether the document has already been loaded
-    if (/^(?:complete|interactive)$/.test(document.readyState)) {
-        loadHandler();
-    } else {
-        if (isHostMethod(document, "addEventListener")) {
-            document.addEventListener("DOMContentLoaded", loadHandler, false);
-        }
+    if (isBrowser) {
+        // Test whether the document has already been loaded
+        if (/^(?:complete|interactive)$/.test(document.readyState)) {
+            loadHandler();
+        } else {
+            if (isHostMethod(document, "addEventListener")) {
+                document.addEventListener("DOMContentLoaded", loadHandler, false);
+            }
 
-        // Add a fallback in case the DOMContentLoaded event isn't supported
-        addListener(window, "load", loadHandler);
+            // Add a fallback in case the DOMContentLoaded event isn't supported
+            addListener(window, "load", loadHandler);
+        }
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
