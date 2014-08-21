@@ -85,6 +85,8 @@
 
     var modules = {};
 
+    var isBrowser = (typeof window != UNDEFINED && typeof document != UNDEFINED);
+
     var util = {
         isHostMethod: isHostMethod,
         isHostObject: isHostObject,
@@ -99,6 +101,7 @@
     var api = {
         version: "%%build:version%%",
         initialized: false,
+        isBrowser: isBrowser,
         supported: true,
         util: util,
         features: {},
@@ -118,7 +121,7 @@
     }
 
     function alertOrLog(msg, shouldAlert) {
-        if (shouldAlert) {
+        if (isBrowser && shouldAlert) {
             window.alert(msg);
         } else  {
             consoleLog(msg);
@@ -174,7 +177,7 @@
     }
     
     // Test whether we're in a browser and bail out if not
-    if (typeof window == UNDEFINED || typeof document == UNDEFINED) {
+    if (!isBrowser) {
         fail("Rangy can only run in a browser");
         return;
     }
