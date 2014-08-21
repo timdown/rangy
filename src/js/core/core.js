@@ -174,12 +174,13 @@
         };
     } else {
         fail("hasOwnProperty not supported");
+        return api;
     }
     
     // Test whether we're in a browser and bail out if not
     if (!isBrowser) {
         fail("Rangy can only run in a browser");
-        return;
+        return api;
     }
 
     // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
@@ -222,6 +223,7 @@
         };
     } else {
         fail("Document does not have required addEventListener or attachEvent method");
+        return api;
     }
 
     util.addListener = addListener;
