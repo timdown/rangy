@@ -172,6 +172,12 @@
     } else {
         fail("hasOwnProperty not supported");
     }
+    
+    // Test whether we're in a browser and bail out if not
+    if (typeof window == UNDEFINED || typeof document == UNDEFINED) {
+        fail("Rangy can only run in a browser");
+        return;
+    }
 
     // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
     (function() {
