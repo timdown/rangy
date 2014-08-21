@@ -10,7 +10,7 @@ var archiver = require("archiver");
 var FILE_ENCODING = "utf-8";
 
 var buildSpec = {
-    baseVersion: "1.3alpha",
+    baseVersion: "1.3.0-alpha",
     gitUrl: "https://github.com/timdown/rangy.git",
     gitBranch: "master"
 };
@@ -40,25 +40,6 @@ function concat(fileList, destPath) {
     });
     fs.writeFileSync(destPath, out.join("\n"), FILE_ENCODING);
 }
-
-/*
-function copyFileSync(srcFile, destFile) {
-    var BUF_LENGTH, buff, bytesRead, fdr, fdw, pos;
-    BUF_LENGTH = 64 * 1024;
-    buff = new Buffer(BUF_LENGTH);
-    fdr = fs.openSync(srcFile, "r");
-    fdw = fs.openSync(destFile, "w");
-    bytesRead = 1;
-    pos = 0;
-    while (bytesRead > 0) {
-        bytesRead = fs.readSync(fdr, buff, 0, BUF_LENGTH, pos);
-        fs.writeSync(fdw, buff, 0, bytesRead);
-        pos += bytesRead;
-    }
-    fs.closeSync(fdr);
-    return fs.closeSync(fdw);
-}
-*/
 
 function copyFileSync(srcFile, destFile, preserveTimestamps) {
     var contents = fs.readFileSync(srcFile);
@@ -185,7 +166,7 @@ function copyModuleScripts() {
                 '        // No AMD or CommonJS support so we use the rangy global variable',
                 '        factory(global.rangy);',
                 '    }',
-                '})(function(' + dependenciesArray.join(", ") + ') {'
+                '})(function(rangy) {'
             ].join("\n") + indent(code) + "\n}, this);";
         });
 
