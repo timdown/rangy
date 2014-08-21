@@ -115,14 +115,14 @@
     };
 
     function consoleLog(msg) {
-        if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
-            window.console.log(msg);
+        if (isHostObject(global, "console") && isHostMethod(global.console, "log")) {
+            global.console.log(msg);
         }
     }
 
     function alertOrLog(msg, shouldAlert) {
         if (isBrowser && shouldAlert) {
-            window.alert(msg);
+            alert(msg);
         } else  {
             consoleLog(msg);
         }
@@ -440,16 +440,6 @@
             }
         }
     };
-
-    // Test whether we have window and document objects that we will need
-    if (typeof window == UNDEFINED) {
-        fail("No window found");
-        return;
-    }
-    if (typeof document == UNDEFINED) {
-        fail("No document found");
-        return;
-    }
 
     // Test whether the document has already been loaded
     if (/^(?:complete|interactive)$/.test(document.readyState)) {
