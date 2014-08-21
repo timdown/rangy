@@ -168,7 +168,7 @@
                 extend(options, optionsParam, true);
             }
             return options;
-        }
+        };
     } else {
         fail("hasOwnProperty not supported");
     }
