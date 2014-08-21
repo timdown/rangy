@@ -381,7 +381,7 @@
     };
     
     function createModule(name, dependencies, initFunc) {
-        modules[name] = new Module(name, dependencies, function(module) {
+        var newModule = new Module(name, dependencies, function(module) {
             if (!module.initialized) {
                 module.initialized = true;
                 try {
@@ -394,6 +394,8 @@
                 }
             }
         });
+        modules[name] = newModule;
+        return newModule;
     }
 
     api.createModule = function(name) {
@@ -410,7 +412,7 @@
         var module = createModule(name, dependencies, initFunc);
 
         // Initialize the module immediately if the core is already initialized
-        if (api.initialized) {
+        if (api.initialized && api.supported) {
             module.init();
         }
     };
