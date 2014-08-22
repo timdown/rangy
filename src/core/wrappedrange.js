@@ -210,7 +210,7 @@
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // Test for IE 9 deleteContents() and extractContents() bug and correct it. See issue 107.
+            // Test for IE deleteContents() and extractContents() bug and correct it. See issue 107.
 
             var el = document.createElement("div");
             el.innerHTML = "123";

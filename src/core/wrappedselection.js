@@ -488,7 +488,12 @@
                         // Clone the native range so that changing the selected range does not affect the selection.
                         // This is contrary to the spec but is the only way to achieve consistency between browsers. See
                         // issue 80.
-                        this.nativeSelection.addRange(getNativeRange(range).cloneRange());
+                        var clonedNativeRange = getNativeRange(range).cloneRange();
+                        try {
+                            this.nativeSelection.addRange(clonedNativeRange);
+                        } catch (ex) {
+                            log.error("Native addRange threw error '" + ex + "' with range " + DomRange.inspect(clonedNativeRange), ex);
+                        }
 
                         // Check whether adding the range was successful
                         this.rangeCount = this.nativeSelection.rangeCount;
