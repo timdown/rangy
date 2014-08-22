@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/rangy_github.iml" filepath="$PROJECT_DIR$/.idea/rangy_github.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/rangy.iml" filepath="$PROJECT_DIR$/.idea/rangy.iml" />
     </modules>
   </component>
 </project>

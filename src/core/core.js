@@ -434,36 +434,6 @@
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-    // Wait for document to load before running tests
-
-    var docReady = false;
-
-    var loadHandler = function(e) {
-        log.info("loadHandler triggered by " + (e ? e.type + " event" : "document already loaded"));
-        if (!docReady) {
-            docReady = true;
-            if (!api.initialized && api.config.autoInitialize) {
-                init();
-            }
-        }
-    };
-
-    if (isBrowser) {
-        // Test whether the document has already been loaded
-        if (/^(?:complete|interactive)$/.test(document.readyState)) {
-            loadHandler();
-        } else {
-            if (isHostMethod(document, "addEventListener")) {
-                document.addEventListener("DOMContentLoaded", loadHandler, false);
-            }
-
-            // Add a fallback in case the DOMContentLoaded event isn't supported
-            addListener(window, "load", loadHandler);
-        }
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-    
     /* build:includeCoreModule(dom.js) */
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -479,6 +449,33 @@
     /* build:includeCoreModule(wrappedselection.js) */
 
     /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Wait for document to load before initializing
+    var docReady = false;
+
+    var loadHandler = function(e) {
+        log.info("loadHandler triggered by " + (e ? e.type + " event" : "document already loaded"));
+        if (!docReady) {
+            docReady = true;
+            if (!api.initialized && api.config.autoInitialize) {
+                init();
+            }
+        }
+    };
+
+    if (isBrowser) {
+        // Test whether the document has already been loaded and initialize immediately if so
+        if (/^(?:complete|interactive)$/.test(document.readyState)) {
+            loadHandler();
+        } else {
+            if (isHostMethod(document, "addEventListener")) {
+                document.addEventListener("DOMContentLoaded", loadHandler, false);
+            }
+
+            // Add a fallback in case the DOMContentLoaded event isn't supported
+            addListener(window, "load", loadHandler);
+        }
+    }
 
     return api;
 }, this);

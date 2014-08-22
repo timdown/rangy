@@ -26,8 +26,7 @@ var modules = [
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
     "rangy-textrange.js",
-    "rangy-highlighter.js"/*,
-    "rangy-util.js"*/
+    "rangy-highlighter.js"
 ];
 
 var allScripts = [coreFilename].concat(modules);
@@ -51,7 +50,7 @@ function copyFileSync(srcFile, destFile, preserveTimestamps) {
     }
 }
 
-function copyFilesRecursive(srcDir, destDir) {
+function copyFiles(srcDir, destDir, recursive, fileNameTransformer) {
     if (fs.existsSync(destDir)) {
         if (!fs.statSync(destDir).isDirectory()) {
             throw new Error("Destination exists and is not a directory");
@@ -68,19 +67,27 @@ function copyFilesRecursive(srcDir, destDir) {
         var srcFileInfo = fs.lstatSync(srcFilePath);
 
         if (srcFileInfo.isDirectory()) {
-            copyFilesRecursive(srcFilePath, destFilePath);
+            if (recursive) {
+                copyFiles(srcFilePath, destFilePath, true, fileNameTransformer);
+            }
         } else if (srcFileInfo.isSymbolicLink()) {
             throw new Error("Symbolic links are not supported");
         } else {
+            if (fileNameTransformer) {
+                destFilePath = fileNameTransformer(destFilePath);
+            }
             copyFileSync(srcFilePath, destFilePath);
         }
     });
 }
 
+function copyFilesRecursive(srcDir, destDir, fileNameTransformer) {
+    copyFiles(srcDir, destDir, true, fileNameTransformer);
+}
+
 function deleteBuildDir() {
     // Delete the old build directory
     if (fs.existsSync(buildDir)) {
-        var rimraf = require("rimraf");
         rimraf(buildDir, function() {
             console.log("Deleted old build directory");
             callback();
@@ -111,10 +118,14 @@ function getVersion() {
     console.log("Getting version from Git repo");
     exec("git describe", function(error, stdout, stderr) {
         console.log(error, stdout, stderr);
-        var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
-        var commitNumber = parseInt(result[1]);
-        var now = new Date();
-        buildVersion = buildSpec.baseVersion + "." + [now.getFullYear(), ("" + (101 + now.getMonth())).slice(1), ("" + (100 + now.getDate())).slice(1)].join("");
+        //var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
+        //var commitNumber = parseInt(result[1]);
+        //var now = new Date();
+        //buildVersion = buildSpec.baseVersion + "." + [now.getFullYear(), ("" + (101 + now.getMonth())).slice(1), ("" + (100 + now.getDate())).slice(1)].join("");
+
+        console.log("Getting version from package.json");
+        buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
+        
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";
@@ -153,7 +164,7 @@ function copyModuleScripts() {
 
         // Run build directives
         moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithDependencies\((.*?)\)\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, dependencies, code) {
-            var dependenciesArray = eval(dependencies);
+            //var dependenciesArray = eval(dependencies);
             return [
                 '(function(factory, global) {',
                 '    if (typeof define == "function" && define.amd) {',
@@ -360,6 +371,17 @@ function copyToLib() {
     copyFilesRecursive(uncompressedBuildDir, "lib/");
 }
 
+function copyToRelease() {
+    var destDir = "../rangy-release/";
+    if (fs.existsSync(destDir)) {
+        copyFiles(zipDir, destDir, false, function(filePath) {
+            console.log(filePath.replace(/\.js$/, ".min.js"))
+            return filePath.replace(/\.js$/, ".min.js");
+        });
+        copyFiles(uncompressedBuildDir, destDir);
+    }
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 // Start the build
@@ -378,7 +400,8 @@ var actions = [
     minify,
     zip,
     tarGz,
-    copyToLib
+    copyToLib,
+    copyToRelease
 ];
 
 
