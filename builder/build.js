@@ -369,17 +369,18 @@ var tarGz = createArchiver("tar.gz", function() {
 
 function copyToLib() {
     copyFilesRecursive(uncompressedBuildDir, "lib/");
+    callback();
 }
 
 function copyToRelease() {
     var destDir = "../rangy-release/";
     if (fs.existsSync(destDir)) {
         copyFiles(zipDir, destDir, false, function(filePath) {
-            console.log(filePath.replace(/\.js$/, ".min.js"))
             return filePath.replace(/\.js$/, ".min.js");
         });
         copyFiles(uncompressedBuildDir, destDir);
     }
+    callback();
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
