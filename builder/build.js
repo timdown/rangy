@@ -139,6 +139,8 @@ function indent(str) {
     return str.split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
 }
 
+var globalObjectGetterCode = "/* Ridiculous nonsense to get the global object in any environment follows */(function(f) { return f('return this;')(); })(Function)";
+
 function assembleCoreScript() {
     // Read in the list of files to build
     var fileNames = ["core.js", "dom.js", "domrange.js", "wrappedrange.js", "wrappedselection.js"];
@@ -152,6 +154,8 @@ function assembleCoreScript() {
         return indent(files[scriptName]);
     });
 
+    combinedScript = combinedScript.replace(/\/\*\s?build:replaceWithGlobalObject\s?\*\/(?:.*)\/\*\s?build:replaceWithGlobalObjectEnd\s?\*\//g, globalObjectGetterCode);
+    
     fs.writeFileSync(uncompressedBuildDir + coreFilename, combinedScript, FILE_ENCODING);
     
     console.log("Assembled core script");
@@ -178,7 +182,7 @@ function copyModuleScripts() {
                 '        factory(global.rangy);',
                 '    }',
                 '})(function(rangy) {'
-            ].join("\n") + indent(code) + "\n}, this);";
+            ].join("\n") + indent(code) + "\n}, " + globalObjectGetterCode + ");";
         });
 
         fs.writeFileSync(uncompressedBuildDir + moduleFile, moduleCode, FILE_ENCODING);
