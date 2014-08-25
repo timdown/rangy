@@ -167,7 +167,7 @@ function copyModuleScripts() {
         var moduleCode = fs.readFileSync(srcDir + "modules/" + moduleFile, FILE_ENCODING);
 
         // Run build directives
-        moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithDependencies\((.*?)\)\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, dependencies, code) {
+        moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithRangyDependency\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, dependencies, code) {
             //var dependenciesArray = eval(dependencies);
             return [
                 '(function(factory, global) {',

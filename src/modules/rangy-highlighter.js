@@ -9,7 +9,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-/* build:modularizeWithDependencies(["./rangy-core"]) */
+/* build:modularizeWithRangyDependency */
 rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
     var log = log4javascript.getLogger("rangy.Highlighter");
     var dom = api.dom;

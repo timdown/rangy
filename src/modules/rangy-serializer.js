@@ -13,7 +13,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-/* build:modularizeWithDependencies(["./rangy-core"]) */
+/* build:modularizeWithRangyDependency */
 rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
 
