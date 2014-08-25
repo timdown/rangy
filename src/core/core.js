@@ -478,4 +478,4 @@
     }
 
     return api;
-}, this);
+}, /* build:replaceWithGlobalObject */this/* build:replaceWithGlobalObjectEnd */);
