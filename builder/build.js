@@ -154,8 +154,6 @@ function assembleCoreScript() {
         return indent(files[scriptName]);
     });
 
-    combinedScript = combinedScript.replace(/\/\*\s?build:replaceWithGlobalObject\s?\*\/(?:.*)\/\*\s?build:replaceWithGlobalObjectEnd\s?\*\//g, globalObjectGetterCode);
-    
     fs.writeFileSync(uncompressedBuildDir + coreFilename, combinedScript, FILE_ENCODING);
     
     console.log("Assembled core script");
@@ -170,7 +168,7 @@ function copyModuleScripts() {
         moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithRangyDependency\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, code) {
             //var dependenciesArray = eval(dependencies);
             return [
-                '(function(factory, global) {',
+                '(function(factory, root) {',
                 '    if (typeof define == "function" && define.amd) {',
                 '        // AMD. Register as an anonymous module with a dependency on Rangy.',
                 '        define(["./rangy-core"], factory);',
@@ -178,11 +176,11 @@ function copyModuleScripts() {
                 '        // Node/CommonJS style',
                 '        module.exports = factory( require("rangy") );',
                 '    } else {',
-                '        // No AMD or CommonJS support so we use the rangy global variable',
-                '        factory(global.rangy);',
+                '        // No AMD or CommonJS support so we use the rangy property of root (probably the global variable)',
+                '        factory(root.rangy);',
                 '    }',
                 '})(function(rangy) {'
-            ].join("\n") + indent(code) + "\n}, " + globalObjectGetterCode + ");";
+            ].join("\n") + indent(code) + "\n}, this);";
         });
 
         fs.writeFileSync(uncompressedBuildDir + moduleFile, moduleCode, FILE_ENCODING);

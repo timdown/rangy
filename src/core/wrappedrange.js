@@ -579,7 +579,7 @@
         // implementation to use by default.
         if (!api.features.implementsDomRange || api.config.preferTextRange) {
             // Add WrappedTextRange as the Range property of the global object to allow expression like Range.END_TO_END to work
-            var globalObj = (function() { return this; })();
+            var globalObj = (function(f) { return f("return this;")(); })(Function);
             if (typeof globalObj.Range == "undefined") {
                 globalObj.Range = WrappedTextRange;
             }

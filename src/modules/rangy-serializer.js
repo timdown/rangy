@@ -19,7 +19,7 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
 
     // encodeURIComponent and decodeURIComponent are required for cookie handling
     if (typeof encodeURIComponent == UNDEF || typeof decodeURIComponent == UNDEF) {
-        module.fail("Global object is missing encodeURIComponent and/or decodeURIComponent method");
+        module.fail("encodeURIComponent and/or decodeURIComponent method is missing");
     }
 
     // Checksum for checking whether range can be serialized

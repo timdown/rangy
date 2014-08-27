@@ -8,7 +8,7 @@
  * Build date: %%build:date%%
  */
 
-(function(factory, global) {
+(function(factory, root) {
     if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module.
         define(factory);
@@ -16,8 +16,8 @@
         // Node/CommonJS style
         module.exports = factory();
     } else {
-        // No AMD or CommonJS support so we place Rangy in a global variable
-        global.rangy = factory();
+        // No AMD or CommonJS support so we place Rangy in (probably) the global variable
+        root.rangy = factory();
     }
 })(function() {
     var log = log4javascript.getLogger("rangy.core");
@@ -115,8 +115,8 @@
     };
 
     function consoleLog(msg) {
-        if (isHostObject(global, "console") && isHostMethod(global.console, "log")) {
-            global.console.log(msg);
+        if (typeof console != UNDEFINED && isHostMethod(console, "log")) {
+            console.log(msg);
         }
     }
 
