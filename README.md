@@ -11,6 +11,10 @@ The latest source code and releases of version 1.3 are on [GitHub](../../release
 
 There is now an official Rangy 1.3 package for Bower, called `rangy-official`.
 
+## AMD
+
+Rangy now has AMD support.
+
 ## NPM
 
 There is a Rangy module on NPM called [`rangy`](https://www.npmjs.org/package/rangy). It doesn't do anything useful in Node but you can do Browserify stuff with it. 
