@@ -3,7 +3,7 @@
  * A generic framework for creating text mutation commands for Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Depends on Rangy core.
  *

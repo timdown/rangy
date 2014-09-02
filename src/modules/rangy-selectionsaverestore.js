@@ -3,7 +3,7 @@
  * Saves and restores user selections using marker invisible elements in the DOM.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Depends on Rangy core.
  *

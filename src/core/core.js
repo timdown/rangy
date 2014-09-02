@@ -1,6 +1,6 @@
 /**
  * Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Copyright %%build:year%%, Tim Down
  * Licensed under the MIT license.

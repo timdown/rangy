@@ -20,7 +20,7 @@
  * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Depends on Rangy core.
  *

@@ -1,6 +1,6 @@
 /**
  * Highlighter module for Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Depends on Rangy core, TextRange and CssClassApplier modules.
  *

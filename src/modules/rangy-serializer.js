@@ -4,7 +4,7 @@
  * cookie or local storage and restore it on the user's next visit to the same page.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Depends on Rangy core.
  *

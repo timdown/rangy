@@ -3,7 +3,7 @@
  * Extensions to Range and Selection objects to provide access to pixel positions relative to the viewport or document.
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
- * http://code.google.com/p/rangy/
+ * https://github.com/timdown/rangy
  *
  * Depends on Rangy core.
  *
