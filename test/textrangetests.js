@@ -1047,6 +1047,22 @@ xn.test.suite("Text Range module tests", function(s) {
         testRangeBoundaries(t, range, textNode, 14, textNode, 17);
     });
 
+    s.test("findText regex at end of scope", function(t) {
+        t.el.innerHTML = 'One Two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 0);
+
+        var scopeRange = rangy.createRange();
+        scopeRange.selectNodeContents(t.el);
+        var options = {
+            withinRange: scopeRange
+        };
+
+        t.assert(range.findText(/three/, options));
+        testRangeBoundaries(t, range, textNode, 8, textNode, 13);
+    });
+
     s.test("createWordIterator", function(t) {
         t.el.innerHTML = 'One two three; four';
 

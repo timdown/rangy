@@ -1540,10 +1540,10 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             if (isRegex) {
                 result = searchTerm.exec(text);
                 if (result) {
+                    matchStartIndex = result.index;
+                    matchEndIndex = matchStartIndex + result[0].length;
                     if (insideRegexMatch) {
                         // Check whether the match is now over
-                        matchStartIndex = result.index;
-                        matchEndIndex = matchStartIndex + result[0].length;
                         if ((!backward && matchEndIndex < text.length) || (backward && matchStartIndex > 0)) {
                             returnValue = handleMatch(matchStartIndex, matchEndIndex);
                             break;
