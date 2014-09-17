@@ -465,7 +465,7 @@
 
     if (isBrowser) {
         // Test whether the document has already been loaded and initialize immediately if so
-        if (/^(?:complete|interactive)$/.test(document.readyState)) {
+        if (document.readyState == "complete") {
             loadHandler();
         } else {
             if (isHostMethod(document, "addEventListener")) {
@@ -478,4 +478,4 @@
     }
 
     return api;
-}, /* build:replaceWithGlobalObject */this/* build:replaceWithGlobalObjectEnd */);
+}, this);
