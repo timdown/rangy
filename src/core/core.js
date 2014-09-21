@@ -168,7 +168,7 @@
             var options = {};
             extend(options, defaults);
             if (optionsParam) {
-                extend(options, optionsParam, true);
+                extend(options, optionsParam);
             }
             return options;
         };
@@ -391,6 +391,9 @@
                     var errorMessage = "Module '" + name + "' failed to load: " + getErrorDesc(ex);
                     log.error(errorMessage, ex);
                     consoleLog(errorMessage);
+                    if (ex.stack) {
+                        consoleLog(ex.stack);
+                    }
                 }
             }
         });

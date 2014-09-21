@@ -22,4 +22,12 @@ xn.test.suite("Highlighter module tests", function(s) {
 
     });
 
+    s.test("Options test (issue 249)", function(t) {
+        var applier = rangy.createClassApplier("c1");
+        var highlighter = rangy.createHighlighter();
+        highlighter.addClassApplier(applier);
+
+        highlighter.highlightSelection("c1", { selection: rangy.getSelection() });
+    });
+
 }, false);
