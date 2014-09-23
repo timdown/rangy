@@ -39,11 +39,25 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function hasClass(el, className) {
+        if (el.classList) {
+            var parts = className.split(/\s+/g);
+            while (parts[0]) {
+                if (!el.classList.contains(parts.shift())) {
+                    return false;
+                }
+            }
+            return true;
+        }
         return el.className && new RegExp("(?:^|\\s)" + className + "(?:\\s|$)").test(el.className);
     }
 
     function addClass(el, className) {
-        if (el.className) {
+        if (el.classList) {
+            var parts = className.split(/\s+/g);
+            while (parts[0]) {
+                el.classList.add(parts.shift());
+            }
+        } else if (el.className) {
             if (!hasClass(el, className)) {
                 el.className += " " + className;
             }
@@ -58,7 +72,12 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         }
 
         return function(el, className) {
-            if (el.className) {
+            if (el.classList) {
+                var parts = className.split(/\s+/g);
+                while (parts[0]) {
+                    el.classList.remove(parts.shift());
+                }
+            } else if (el.className) {
                 el.className = el.className.replace(new RegExp("(^|\\s)" + className + "(\\s|$)"), replacer);
             }
         };
