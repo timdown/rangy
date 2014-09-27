@@ -38,50 +38,46 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         return str.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
     }
 
-    function hasClass(el, className) {
-        if (el.classList) {
-            var parts = className.split(/\s+/g);
-            while (parts[0]) {
-                if (!el.classList.contains(parts.shift())) {
-                    return false;
+    var hasClass, addClass, removeClass;
+    if (api.util.isHostObject(document.createElement("div"), "classList")) {
+        hasClass = function(el, className) {
+            return el.classList.contains(className);
+        };
+
+        addClass = function(el, className) {
+            return el.classList.add(className);
+        };
+
+        removeClass = function(el, className) {
+            return el.classList.remove(className);
+        };
+    } else {
+        hasClass = function(el, className) {
+            return el.className && new RegExp("(?:^|\\s)" + className + "(?:\\s|$)").test(el.className);
+        };
+
+        addClass = function(el, className) {
+            if (el.className) {
+                if (!hasClass(el, className)) {
+                    el.className += " " + className;
                 }
-            }
-            return true;
-        }
-        return el.className && new RegExp("(?:^|\\s)" + className + "(?:\\s|$)").test(el.className);
-    }
-
-    function addClass(el, className) {
-        if (el.classList) {
-            var parts = className.split(/\s+/g);
-            while (parts[0]) {
-                el.classList.add(parts.shift());
-            }
-        } else if (el.className) {
-            if (!hasClass(el, className)) {
-                el.className += " " + className;
-            }
-        } else {
-            el.className = className;
-        }
-    }
-
-    var removeClass = (function() {
-        function replacer(matched, whiteSpaceBefore, whiteSpaceAfter) {
-            return (whiteSpaceBefore && whiteSpaceAfter) ? " " : "";
-        }
-
-        return function(el, className) {
-            if (el.classList) {
-                var parts = className.split(/\s+/g);
-                while (parts[0]) {
-                    el.classList.remove(parts.shift());
-                }
-            } else if (el.className) {
-                el.className = el.className.replace(new RegExp("(^|\\s)" + className + "(\\s|$)"), replacer);
+            } else {
+                el.className = className;
             }
         };
-    })();
+
+        removeClass = (function() {
+            function replacer(matched, whiteSpaceBefore, whiteSpaceAfter) {
+                return (whiteSpaceBefore && whiteSpaceAfter) ? " " : "";
+            }
+
+            return function(el, className) {
+                if (el.className) {
+                    el.className = el.className.replace(new RegExp("(^|\\s)" + className + "(\\s|$)"), replacer);
+                }
+            };
+        })();
+    }
 
     function sortClassName(className) {
         return className && className.split(/\s+/).sort().join(" ");
@@ -229,18 +225,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             }
         }
         return false;
-    }
-
-    function elementHasProperties(el, props) {
-        return each(props, function(p, propValue) {
-            if (typeof propValue == "object") {
-                if (!elementHasProperties(el[p], propValue)) {
-                    return false;
-                }
-            } else if (el[p] !== propValue) {
-                return false;
-            }
-        });
     }
 
     var getComputedStyleProperty = dom.getComputedStyleProperty;
@@ -533,7 +517,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         applier.elementAttributes = elementAttributes;
 
         applier.elementSortedClassName = applier.elementProperties.hasOwnProperty("className") ?
-            applier.elementProperties.className : className;
+            sortClassName(applier.elementProperties.className + " " + className) : className;
 
         // Initialize tag names
         applier.applyToAnyTagName = false;
@@ -583,7 +567,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                         addClass(el, this.className);
                         el[p] = sortClassName(el[p]);
                         if (createCopy) {
-                            elProps[p] = el[p];
+                            elProps[p] = propValue;
                         }
                     }
 
@@ -594,9 +578,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                             elProps[p] = elPropsStyle = {};
                         }
                         for (s in props[p]) {
-                            elStyle[s] = propValue[s];
-                            if (createCopy) {
-                                elPropsStyle[s] = elStyle[s];
+                            if (props[p].hasOwnProperty(s)) {
+                                elStyle[s] = propValue[s];
+                                if (createCopy) {
+                                    elPropsStyle[s] = elStyle[s];
+                                }
                             }
                         }
                         this.attrExceptions.push(p);
@@ -726,6 +712,21 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             return el;
         },
 
+        elementHasProperties: function(el, props) {
+            var applier = this;
+            return each(props, function(p, propValue) {
+                if (p == "className") {
+                    return sortClassName(el.className) == applier.elementSortedClassName;
+                } else if (typeof propValue == "object") {
+                    if (!applier.elementHasProperties(el[p], propValue)) {
+                        return false;
+                    }
+                } else if (el[p] !== propValue) {
+                    return false;
+                }
+            });
+        },
+
         applyToTextNode: function(textNode, positionsToPreserve) {
             log.group("Apply CSS class '" + this.className + "'. textNode: " + textNode.data);
             log.info("Apply CSS class  '" + this.className + "'. textNode: " + textNode.data);
@@ -734,7 +735,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     this.useExistingElements &&
                     isHtmlNamespace(parent) &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
-                    elementHasProperties(parent, this.elementProperties)) {
+                    this.elementHasProperties(parent, this.elementProperties)) {
 
                 addClass(parent, this.className);
             } else {
@@ -749,7 +750,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             return isHtmlNamespace(el) &&
                 el.tagName.toLowerCase() == this.elementTagName &&
                 getSortedClassName(el) == this.elementSortedClassName &&
-                elementHasProperties(el, this.elementProperties) &&
+                this.elementHasProperties(el, this.elementProperties) &&
                 !elementHasNonClassAttributes(el, this.attrExceptions) &&
                 this.isModifiable(el);
         },
