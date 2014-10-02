@@ -716,7 +716,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var applier = this;
             return each(props, function(p, propValue) {
                 if (p == "className") {
-                    return sortClassName(el.className) == applier.elementSortedClassName;
+                    return hasClass(el, propValue);
                 } else if (typeof propValue == "object") {
                     if (!applier.elementHasProperties(el[p], propValue)) {
                         return false;

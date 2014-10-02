@@ -535,6 +535,32 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals('t[es]t', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test adding extra class with overlapping containers", function(t) {
+        var applier = rangy.createClassApplier("c1", { elementProperties: { "className": "extra" } });
+        var applier2 = rangy.createClassApplier("c2", { elementProperties: { "className": "extra" } });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 't[es]t');
+        applier.applyToRange(range);
+        applier2.applyToRange(range);
+        t.assertEquals('t<span class="c1 c2 extra">[es]</span>t', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test toggling extra class with overlapping containers", function(t) {
+        var applier = rangy.createClassApplier("c1", { elementProperties: { "className": "extra" } });
+        var applier2 = rangy.createClassApplier("c2", { elementProperties: { "className": "extra" } });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, 't[es]t');
+        applier.applyToRange(range);
+        applier2.applyToRange(range);
+        applier2.undoToRange(range);
+        t.assertEquals('t<span class="c1 extra">[es]</span>t', htmlAndRangeToString(testEl, range));
+
+        applier.undoToRange(range);
+        t.assertEquals('t[es]t', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Test range after two toggles", function(t) {
         var applier1 = rangy.createClassApplier("c1");
 
