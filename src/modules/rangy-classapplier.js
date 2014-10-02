@@ -904,10 +904,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     if (ancestorWithClass && this.isModifiable(textNode)) {
                         this.undoToAncestor(ancestorWithClass, positionsToPreserve);
                     }
-
-                    // Ensure the range is still valid
-                    range.setStartAndEnd(textNodes[0], 0, lastTextNode, lastTextNode.length);
                 }
+                // Ensure the range is still valid
+                range.setStartAndEnd(textNodes[0], 0, lastTextNode, lastTextNode.length);
 
                 log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
 
