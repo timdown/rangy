@@ -796,6 +796,24 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     ancestorWithClass = splitNodeAt(ancestorWithClass, range.startContainer, range.startOffset, positionsToPreserve);
                 }
             }
+
+            log.info("isRemovable", this.isRemovable(ancestorWithClass), dom.inspectNode(ancestorWithClass), "'" + ancestorWithClass.innerHTML + "'", "'" + ancestorWithClass.parentNode.innerHTML + "'");
+            if (this.isRemovable(ancestorWithClass)) {
+                replaceWithOwnChildrenPreservingPositions(ancestorWithClass, positionsToPreserve);
+            } else {
+                removeClass(ancestorWithClass, this.className);
+            }
+        },
+
+        splitAncestorWithClass: function(container, offset, positionsToPreserve) {
+            var ancestorWithClass = this.getSelfOrAncestorWithClass(container);
+            if (ancestorWithClass) {
+                log.info("splitAncestorWithClass", dom.inspectNode(ancestorWithClass), dom.inspectNode(container), offset);
+                splitNodeAt(ancestorWithClass, container, offset, positionsToPreserve);
+            }
+        },
+
+        undoToAncestor: function(ancestorWithClass, positionsToPreserve) {
             log.info("isRemovable", this.isRemovable(ancestorWithClass), dom.inspectNode(ancestorWithClass), "'" + ancestorWithClass.innerHTML + "'", "'" + ancestorWithClass.parentNode.innerHTML + "'");
             if (this.isRemovable(ancestorWithClass)) {
                 replaceWithOwnChildrenPreservingPositions(ancestorWithClass, positionsToPreserve);
@@ -878,16 +896,17 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var lastTextNode = textNodes[textNodes.length - 1];
 
             if (textNodes.length) {
+                this.splitAncestorWithClass(range.endContainer, range.endOffset, positionsToPreserve);
+                this.splitAncestorWithClass(range.startContainer, range.startOffset, positionsToPreserve);
                 for (var i = 0, len = textNodes.length; i < len; ++i) {
                     textNode = textNodes[i];
                     ancestorWithClass = this.getSelfOrAncestorWithClass(textNode);
                     if (ancestorWithClass && this.isModifiable(textNode)) {
-                        this.undoToTextNode(textNode, range, ancestorWithClass, positionsToPreserve);
+                        this.undoToAncestor(ancestorWithClass, positionsToPreserve);
                     }
-
-                    // Ensure the range is still valid
-                    range.setStartAndEnd(textNodes[0], 0, lastTextNode, lastTextNode.length);
                 }
+                // Ensure the range is still valid
+                range.setStartAndEnd(textNodes[0], 0, lastTextNode, lastTextNode.length);
 
                 log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
 
