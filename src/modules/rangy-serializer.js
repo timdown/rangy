@@ -16,6 +16,7 @@
 /* build:modularizeWithRangyDependency */
 rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     var UNDEF = "undefined";
+    var util = api.util;
 
     // encodeURIComponent and decodeURIComponent are required for cookie handling
     if (typeof encodeURIComponent == UNDEF || typeof decodeURIComponent == UNDEF) {
@@ -280,21 +281,21 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
         win.document.cookie = encodeURIComponent(cookieName) + "=" + encodeURIComponent(serialized) + expires + path + domain + secure;
     }
 
-    api.serializePosition = serializePosition;
-    api.deserializePosition = deserializePosition;
+    util.extend(api, {
+        serializePosition: serializePosition,
+        deserializePosition: deserializePosition,
+        serializeRange: serializeRange,
+        deserializeRange: deserializeRange,
+        canDeserializeRange: canDeserializeRange,
+        serializeSelection: serializeSelection,
+        deserializeSelection: deserializeSelection,
+        canDeserializeSelection: canDeserializeSelection,
+        restoreSelectionFromCookie: restoreSelectionFromCookie,
+        saveSelectionCookie: saveSelectionCookie,
+        getElementChecksum: getElementChecksum,
+        nodeToInfoString: nodeToInfoString
+    });
 
-    api.serializeRange = serializeRange;
-    api.deserializeRange = deserializeRange;
-    api.canDeserializeRange = canDeserializeRange;
-
-    api.serializeSelection = serializeSelection;
-    api.deserializeSelection = deserializeSelection;
-    api.canDeserializeSelection = canDeserializeSelection;
-
-    api.restoreSelectionFromCookie = restoreSelectionFromCookie;
-    api.saveSelectionCookie = saveSelectionCookie;
-
-    api.getElementChecksum = getElementChecksum;
-    api.nodeToInfoString = nodeToInfoString;
+    util.crc32 = crc32;
 });
 /* build:modularizeEnd */
