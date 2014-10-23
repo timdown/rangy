@@ -670,6 +670,17 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals('<div>1[2]3</div>', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Unapply simple with any tag", function(t) {
+        var applier = rangy.createClassApplier("test", {
+            tagNames: ["*"]
+        });
+        
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div>1[<span class="test">2</span>]3</div>');
+        applier.undoToRange(range);
+        t.assertEquals('<div>1[2]3</div>', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Unapply elementAttributes", function(t) {
         var applier = rangy.createClassApplier("test", {
             elementAttributes: {
