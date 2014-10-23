@@ -616,7 +616,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         hasClass: function(node) {
             return node.nodeType == 1 &&
-                contains(this.tagNames, node.tagName.toLowerCase()) &&
+                (this.applyToAnyTagName || contains(this.tagNames, node.tagName.toLowerCase())) &&
                 hasClass(node, this.className);
         },
 
