@@ -551,6 +551,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         useExistingElements: true,
         removeEmptyElements: true,
         onElementCreate: null,
+        clonedImages: {},
 
         copyPropertiesToElement: function(props, el, createCopy) {
             var s, elStyle, elProps = {}, elPropsStyle, propValue, elPropValue, attrName;
@@ -804,7 +805,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             }
         },
 
-        applyToRange: function(range, rangesToPreserve) {
+        applyToRange: function(range, rangesToPreserve, nrange) {
             rangesToPreserve = rangesToPreserve || [];
 
             // Create an array of range boundaries to preserve
@@ -836,6 +837,55 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 // Update the ranges from the preserved boundary positions
                 updateRangesFromBoundaries(rangesToPreserve, positionsToPreserve);
             }
+
+                var cca = range.commonAncestorContainer;
+                var cc = range.cloneContents();
+
+                var rangeimgs = cca.querySelectorAll('img');
+
+                //divstub appended to dom for chrome
+                var d = document.getElementById('divstub');
+                if(!d){
+                    d = document.createElement('div');
+                    d.id = 'divstub';
+                    d.style.display = 'none';
+                    document.body.appendChild(d);
+                }
+                d.className = this.className;
+                var style = window.getComputedStyle(d);
+                this.clonedImages[nrange] = [];
+
+                for (var j=rangeimgs.length-1,k=cc.querySelectorAll('img').length-1,img; img = rangeimgs[j--];){
+                    var inimg = cc.querySelectorAll('img')[k];
+                    if (img.isEqualNode(inimg)) {
+                        this.clonedImages[nrange].push(img.cloneNode(true));
+                        var imgspan = document.createElement('span');
+                        [].slice.call(img.attributes).forEach(function(item) {
+                            imgspan.setAttribute(item.name,item.value);
+                        });
+                        //outerText and outerHTML tests for chrome
+                        for (var p in img)
+                            if (img.hasOwnProperty(p) && p !== 'outerText' && p !== 'outerHTML')
+                                imgspan[p] = img[p];
+                        imgspan.className += ' '+this.className;
+                        imgspan.style.height = img.height+'px';
+                        imgspan.style.width = img.width+'px';
+                        imgspan.style.backgroundImage = 'url("'+img.src+'")';
+                        imgspan.style.display = 'inline-block';
+                        imgspan.style.verticalAlign = 'middle';
+                        if (style.backgroundColor && style.backgroundColor !== 'transparent'){
+                            var rgb = style.backgroundColor.match(/\d{1,3}/g);
+                            var rgba = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.5)';
+                            imgspan.style.boxShadow = 'inset '+img.width+'px 0 '+rgba;
+                        }
+                        img.parentNode.replaceChild(imgspan,img);
+                        if(img.isEqualNode(cc.lastChild))
+                            range.setEndAfter(imgspan);
+                        k--;
+                    }
+                }
+
+                this.clonedImages[nrange].reverse();
         },
 
         applyToRanges: function(ranges) {
@@ -843,7 +893,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             var i = ranges.length;
             while (i--) {
-                this.applyToRange(ranges[i], ranges);
+                this.applyToRange(ranges[i], ranges, i);
             }
 
             log.groupEnd();
@@ -859,7 +909,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             log.groupEnd();
         },
 
-        undoToRange: function(range, rangesToPreserve) {
+        undoToRange: function(range, rangesToPreserve, irange) {
             // Create an array of range boundaries to preserve
             rangesToPreserve = rangesToPreserve || [];
             var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
@@ -898,6 +948,20 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 // Update the ranges from the preserved boundary positions
                 updateRangesFromBoundaries(rangesToPreserve, positionsToPreserve);
             }
+
+                var cca = range.commonAncestorContainer;
+                var cc = range.cloneContents();
+
+                var rangeimgs = cca.querySelectorAll('span.'+this.className+'[style*="background-image"]');
+
+                for (var j=rangeimgs.length-1,img; j>=0; j--){
+                    img = rangeimgs[j];
+                    for(var k=this.clonedImages[irange].length-1,inimg; k>=0; k--){
+                        inimg=cc.querySelectorAll('span.'+this.className+'[style*="background-image"]')[k];
+                        if (img.isEqualNode(inimg))
+                            img.parentNode.replaceChild(this.clonedImages[irange][k],img);
+                    }
+                }
         },
 
         undoToRanges: function(ranges) {
@@ -905,7 +969,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var i = ranges.length;
 
             while (i--) {
-                this.undoToRange(ranges[i], ranges);
+                this.undoToRange(ranges[i], ranges, i);
             }
             log.groupEnd();
 
