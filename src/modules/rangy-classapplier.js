@@ -855,10 +855,26 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 var style = window.getComputedStyle(d);
                 this.clonedImages[nrange] = [];
 
+                function setImgBorder(img){
+                    var width = Math.min(Number.parseInt(style.borderLeftWidth),Number.parseInt(style.borderRightWidth),Number.parseInt(style.borderTopWidth),Number.parseInt(style.borderBottomWidth));
+                    width = width > 2 ? '2px' : width+'px';
+                    img.style.borderLeftStyle = style.borderLeftStyle !== 'none' ? style.borderLeftStyle : 'solid';
+                    img.style.borderRightStyle = style.borderRightStyle !== 'none' ? style.borderRightStyle : 'solid';
+                    img.style.borderTopStyle = style.borderTopStyle !== 'none' ? style.borderTopStyle : 'solid';
+                    img.style.borderBottomStyle = style.borderBottomStyle !== 'none' ? style.borderBottomStyle : 'solid';
+                    img.style.borderWidth = '2px';
+                    img.style.borderColor = style.color;
+                }
+
                 for (var j=rangeimgs.length-1,k=cc.querySelectorAll('img').length-1,img; img = rangeimgs[j--];){
                     var inimg = cc.querySelectorAll('img')[k];
                     if (img.isEqualNode(inimg)) {
                         this.clonedImages[nrange].push(img.cloneNode(true));
+                        if(style.color && (!style.backgroundColor || style.backgroundColor === 'transparent')){
+                            setImgBorder(img);
+                            k--;
+                            continue;
+                        }
                         var imgspan = document.createElement('span');
                         [].slice.call(img.attributes).forEach(function(item) {
                             imgspan.setAttribute(item.name,item.value);
@@ -873,6 +889,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                         imgspan.style.backgroundImage = 'url("'+img.src+'")';
                         imgspan.style.display = 'inline-block';
                         imgspan.style.verticalAlign = 'middle';
+                        if(style.color)
+                            setImgBorder(imgspan);
                         if (style.backgroundColor && style.backgroundColor !== 'transparent'){
                             var rgb = style.backgroundColor.match(/\d{1,3}/g);
                             var rgba = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.5)';
@@ -952,12 +970,12 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 var cca = range.commonAncestorContainer;
                 var cc = range.cloneContents();
 
-                var rangeimgs = cca.querySelectorAll('span.'+this.className+'[style*="background-image"]');
+                var rangeimgs = cca.querySelectorAll('span.'+this.className+'[style*="background-image"],img');
 
                 for (var j=rangeimgs.length-1,img; j>=0; j--){
                     img = rangeimgs[j];
                     for(var k=this.clonedImages[irange].length-1,inimg; k>=0; k--){
-                        inimg=cc.querySelectorAll('span.'+this.className+'[style*="background-image"]')[k];
+                        inimg=cc.querySelectorAll('span.'+this.className+'[style*="background-image"],img')[k];
                         if (img.isEqualNode(inimg))
                             img.parentNode.replaceChild(this.clonedImages[irange][k],img);
                     }
