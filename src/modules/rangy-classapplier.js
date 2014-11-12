@@ -33,7 +33,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         }
         return true;
     }
-    
+
     function trim(str) {
         return str.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
     }
@@ -111,7 +111,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         position.node = newNode;
         position.offset = newOffset;
     }
-    
+
     function movePositionWhenRemovingNode(position, parentNode, index) {
         log.debug("movePositionWhenRemovingNode " + position, position.node == parentNode, position.offset, index)
         if (position.node == parentNode && position.offset > index) {
@@ -141,7 +141,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         }
         log.groupEnd();
     }
-    
+
     function removePreservingPositions(node, positionsToPreserve) {
         log.group("removePreservingPositions " + dom.inspectNode(node), positionsToPreserve);
 
@@ -184,9 +184,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function getEffectiveTextNodes(range) {
         var nodes = range.getNodes([3]);
-        
+
         // Optimization as per issue 145
-        
+
         // Remove non-intersecting text nodes from the start of the range
         var start = 0, node;
         while ( (node = nodes[start]) && !rangeSelectsAnyText(range, node) ) {
@@ -198,7 +198,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         while ( (node = nodes[end]) && !rangeSelectsAnyText(range, node) ) {
             --end;
         }
-        
+
         return nodes.slice(start, end + 1);
     }
 
@@ -490,6 +490,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         // Initialize from options object
         if (typeof options == "object" && options !== null) {
+            if (typeof options.elementTagName !== 'undefined') {
+                options.elementTagName = options.elementTagName.toLowerCase()
+            }
             tagNames = options.tagNames;
             elementPropertiesFromOptions = options.elementProperties;
             elementAttributes = options.elementAttributes;
@@ -605,7 +608,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             return createCopy ? elProps : "";
         },
-        
+
         copyAttributesToElement: function(attrs, el) {
             for (var attrName in attrs) {
                 if (attrs.hasOwnProperty(attrName)) {
@@ -761,16 +764,16 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 this.isRemovable(el) &&
                 (childNodeCount == 0 || (childNodeCount == 1 && this.isEmptyContainer(el.firstChild)));
         },
-        
+
         removeEmptyContainers: function(range) {
             var applier = this;
             var nodesToRemove = range.getNodes([1], function(el) {
                 return applier.isEmptyContainer(el);
             });
-            
+
             var rangesToPreserve = [range];
             var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
-            
+
             for (var i = 0, node; node = nodesToRemove[i++]; ) {
                 log.debug("Removing empty container " + dom.inspectNode(node));
                 removePreservingPositions(node, positionsToPreserve);
@@ -827,10 +830,10 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             // Create an array of range boundaries to preserve
             var positionsToPreserve = getRangeBoundaries(rangesToPreserve || []);
-            
+
             range.splitBoundariesPreservingPositions(positionsToPreserve);
 
-            // Tidy up the DOM by removing empty containers 
+            // Tidy up the DOM by removing empty containers
             if (this.removeEmptyElements) {
                 this.removeEmptyContainers(range);
             }
@@ -886,7 +889,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             range.splitBoundariesPreservingPositions(positionsToPreserve);
 
-            // Tidy up the DOM by removing empty containers 
+            // Tidy up the DOM by removing empty containers
             if (this.removeEmptyElements) {
                 this.removeEmptyContainers(range, positionsToPreserve);
             }
@@ -1010,7 +1013,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 this.applyToSelection(win);
             }
         },
-        
+
         getElementsWithClassIntersectingRange: function(range) {
             var elements = [];
             var applier = this;
