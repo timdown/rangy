@@ -320,7 +320,7 @@
         var el = document.createElement("b");
         el.innerHTML = "1";
         var textNode = el.firstChild;
-        el.innerHTML = "<br>";
+        el.innerHTML = "<br />";
         crashyTextNodes = isBrokenNode(textNode);
 
         api.features.crashyTextNodes = crashyTextNodes;
