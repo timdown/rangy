@@ -1489,7 +1489,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     function isWholeWord(startPos, endPos, wordOptions) {
         var range = api.createRange(startPos.node);
         range.setStartAndEnd(startPos.node, startPos.offset, endPos.node, endPos.offset);
-        var returnVal = !range.expand("word", wordOptions);
+        var returnVal = !range.expand("word", { wordOptions: wordOptions });
         return returnVal;
     }
 
