@@ -12,6 +12,8 @@
     if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module.
         define(factory);
+        window.rangy = factory();
+        define('rangy',factory);
     } else if (typeof module != "undefined" && typeof exports == "object") {
         // Node/CommonJS style
         module.exports = factory();

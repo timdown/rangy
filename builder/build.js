@@ -11,7 +11,7 @@ var FILE_ENCODING = "utf-8";
 
 var buildSpec = {
     baseVersion: "1.3.0-alpha",
-    gitUrl: "https://github.com/timdown/rangy.git",
+    gitUrl: "https://github.com/diegopamio/rangy.git",
     gitBranch: "master"
 };
 
