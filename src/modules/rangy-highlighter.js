@@ -2,7 +2,7 @@
  * Highlighter module for Rangy, a cross-browser JavaScript range and selection library
  * https://github.com/timdown/rangy
  *
- * Depends on Rangy core, TextRange and CssClassApplier modules.
+ * Depends on Rangy core, ClassApplier and optionally TextRange modules.
  *
  * Copyright %%build:year%%, Tim Down
  * Licensed under the MIT license.

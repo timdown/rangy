@@ -131,31 +131,31 @@ var xn = {};
         return false;
     }
 
-    function addClass(el, cssClass) {
-        if (!hasClass(el, cssClass)) {
+    function addClass(el, className) {
+        if (!hasClass(el, className)) {
             if (el.className) {
-                el.className += " " + cssClass;
+                el.className += " " + className;
             } else {
-                el.className = cssClass;
+                el.className = className;
             }
         }
     }
 
-    function hasClass(el, cssClass) {
+    function hasClass(el, className) {
         if (el.className) {
             var classNames = el.className.split(" ");
-            return array_contains(classNames, cssClass);
+            return array_contains(classNames, className);
         }
         return false;
     }
 
-    function removeClass(el, cssClass) {
-        if (hasClass(el, cssClass)) {
+    function removeClass(el, className) {
+        if (hasClass(el, className)) {
             // Rebuild the className property
             var existingClasses = el.className.split(" ");
             var newClasses = [];
             for (var i = 0; i < existingClasses.length; i++) {
-                if (existingClasses[i] != cssClass) {
+                if (existingClasses[i] != className) {
                     newClasses[newClasses.length] = existingClasses[i];
                 }
             }
@@ -163,9 +163,9 @@ var xn = {};
         }
     }
 
-    function replaceClass(el, newCssClass, oldCssClass) {
-        removeClass(el, oldCssClass);
-        addClass(el, newCssClass);
+    function replaceClass(el, newClass, oldClass) {
+        removeClass(el, oldClass);
+        addClass(el, newClass);
     }
 
     function getExceptionStringRep(ex) {
