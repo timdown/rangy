@@ -14,18 +14,18 @@
     <script type="text/javascript" src="../src/core/domrange.js"></script>
     <script type="text/javascript" src="../src/core/wrappedrange.js"></script>
     <script type="text/javascript" src="../src/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../src/modules/rangy-classapplier.js"></script>
     <script type="text/javascript" src="../src/modules/rangy-highlighter.js"></script>
     <script type="text/javascript">
         var serializedHighlights = decodeURIComponent(window.location.search.slice(window.location.search.indexOf("=") + 1));
         var highlighter;
 
         var initialDoc;
-        
+
         function randomizeQuotes() {
             var quotesUl = document.getElementById("quotes");
             var childNodeCount = quotesUl.childNodes.length;
-            
+
             for (var i = 0, random; i < 10; ++i) {
                 random = Math.floor(Math.random() * childNodeCount);
                 quotesUl.appendChild(quotesUl.childNodes[random]);
@@ -48,7 +48,7 @@
         function removeHighlightFromSelectedText() {
             highlighter.unhighlightSelection();
         }
-        
+
         function getContainingLi(node) {
             while (node) {
                 if (node.nodeType == 1 && node.nodeName == "LI") {
@@ -68,7 +68,7 @@
                 var containerLi = getContainingLi(range.commonAncestorContainer);
                 if (containerLi) {
                     highlighter.highlightSelection("highlight", selection, containerLi.id);
-                } 
+                }
             }
         }
 
