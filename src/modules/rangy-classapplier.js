@@ -491,7 +491,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         // Initialize from options object
         if (typeof options == "object" && options !== null) {
             if (typeof options.elementTagName !== "undefined") {
-                options.elementTagName = options.elementTagName.toLowerCase()
+                options.elementTagName = options.elementTagName.toLowerCase();
             }
             tagNames = options.tagNames;
             elementPropertiesFromOptions = options.elementProperties;
