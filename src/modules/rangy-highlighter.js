@@ -11,7 +11,6 @@
  */
 /* build:modularizeWithRangyDependency */
 rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
-    var log = log4javascript.getLogger("rangy.Highlighter");
     var dom = api.dom;
     var contains = dom.arrayContains;
     var getBody = dom.getBody;
@@ -304,7 +303,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
         getIntersectingHighlights: function(ranges) {
             // Test each range against each of the highlighted ranges to see whether they overlap
-            var intersectingHighlights = [], highlights = this.highlights, converter = this.converter;
+            var intersectingHighlights = [], highlights = this.highlights;
             forEach(ranges, function(range) {
                 //var selCharRange = converter.rangeToCharacterRange(range);
                 forEach(highlights, function(highlight) {
@@ -398,7 +397,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     }
                 }
 
-                // Add new range (only if cssApplier is not false)
+                // Add new range
                 if (classApplier) {
                     highlightsToKeep.push(new Highlight(doc, charRange, classApplier, converter, null, containerElementId));
                 }
