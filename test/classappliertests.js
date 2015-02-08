@@ -518,6 +518,48 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals('t<a class="c1" href="http://www.google.com/">[es]</a>t', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Test removal of element with elementProperties", function(t) {
+        var applier = rangy.createClassApplier("c1", {
+            elementTagName: "a",
+            elementProperties: {
+                "href": "http://www.google.com/"
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '[1<a class="c1" href="http://www.timdown.co.uk/">2</a><span class="c1">3</span><a class="c1" href="http://www.google.com/">4</a>]5');
+        applier.undoToRange(range);
+        t.assertEquals('[1<a href="http://www.timdown.co.uk/">2</a><span class="c1">3</span>4]5', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test removal of element with elementAttributes", function(t) {
+        var applier = rangy.createClassApplier("c1", {
+            elementTagName: "a",
+            elementAttributes: {
+                "href": "http://www.google.com/"
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '[1<a class="c1" href="http://www.timdown.co.uk/">2</a><span class="c1">3</span><a class="c1" href="http://www.google.com/">4</a>]5');
+        applier.undoToRange(range);
+        t.assertEquals('[1<a href="http://www.timdown.co.uk/">2</a><span class="c1">3</span>4]5', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Test removal of element with elementAttributes and relative URL href", function(t) {
+        var applier = rangy.createClassApplier("c1", {
+            elementTagName: "a",
+            elementAttributes: {
+                "href": "/test"
+            }
+        });
+
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '[1<a class="c1" href="/test">2</a>3]4');
+        applier.undoToRange(range);
+        t.assertEquals('[123]4', htmlAndRangeToString(testEl, range));
+    });
+
     s.test("Test adding extra class", function(t) {
         var applier = rangy.createClassApplier("c1", {
             elementProperties: {

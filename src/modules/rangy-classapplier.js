@@ -730,6 +730,14 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             });
         },
 
+        elementHasAttributes: function(el, attrs) {
+            return each(attrs, function(name, value) {
+                if (el.getAttribute(name) !== value) {
+                    return false;
+                }
+            });
+        },
+
         applyToTextNode: function(textNode, positionsToPreserve) {
             log.group("Apply CSS class '" + this.className + "'. textNode: " + textNode.data);
             log.info("Apply CSS class  '" + this.className + "'. textNode: " + textNode.data);
@@ -738,7 +746,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     this.useExistingElements &&
                     isHtmlNamespace(parent) &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
-                    this.elementHasProperties(parent, this.elementProperties)) {
+                    this.elementHasProperties(parent, this.elementProperties) &&
+                    this.elementHasAttributes(parent, this.elementAttributes)) {
 
                 addClass(parent, this.className);
             } else {
@@ -755,6 +764,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 getSortedClassName(el) == this.elementSortedClassName &&
                 this.elementHasProperties(el, this.elementProperties) &&
                 !elementHasNonClassAttributes(el, this.attrExceptions) &&
+                this.elementHasAttributes(el, this.elementAttributes) &&
                 this.isModifiable(el);
         },
 
