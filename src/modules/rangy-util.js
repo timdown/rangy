@@ -103,6 +103,4 @@ rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
 
     // TODO: simple selection save/restore
 });
-
-return rangy;
 /* build:modularizeEnd */

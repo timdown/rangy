@@ -233,6 +233,4 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
         removeMarkers: removeMarkers
     });
 });
-
-return rangy;
 /* build:modularizeEnd */
