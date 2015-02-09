@@ -167,7 +167,7 @@ rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
     }
 
     var deserializeRegex = /^([^,]+),([^,\{]+)(\{([^}]+)\})?$/;
-    
+
     function deserializeRange(serialized, rootNode, doc) {
         if (rootNode) {
             doc = doc || dom.getDocument(rootNode);
