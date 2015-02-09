@@ -1077,4 +1077,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     api.CssClassApplier = api.ClassApplier = ClassApplier;
     api.createCssClassApplier = api.createClassApplier = createClassApplier;
 });
+
+return rangy;
 /* build:modularizeEnd */
