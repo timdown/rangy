@@ -882,8 +882,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             // Apply classes to any appropriate empty elements
             var emptyElements = applier.getEmptyElements(range);
 
-            console.log(emptyElements)
-
             forEach(emptyElements, function(el) {
                 addClass(el, applier.className);
             });
@@ -954,8 +952,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
             // Remove class from any appropriate empty elements
             var emptyElements = applier.getEmptyElements(range);
-
-            console.log(emptyElements);
 
             forEach(emptyElements, function(el) {
                 removeClass(el, applier.className);
