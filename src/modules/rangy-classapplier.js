@@ -92,6 +92,16 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         return getSortedClassName(el1) == getSortedClassName(el2);
     }
 
+    function hasAllClasses(el, className) {
+        var classes = className.split(/\s+/);
+        for (var i = 0, len = classes.length; i < len; ++i) {
+            if (!hasClass(el, trim(classes[i]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
         var posNode = position.node, posOffset = position.offset;
         var newNode = posNode, newOffset = posOffset;
@@ -729,7 +739,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var applier = this;
             return each(props, function(p, propValue) {
                 if (p == "className") {
-                    return hasClass(el, propValue);
+                    // For checking whether we should reuse an existing element, we just want to check that the element
+                    // has all the classes specified in the className property. When deciding whether the element is
+                    // removable when unapplying a class, there is separate special handling to check whether the
+                    // element has extra classes so the same simple check will do.
+                    return hasAllClasses(el, propValue);
                 } else if (typeof propValue == "object") {
                     if (!applier.elementHasProperties(el[p], propValue)) {
                         return false;
@@ -1051,6 +1065,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         addClass: addClass,
         removeClass: removeClass,
         hasSameClasses: haveSameClasses,
+        hasAllClasses: hasAllClasses,
         replaceWithOwnChildren: replaceWithOwnChildrenPreservingPositions,
         elementsHaveSameNonClassAttributes: elementsHaveSameNonClassAttributes,
         elementHasNonClassAttributes: elementHasNonClassAttributes,
