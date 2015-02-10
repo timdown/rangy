@@ -15,23 +15,13 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
     var contains = dom.arrayContains;
     var getBody = dom.getBody;
     var createOptions = api.util.createOptions;
+    var forEach = api.util.forEach;
+    var nextHighlightId = 1;
 
     // Puts highlights in order, last in document first.
     function compareHighlights(h1, h2) {
         return h1.characterRange.start - h2.characterRange.start;
     }
-
-    var forEach = [].forEach ?
-        function(arr, func) {
-            arr.forEach(func);
-        } :
-        function(arr, func) {
-            for (var i = 0, len = arr.length; i < len; ++i) {
-                func( arr[i] );
-            }
-        };
-
-    var nextHighlightId = 1;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 

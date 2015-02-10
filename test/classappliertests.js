@@ -716,7 +716,7 @@ xn.test.suite("Class Applier module tests", function(s) {
         var applier = rangy.createClassApplier("test", {
             tagNames: ["*"]
         });
-        
+
         var testEl = document.getElementById("test");
         var range = createRangeInHtml(testEl, '<div>1[<span class="test">2</span>]3</div>');
         applier.undoToRange(range);
@@ -759,7 +759,7 @@ xn.test.suite("Class Applier module tests", function(s) {
 
     s.test("onElementCreate test", function(t) {
         var elementDataTest;
-        
+
         var applier = rangy.createClassApplier("test", {
             elementAttributes: {
                 "data-test": "foo"
@@ -798,6 +798,26 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals(range.startOffset, 1);
         t.assertEquals(range.endContainer, testEl.firstChild);
         t.assertEquals(range.endOffset, 2);
+    });
+
+    s.test("Apply class to empty elements (issue 83)", function(t) {
+        var applier = rangy.createClassApplier("test", {
+            tagNames: ["span", "br"]
+        });
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '1[2<br>3]4');
+        applier.applyToRange(range);
+        t.assertEquals('1<span class="test">[2</span><br class="test"></br><span class="test">3]</span>4', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Unapply class to empty elements (issue 83)", function(t) {
+        var applier = rangy.createClassApplier("test", {
+            tagNames: ["span", "br"]
+        });
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '1[2<br class="test">3]4');
+        applier.undoToRange(range);
+        t.assertEquals('1[2<br></br>3]4', htmlAndRangeToString(testEl, range));
     });
 
     if (document.createElementNS) {
