@@ -11,7 +11,6 @@ var FILE_ENCODING = "utf-8";
 var indentation = "    ";
 
 var buildSpec = {
-    baseVersion: "1.3.0-alpha",
     gitUrl: "https://github.com/timdown/rangy.git",
     gitBranch: "master"
 };
@@ -119,11 +118,6 @@ function getVersion() {
     console.log("Getting version from Git repo");
     exec("git describe", function(error, stdout, stderr) {
         console.log(error, stdout, stderr);
-        //var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
-        //var commitNumber = parseInt(result[1]);
-        //var now = new Date();
-        //buildVersion = buildSpec.baseVersion + "." + [now.getFullYear(), ("" + (101 + now.getMonth())).slice(1), ("" + (100 + now.getDate())).slice(1)].join("");
-
         console.log("Getting version from package.json");
         buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
 
