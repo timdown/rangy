@@ -621,7 +621,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         copyAttributesToElement: function(attrs, el) {
             for (var attrName in attrs) {
-                if (attrs.hasOwnProperty(attrName)) {
+                if (attrs.hasOwnProperty(attrName) && !/^class(?:Name)?$/i.test(attrName)) {
                     el.setAttribute(attrName, attrs[attrName]);
                 }
             }
