@@ -9,7 +9,7 @@ The latest source code and releases of version 1.3 are on [GitHub](../../release
 
 ## Bower
 
-There is now an official Rangy package for Bower with Rangy 1.2 and 1.3 versions, called `rangy`. By default, Bower installs Rangy 1.2.3, which is the latest full release. However, you can install the latest 1.3 version instead with the following command:
+There is now an official Rangy package for Bower with Rangy 1.2 and 1.3 versions, called `rangy`. By default, Bower installs Rangy 1.2.3, which is the latest full release. However, you can install the latest 1.3 beta version instead with the following command:
 
 `bower install rangy#1.3`
 
@@ -19,4 +19,8 @@ Rangy now has AMD support.
 
 ## NPM
 
-There is a Rangy module on NPM called [`rangy`](https://www.npmjs.org/package/rangy). It doesn't do anything useful in Node but you can do Browserify stuff with it. 
+There is an official Rangy module on NPM called [`rangy`](https://www.npmjs.org/package/rangy).
+
+## Documentation
+
+View [the documentation in the wiki](https://github.com/timdown/rangy/wiki). 
