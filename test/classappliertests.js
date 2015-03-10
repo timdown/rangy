@@ -854,6 +854,14 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertEquals('1[2<br />3]4', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Avoid style, script and textarea elements (issue 281)", function(t) {
+        var applier = rangy.createClassApplier("test");
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '1[2<style>.cheese { color: yellow; }</style>3]4');
+        applier.applyToRange(range);
+        t.assertEquals('1<span class="test">[2</span><style>.cheese { color: yellow; }</style><span class="test">3]</span>4', htmlAndRangeToString(testEl, range));
+    });
+
     if (document.createElementNS) {
 /*
         s.test("Apply ignores non-HTML elements (issue #178)", function(t) {

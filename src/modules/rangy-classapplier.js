@@ -123,6 +123,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         return true;
     }
 
+    function canTextBeStyled(textNode) {
+        var parent = textNode.parentNode;
+        return (parent && parent.nodeType == 1 && !/^(textarea|style|script|select|iframe)$/i.test(parent.nodeName));
+    }
+
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
         var posNode = position.node, posOffset = position.offset;
         var newNode = posNode, newOffset = posOffset;
@@ -792,20 +797,26 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         applyToTextNode: function(textNode, positionsToPreserve) {
             log.group("Apply class '" + this.className + "'. textNode: " + textNode.data);
             log.info("Apply class  '" + this.className + "'. textNode: " + textNode.data);
-            var parent = textNode.parentNode;
-            if (parent.childNodes.length == 1 &&
+
+            // Check whether the text node can be styled. Text within a <style> or <script> element, for example,
+            // should not be styled. See issue 283.
+            if (canTextBeStyled(textNode)) {
+                var parent = textNode.parentNode;
+                if (parent.childNodes.length == 1 &&
                     this.useExistingElements &&
                     this.appliesToElement(parent) &&
                     this.elementHasProperties(parent, this.elementProperties) &&
                     this.elementHasAttributes(parent, this.elementAttributes)) {
 
-                addClass(parent, this.className);
-            } else {
-                var textNodeParent = textNode.parentNode;
-                var el = this.createContainer(textNodeParent);
-                textNodeParent.insertBefore(el, textNode);
-                el.appendChild(textNode);
+                    addClass(parent, this.className);
+                } else {
+                    var textNodeParent = textNode.parentNode;
+                    var el = this.createContainer(textNodeParent);
+                    textNodeParent.insertBefore(el, textNode);
+                    el.appendChild(textNode);
+                }
             }
+
             log.groupEnd();
         },
 
