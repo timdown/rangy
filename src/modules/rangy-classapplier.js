@@ -125,7 +125,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function canTextBeStyled(textNode) {
         var parent = textNode.parentNode;
-        return (parent && parent.nodeType == 1 && !/^(textarea|style|script|select|iframe)$/i.test(parent.nodeName));
+        return (parent && parent.nodeType == 1 && !/^(textarea|style|script|select|iframe|button)$/i.test(parent.nodeName));
     }
 
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
