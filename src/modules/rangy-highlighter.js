@@ -497,15 +497,35 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         },
 
         serialize: function(options) {
+            var self = this;
             var highlights = this.highlights;
+            var serializedType, serializedHighlights, convertType, serializationConverter;
+
             highlights.sort(compareHighlights);
-            var serializedHighlights = ["type:" + this.converter.type];
             options = createOptions(options, {
-                serializeHighlightText: false
+                serializeHighlightText: false,
+                type: this.converter.type
             });
+
+            serializedType = options.type;
+            convertType = (serializedType != self.converter.type);
+
+            if (convertType) {
+                serializationConverter = getConverter(serializedType);
+            }
+
+            serializedHighlights = ["type:" + serializedType];
 
             forEach(highlights, function(highlight) {
                 var characterRange = highlight.characterRange;
+                var containerElement;
+
+                if (convertType) {
+                    containerElement = highlight.containerElementId ? self.doc.getElementById(highlight.containerElementId) : getBody(self.doc);
+                    characterRange = serializationConverter.rangeToCharacterRange(
+                        self.converter.characterRangeToRange(self.doc, characterRange, containerElement), containerElement);
+                }
+
                 var parts = [
                     characterRange.start,
                     characterRange.end,
@@ -513,6 +533,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     highlight.classApplier.className,
                     highlight.containerElementId
                 ];
+
                 if (options.serializeHighlightText) {
                     parts.push(highlight.getText());
                 }
@@ -546,10 +567,10 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 parts = serializedHighlights[i].split("$");
                 characterRange = new CharacterRange(+parts[0], +parts[1]);
                 containerElementId = parts[4] || null;
-                containerElement = containerElementId ? this.doc.getElementById(containerElementId) : getBody(this.doc);
 
                 // Convert to the current Highlighter's type, if different from the serialization type
                 if (convertType) {
+                    containerElement = containerElementId ? this.doc.getElementById(containerElementId) : getBody(this.doc);
                     characterRange = this.converter.rangeToCharacterRange(
                         serializationConverter.characterRangeToRange(this.doc, characterRange, containerElement),
                         containerElement
