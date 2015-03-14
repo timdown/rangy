@@ -104,7 +104,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         sel.setStart(p.firstChild, 0);
         trailingSpaceInBlockCollapses = ("" + sel).length == 1;
 
-        el.innerHTML = "1 <br>";
+        el.innerHTML = "1 <br />";
         sel.collapse(el, 2);
         sel.setStart(el.firstChild, 0);
         trailingSpaceBeforeBrCollapses = ("" + sel).length == 1;
