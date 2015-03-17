@@ -118,7 +118,7 @@
         features: {},
         modules: modules,
         config: {
-            alertOnFail: true,
+            alertOnFail: false,
             alertOnWarn: false,
             preferTextRange: false,
             autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? true : rangyAutoInitialize
