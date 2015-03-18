@@ -19,11 +19,11 @@
     <script type="text/javascript">
 
         var highlightApplier, idApplier;
-        var cssClassMutator1, cssClassMutator2;
+        var classMutator1, classMutator2;
 
         rangy.addInitListener(function(rangy) {
-            cssClassMutator1 = rangy.createClassApplier("test1", true, "*");
-            cssClassMutator2 = rangy.createClassApplier("test2", true);
+            classMutator1 = rangy.createClassApplier("test1", true, "*");
+            classMutator2 = rangy.createClassApplier("test2", true);
             highlightApplier = rangy.createClassApplier("highlight", true);
             idApplier = rangy.createClassApplier("id1", true);
         });
@@ -64,9 +64,9 @@
 <input type="button" value="Toggle highlight"
     onclick="toggleHighlight();">
 
-<input type="button" value="Toggle class 1" onmousedown="cssClassMutator1.toggleSelection(); return false;" class="unselectable">
-<input type="button" value="Toggle class 2" onmousedown="cssClassMutator2.toggleSelection(); return false;" class="unselectable">
-<input type="button" value="Detach class 2 applier" onmousedown="cssClassMutator2.detach(); return false;" class="unselectable">
+<input type="button" value="Toggle class 1" onmousedown="classMutator1.toggleSelection(); return false;" class="unselectable">
+<input type="button" value="Toggle class 2" onmousedown="classMutator2.toggleSelection(); return false;" class="unselectable">
+<input type="button" value="Detach class 2 applier" onmousedown="classMutator2.detach(); return false;" class="unselectable">
 
 <p>Zero</p>
 <p>One two</p>

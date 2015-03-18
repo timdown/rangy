@@ -37,11 +37,11 @@
     <script type="text/javascript" src="../src/modules/inactive/commands/rangy-bold_new.js"></script>
     <script type="text/javascript" src="../src/modules/inactive/commands/rangy-italic.js"></script>
     <script type="text/javascript" src="../src/modules/inactive/commands/rangy-applyclass.js"></script>
-    <script type="text/javascript" src="../src/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../src/modules/rangy-classapplier.js"></script>
     <script type="text/javascript" src="../test/implementation.js"></script>
     <script type="text/javascript">
         var iframeDoc, iframeWin, contentHtmlTextArea, mainLoaded = false, iframeLoaded = false;
-        var greenBorderCssClassApplier, boldRedCssClassApplier;
+        var greenBorderClassApplier, boldRedClassApplier;
 
         function updateContentHtml() {
             contentHtmlTextArea.value = iframeDoc.body.innerHTML;
@@ -209,8 +209,8 @@
             );
 
 /*
-            greenBorderCssClassApplier = rangy.createCssClassApplier("greenBorder");
-            boldRedCssClassApplier = rangy.createCssClassApplier("boldRed");
+            greenBorderClassApplier = rangy.createClassApplier("greenBorder");
+            boldRedClassApplier = rangy.createClassApplier("boldRed");
 */
         };
 
@@ -272,8 +272,8 @@
             iframeWin.focus();
         }
 
-        function applyClassCssClassApplier(className) {
-            var applier = (className == "boldRed") ? boldRedCssClassApplier : greenBorderCssClassApplier;
+        function applyClassUsingClassApplier(className) {
+            var applier = (className == "boldRed") ? boldRedClassApplier : greenBorderClassApplier;
             applier.toggleSelection(iframeWin);
             updateContentHtml();
             iframeWin.focus();
@@ -305,8 +305,8 @@
             <input type="button" onclick="italic(false);" value="Italic">
             <input type="button" onclick="applyClass('greenBorder');" value="Green border">
             <input type="button" onclick="applyClass('boldRed');" value="Bold red">
-            <input type="button" onclick="applyClassCssClassApplier('greenBorder');" value="Green border (CssClassApplier)">
-            <input type="button" onclick="applyClassCssClassApplier('boldRed');" value="Bold red (CssClassApplier)">
+            <input type="button" onclick="applyClassUsingClassApplier('greenBorder');" value="Green border (ClassApplier)">
+            <input type="button" onclick="applyClassUsingClassApplier('boldRed');" value="Bold red (ClassApplier)">
 -->
         </div>
         <iframe id="content" src="content.html?1" style="width: 100%; height: 400px" frameborder="0"></iframe>

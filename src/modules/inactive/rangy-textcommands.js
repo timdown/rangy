@@ -23,17 +23,17 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         return str.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
     }
 
-    function hasClass(el, cssClass) {
-        return el.className && new RegExp("(?:^|\\s)" + cssClass + "(?:\\s|$)").test(el.className);
+    function hasClass(el, className) {
+        return el.className && new RegExp("(?:^|\\s)" + className + "(?:\\s|$)").test(el.className);
     }
 
-    function addClass(el, cssClass) {
+    function addClass(el, className) {
         if (el.className) {
-            if (!hasClass(el, cssClass)) {
-                el.className += " " + cssClass;
+            if (!hasClass(el, className)) {
+                el.className += " " + className;
             }
         } else {
-            el.className = cssClass;
+            el.className = className;
         }
     }
 
@@ -42,9 +42,9 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
             return (whitespaceBefore && whitespaceAfter) ? " " : "";
         }
 
-        return function(el, cssClass) {
+        return function(el, className) {
             if (el.className) {
-                el.className = el.className.replace(new RegExp("(?:^|\\s)" + cssClass + "(?:\\s|$)"), replacer);
+                el.className = el.className.replace(new RegExp("(?:^|\\s)" + className + "(?:\\s|$)"), replacer);
             }
         };
     })();
@@ -177,7 +177,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         this.isElementMerge = (firstNode.nodeType == 1);
         this.firstTextNode = this.isElementMerge ? firstNode.lastChild : firstNode;
         if (this.isElementMerge) {
-            this.sortedCssClasses = getSortedClassName(firstNode);
+            this.sortedClasses = getSortedClassName(firstNode);
         }
         this.textNodes = [this.firstTextNode];
     }
@@ -332,7 +332,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == tagName && trim(el.className) == this.cssClass && !elementHasNonClassAttributes(el);
+            return el.tagName.toLowerCase() == tagName && trim(el.className) == this.className && !elementHasNonClassAttributes(el);
         },
 
         undoToTextNode: function(textNode, range, appliedAncestor) {

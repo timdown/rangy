@@ -16,23 +16,9 @@
             border: dotted orange 1px;
         }
     </style>
-    <script type="text/javascript" src="../external/log4javascript_stub.js"></script>
-    <script type="text/javascript" src="../src/core/core.js"></script>
-    <script type="text/javascript" src="../src/core/dom.js"></script>
-    <script type="text/javascript" src="../src/core/domrange.js"></script>
-    <script type="text/javascript" src="../src/core/wrappedrange.js"></script>
-    <script type="text/javascript" src="../src/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/modules/rangy-classapplier.js"></script>
-<!--
-    <script type="text/javascript" src="../src/modules/rangy-textrange.js"></script>
--->
-    <script type="text/javascript" src="../src/modules/rangy-highlighter.js"></script>
-<!--
-    <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-core.js"></script>
-    <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-textrange.js"></script>
-    <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-cssclassapplier.js"></script>
-    <script type="text/javascript" src="http://rangy.googlecode.com/svn/trunk/dev/uncompressed/rangy-highlighter.js"></script>
--->
+    <script type="text/javascript" src="../lib/rangy-core.js"></script>
+    <script type="text/javascript" src="../lib/rangy-classapplier.js"></script>
+    <script type="text/javascript" src="../lib/rangy-highlighter.js"></script>
     <script type="text/javascript">
         var serializedHighlights = decodeURIComponent(window.location.search.slice(window.location.search.indexOf("=") + 1));
         var highlighter;
@@ -44,12 +30,12 @@
 
             highlighter = rangy.createHighlighter();
 
-            highlighter.addClassApplier(rangy.createCssClassApplier("highlight", {
+            highlighter.addClassApplier(rangy.createClassApplier("highlight", {
                 ignoreWhiteSpace: true,
                 tagNames: ["span", "a"]
             }));
 
-            highlighter.addClassApplier(rangy.createCssClassApplier("note", {
+            highlighter.addClassApplier(rangy.createClassApplier("note", {
                 ignoreWhiteSpace: true,
                 elementTagName: "a",
                 elementProperties: {

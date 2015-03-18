@@ -14,13 +14,17 @@
             color: red;
         }
 
+        img.boldRed {
+            border: solid red 3px;
+        }
+
         a.pinkLink {
             color: #f66;
             font-size: 1.2em;
         }
     </style>
-    <script type="text/javascript" src="../dev/rangy-core.js"></script>
-    <script type="text/javascript" src="../dev/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../lib/rangy-core.js"></script>
+    <script type="text/javascript" src="../lib/rangy-classapplier.js"></script>
     <script type="text/javascript">
         function gEBI(id) {
             return document.getElementById(id);
@@ -44,20 +48,20 @@
             rangy.init();
 
             // Enable buttons
-
-            // ClassApplier is the name for the module in 1.3. CssClassApplier is for 1.2 and earlier.
-            var classApplierModule = rangy.modules.ClassApplier || rangy.modules.CssClassApplier;
+            var classApplierModule = rangy.modules.ClassApplier;
 
             // Next line is pure paranoia: it will only return false if the browser has no support for ranges,
             // selections or TextRanges. Even IE 5 would pass this test.
             if (rangy.supported && classApplierModule && classApplierModule.supported) {
-                boldRedApplier = rangy.createCssClassApplier("boldRed");
-
-                italicYellowBgApplier = rangy.createCssClassApplier("italicYellowBg", {
-                    tagNames: ["span", "a", "b"]
+                boldRedApplier = rangy.createClassApplier("boldRed", {
+                    tagNames: ["span", "img"]
                 });
 
-                pinkLinkApplier = rangy.createCssClassApplier("pinkLink", {
+                italicYellowBgApplier = rangy.createClassApplier("italicYellowBg", {
+                    tagNames: ["span", "a", "b", "img"]
+                });
+
+                pinkLinkApplier = rangy.createClassApplier("pinkLink", {
                     elementTagName: "a",
                     elementProperties: {
                         href: "http://code.google.com/p/rangy",
@@ -112,19 +116,21 @@
         <!-- A comment -->
 
         <p id="intro">
-            Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons on
-            the left hand size to toggle CSS classes applied to text content within the selection.
+            Please use your mouse and/or keyboard to make selections from the sample content below and use the buttons
+            on the left hand size to toggle CSS classes applied to content (now also including images) within the
+            selection.
         </p>
 
         <p>
-            <b>Association football</b> is a sport played between two teams. It is usually called <b class="pinkLink">football</b>, but in
-            some countries, such as the United States, it is called <b>soccer</b>. In
-            <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa, Australia, Canada and
-            Republic of Ireland, both words are commonly used.
+            <b>Association football</b> is a sport played between two teams. It is usually called
+            <b class="pinkLink">football</b>, but in some countries, such as the United States, it is called
+            <b>soccer</b>. In <a href="http://simple.wikipedia.org/wiki/Japan">Japan</a>, New Zealand, South Africa,
+            Australia, Canada and Republic of Ireland, both words are commonly used.
         </p>
         <p>
             Each team has 11 players on the field. One of these players is the <i>goalkeeper</i>, and the other ten are
-            known as <i>"outfield players."</i> The game is played by <b>kicking a ball into the opponent's goal</b>. A
+            known as <i>"outfield players."</i> The game is played by <b>kicking a ball
+            <img src="football.png" width="100" height="100" alt="football"> into the opponent's goal</b>. A
             match has 90 minutes of play, with a break of 15 minutes in the middle. The break in the middle is called
             half-time.
         </p>
