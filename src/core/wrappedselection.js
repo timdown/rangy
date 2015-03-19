@@ -801,8 +801,8 @@
         }
     };
 
-    // The spec is very specific on how selectAllChildren should be implemented so the native implementation is
-    // never used by Rangy.
+    // The spec is very specific on how selectAllChildren should be implemented and not all browsers implement it as
+    // specified so the native implementation is never used by Rangy.
     selProto.selectAllChildren = function(node) {
         assertNodeInSameDocument(this, node);
         var range = api.createRange(node);
