@@ -92,14 +92,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
 
     (function() {
-        var el = document.createElement("div");
-        el.contentEditable = "true";
-        el.innerHTML = "<p>1 </p><p></p>";
-        var body = getBody(document);
+        var el = dom.createTestElement(document, "<p>1 </p><p></p>", true);
         var p = el.firstChild;
         var sel = api.getSelection();
-
-        body.appendChild(el);
         sel.collapse(p.lastChild, 2);
         sel.setStart(p.firstChild, 0);
         trailingSpaceInBlockCollapses = ("" + sel).length == 1;
@@ -114,7 +109,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         sel.setStart(el.firstChild, 0);
         trailingSpaceBeforeBlockCollapses = ("" + sel).length == 1;
 
-        body.removeChild(el);
+        dom.removeNode(el);
         sel.removeAllRanges();
     })();
 

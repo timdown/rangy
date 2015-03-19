@@ -138,9 +138,7 @@
                 }
 
                 // Create some test elements
-                var body = getBody(document);
-                var testEl = body.appendChild( document.createElement("div") );
-                testEl.contentEditable = "false";
+                var testEl = dom.createTestElement(document, "", false);
                 var textNode = testEl.appendChild( document.createTextNode("\u00a0\u00a0\u00a0") );
 
                 // Test whether the native selection will allow a collapsed selection within a non-editable element
@@ -175,7 +173,7 @@
                 }
 
                 // Clean up
-                body.removeChild(testEl);
+                dom.removeNode(testEl);
                 sel.removeAllRanges();
 
                 for (i = 0; i < originalSelectionRangeCount; ++i) {
@@ -820,7 +818,7 @@
             while (controlRange.length) {
                 element = controlRange.item(0);
                 controlRange.remove(element);
-                element.parentNode.removeChild(element);
+                dom.removeNode(element);
             }
             this.refresh();
         } else if (this.rangeCount) {

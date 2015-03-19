@@ -15,6 +15,7 @@
 /* build:modularizeWithRangyDependency */
 rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
     var dom = api.dom;
+    var removeNode = dom.removeNode;
 
     var markerTextChar = "\ufeff";
 
@@ -47,7 +48,7 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
         var markerEl = gEBI(markerId, doc);
         if (markerEl) {
             range[atStart ? "setStartBefore" : "setEndBefore"](markerEl);
-            markerEl.parentNode.removeChild(markerEl);
+            removeNode(markerEl);
         } else {
             module.warn("Marker element has been removed. Cannot restore selection.");
         }
@@ -98,11 +99,11 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
 
                 // Workaround for issue 17
                 if (previousNode && previousNode.nodeType == 3) {
-                    markerEl.parentNode.removeChild(markerEl);
+                    removeNode(markerEl);
                     range.collapseToPoint(previousNode, previousNode.length);
                 } else {
                     range.collapseBefore(markerEl);
-                    markerEl.parentNode.removeChild(markerEl);
+                    removeNode(markerEl);
                 }
             } else {
                 module.warn("Marker element has been removed. Cannot restore selection.");
@@ -205,7 +206,7 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
     function removeMarkerElement(doc, markerId) {
         var markerEl = gEBI(markerId, doc);
         if (markerEl) {
-            markerEl.parentNode.removeChild(markerEl);
+            removeNode(markerEl);
         }
     }
 

@@ -18,6 +18,8 @@
     var getRootContainer = dom.getRootContainer;
     var crashyTextNodes = api.features.crashyTextNodes;
 
+    var removeNode = dom.removeNode;
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Utility functions
@@ -273,7 +275,7 @@
                 }
             } else {
                 if (current.parentNode) {
-                    current.parentNode.removeChild(current);
+                    removeNode(current);
                 } else {
                     log.warn("Node to be removed has no parent node. Is this the child of an attribute node in Firefox 2?");
                 }
@@ -512,7 +514,7 @@
         range.setStartAndEnd(sc, so, ec, eo);
         log.debug("splitBoundaries done");
     }
-    
+
     function rangeToHtml(range) {
         assertRangeValid(range);
         var container = range.commonAncestorContainer.parentNode.cloneNode(false);
@@ -813,7 +815,7 @@
             this.setStartAfter(node);
             this.collapse(true);
         },
-        
+
         getBookmark: function(containerNode) {
             var doc = getRangeDocument(this);
             var preSelectionRange = api.createRange(doc);
@@ -833,7 +835,7 @@
                 containerNode: containerNode
             };
         },
-        
+
         moveToBookmark: function(bookmark) {
             var containerNode = bookmark.containerNode;
             var charIndex = 0;
@@ -875,11 +877,11 @@
         isValid: function() {
             return isRangeValid(this);
         },
-        
+
         inspect: function() {
             return inspect(this);
         },
-        
+
         detach: function() {
             // In DOM4, detach() is now a no-op.
         }
@@ -1016,7 +1018,7 @@
 
                 boundaryUpdater(this, sc, so, ec, eo);
             },
-            
+
             setBoundary: function(node, offset, isStart) {
                 this["set" + (isStart ? "Start" : "End")](node, offset);
             },
@@ -1086,7 +1088,7 @@
                         ec = node;
                         eo = node.length;
                         node.appendData(sibling.data);
-                        sibling.parentNode.removeChild(sibling);
+                        removeNode(sibling);
                     }
                 };
 
@@ -1097,7 +1099,7 @@
                         var nodeLength = node.length;
                         so = sibling.length;
                         node.insertData(0, sibling.data);
-                        sibling.parentNode.removeChild(sibling);
+                        removeNode(sibling);
                         if (sc == ec) {
                             eo += so;
                             ec = sc;

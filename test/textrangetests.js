@@ -136,14 +136,14 @@ xn.test.suite("Text Range module tests", function(s) {
 
         rangy.noMutation(function() {
             var pos = textRange.createPosition(t.el, 0);
-    
+
             // First forwards...
             for (var i = 0; i < positions.length; ++i) {
                 pos = pos.nextVisible();
                 t.assertEquals(pos.node, positions[i][0]);
                 t.assertEquals(pos.offset, positions[i][1]);
             }
-    
+
             // ... now backwards
             for (i = positions.length - 2; i >= 0; --i) {
                 pos = pos.previousVisible();
@@ -438,7 +438,7 @@ xn.test.suite("Text Range module tests", function(s) {
             t.assertEquals(range.text(), "2 3");
         });
     }
-    
+
     s.test("range move() on block inside block (issue 114)", function(t) {
         t.el.innerHTML = '<div>x<div>y</div></div>';
         var firstTextNode = t.el.firstChild.firstChild;
@@ -724,21 +724,21 @@ xn.test.suite("Text Range module tests", function(s) {
         rangy.noMutation(function() {
             var range = rangy.createRange();
             range.collapseToPoint(textNode, 9);
-    
+
             var wordsMoved = range.moveEnd("word", -1);
-    
+
             t.assertEquals(wordsMoved, -1);
             t.assertEquals(range.startContainer, textNode);
             t.assertEquals(range.startOffset, 8);
             t.assertEquals(range.endOffset, 8);
             t.assert(range.collapsed);
-    
+
             wordsMoved = range.moveEnd("word", -1);
             t.assertEquals(wordsMoved, -1);
             t.assertEquals(range.startContainer, textNode);
             t.assertEquals(range.startOffset, 4);
             //t.assertEquals(range.text(), "");
-    
+
             wordsMoved = range.moveEnd("word", -1);
             t.assertEquals(wordsMoved, -1);
             t.assertEquals(range.startContainer, textNode);
@@ -1208,12 +1208,23 @@ xn.test.suite("Text Range module tests", function(s) {
         sel.collapse(textNode, 2);
         sel.move("character", 1);
         var range = sel.getRangeAt(0);
-        
+
         t.assert((range.startContainer == t.el || range.startContainer == secondParaTextNode) && range.startOffset == 1);
         //testRangeBoundaries(t, range, t.el, 1, t.el, 1);
 
         sel.move("character", 1);
         range = sel.getRangeAt(0);
         testRangeBoundaries(t, range, secondParaTextNode, 2, secondParaTextNode, 2);
+    });
+
+    s.test("toCharacterRange test (issue 286)", function(t) {
+        t.el.innerHTML = '<pre class="code-block lang-javascript ng-scope"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>; i &lt;<span class="hljs-number">10</span>; i++) {  <span class="hljs-built_in">console</span>.log (i); }</pre>';
+        var textNode = t.el.firstChild.lastChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(t.el.firstChild, 0, textNode, textNode.length);
+        var charRange = range.toCharacterRange(t.el.firstChild);
+
+        t.assertEquals(charRange.start, 0);
+        t.assertEquals(charRange.end, 47);
     });
 }, false);

@@ -189,7 +189,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             movePositionWhenRemovingNode(position, oldParent, oldIndex);
         });
 
-        node.parentNode.removeChild(node);
+        dom.removeNode(node);
         log.groupEnd();
     }
 
@@ -467,7 +467,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     if (i > 0) {
                         parent.removeChild(textNode);
                         if (!parent.hasChildNodes()) {
-                            parent.parentNode.removeChild(parent);
+                            dom.removeNode(parent);
                         }
                         if (positionsToPreserve) {
                             forEach(positionsToPreserve, function(position) {
