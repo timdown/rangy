@@ -48,7 +48,7 @@
     function getDocSelection(winParam) {
         return getWindow(winParam, "getDocSelection").document.selection;
     }
-    
+
     function winSelectionIsBackward(sel) {
         var backward = false;
         if (sel.anchorNode) {
@@ -99,7 +99,7 @@
     // Test for existence of native selection extend() method
     var selectionHasExtend = isHostMethod(testSelection, "extend");
     features.selectionHasExtend = selectionHasExtend;
-    
+
     // Test if rangeCount exists
     var selectionHasRangeCount = (typeof testSelection.rangeCount == NUMBER);
     features.selectionHasRangeCount = selectionHasRangeCount;
@@ -123,21 +123,20 @@
             // Previously an iframe was used but this caused problems in some circumstances in IE, so tests are
             // performed on the current document's selection. See issue 109.
 
-            // Note also that if a selection previously existed, it is wiped by these tests. This should usually be fine
-            // because initialization usually happens when the document loads, but could be a problem for a script that
-            // loads and initializes Rangy later. If anyone complains, code could be added to save and restore the
-            // selection.
+            // Note also that if a selection previously existed, it is wiped and later restored by these tests. This
+            // will result in the selection direction begin reversed if the original selection was backwards and the
+            // browser does not support setting backwards selections (Internet Explorer, I'm looking at you).
             var sel = window.getSelection();
             if (sel) {
                 // Store the current selection
                 var originalSelectionRangeCount = sel.rangeCount;
                 var selectionHasMultipleRanges = (originalSelectionRangeCount > 1);
                 var originalSelectionRanges = [];
-                var originalSelectionBackward = winSelectionIsBackward(sel); 
+                var originalSelectionBackward = winSelectionIsBackward(sel);
                 for (var i = 0; i < originalSelectionRangeCount; ++i) {
                     originalSelectionRanges[i] = sel.getRangeAt(i);
                 }
-                
+
                 // Create some test elements
                 var body = getBody(document);
                 var testEl = body.appendChild( document.createElement("div") );
@@ -149,6 +148,7 @@
 
                 r1.setStart(textNode, 1);
                 r1.collapse(true);
+                sel.removeAllRanges();
                 sel.addRange(r1);
                 collapsedNonEditableSelectionsSupported = (sel.rangeCount == 1);
                 sel.removeAllRanges();
@@ -866,7 +866,7 @@
         } );
         return results;
     };
-    
+
     function createStartOrEndSetter(isStart) {
         return function(node, offset) {
             var range;
@@ -883,7 +883,7 @@
 
     selProto.setStart = createStartOrEndSetter(true);
     selProto.setEnd = createStartOrEndSetter(false);
-    
+
     // Add select() method to Range prototype. Any existing selection will be removed.
     api.rangePrototype.select = function(direction) {
         getSelection( this.getDocument() ).setSingleRange(this, direction);
@@ -949,7 +949,7 @@
                 if (isTextRange(range)) {
                     return range;
                 } else {
-                    throw module.createError("getNativeTextRange: selection is a control selection"); 
+                    throw module.createError("getNativeTextRange: selection is a control selection");
                 }
             } else if (this.rangeCount > 0) {
                 return api.WrappedTextRange.rangeToTextRange( this.getRangeAt(0) );
