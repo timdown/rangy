@@ -23,6 +23,10 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         return h1.characterRange.start - h2.characterRange.start;
     }
 
+    function getContainerElement(doc, id) {
+        return id ? doc.getElementById(id) : getBody(doc);
+    }
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     var highlighterTypes = {};
@@ -213,7 +217,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
     Highlight.prototype = {
         getContainerElement: function() {
-            return this.containerElementId ? this.doc.getElementById(this.containerElementId) : getBody(this.doc);
+            return getContainerElement(this.doc, this.containerElementId);
         },
 
         getRange: function() {
@@ -453,7 +457,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             var exclusive = options.exclusive;
             var selection = options.selection;
             var doc = selection.win.document;
-            var containerElement = containerElementId ? doc.getElementById(containerElementId) : getBody(doc);
+            var containerElement = getContainerElement(doc, containerElementId);
 
             if (!classApplier && className !== false) {
                 throw new Error("No class applier found for class '" + className + "'");
@@ -497,18 +501,18 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         },
 
         serialize: function(options) {
-            var self = this;
-            var highlights = this.highlights;
+            var highlighter = this;
+            var highlights = highlighter.highlights;
             var serializedType, serializedHighlights, convertType, serializationConverter;
 
             highlights.sort(compareHighlights);
             options = createOptions(options, {
                 serializeHighlightText: false,
-                type: this.converter.type
+                type: highlighter.converter.type
             });
 
             serializedType = options.type;
-            convertType = (serializedType != self.converter.type);
+            convertType = (serializedType != highlighter.converter.type);
 
             if (convertType) {
                 serializationConverter = getConverter(serializedType);
@@ -520,10 +524,13 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 var characterRange = highlight.characterRange;
                 var containerElement;
 
+                // Convert to the current Highlighter's type, if different from the serialization type
                 if (convertType) {
-                    containerElement = highlight.containerElementId ? self.doc.getElementById(highlight.containerElementId) : getBody(self.doc);
+                    containerElement = highlight.getContainerElement();
                     characterRange = serializationConverter.rangeToCharacterRange(
-                        self.converter.characterRangeToRange(self.doc, characterRange, containerElement), containerElement);
+                        highlighter.converter.characterRangeToRange(highlighter.doc, characterRange, containerElement),
+                        containerElement
+                    );
                 }
 
                 var parts = [
@@ -570,7 +577,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
                 // Convert to the current Highlighter's type, if different from the serialization type
                 if (convertType) {
-                    containerElement = containerElementId ? this.doc.getElementById(containerElementId) : getBody(this.doc);
+                    containerElement = getContainerElement(this.doc, containerElementId);
                     characterRange = this.converter.rangeToCharacterRange(
                         serializationConverter.characterRangeToRange(this.doc, characterRange, containerElement),
                         containerElement
