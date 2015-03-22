@@ -82,11 +82,19 @@
         };
     } else {
         module.fail("Neither document.selection or window.getSelection() detected.");
+        return false;
     }
 
     api.getNativeSelection = getNativeSelection;
 
     var testSelection = getNativeSelection();
+
+    // In Firefox, the selection is null in an iframe with display: none. See issue #138.
+    if (!testSelection) {
+        module.fail("Native selection was null (possibly issue 138?)");
+        return false;
+    }
+
     var testRange = api.createNativeRange(document);
     var body = getBody(document);
 

@@ -374,7 +374,7 @@
             this.initialized = true;
             this.supported = false;
             log.error("Module '" + this.name + "' failed to load: " + reason);
-            throw new Error("Module '" + this.name + "' failed to load: " + reason);
+            throw new Error(reason);
         },
 
         warn: function(msg) {
