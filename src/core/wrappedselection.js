@@ -939,6 +939,20 @@
         }
     };
 
+    selProto.saveRanges = function() {
+        return {
+            backward: this.isBackward(),
+            ranges: this.callMethodOnEachRange("cloneRange")
+        };
+    };
+
+    selProto.restoreRanges = function(selRanges) {
+        this.removeAllRanges();
+        for (var i = 0, range; range = selRanges.ranges[i]; ++i) {
+            this.addRange(range, (selRanges.backward && i == 0));
+        }
+    };
+
     selProto.toHtml = function() {
         var rangeHtmls = [];
         this.eachRange(function(range) {
