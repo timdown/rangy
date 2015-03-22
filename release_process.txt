@@ -1,0 +1,6 @@
+- Change README if necessary
+- Change version number in package.json
+- Commit and push
+- Update version number in bower.json in rangy-release
+- Update code files in rangy-release
+
