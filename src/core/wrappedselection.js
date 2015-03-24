@@ -868,7 +868,7 @@
     selProto.callMethodOnEachRange = function(methodName, params) {
         var results = [];
         this.eachRange( function(range) {
-            results.push( range[methodName].apply(range, params) );
+            results.push( range[methodName].apply(range, params || []) );
         } );
         return results;
     };
