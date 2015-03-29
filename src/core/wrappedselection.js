@@ -22,8 +22,8 @@
 
     var log = log4javascript.getLogger("rangy.WrappedSelection");
 
-    // Utility function to support direction parameters in the API that may be a string ("backward" or "forward") or a
-    // Boolean (true for backwards).
+    // Utility function to support direction parameters in the API that may be a string ("backward", "backwards",
+    // "forward" or "forwards") or a Boolean (true for backwards).
     function isDirectionBackward(dir) {
         return (typeof dir == "string") ? /^backward(s)?$/i.test(dir) : !!dir;
     }
