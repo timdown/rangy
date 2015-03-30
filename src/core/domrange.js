@@ -1116,10 +1116,22 @@
                 };
 
                 var normalizeStart = true;
+                var sibling;
 
                 if (isCharacterDataNode(ec)) {
-                    if (ec.length == eo) {
+                    if (eo == ec.length) {
                         mergeForward(ec);
+                    } else if (eo == 0) {
+                        sibling = ec.previousSibling;
+                        if (sibling && sibling.nodeType == ec.nodeType) {
+                            eo = sibling.length;
+                            if (sc == ec) {
+                                normalizeStart = false;
+                            }
+                            sibling.appendData(ec.data);
+                            removeNode(ec);
+                            ec = sibling;
+                        }
                     }
                 } else {
                     if (eo > 0) {
@@ -1135,6 +1147,16 @@
                     if (isCharacterDataNode(sc)) {
                         if (so == 0) {
                             mergeBackward(sc);
+                        } else if (so == sc.length) {
+                            sibling = sc.nextSibling;
+                            if (sibling && sibling.nodeType == sc.nodeType) {
+                                if (ec == sibling) {
+                                    ec = sc;
+                                    eo += sc.length;
+                                }
+                                sc.appendData(sibling.data);
+                                removeNode(sibling);
+                            }
                         }
                     } else {
                         if (so < sc.childNodes.length) {
