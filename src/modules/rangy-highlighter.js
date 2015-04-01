@@ -586,8 +586,11 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
                 classApplier = this.classAppliers[ parts[3] ];
 
-                if (!classApplier) {
-                    throw new Error("No class applier found for class '" + parts[3] + "'");
+                // If classApplier (aka parts[3]) highlighter doesn't exist
+                // use the first one in this.classAppliers
+                if (!classAppliers) {
+                    for(var first_key in this.classAppliers) break;
+                    classApplier = this.classAppliers[first_key];
                 }
 
                 highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parseInt(parts[2]), containerElementId);
