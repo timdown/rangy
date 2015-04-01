@@ -11,7 +11,7 @@ var FILE_ENCODING = "utf-8";
 var indentation = "    ";
 
 var buildSpec = {
-    gitUrl: "https://github.com/timdown/rangy.git",
+    gitUrl: "https://github.com/NotablePDF/rangy.git",
     gitBranch: "master"
 };
 

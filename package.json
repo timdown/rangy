@@ -1,11 +1,11 @@
 {
     "name": "rangy",
     "description": "A cross-browser DOM range and selection library",
-    "version": "1.3.0-beta.2",
+    "version": "notable-alpha-1.3",
     "author": {
-        "name": "Tim Down",
-        "email": "tim@timdown.co.uk",
-        "url": "http://timdown.co.uk/"
+        "name": "Notable PDF",
+        "email": "support@notablepdf.com",
+        "url": "https://notablepdf.com"
     },
     "keywords": ["range", "selection", "caret", "DOM"],
     "homepage": "https://github.com/timdown/rangy",
@@ -20,7 +20,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/timdown/rangy.git"
+        "url": "https://github.com/NotablePDF/rangy.git"
     },
     "main": "lib/rangy-core.js",
     "directories": {
