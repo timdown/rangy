@@ -439,10 +439,7 @@
 
     api.getSelection = getSelection;
 
-    api.getIframeSelection = function(iframeEl) {
-        module.deprecationNotice("getIframeSelection()", "getSelection(iframeEl)");
-        return api.getSelection(dom.getIframeWindow(iframeEl));
-    };
+    module.createAliasForDeprecatedMethod(api, "getIframeSelection", "getSelection");
 
     var selProto = WrappedSelection.prototype;
 

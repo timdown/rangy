@@ -1114,6 +1114,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     };
 
     api.CssClassApplier = api.ClassApplier = ClassApplier;
-    api.createCssClassApplier = api.createClassApplier = createClassApplier;
+    api.createClassApplier = createClassApplier;
+    module.createAliasForDeprecatedMethod(api, "createCssClassApplier", "createClassApplier");
 });
 /* build:modularizeEnd */

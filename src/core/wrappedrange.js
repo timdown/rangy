@@ -603,15 +603,8 @@
         return new DomRange(doc);
     };
 
-    api.createIframeRange = function(iframeEl) {
-        module.deprecationNotice("createIframeRange()", "createRange(iframeEl)");
-        return api.createRange(iframeEl);
-    };
-
-    api.createIframeRangyRange = function(iframeEl) {
-        module.deprecationNotice("createIframeRangyRange()", "createRangyRange(iframeEl)");
-        return api.createRangyRange(iframeEl);
-    };
+    module.createAliasForDeprecatedMethod(api, "createIframeRange", "createRange");
+    module.createAliasForDeprecatedMethod(api, "createIframeRangyRange", "createRangyRange");
 
     api.addShimListener(function(win) {
         var doc = win.document;

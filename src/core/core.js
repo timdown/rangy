@@ -382,8 +382,16 @@
         },
 
         deprecationNotice: function(deprecated, replacement) {
-            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use " +
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + " is deprecated. Please use " +
                 replacement + " instead");
+        },
+
+        createAliasForDeprecatedMethod: function(owner, deprecated, replacement) {
+            var module = this;
+            owner[deprecated] = function() {
+                module.deprecationNotice(deprecated, replacement);
+                return owner[replacement].apply(owner, util.toArray(arguments));
+            };
         },
 
         createError: function(msg) {
