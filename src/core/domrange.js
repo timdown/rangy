@@ -33,20 +33,8 @@
         return range.document || getDocument(range.startContainer);
     }
 
-    function getRoot(node) {
-        var parentNode;
-        while (node) {
-            parentNode = node.parentNode;
-            if (!parentNode) {
-                return node;
-            }
-            node = parentNode;
-        }
-        return null;
-    }
-
     function getRangeRoot(range) {
-        return getRoot(range.startContainer);
+        return getRootContainer(range.startContainer);
     }
 
     function getBoundaryBeforeNode(node) {
@@ -403,7 +391,7 @@
         return (!!range.startContainer && !!range.endContainer &&
                 //(isOrphan(range.startContainer) != isOrphan(range.endContainer)) &&
                 !(crashyTextNodes && (dom.isBrokenNode(range.startContainer) || dom.isBrokenNode(range.endContainer))) &&
-                getRoot(range.startContainer) == getRoot(range.endContainer) &&
+                getRootContainer(range.startContainer) == getRootContainer(range.endContainer) &&
                 isValidOffset(range.startContainer, range.startOffset) &&
                 isValidOffset(range.endContainer, range.endOffset));
     }
@@ -710,7 +698,7 @@
         // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
         intersectsNode: function(node, touchingIsIntersecting) {
             assertRangeValid(this);
-            if (getRoot(node) != getRangeRoot(this)) {
+            if (getRootContainer(node) != getRangeRoot(this)) {
                 return false;
             }
 
