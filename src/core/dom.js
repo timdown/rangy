@@ -361,7 +361,7 @@
         };
     } else if (typeof document.documentElement.currentStyle != UNDEF) {
         getComputedStyleProperty = function(el, propName) {
-            return el.currentStyle[propName];
+            return el.currentStyle ? el.currentStyle[propName] : "";
         };
     } else {
         module.fail("No means of obtaining computed style properties found");
