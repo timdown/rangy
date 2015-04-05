@@ -270,8 +270,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         body.removeChild(table);
     })();
 
-    api.features.tableCssDisplayBlock = tableCssDisplayBlock;
-
     var defaultDisplayValueForTag = {
         table: "table",
         caption: "table-caption",
