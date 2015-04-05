@@ -1526,8 +1526,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 text += currentChar;
             }
 
-            //console.log("text " + text)
-
             if (isRegex) {
                 result = searchTerm.exec(text);
                 if (result) {

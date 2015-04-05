@@ -33,6 +33,22 @@
         return range.document || getDocument(range.startContainer);
     }
 
+    function getRoot(node) {
+        var parentNode;
+        while (node) {
+            parentNode = node.parentNode;
+            if (!parentNode) {
+                return node;
+            }
+            node = parentNode;
+        }
+        return null;
+    }
+
+    function getRangeRoot(range) {
+        return getRoot(range.startContainer);
+    }
+
     function getBoundaryBeforeNode(node) {
         return new DomPosition(node.parentNode, getNodeIndex(node));
     }
@@ -379,26 +395,22 @@
         }
     }
 
-    function isOrphan(node) {
-        return (crashyTextNodes && dom.isBrokenNode(node)) ||
-            !arrayContains(rootContainerNodeTypes, node.nodeType) && !getDocumentOrFragmentContainer(node, true);
-    }
-
     function isValidOffset(node, offset) {
         return offset <= (isCharacterDataNode(node) ? node.length : node.childNodes.length);
     }
 
     function isRangeValid(range) {
         return (!!range.startContainer && !!range.endContainer &&
-                !isOrphan(range.startContainer) &&
-                !isOrphan(range.endContainer) &&
+                //(isOrphan(range.startContainer) != isOrphan(range.endContainer)) &&
+                !(crashyTextNodes && (dom.isBrokenNode(range.startContainer) || dom.isBrokenNode(range.endContainer))) &&
+                getRoot(range.startContainer) == getRoot(range.endContainer) &&
                 isValidOffset(range.startContainer, range.startOffset) &&
                 isValidOffset(range.endContainer, range.endOffset));
     }
 
     function assertRangeValid(range) {
         if (!isRangeValid(range)) {
-            throw new Error("Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
+            throw new Error("Range error: Range is not valid. This usually happens after DOM mutation. Range: (" + range.inspect() + ")");
         }
     }
 
@@ -698,13 +710,14 @@
         // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
         intersectsNode: function(node, touchingIsIntersecting) {
             assertRangeValid(this);
-            assertNode(node, "NOT_FOUND_ERR");
-            if (getDocument(node) !== getRangeDocument(this)) {
+            if (getRoot(node) != getRangeRoot(this)) {
                 return false;
             }
 
             var parent = node.parentNode, offset = getNodeIndex(node);
-            assertNode(parent, "NOT_FOUND_ERR");
+            if (!parent) {
+                return true;
+            }
 
             var startComparison = comparePoints(parent, offset, this.endContainer, this.endOffset),
                 endComparison = comparePoints(parent, offset + 1, this.startContainer, this.startOffset);

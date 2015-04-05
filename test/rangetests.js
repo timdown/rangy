@@ -77,7 +77,7 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 range.selectNodeContents(t.nodes.plainText);
                 t.assert(range.isValid());
                 t.nodes.plainText.parentNode.removeChild(t.nodes.plainText);
-                t.assertFalse(range.isValid());
+                t.assert(range.isValid());
             });
 
             s.test("isValid: remove start container node", function(t) {
@@ -500,6 +500,49 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assert(range.intersectsNode(t.nodes.boldText));
                 t.assertFalse(range.intersectsNode(t.nodes.boldAndItalicText));
             });
+
+            s.test("intersectsNode orphan node", function(t) {
+                var range = rangeCreator(doc);
+                var node = doc.createElement("div");
+                node.appendChild(doc.createTextNode("test"));
+                range.selectNodeContents(node);
+                t.assert(range.intersectsNode(node));
+                t.assertFalse(range.intersectsNode(t.nodes.boldText));
+            });
+
+            s.test("intersectsNode test boundary at end of text node", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, t.nodes.plainText.length);
+                range.setEnd(t.nodes.boldText, 1);
+                t.assert(range.intersectsNode(t.nodes.plainText));
+            });
+
+            s.test("intersectsNode test touching is not intersecting", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartAfter(t.nodes.plainText);
+                range.setEnd(t.nodes.boldText, 1);
+                t.assertFalse(range.intersectsNode(t.nodes.plainText));
+            });
+
+            if (testRange.intersectsNode.length == 2) {
+                s.test("intersectsNode touching is intersecting at start", function(t) {
+                    var range = rangeCreator(doc);
+                    range.setStart(t.nodes.plainText, 0);
+                    range.setEndBefore(t.nodes.boldText);
+                    t.assertFalse(range.intersectsNode(t.nodes.boldText));
+                    t.assertFalse(range.intersectsNode(t.nodes.boldText, false));
+                    t.assert(range.intersectsNode(t.nodes.boldText, true));
+                });
+
+                s.test("intersectsNode touching is intersecting at end", function(t) {
+                    var range = rangeCreator(doc);
+                    range.setStartAfter(t.nodes.plainText);
+                    range.setEnd(t.nodes.boldText, 1);
+                    t.assertFalse(range.intersectsNode(t.nodes.plainText));
+                    t.assertFalse(range.intersectsNode(t.nodes.plainText, false));
+                    t.assert(range.intersectsNode(t.nodes.plainText, true));
+                });
+            }
         }
 
         if (testRange.intersection) {
