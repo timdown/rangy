@@ -439,7 +439,7 @@
 
     api.getSelection = getSelection;
 
-    module.createAliasForDeprecatedMethod(api, "getIframeSelection", "getSelection");
+    util.createAliasForDeprecatedMethod(api, "getIframeSelection", "getSelection");
 
     var selProto = WrappedSelection.prototype;
 

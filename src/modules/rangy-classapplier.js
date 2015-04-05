@@ -17,12 +17,13 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var contains = dom.arrayContains;
-    var forEach = api.util.forEach;
+    var util = api.util;
+    var forEach = util.forEach;
 
     var log = log4javascript.getLogger("rangy.classapplier");
 
     var defaultTagName = "span";
-    var createElementNSSupported = api.util.isHostMethod(document, "createElementNS");
+    var createElementNSSupported = util.isHostMethod(document, "createElementNS");
 
     function each(obj, func) {
         for (var i in obj) {
@@ -1115,6 +1116,6 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     api.CssClassApplier = api.ClassApplier = ClassApplier;
     api.createClassApplier = createClassApplier;
-    module.createAliasForDeprecatedMethod(api, "createCssClassApplier", "createClassApplier");
+    util.createAliasForDeprecatedMethod(api, "createCssClassApplier", "createClassApplier", module);
 });
 /* build:modularizeEnd */

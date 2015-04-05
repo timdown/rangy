@@ -603,8 +603,8 @@
         return new DomRange(doc);
     };
 
-    module.createAliasForDeprecatedMethod(api, "createIframeRange", "createRange");
-    module.createAliasForDeprecatedMethod(api, "createIframeRangyRange", "createRangyRange");
+    util.createAliasForDeprecatedMethod(api, "createIframeRange", "createRange");
+    util.createAliasForDeprecatedMethod(api, "createIframeRangyRange", "createRangyRange");
 
     api.addShimListener(function(win) {
         var doc = win.document;
