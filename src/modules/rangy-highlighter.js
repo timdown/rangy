@@ -449,7 +449,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
             options = createOptions(options, {
                 containerElementId: null,
-                selection: api.getSelection(),
+                selection: api.getSelection(this.doc),
                 exclusive: true
             });
 
@@ -484,7 +484,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         },
 
         unhighlightSelection: function(selection) {
-            selection = selection || api.getSelection();
+            selection = selection || api.getSelection(this.doc);
             var intersectingHighlights = this.getIntersectingHighlights( selection.getAllRanges() );
             this.removeHighlights(intersectingHighlights);
             selection.removeAllRanges();
@@ -492,7 +492,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         },
 
         getHighlightsInSelection: function(selection) {
-            selection = selection || api.getSelection();
+            selection = selection || api.getSelection(this.doc);
             return this.getIntersectingHighlights(selection.getAllRanges());
         },
 
