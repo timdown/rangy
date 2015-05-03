@@ -1227,4 +1227,34 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(charRange.start, 0);
         t.assertEquals(charRange.end, 47);
     });
+
+    s.test("<div><br></div><div>x</div> test (issue 164)", function(t) {
+        t.el.innerHTML = "<div><br></div><div>x</div>";
+        var div = t.el.lastChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(div, 0);
+        var charRange = range.toCharacterRange(t.el);
+        t.assertEquals(charRange.start, 1);
+        t.assertEquals(charRange.end, 1);
+    });
+
+    s.test("<div><br></div><div><br></div><div><br></div> test (issue 164)", function(t) {
+        t.el.innerHTML = "<div><br></div><div><br></div><div><br></div>";
+        var div = t.el.lastChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(t.el.childNodes[2], 0);
+        var charRange = range.toCharacterRange(t.el);
+        t.assertEquals(charRange.start, 2);
+        t.assertEquals(charRange.end, 2);
+
+        range.selectCharacters(t.el, 1, 1);
+        var charRange = range.toCharacterRange(t.el);
+        t.assertEquals(charRange.start, 1);
+        t.assertEquals(charRange.end, 1);
+
+        range.selectCharacters(t.el, 2, 2);
+        charRange = range.toCharacterRange(t.el);
+        t.assertEquals(charRange.start, 2);
+        t.assertEquals(charRange.end, 2);
+    });
 }, false);
