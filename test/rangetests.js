@@ -302,6 +302,19 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
 
         s.test("extractContents in single text node", function(t) {
             var range = rangeCreator(doc);
+            t.nodes.div.innerHTML = "<p>1 2 <span>3</span> 4 5</p>";
+            var p = t.nodes.div.firstChild;
+            range.setStart(p.firstChild, 2);
+            range.setEnd(p.lastChild, 2);
+            var frag = range.extractContents();
+            var container = doc.createElement("div");
+            container.appendChild(frag);
+            t.assertEquals(container.innerHTML, "2 <span>3</span> 4");
+            t.assertEquals(t.nodes.div.innerHTML, "<p>1  5</p>");
+        });
+
+        s.test("extractContents inside paragraph (issue 163)", function(t) {
+            var range = rangeCreator(doc);
             range.setStart(t.nodes.plainText, 1);
             range.setEnd(t.nodes.plainText, 2);
             var frag = range.extractContents();

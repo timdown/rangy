@@ -495,34 +495,38 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(range.startOffset, 0);
     });
 
+    function visibleSpaces(str) {
+        return str.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\s/g, function(m) { return "[" + m.charCodeAt(0) + "]"; });
+    }
+
     s.test("innerText on br inside block 1", function(t) {
         t.el.innerHTML = '<div><br></div>';
-        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "\\n");
+        t.assertEquals(visibleSpaces( rangy.innerText(t.el) ), "\\n");
     });
 
     s.test("innerText on br inside block 2", function(t) {
         t.el.innerHTML = '<div>x<div><br></div></div>';
-        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\n");
+        t.assertEquals(visibleSpaces( rangy.innerText(t.el) ), "x\\n");
     });
 
     s.test("innerText on br inside block 3", function(t) {
         t.el.innerHTML = '<div>x<div><br></div>y</div>z';
-        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\ny\\nz");
+        t.assertEquals(visibleSpaces( rangy.innerText(t.el) ), "x\\ny\\nz");
     });
 
     s.test("innerText on br inside block 4", function(t) {
         t.el.innerHTML = '<div>x<div><br></div>y</div>z';
-        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\ny\\nz");
+        t.assertEquals(visibleSpaces( rangy.innerText(t.el) ), "x\\ny\\nz");
     });
 
     s.test("innerText on br inside block 5", function(t) {
         t.el.innerHTML = 'x<div><br></div><div><br></div>';
-        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "x\\n\\n");
+        t.assertEquals(visibleSpaces( rangy.innerText(t.el) ), "x\\n\\n");
     });
 
     s.test("innerText on br inside block 6", function(t) {
         t.el.innerHTML = '<div><div><br></div></div>';
-        t.assertEquals(rangy.innerText(t.el).replace(/\n/g, "\\n"), "\\n");
+        t.assertEquals(visibleSpaces( rangy.innerText(t.el) ), "\\n");
     });
 
 
@@ -1257,4 +1261,54 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(charRange.start, 2);
         t.assertEquals(charRange.end, 2);
     });
+
+    s.test("Issue 304", function(t) {
+/*
+        t.el.innerHTML = "<span>1  2";
+        t.assertEquals(visibleSpaces(rangy.innerText(t.el)), visibleSpaces("1 2") );
+*/
+
+        t.el.innerHTML = "<span>X</span> <span> Y</span>";
+        t.assertEquals(visibleSpaces(rangy.innerText(t.el)), visibleSpaces("X Y") );
+
+/*
+        t.el.innerHTML = ["<span>female</span>",
+            "    <span> presents to the ED with a Chief Complaint of </span>",
+            "    <span>Shoulder Pain</span>"].join("\n");
+
+        t.assertEquals(visibleSpaces(rangy.innerText(t.el)),  visibleSpaces("female presents to the ED with a Chief Complaint of Shoulder Pain") );
+*/
+    });
+
+    s.test("Paragraphs test (issue 128)", function(t) {
+        t.el.innerHTML = "\n  <p>a</p>\n  <p>a</p>\n";
+        var p = t.el.getElementsByTagName("p")[1];
+        var range = rangy.createRange();
+        range.setStartAndEnd(p.firstChild, 0, 1);
+        var charRange = range.toCharacterRange(t.el);
+        t.assertEquals(charRange.start, 2);
+        t.assertEquals(charRange.end, 3);
+
+        var sel = rangy.getSelection();
+        sel.selectAllChildren(p);
+        charRange = sel.getRangeAt(0).toCharacterRange(t.el);
+        t.assertEquals(charRange.start, 2);
+        t.assertEquals(charRange.end, 3);
+    });
+
+    s.test("Word iterator test (issue 130)", function(t) {
+        t.el.innerHTML = "Hello . . Goodbye";
+        var it = rangy.createWordIterator(t.el, 0);
+        var word, words = [];
+        while ( (word = it.next()) ) {
+            if (!rangy.dom.isOrIsAncestorOf(t.el, word.chars[0].node)) {
+                break;
+            }
+            if (word.isWord) {
+                words.push(word.toString());
+            }
+        }
+        t.assertArraysEquivalent(words, ["Hello", "Goodbye"]);
+    });
+
 }, false);

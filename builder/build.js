@@ -118,14 +118,14 @@ function getVersion() {
     console.log("Getting version from Git repo");
     exec("git describe", function(error, stdout, stderr) {
         console.log(error, stdout, stderr);
-        console.log("Getting version from package.json");
         buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
+        console.log("Got version " + buildVersion + " from package.json");
 
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";
         fs.mkdirSync(uncompressedBuildDir);
-        console.log("Got git version " + stdout);
+        console.log("Got git version " + stdout + " but not using that");
         callback();
     });
 }

@@ -29,6 +29,8 @@
 - [ ] Add withinRange and withinNode options to move(), moveStart() and moveEnd() methods
 - [?] Positions module
       (http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495)
+- [ ] Config module or something so that config can work with AMD. See P" 285
+      (https://github.com/timdown/rangy/pull/285)
 
 Possible features for some version
 ----------------------------------
@@ -37,3 +39,4 @@ Possible features for some version
       (http://stackoverflow.com/questions/2887101/apply-style-to-range-of-text-with-javascript-in-uiwebview/2888969#2888969)
 - [?] More commands (block? Insert line break? Think about this, don't want to build a WYSIWYG editor)
 - [ ] Add selection extend()? Don't think this is possible.
+- [ ] Option in TextRange module for alternative ways to extract text for an element (see email from Bruce Augustine)
