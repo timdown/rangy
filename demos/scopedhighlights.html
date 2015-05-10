@@ -16,11 +16,11 @@
         var highlighter;
 
         var initialDoc;
-        
+
         function randomizeQuotes() {
             var quotesUl = document.getElementById("quotes");
             var childNodeCount = quotesUl.childNodes.length;
-            
+
             for (var i = 0, random; i < 10; ++i) {
                 random = Math.floor(Math.random() * childNodeCount);
                 quotesUl.appendChild(quotesUl.childNodes[random]);
@@ -43,7 +43,7 @@
         function removeHighlightFromSelectedText() {
             highlighter.unhighlightSelection();
         }
-        
+
         function getContainingLi(node) {
             while (node) {
                 if (node.nodeType == 1 && node.nodeName == "LI") {
@@ -63,7 +63,7 @@
                 var containerLi = getContainingLi(range.commonAncestorContainer);
                 if (containerLi) {
                     highlighter.highlightSelection("highlight", selection, containerLi.id);
-                } 
+                }
             }
         }
 
@@ -93,9 +93,6 @@
 
 <div id="content">
     <h1>Highlighter module scoped highlights demo</h1>
-    <p class="warning">
-        This demo is for Rangy 1.3, which has not yet been fully released.
-    </p>
     <p id="intro">
         Please use your mouse and/or keyboard to make selections from the sample quotes below and use the buttons
         on the left hand size to create and remove highlights.
