@@ -1467,7 +1467,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 // start of the contents of the block element). We get round this by advancing the position returned to
                 // the last possible equivalent visible position.
                 log.info("movePositionBy ended immediately after a leading space at " + newPos.inspect());
-                console.log(newPos)
                 if (unit == WORD) {
                     charIterator = createCharacterIterator(pos, false, null, characterOptions);
                     nextPos = charIterator.next();
