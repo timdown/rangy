@@ -115,19 +115,13 @@ function cloneGitRepository() {
 }
 
 function getVersion() {
-    console.log("Getting version from Git repo");
-    exec("git describe", function(error, stdout, stderr) {
-        console.log(error, stdout, stderr);
-        buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
-        console.log("Got version " + buildVersion + " from package.json");
-
-        zipDir = buildDir + "rangy-" + buildVersion + "/";
-        fs.mkdirSync(zipDir);
-        uncompressedBuildDir = zipDir + "uncompressed/";
-        fs.mkdirSync(uncompressedBuildDir);
-        console.log("Got git version " + stdout + " but not using that");
-        callback();
-    });
+    buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
+    console.log("Got version " + buildVersion + " from package.json");
+    zipDir = buildDir + "rangy-" + buildVersion + "/";
+    fs.mkdirSync(zipDir);
+    uncompressedBuildDir = zipDir + "uncompressed/";
+    fs.mkdirSync(uncompressedBuildDir);
+    callback();
 }
 
 function indent(str) {
