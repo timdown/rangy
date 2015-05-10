@@ -551,8 +551,10 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         applier.attrExceptions = [];
         var el = document.createElement(applier.elementTagName);
         applier.elementProperties = applier.copyPropertiesToElement(elementPropertiesFromOptions, el, true);
-        each(elementAttributes, function(attrName) {
+        each(elementAttributes, function(attrName, attrValue) {
             applier.attrExceptions.push(attrName);
+            // Ensure each attribute value is a string
+            elementAttributes[attrName] = "" + attrValue;
         });
         applier.elementAttributes = elementAttributes;
 
@@ -789,6 +791,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         elementHasAttributes: function(el, attrs) {
             return each(attrs, function(name, value) {
+                console.log(name, value, el.getAttribute(name))
                 if (el.getAttribute(name) !== value) {
                     return false;
                 }
@@ -822,6 +825,14 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
+            console.log(el.tagName.toLowerCase() == this.elementTagName,
+                getSortedClassName(el) == this.elementSortedClassName,
+                this.elementHasProperties(el, this.elementProperties),
+                !elementHasNonClassAttributes(el, this.attrExceptions),
+                this.elementHasAttributes(el, this.elementAttributes),
+                this.isModifiable(el));
+
+
             return el.tagName.toLowerCase() == this.elementTagName &&
                 getSortedClassName(el) == this.elementSortedClassName &&
                 this.elementHasProperties(el, this.elementProperties) &&
