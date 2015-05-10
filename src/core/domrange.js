@@ -389,7 +389,6 @@
 
     function isRangeValid(range) {
         return (!!range.startContainer && !!range.endContainer &&
-                //(isOrphan(range.startContainer) != isOrphan(range.endContainer)) &&
                 !(crashyTextNodes && (dom.isBrokenNode(range.startContainer) || dom.isBrokenNode(range.endContainer))) &&
                 getRootContainer(range.startContainer) == getRootContainer(range.endContainer) &&
                 isValidOffset(range.startContainer, range.startOffset) &&
