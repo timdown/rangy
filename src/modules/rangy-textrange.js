@@ -680,7 +680,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
-
     function Position(nodeWrapper, offset) {
         this.offset = offset;
         this.nodeWrapper = nodeWrapper;
@@ -887,13 +886,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         (!getPreviousPos() || previousPos.isTrailingSpace || previousPos.character == "\n" || (previousPos.character == " " && previousPos.characterType == COLLAPSIBLE_SPACE))) {
                     log.info("Current possible character is a collapsible space and preceding character either non-existent, a trailing space, follows a line break or a collapsible space, so current space is collapsed");
                 }
-/*
-                // Disallow a collapsible space that follows a collapsible included space
-                else if (thisChar == " " &&
-                    (!getPreviousPos() || previousPos.isTrailingSpace || previousPos.character == "\n")) {
-                    log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
-                }
-*/
                 // Allow a leading line break unless it follows a line break
                 else if (thisChar == "\n" && this.isLeadingSpace) {
                     if (getPreviousPos() && previousPos.character != "\n") {
@@ -959,14 +951,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                     }
                 }
             }
-
-/*
-            // Collapse a br element that is followed by a trailing space
-            else if (thisChar == "\n" &&
-                    (!(nextPos = this.nextUncollapsed()) || nextPos.isTrailingSpace)) {
-                log.debug("Character is a br which is followed by a trailing space or nothing. This is always collapsed.");
-            }
-*/
 
             if (ignoredChars.indexOf(character) > -1) {
                 log.debug("Character " + character + " is ignored in character options");
