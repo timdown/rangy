@@ -57,7 +57,7 @@
             if (canAppendChild(n)) {
                 n.appendChild(node);
             } else {
-                dom.insertBefore(node, n);
+                n.parentNode.insertBefore(node, n);
             }
         } else {
             n.insertBefore(node, n.childNodes[o]);
