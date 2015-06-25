@@ -7,12 +7,12 @@
     ],
     "description": "A cross-browser JavaScript range and selection library.",
     "main": [
-        "rangy-core.js",
-        "rangy-classapplier.js",
-        "rangy-highlighter.js",
-        "rangy-selectionsaverestore.js",
-        "rangy-serializer.js",
-        "rangy-textrange.js"
+        "lib/rangy-core.js",
+        "lib/rangy-classapplier.js",
+        "lib/rangy-highlighter.js",
+        "lib/rangy-selectionsaverestore.js",
+        "lib/rangy-serializer.js",
+        "lib/rangy-textrange.js"
     ],
     "moduleType": [
         "amd",
