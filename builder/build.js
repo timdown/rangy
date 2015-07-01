@@ -16,8 +16,7 @@ var buildSpec = {
 };
 
 var buildDir = "dist/";
-
-var gitDir = buildDir + "repository/", srcDir = gitDir + "src/";
+var gitDir = "src/", srcDir = "src/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
@@ -100,18 +99,8 @@ function deleteBuildDir() {
 
 function createBuildDir() {
     fs.mkdirSync(buildDir);
-    fs.mkdirSync(gitDir);
     console.log("Created build directory " + path.resolve(buildDir));
     callback();
-}
-
-function cloneGitRepository() {
-    var cloneCmd = "git clone " + buildSpec.gitUrl + " " + gitDir;
-    console.log("Cloning Git repository: " + cloneCmd);
-    exec(cloneCmd, function(error, stdout, stderr) {
-        console.log("Cloned Git repository");
-        callback();
-    });
 }
 
 function getVersion() {
@@ -381,7 +370,6 @@ function copyToRelease() {
 var actions = [
     deleteBuildDir,
     createBuildDir,
-    cloneGitRepository,
     getVersion,
     assembleCoreScript,
     copyModuleScripts,
