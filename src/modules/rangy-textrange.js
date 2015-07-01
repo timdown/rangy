@@ -92,14 +92,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
 
     (function() {
-        var el = document.createElement("div");
-        el.contentEditable = "true";
-        el.innerHTML = "<p>1 </p><p></p>";
-        var body = getBody(document);
+        var el = dom.createTestElement(document, "<p>1 </p><p></p>", true);
         var p = el.firstChild;
         var sel = api.getSelection();
-
-        body.appendChild(el);
         sel.collapse(p.lastChild, 2);
         sel.setStart(p.firstChild, 0);
         trailingSpaceInBlockCollapses = ("" + sel).length == 1;
@@ -114,7 +109,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         sel.setStart(el.firstChild, 0);
         trailingSpaceBeforeBlockCollapses = ("" + sel).length == 1;
 
-        body.removeChild(el);
+        dom.removeNode(el);
         sel.removeAllRanges();
     })();
 
@@ -122,21 +117,10 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     // This function must create word and non-word tokens for the whole of the text supplied to it
     function defaultTokenizer(chars, wordOptions) {
-        var word = chars.join(""), result, tokens = [];
+        var word = chars.join(""), result, tokenRanges = [];
 
-        function createTokenFromRange(start, end, isWord) {
-            var tokenChars = chars.slice(start, end);
-            var token = {
-                isWord: isWord,
-                chars: tokenChars,
-                toString: function() {
-                    return tokenChars.join("");
-                }
-            };
-            for (var i = 0, len = tokenChars.length; i < len; ++i) {
-                tokenChars[i].token = token;
-            }
-            tokens.push(token);
+        function createTokenRange(start, end, isWord) {
+            tokenRanges.push( { start: start, end: end, isWord: isWord } );
         }
 
         // Match words and mark characters
@@ -147,24 +131,48 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
             // Create token for non-word characters preceding this word
             if (wordStart > lastWordEnd) {
-                createTokenFromRange(lastWordEnd, wordStart, false);
+                createTokenRange(lastWordEnd, wordStart, false);
             }
 
             // Get trailing space characters for word
             if (wordOptions.includeTrailingSpace) {
-                while (nonLineBreakWhiteSpaceRegex.test(chars[wordEnd])) {
+                while ( nonLineBreakWhiteSpaceRegex.test(chars[wordEnd]) ) {
                     ++wordEnd;
                 }
             }
-            createTokenFromRange(wordStart, wordEnd, true);
+            createTokenRange(wordStart, wordEnd, true);
             lastWordEnd = wordEnd;
         }
 
         // Create token for trailing non-word characters, if any exist
         if (lastWordEnd < chars.length) {
-            createTokenFromRange(lastWordEnd, chars.length, false);
+            createTokenRange(lastWordEnd, chars.length, false);
         }
 
+        return tokenRanges;
+    }
+
+    function convertCharRangeToToken(chars, tokenRange) {
+        var tokenChars = chars.slice(tokenRange.start, tokenRange.end);
+        var token = {
+            isWord: tokenRange.isWord,
+            chars: tokenChars,
+            toString: function() {
+                return tokenChars.join("");
+            }
+        };
+        for (var i = 0, len = tokenChars.length; i < len; ++i) {
+            tokenChars[i].token = token;
+        }
+        return token;
+    }
+
+    function tokenize(chars, wordOptions, tokenizer) {
+        var tokenRanges = tokenizer(chars, wordOptions);
+        var tokens = [];
+        for (var i = 0, tokenRange; tokenRange = tokenRanges[i++]; ) {
+            tokens.push( convertCharRangeToToken(chars, tokenRange) );
+        }
         return tokens;
     }
 
@@ -274,8 +282,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         tableCssDisplayBlock = (getComputedStyleProperty(table, "display") == "block");
         body.removeChild(table);
     })();
-
-    api.features.tableCssDisplayBlock = tableCssDisplayBlock;
 
     var defaultDisplayValueForTag = {
         table: "table",
@@ -525,7 +531,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         TRAILING_SPACE_IN_BLOCK = "TRAILING_SPACE_IN_BLOCK",
         TRAILING_SPACE_BEFORE_BR = "TRAILING_SPACE_BEFORE_BR",
         PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK = "PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK",
-        TRAILING_LINE_BREAK_AFTER_BR = "TRAILING_LINE_BREAK_AFTER_BR";
+        TRAILING_LINE_BREAK_AFTER_BR = "TRAILING_LINE_BREAK_AFTER_BR",
+        INCLUDED_TRAILING_LINE_BREAK_AFTER_BR = "INCLUDED_TRAILING_LINE_BREAK_AFTER_BR";
 
     extend(nodeProto, {
         isCharacterDataNode: createCachingGetter("isCharacterDataNode", dom.isCharacterDataNode, "node"),
@@ -672,7 +679,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     });
 
     /*----------------------------------------------------------------------------------------------------------------*/
-
 
     function Position(nodeWrapper, offset) {
         this.offset = offset;
@@ -850,7 +856,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 return cachedChar;
             }
 
-            // We need to actually get the character
+            // We need to actually get the character now
             var character = "";
             var collapsible = (this.characterType == COLLAPSIBLE_SPACE);
             log.info("getCharacter initial character is '" + thisChar + "'", collapsible ? "collapsible" : "");
@@ -869,10 +875,16 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
             // Disallow a collapsible space that is followed by a line break or is the last character
             if (collapsible) {
-                // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-                if (thisChar == " " &&
-                        (!getPreviousPos() || previousPos.isTrailingSpace || previousPos.character == "\n")) {
-                    log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
+                // Allow a trailing space that we've previously determined should be included
+                if (this.type == INCLUDED_TRAILING_LINE_BREAK_AFTER_BR) {
+                    log.debug("Trailing space following a br not preceded by a leading line break is included.");
+                    character = "\n";
+                }
+                // Disallow a collapsible space that follows a trailing space or line break, or is the first character,
+                // or follows a collapsible included space
+                else if (thisChar == " " &&
+                        (!getPreviousPos() || previousPos.isTrailingSpace || previousPos.character == "\n" || (previousPos.character == " " && previousPos.characterType == COLLAPSIBLE_SPACE))) {
+                    log.info("Current possible character is a collapsible space and preceding character either non-existent, a trailing space, follows a line break or a collapsible space, so current space is collapsed");
                 }
                 // Allow a leading line break unless it follows a line break
                 else if (thisChar == "\n" && this.isLeadingSpace) {
@@ -880,7 +892,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         character = "\n";
                         log.info("Character is a leading line break and is being included");
                     } else {
-                        log.info("Character is a leading line break and preceding character is a line break, so leading line break is excluded");
+                        log.info("Character is a leading line break and preceding character is a line break or non-existent, so leading line break is excluded");
                     }
                 } else {
                     nextPos = this.nextUncollapsed();
@@ -912,11 +924,12 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                                         log.debug("Trailing line break (type " + nextPos.type + ", characterType " + nextPos.characterType + ") following a br is excluded but br may be included.");
                                         nextPos.type = TRAILING_LINE_BREAK_AFTER_BR;
 
-                                        if (getPreviousPos() && previousPos.isLeadingSpace && previousPos.character == "\n") {
+                                        if (getPreviousPos() && previousPos.isLeadingSpace && !previousPos.isTrailingSpace && previousPos.character == "\n") {
                                             log.debug("Trailing space following a br following a leading line break is excluded.");
                                             nextPos.character = "";
                                         } else {
-                                            log.debug("Trailing space following a br not preceded by a leading line break is included.");
+                                            log.debug("Trailing space following a br not preceded by a leading line break will be included " + nextPos.inspect());
+                                            nextPos.type = INCLUDED_TRAILING_LINE_BREAK_AFTER_BR;
                                         }
                                     }
                                 } else {
@@ -927,7 +940,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                                 log.debug("Collapsible space followed by a line break is being included.");
                                 character = " ";
                             } else {
-                                log.debug("Collapsible space that is neither space not line break and is followed by a line break is being excluded.");
+                                log.debug("Collapsible space (" + this.inspect() + ") that is neither space nor line break and is followed by a line break is being excluded.");
                             }
                         } else {
                             log.debug("Character is a collapsible space or line break that has not been disallowed");
@@ -937,12 +950,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         log.debug("Character is a space which is followed by nothing, so collapsing");
                     }
                 }
-            }
-
-            // Collapse a br element that is followed by a trailing space
-            else if (thisChar == "\n" &&
-                    (!(nextPos = this.nextUncollapsed()) || nextPos.isTrailingSpace)) {
-                log.debug("Character is a br which is followed by a trailing space or nothing. This is always collapsed.");
             }
 
             if (ignoredChars.indexOf(character) > -1) {
@@ -1334,7 +1341,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         // Get initial word surrounding initial position and tokenize it
         var forwardChars = consumeWord(true);
         var backwardChars = consumeWord(false).reverse();
-        var tokens = tokenizer(backwardChars.concat(forwardChars), wordOptions);
+        var tokens = tokenize(backwardChars.concat(forwardChars), wordOptions, tokenizer);
 
         // Create initial token buffers
         var forwardTokensBuffer = forwardChars.length ?
@@ -1364,7 +1371,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                     (forwardChars = consumeWord(true)).length > 0) {
 
                     // Merge trailing non-word into next word and tokenize
-                    forwardTokensBuffer = tokenizer(lastToken.chars.concat(forwardChars), wordOptions);
+                    forwardTokensBuffer = tokenize(lastToken.chars.concat(forwardChars), wordOptions, tokenizer);
                 }
 
                 return forwardTokensBuffer.shift();
@@ -1380,7 +1387,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                     (backwardChars = consumeWord(false)).length > 0) {
 
                     // Merge leading non-word into next word and tokenize
-                    backwardTokensBuffer = tokenizer(backwardChars.reverse().concat(lastToken.chars), wordOptions);
+                    backwardTokensBuffer = tokenize(backwardChars.reverse().concat(lastToken.chars), wordOptions, tokenizer);
                 }
 
                 return backwardTokensBuffer.pop();
@@ -1436,7 +1443,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 newPos = newPos.previousVisible();
                 log.debug("newPos now: " + newPos);
                 unitsMoved = -unitsMoved;
-            } else if (newPos && newPos.isLeadingSpace) {
+            } else if (newPos && newPos.isLeadingSpace && !newPos.isTrailingSpace) {
                 // Tweak the position for the case of a leading space. The problem is that an uncollapsed leading space
                 // before a block element (for example, the line break between "1" and "2" in the following HTML:
                 // "1<p>2</p>") is considered to be attached to the position immediately before the block element, which
@@ -1530,8 +1537,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 chars.push(pos);
                 text += currentChar;
             }
-
-            //console.log("text " + text)
 
             if (isRegex) {
                 result = searchTerm.exec(text);

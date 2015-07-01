@@ -1,4 +1,4 @@
-// Wrappers for the browser's native DOM Range and/or TextRange implementation 
+// Wrappers for the browser's native DOM Range and/or TextRange implementation
 /* build:replaceWith(api) */rangy/* build:replaceEnd */.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
     var WrappedRange, WrappedTextRange;
     var dom = api.dom;
@@ -268,7 +268,7 @@
             };
         })();
     }
-    
+
     if (api.features.implementsTextRange) {
         /*
         This is a workaround for a bug where IE returns the wrong container element from the TextRange's parentElement()
@@ -338,7 +338,7 @@
             // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML5
             // Shiv issue 64: https://github.com/aFarkas/html5shiv/issues/64
             if (workingNode.parentNode) {
-                workingNode.parentNode.removeChild(workingNode);
+                dom.removeNode(workingNode);
             }
 
             var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
@@ -395,11 +395,11 @@
                     For the particular case of a boundary within a text node containing rendered line breaks (within a
                     <pre> element, for example), we need a slightly complicated approach to get the boundary's offset in
                     IE. The facts:
-                    
+
                     - Each line break is represented as \r in the text node's data/nodeValue properties
                     - Each line break is represented as \r\n in the TextRange's 'text' property
                     - The 'text' property of the TextRange does not contain trailing line breaks
-                    
+
                     To get round the problem presented by the final fact above, we can use the fact that TextRange's
                     moveStart() and moveEnd() methods return the actual number of characters moved, which is not
                     necessarily the same as the number of characters it was instructed to move. The simplest approach is
@@ -408,13 +408,13 @@
                     "move-negative-gazillion" method). However, this is extremely slow when the document is large and
                     the range is near the end of it. Clearly doing the mirror image (i.e. moving the range boundaries to
                     the end of the document) has the same problem.
-                    
+
                     Another approach that works is to use moveStart() to move the start boundary of the range up to the
                     end boundary one character at a time and incrementing a counter with the value returned by the
                     moveStart() call. However, the check for whether the start boundary has reached the end boundary is
                     expensive, so this method is slow (although unlike "move-negative-gazillion" is largely unaffected
                     by the location of the range within the document).
-                    
+
                     The approach used below is a hybrid of the two methods above. It uses the fact that a string
                     containing the TextRange's 'text' property with each \r\n converted to a single \r character cannot
                     be longer than the text of the TextRange, so the start of the range is moved that length initially
@@ -453,7 +453,7 @@
             }
 
             // Clean up
-            workingNode.parentNode.removeChild(workingNode);
+            dom.removeNode(workingNode);
 
             return {
                 boundaryPosition: boundaryPosition,
@@ -603,15 +603,8 @@
         return new DomRange(doc);
     };
 
-    api.createIframeRange = function(iframeEl) {
-        module.deprecationNotice("createIframeRange()", "createRange(iframeEl)");
-        return api.createRange(iframeEl);
-    };
-
-    api.createIframeRangyRange = function(iframeEl) {
-        module.deprecationNotice("createIframeRangyRange()", "createRangyRange(iframeEl)");
-        return api.createRangyRange(iframeEl);
-    };
+    util.createAliasForDeprecatedMethod(api, "createIframeRange", "createRange");
+    util.createAliasForDeprecatedMethod(api, "createIframeRangyRange", "createRangyRange");
 
     api.addShimListener(function(win) {
         var doc = win.document;

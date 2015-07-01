@@ -190,7 +190,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.rangeCount, 1);
                 sel.addRange(range2);
                 t.assertEquals(sel.rangeCount, 1);
-                
+
                 // According to the spec, a reference to the added range should be stored by the selection so that the
                 // same range object is returned by getRangeAt(). However, most browsers don't do this (WebKit, IE) and
                 // Rangy doesn't do this either because it sometimes needs to change the range boundary points to make
@@ -237,7 +237,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 sel.addRange(range);
                 sel.collapse(t.nodes.b, 1);
                 var otherDoc = getOtherDocument();
-                
+
                 // The spec doesn't seem to suggest an exception should be thrown any more. Browser behaviour varies,
                 // it's an edge case so allow either by not testing
 /*
@@ -631,6 +631,71 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(textRange.text, "la");
                 t.assertEquals(textRange.parentElement(), t.nodes.div);
             });
+        }
+
+        if (testSelection.saveRanges && testSelection.restoreRanges) {
+            s.test("saveRanges and restoreRanges simple", function(t) {
+                var sel = selectionCreator(win);
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.plainText, 3);
+                sel.setSingleRange(range);
+                var savedRanges = sel.saveRanges();
+                sel.selectAllChildren(t.nodes.div);
+                sel.restoreRanges(savedRanges);
+                t.assertEquals(sel.anchorNode, t.nodes.plainText);
+                t.assertEquals(sel.anchorOffset, 1);
+                t.assertEquals(sel.focusNode, t.nodes.plainText);
+                t.assertEquals(sel.focusOffset, 3);
+            });
+
+            s.test("saveRanges and restoreRanges backwards", function(t) {
+                var sel = selectionCreator(win);
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, 1);
+                range.setEnd(t.nodes.plainText, 3);
+                sel.setSingleRange(range, "backward");
+                var savedRanges = sel.saveRanges();
+                sel.selectAllChildren(t.nodes.div);
+                sel.restoreRanges(savedRanges);
+                t.assertEquals(sel.anchorNode, t.nodes.plainText);
+                t.assertEquals(sel.anchorOffset, 3);
+                t.assertEquals(sel.focusNode, t.nodes.plainText);
+                t.assertEquals(sel.focusOffset, 1);
+            });
+
+            if (rangy.features.selectionSupportsMultipleRanges) {
+                s.test("saveRanges and restoreRanges multiple ranges", function(t) {
+                    var sel = selectionCreator(win);
+
+                    var range = rangeCreator(doc);
+                    range.setStart(t.nodes.plainText, 1);
+                    range.setEnd(t.nodes.plainText, 3);
+
+                    var range2 = rangeCreator(doc);
+                    range2.setStart(t.nodes.boldText, 1);
+                    range2.setEnd(t.nodes.boldText, 2);
+
+                    sel.setRanges([range, range2]);
+                    var savedRanges = sel.saveRanges();
+                    sel.selectAllChildren(t.nodes.div);
+                    sel.restoreRanges(savedRanges);
+
+                    t.assertEquals(sel.rangeCount, 2);
+
+                    var selRange1 = sel.getRangeAt(0);
+                    t.assertEquals(selRange1.startContainer, t.nodes.plainText);
+                    t.assertEquals(selRange1.startOffset, 1);
+                    t.assertEquals(selRange1.endContainer, t.nodes.plainText);
+                    t.assertEquals(selRange1.endOffset, 3);
+
+                    var selRange2 = sel.getRangeAt(1);
+                    t.assertEquals(selRange2.startContainer, t.nodes.boldText);
+                    t.assertEquals(selRange2.startOffset, 1);
+                    t.assertEquals(selRange2.endContainer, t.nodes.boldText);
+                    t.assertEquals(selRange2.endOffset, 2);
+                });
+            }
         }
     }, false);
 }

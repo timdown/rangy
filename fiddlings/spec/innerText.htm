@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!-- saved from url=(0100)http://webcache.googleusercontent.com/search?q=cache:http://aryeh.name/spec/innertext/innertext.html -->
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<!--<base href="http://aryeh.name/spec/innertext/innertext.html">--><base href="."></head><body class="draft dfnEnabled"><div style="background:#fff;border:1px solid #999;margin:-1px -1px 0;padding:0;"><div style="background:#ddd;border:1px solid #999;color:#000;font:13px arial,sans-serif;font-weight:normal;margin:12px;padding:8px;text-align:left">This is Google's cache of <a href="http://aryeh.name/spec/innertext/innertext.html" style="text-decoration:underline;color:#00c">http://aryeh.name/spec/innertext/innertext.html</a>. It is a snapshot of the page as it appeared on 7 Dec 2012 16:42:04 GMT. The <a href="http://aryeh.name/spec/innertext/innertext.html" style="text-decoration:underline;color:#00c">current page</a> could have changed in the meantime. <a href="http://support.google.com/websearch/bin/answer.py?hl=en&p=cached&answer=1687222" style="text-decoration:underline;color:#00c">Learn more</a><br>Tip: To quickly find your search term on this page, press <b>Ctrl+F</b> or <b>⌘-F</b> (Mac) and use the find bar.<br><br><div style="float:right"><a href="http://webcache.googleusercontent.com/search?q=cache:http://aryeh.name/spec/innertext/innertext.html&hl=en&tbo=d&strip=1" style="text-decoration:underline;color:#00c">Text-only version</a></div>
+</head><body class="draft dfnEnabled"><div style="background:#fff;border:1px solid #999;margin:-1px -1px 0;padding:0;"><div style="background:#ddd;border:1px solid #999;color:#000;font:13px arial,sans-serif;font-weight:normal;margin:12px;padding:8px;text-align:left">This is Google's cache of <a href="http://aryeh.name/spec/innertext/innertext.html" style="text-decoration:underline;color:#00c">http://aryeh.name/spec/innertext/innertext.html</a>. It is a snapshot of the page as it appeared on 7 Dec 2012 16:42:04 GMT. The <a href="http://aryeh.name/spec/innertext/innertext.html" style="text-decoration:underline;color:#00c">current page</a> could have changed in the meantime. <a href="http://support.google.com/websearch/bin/answer.py?hl=en&p=cached&answer=1687222" style="text-decoration:underline;color:#00c">Learn more</a><br>Tip: To quickly find your search term on this page, press <b>Ctrl+F</b> or <b>⌘-F</b> (Mac) and use the find bar.<br><br><div style="float:right"><a href="http://webcache.googleusercontent.com/search?q=cache:http://aryeh.name/spec/innertext/innertext.html&hl=en&tbo=d&strip=1" style="text-decoration:underline;color:#00c">Text-only version</a></div>
 <div>&nbsp;</div></div></div><div style="position:relative">
 <meta charset="utf-8">
 <title>innerText</title>
-<link href="http://www.whatwg.org/style/specification" rel="stylesheet">
+<link href="innerText_files/specification.css" type="text/css" rel="stylesheet">
 <style>
  pre, code { font-family:monospace, sans-serif; }
  h2 code, h3 code, h4 code,
@@ -36,7 +36,7 @@
 
 
 <h2 class="no-num" id="introduction">Introduction</h2>
-<p>This specification defines the <a href="http://aryeh.name/spec/innertext/innertext.html#innertext"><code>innerText</code></a> IDL attribute for HTML
+<p>This specification defines the <a href="#innertext"><code>innerText</code></a> IDL attribute for HTML
 elements.  This was originally an extension to the DOM model introduced by
 Microsoft in Internet Explorer sometime in the mists of history, which was
 eventually copied by other browser rendering engines, albeit somewhat
@@ -94,7 +94,7 @@ and IE9 doesn't do it (can't test Firefox), so I'm not speccing it. -->
 <p>The <dfn id="innertext"><code title="">innerText</code></dfn> IDL attribute is a DOMString on
 the <a href="http://www.whatwg.org/html/#htmlelement"><code class="external" data-anolis-spec="html">HTMLElement</code></a> interface.  On setting, it
 must behave identically to <a href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#dom-node-textcontent"><code class="external" data-anolis-spec="domcore" title="dom-Node-textContent">textContent</code></a>.  On getting, the user agent must
-<a href="http://aryeh.name/spec/innertext/innertext.html#append-the-plaintext">append the plaintext</a> of the <a class="external" data-anolis-spec="domcore" href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#context-node">context
+<a href="#append-the-plaintext">append the plaintext</a> of the <a class="external" data-anolis-spec="domcore" href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#context-node">context
 node</a> to the empty string and return the string portion of the output
 (discarding the boolean portion).
 
@@ -125,7 +125,7 @@ anyway.
 if <var title="">child</var> is&nbsp;.&nbsp;.&nbsp;.
 
   <dl class="switch">
-  <dt>an <a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored node</a>
+  <dt>an <a href="#ignored-node">ignored node</a>
   </dt><dd>Do nothing.
 
   </dd><dt>a <a href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#text"><code class="external" data-anolis-spec="domcore">Text</code></a> node
@@ -204,25 +204,25 @@ if <var title="">child</var> is&nbsp;.&nbsp;.&nbsp;.
 	</li></ol>
 
   </dd><dt>an <a href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#element"><code class="external" data-anolis-spec="domcore">Element</code></a> that is not an
-  <a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored node</a>
+  <a href="#ignored-node">ignored node</a>
   </dt><dd>
     <!-- Gecko indents lists, but no one else does, so let's not. -->
     <ol>
 	<li>If the last character of <var title="">s</var> is not a newline (U+000A),
-	and the <a href="http://aryeh.name/spec/innertext/innertext.html#leading-whitespace">leading whitespace</a> for <var title="">child</var> is not
-	the empty string, append the <a href="http://aryeh.name/spec/innertext/innertext.html#leading-whitespace">leading whitespace</a> for <var title="">child</var> to <var title="">s</var> and set <var title="">trailing
+	and the <a href="#leading-whitespace">leading whitespace</a> for <var title="">child</var> is not
+	the empty string, append the <a href="#leading-whitespace">leading whitespace</a> for <var title="">child</var> to <var title="">s</var> and set <var title="">trailing
 	space</var> to false. <!-- This gives us a line before block elements that
 	don't follow block elements, e.g., a block element inside an inline
 	element.  WebKit and IE8 do this, and Gecko effectively does (just keying
 	off the element type instead of CSS), but Opera and IE9 appear not to. -->
 
-	</li><li><a href="http://aryeh.name/spec/innertext/innertext.html#append-the-plaintext">Append the plaintext</a> of <var title="">child</var> to <var title="">s</var> with flag <var title="">trailing space</var>, and assign the
+	</li><li><a href="#append-the-plaintext">Append the plaintext</a> of <var title="">child</var> to <var title="">s</var> with flag <var title="">trailing space</var>, and assign the
 	result to (<var title="">s</var>, <var title="">trailing space</var>).
 
 	</li><li>If <var title="">node</var> has another child after <var title="">child</var>
-	that is not an <a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored node</a>, and the <a href="http://aryeh.name/spec/innertext/innertext.html#trailing-whitespace">trailing
+	that is not an <a href="#ignored-node">ignored node</a>, and the <a href="#trailing-whitespace">trailing
 	whitespace</a> of <var title="">child</var> is not the empty string, append
-	the <a href="http://aryeh.name/spec/innertext/innertext.html#trailing-whitespace">trailing whitespace</a> of <var title="">child</var> to <var title="">s</var> and set <var title="">trailing space</var> to false.
+	the <a href="#trailing-whitespace">trailing whitespace</a> of <var title="">child</var> to <var title="">s</var> and set <var title="">trailing space</var> to false.
 	</li></ol>
   </dd></dl>
 
@@ -239,10 +239,10 @@ property:
 
 </p><dl class="switch">
 <dt>inline
-</dt><dd>If <var title="">node</var> has a child that is not an <a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored
+</dt><dd>If <var title="">node</var> has a child that is not an <a href="#ignored-node">ignored
 node</a>, and the first child of <var title="">node</var> that is not an
-<a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored node</a> is an <a class="external" data-anolis-spec="domcore" href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#element">Element</a>,
-the <a href="http://aryeh.name/spec/innertext/innertext.html#leading-whitespace">leading whitespace</a> for that child.  Otherwise, the empty
+<a href="#ignored-node">ignored node</a> is an <a class="external" data-anolis-spec="domcore" href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#element">Element</a>,
+the <a href="#leading-whitespace">leading whitespace</a> for that child.  Otherwise, the empty
 string.
 
 </dd><dt>inline-block
@@ -263,10 +263,10 @@ property:
 
 </p><dl class="switch">
 <dt>inline
-</dt><dd>If <var title="">node</var> has a child that is not an <a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored
+</dt><dd>If <var title="">node</var> has a child that is not an <a href="#ignored-node">ignored
 node</a>, and the last child of <var title="">node</var> that is not an
-<a href="http://aryeh.name/spec/innertext/innertext.html#ignored-node">ignored node</a> is an <a class="external" data-anolis-spec="domcore" href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#element">Element</a>,
-the <a href="http://aryeh.name/spec/innertext/innertext.html#trailing-whitespace">trailing whitespace</a> for that child.  Otherwise, the empty
+<a href="#ignored-node">ignored node</a> is an <a class="external" data-anolis-spec="domcore" href="http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#element">Element</a>,
+the <a href="#trailing-whitespace">trailing whitespace</a> for that child.  Otherwise, the empty
 string.
 
 </dd><dt>inline-block
@@ -280,7 +280,7 @@ string.
 </dt><dd>The string consisting of one tab (U+0009).
 
 </dd><dt>Any other value
-</dt><dd>If <var title="">node</var>'s <a href="http://aryeh.name/spec/innertext/innertext.html#innertext"><code>innerText</code></a> is empty, the empty
+</dt><dd>If <var title="">node</var>'s <a href="#innertext"><code>innerText</code></a> is empty, the empty
 string.  Otherwise, if the "margin-bottom" property of <var title="">node</var>
 has computed value at least half that of its "font-size" property, the string
 consisting of two newlines (U+000A).  Otherwise, the string consisting of one
@@ -305,5 +305,5 @@ indifferent, so I arbitrarily went with WebKit. -->
 <h2 class=no-num>Acknowledgements</h2>
 <p>...
 -->
-<script src="fiddlings/spec/innerText_files/dfn.js"></script>
+<script src="innerText_files/dfn.js"></script>
 </div></body></html>

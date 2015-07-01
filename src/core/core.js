@@ -308,6 +308,24 @@
         }
     }
 
+    function deprecationNotice(deprecated, replacement, module) {
+        if (module) {
+            deprecated += " in module " + module.name;
+        }
+        api.warn("DEPRECATED: " + deprecated + " is deprecated. Please use " +
+        replacement + " instead.");
+    }
+
+    function createAliasForDeprecatedMethod(owner, deprecated, replacement, module) {
+        owner[deprecated] = function() {
+            deprecationNotice(deprecated, replacement, module);
+            return owner[replacement].apply(owner, util.toArray(arguments));
+        };
+    }
+
+    util.deprecationNotice = deprecationNotice;
+    util.createAliasForDeprecatedMethod = createAliasForDeprecatedMethod;
+
     // Allow external scripts to initialize this library in case it's loaded after the document has loaded
     api.init = init;
 
@@ -338,6 +356,7 @@
 
     if (isBrowser) {
         api.shim = api.createMissingNativeApi = shim;
+        createAliasForDeprecatedMethod(api, "createMissingNativeApi", "shim");
     }
 
     function Module(name, dependencies, initializer) {
@@ -374,7 +393,7 @@
             this.initialized = true;
             this.supported = false;
             log.error("Module '" + this.name + "' failed to load: " + reason);
-            throw new Error("Module '" + this.name + "' failed to load: " + reason);
+            throw new Error(reason);
         },
 
         warn: function(msg) {
@@ -382,7 +401,7 @@
         },
 
         deprecationNotice: function(deprecated, replacement) {
-            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use " +
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + " is deprecated. Please use " +
                 replacement + " instead");
         },
 

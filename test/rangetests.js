@@ -77,7 +77,7 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 range.selectNodeContents(t.nodes.plainText);
                 t.assert(range.isValid());
                 t.nodes.plainText.parentNode.removeChild(t.nodes.plainText);
-                t.assertFalse(range.isValid());
+                t.assert(range.isValid());
             });
 
             s.test("isValid: remove start container node", function(t) {
@@ -302,6 +302,19 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
 
         s.test("extractContents in single text node", function(t) {
             var range = rangeCreator(doc);
+            t.nodes.div.innerHTML = "<p>1 2 <span>3</span> 4 5</p>";
+            var p = t.nodes.div.firstChild;
+            range.setStart(p.firstChild, 2);
+            range.setEnd(p.lastChild, 2);
+            var frag = range.extractContents();
+            var container = doc.createElement("div");
+            container.appendChild(frag);
+            t.assertEquals(container.innerHTML, "2 <span>3</span> 4");
+            t.assertEquals(t.nodes.div.innerHTML, "<p>1  5</p>");
+        });
+
+        s.test("extractContents inside paragraph (issue 163)", function(t) {
+            var range = rangeCreator(doc);
             range.setStart(t.nodes.plainText, 1);
             range.setEnd(t.nodes.plainText, 2);
             var frag = range.extractContents();
@@ -500,6 +513,49 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assert(range.intersectsNode(t.nodes.boldText));
                 t.assertFalse(range.intersectsNode(t.nodes.boldAndItalicText));
             });
+
+            s.test("intersectsNode orphan node", function(t) {
+                var range = rangeCreator(doc);
+                var node = doc.createElement("div");
+                node.appendChild(doc.createTextNode("test"));
+                range.selectNodeContents(node);
+                t.assert(range.intersectsNode(node));
+                t.assertFalse(range.intersectsNode(t.nodes.boldText));
+            });
+
+            s.test("intersectsNode test boundary at end of text node", function(t) {
+                var range = rangeCreator(doc);
+                range.setStart(t.nodes.plainText, t.nodes.plainText.length);
+                range.setEnd(t.nodes.boldText, 1);
+                t.assert(range.intersectsNode(t.nodes.plainText));
+            });
+
+            s.test("intersectsNode test touching is not intersecting", function(t) {
+                var range = rangeCreator(doc);
+                range.setStartAfter(t.nodes.plainText);
+                range.setEnd(t.nodes.boldText, 1);
+                t.assertFalse(range.intersectsNode(t.nodes.plainText));
+            });
+
+            if (testRange.intersectsNode.length == 2) {
+                s.test("intersectsNode touching is intersecting at start", function(t) {
+                    var range = rangeCreator(doc);
+                    range.setStart(t.nodes.plainText, 0);
+                    range.setEndBefore(t.nodes.boldText);
+                    t.assertFalse(range.intersectsNode(t.nodes.boldText));
+                    t.assertFalse(range.intersectsNode(t.nodes.boldText, false));
+                    t.assert(range.intersectsNode(t.nodes.boldText, true));
+                });
+
+                s.test("intersectsNode touching is intersecting at end", function(t) {
+                    var range = rangeCreator(doc);
+                    range.setStartAfter(t.nodes.plainText);
+                    range.setEnd(t.nodes.boldText, 1);
+                    t.assertFalse(range.intersectsNode(t.nodes.plainText));
+                    t.assertFalse(range.intersectsNode(t.nodes.plainText, false));
+                    t.assert(range.intersectsNode(t.nodes.plainText, true));
+                });
+            }
         }
 
         if (testRange.intersection) {
@@ -656,7 +712,7 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 }
                 return text;
             }
-            
+
             s.test("Concatenate getNodes([3]) after splitBoundaries same as toString - simple", function(t) {
                 var range = rangeCreator(doc);
                 range.setStartAndEnd(t.nodes.plainText, 1, t.nodes.boldText, 3);
@@ -738,9 +794,9 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 range.normalizeBoundaries();
                 t.assertEquals(1, b.childNodes.length);
                 t.assertEquals("onetwo", b.childNodes[0].data);
-                t.assertEquals(text2, b.childNodes[0]);
-                t.assertEquals(text2, range.startContainer);
-                t.assertEquals(text2, range.endContainer);
+                t.assertEquals(text1, b.childNodes[0]);
+                t.assertEquals(text1, range.startContainer);
+                t.assertEquals(text1, range.endContainer);
                 t.assertEquals(3, range.startOffset);
                 t.assertEquals(3, range.endOffset);
                 t.assert(range.collapsed);
@@ -1029,6 +1085,127 @@ function testRangeCreator(docs, docName, rangeCreator, rangeCreatorName) {
                 t.assertEquals(b, range.endContainer);
                 t.assertEquals(3, range.startOffset);
                 t.assertEquals(2, range.endOffset);
+            });
+
+            s.test("normalizeBoundaries when collapsed range is at end of text node that is immediately followed by another", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(text1, 3);
+                range.normalizeBoundaries();
+                t.assertEquals(text1.data, "onetwo");
+                t.assertEquals(range.startContainer, text1);
+                t.assertEquals(range.startOffset, 3);
+                t.assertEquals(range.endContainer, text1);
+                t.assertEquals(range.endOffset, 3);
+            });
+
+            s.test("normalizeBoundaries when collapsed range is between two text nodes", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(b, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(text1.data, "onetwo");
+                t.assertEquals(range.startContainer, text1);
+                t.assertEquals(range.startOffset, 3);
+                t.assertEquals(range.endContainer, text1);
+                t.assertEquals(range.endOffset, 3);
+            });
+
+
+            s.test("normalizeBoundaries when the end of an uncollapsed range is at end of text node that is immediately followed by another", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(text1, 2, text1, 3);
+                range.normalizeBoundaries();
+                t.assertEquals(text1.data, "onetwo");
+                t.assertEquals(range.startContainer, text1);
+                t.assertEquals(range.startOffset, 2);
+                t.assertEquals(range.endContainer, text1);
+                t.assertEquals(range.endOffset, 3);
+            });
+
+            s.test("normalizeBoundaries when the end of an uncollapsed range is between two text nodes", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(text1, 2, b, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(text1.data, "onetwo");
+                t.assertEquals(range.startContainer, text1);
+                t.assertEquals(range.startOffset, 2);
+                t.assertEquals(range.endContainer, text1);
+                t.assertEquals(range.endOffset, 3);
+            });
+
+            s.test("normalizeBoundaries when the start of an uncollapsed range is between two text nodes", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(b, 1, text2, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(text2.data, "onetwo");
+                t.assertEquals(range.startContainer, text2);
+                t.assertEquals(range.startOffset, 3);
+                t.assertEquals(range.endContainer, text2);
+                t.assertEquals(range.endOffset, 4);
+            });
+
+            s.test("normalizeBoundaries when the start of an uncollapsed range is at start of text node that is immediately preceded by another", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(b, 1, text2, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(text2.data, "onetwo");
+                t.assertEquals(range.startContainer, text2);
+                t.assertEquals(range.startOffset, 3);
+                t.assertEquals(range.endContainer, text2);
+                t.assertEquals(range.endOffset, 4);
+            });
+
+            s.test("normalizeBoundaries when the start of an uncollapsed range is at end of text node that is immediately followed by another", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(text1, 3, text2, 1);
+                range.normalizeBoundaries();
+                t.assertEquals(text1.data, "onetwo");
+                t.assertEquals(range.startContainer, text1);
+                t.assertEquals(range.startOffset, 3);
+                t.assertEquals(range.endContainer, text1);
+                t.assertEquals(range.endOffset, 4);
+            });
+
+            s.test("normalizeBoundaries when the end of an uncollapsed range is at start of text node that is immediately preceded by another", function(t) {
+                var range = rangeCreator(doc);
+                var b = t.nodes.b;
+                b.innerHTML = "";
+                var text1 = b.appendChild( doc.createTextNode("one") );
+                var text2 = b.appendChild( doc.createTextNode("two") );
+                range.setStartAndEnd(text1, 2, text2, 0);
+                range.normalizeBoundaries();
+                t.assertEquals(text1.data, "onetwo");
+                t.assertEquals(range.startContainer, text1);
+                t.assertEquals(range.startOffset, 2);
+                t.assertEquals(range.endContainer, text1);
+                t.assertEquals(range.endOffset, 3);
             });
         }
 

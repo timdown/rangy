@@ -3,6 +3,7 @@
     var log = log4javascript.getLogger("rangy.dom");
     var UNDEF = "undefined";
     var util = api.util;
+    var getBody = util.getBody;
 
     // Perform feature tests
     if (!util.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
@@ -360,10 +361,33 @@
         };
     } else if (typeof document.documentElement.currentStyle != UNDEF) {
         getComputedStyleProperty = function(el, propName) {
-            return el.currentStyle[propName];
+            return el.currentStyle ? el.currentStyle[propName] : "";
         };
     } else {
         module.fail("No means of obtaining computed style properties found");
+    }
+
+    function createTestElement(doc, html, contentEditable) {
+        var body = getBody(doc);
+        var el = doc.createElement("div");
+        el.contentEditable = "" + !!contentEditable;
+        if (html) {
+            el.innerHTML = html;
+        }
+
+        // Insert the test element at the start of the body to prevent scrolling to the bottom in iOS (issue #292)
+        var bodyFirstChild = body.firstChild;
+        if (bodyFirstChild) {
+            body.insertBefore(el, bodyFirstChild);
+        } else {
+            body.appendChild(el);
+        }
+
+        return el;
+    }
+
+    function removeNode(node) {
+        return node.parentNode.removeChild(node);
     }
 
     function NodeIterator(root) {
@@ -463,7 +487,7 @@
         getWindow: getWindow,
         getIframeWindow: getIframeWindow,
         getIframeDocument: getIframeDocument,
-        getBody: util.getBody,
+        getBody: getBody,
         isWindow: isWindow,
         getContentDocument: getContentDocument,
         getRootContainer: getRootContainer,
@@ -471,6 +495,8 @@
         isBrokenNode: isBrokenNode,
         inspectNode: inspectNode,
         getComputedStyleProperty: getComputedStyleProperty,
+        createTestElement: createTestElement,
+        removeNode: removeNode,
         fragmentFromNodeChildren: fragmentFromNodeChildren,
         createIterator: createIterator,
         DomPosition: DomPosition

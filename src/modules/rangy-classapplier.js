@@ -17,12 +17,13 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var contains = dom.arrayContains;
-    var forEach = api.util.forEach;
+    var util = api.util;
+    var forEach = util.forEach;
 
     var log = log4javascript.getLogger("rangy.classapplier");
 
     var defaultTagName = "span";
-    var createElementNSSupported = api.util.isHostMethod(document, "createElementNS");
+    var createElementNSSupported = util.isHostMethod(document, "createElementNS");
 
     function each(obj, func) {
         for (var i in obj) {
@@ -189,7 +190,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             movePositionWhenRemovingNode(position, oldParent, oldIndex);
         });
 
-        node.parentNode.removeChild(node);
+        dom.removeNode(node);
         log.groupEnd();
     }
 
@@ -467,7 +468,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     if (i > 0) {
                         parent.removeChild(textNode);
                         if (!parent.hasChildNodes()) {
-                            parent.parentNode.removeChild(parent);
+                            dom.removeNode(parent);
                         }
                         if (positionsToPreserve) {
                             forEach(positionsToPreserve, function(position) {
@@ -550,8 +551,10 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         applier.attrExceptions = [];
         var el = document.createElement(applier.elementTagName);
         applier.elementProperties = applier.copyPropertiesToElement(elementPropertiesFromOptions, el, true);
-        each(elementAttributes, function(attrName) {
+        each(elementAttributes, function(attrName, attrValue) {
             applier.attrExceptions.push(attrName);
+            // Ensure each attribute value is a string
+            elementAttributes[attrName] = "" + attrValue;
         });
         applier.elementAttributes = elementAttributes;
 
@@ -1114,6 +1117,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     };
 
     api.CssClassApplier = api.ClassApplier = ClassApplier;
-    api.createCssClassApplier = api.createClassApplier = createClassApplier;
+    api.createClassApplier = createClassApplier;
+    util.createAliasForDeprecatedMethod(api, "createCssClassApplier", "createClassApplier", module);
 });
 /* build:modularizeEnd */

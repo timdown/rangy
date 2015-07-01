@@ -18,6 +18,8 @@
     var getRootContainer = dom.getRootContainer;
     var crashyTextNodes = api.features.crashyTextNodes;
 
+    var removeNode = dom.removeNode;
+
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Utility functions
@@ -29,6 +31,10 @@
 
     function getRangeDocument(range) {
         return range.document || getDocument(range.startContainer);
+    }
+
+    function getRangeRoot(range) {
+        return getRootContainer(range.startContainer);
     }
 
     function getBoundaryBeforeNode(node) {
@@ -273,7 +279,7 @@
                 }
             } else {
                 if (current.parentNode) {
-                    current.parentNode.removeChild(current);
+                    removeNode(current);
                 } else {
                     log.warn("Node to be removed has no parent node. Is this the child of an attribute node in Firefox 2?");
                 }
@@ -377,26 +383,21 @@
         }
     }
 
-    function isOrphan(node) {
-        return (crashyTextNodes && dom.isBrokenNode(node)) ||
-            !arrayContains(rootContainerNodeTypes, node.nodeType) && !getDocumentOrFragmentContainer(node, true);
-    }
-
     function isValidOffset(node, offset) {
         return offset <= (isCharacterDataNode(node) ? node.length : node.childNodes.length);
     }
 
     function isRangeValid(range) {
         return (!!range.startContainer && !!range.endContainer &&
-                !isOrphan(range.startContainer) &&
-                !isOrphan(range.endContainer) &&
+                !(crashyTextNodes && (dom.isBrokenNode(range.startContainer) || dom.isBrokenNode(range.endContainer))) &&
+                getRootContainer(range.startContainer) == getRootContainer(range.endContainer) &&
                 isValidOffset(range.startContainer, range.startOffset) &&
                 isValidOffset(range.endContainer, range.endOffset));
     }
 
     function assertRangeValid(range) {
         if (!isRangeValid(range)) {
-            throw new Error("Range error: Range is no longer valid after DOM mutation (" + range.inspect() + ")");
+            throw new Error("Range error: Range is not valid. This usually happens after DOM mutation. Range: (" + range.inspect() + ")");
         }
     }
 
@@ -512,7 +513,7 @@
         range.setStartAndEnd(sc, so, ec, eo);
         log.debug("splitBoundaries done");
     }
-    
+
     function rangeToHtml(range) {
         assertRangeValid(range);
         var container = range.commonAncestorContainer.parentNode.cloneNode(false);
@@ -696,13 +697,14 @@
         // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
         intersectsNode: function(node, touchingIsIntersecting) {
             assertRangeValid(this);
-            assertNode(node, "NOT_FOUND_ERR");
-            if (getDocument(node) !== getRangeDocument(this)) {
+            if (getRootContainer(node) != getRangeRoot(this)) {
                 return false;
             }
 
             var parent = node.parentNode, offset = getNodeIndex(node);
-            assertNode(parent, "NOT_FOUND_ERR");
+            if (!parent) {
+                return true;
+            }
 
             var startComparison = comparePoints(parent, offset, this.endContainer, this.endOffset),
                 endComparison = comparePoints(parent, offset + 1, this.startContainer, this.startOffset);
@@ -813,7 +815,7 @@
             this.setStartAfter(node);
             this.collapse(true);
         },
-        
+
         getBookmark: function(containerNode) {
             var doc = getRangeDocument(this);
             var preSelectionRange = api.createRange(doc);
@@ -833,7 +835,7 @@
                 containerNode: containerNode
             };
         },
-        
+
         moveToBookmark: function(bookmark) {
             var containerNode = bookmark.containerNode;
             var charIndex = 0;
@@ -875,11 +877,11 @@
         isValid: function() {
             return isRangeValid(this);
         },
-        
+
         inspect: function() {
             return inspect(this);
         },
-        
+
         detach: function() {
             // In DOM4, detach() is now a no-op.
         }
@@ -1016,7 +1018,7 @@
 
                 boundaryUpdater(this, sc, so, ec, eo);
             },
-            
+
             setBoundary: function(node, offset, isStart) {
                 this["set" + (isStart ? "Start" : "End")](node, offset);
             },
@@ -1086,7 +1088,7 @@
                         ec = node;
                         eo = node.length;
                         node.appendData(sibling.data);
-                        sibling.parentNode.removeChild(sibling);
+                        removeNode(sibling);
                     }
                 };
 
@@ -1097,7 +1099,7 @@
                         var nodeLength = node.length;
                         so = sibling.length;
                         node.insertData(0, sibling.data);
-                        sibling.parentNode.removeChild(sibling);
+                        removeNode(sibling);
                         if (sc == ec) {
                             eo += so;
                             ec = sc;
@@ -1114,10 +1116,22 @@
                 };
 
                 var normalizeStart = true;
+                var sibling;
 
                 if (isCharacterDataNode(ec)) {
-                    if (ec.length == eo) {
+                    if (eo == ec.length) {
                         mergeForward(ec);
+                    } else if (eo == 0) {
+                        sibling = ec.previousSibling;
+                        if (sibling && sibling.nodeType == ec.nodeType) {
+                            eo = sibling.length;
+                            if (sc == ec) {
+                                normalizeStart = false;
+                            }
+                            sibling.appendData(ec.data);
+                            removeNode(ec);
+                            ec = sibling;
+                        }
                     }
                 } else {
                     if (eo > 0) {
@@ -1133,6 +1147,16 @@
                     if (isCharacterDataNode(sc)) {
                         if (so == 0) {
                             mergeBackward(sc);
+                        } else if (so == sc.length) {
+                            sibling = sc.nextSibling;
+                            if (sibling && sibling.nodeType == sc.nodeType) {
+                                if (ec == sibling) {
+                                    ec = sc;
+                                    eo += sc.length;
+                                }
+                                sc.appendData(sibling.data);
+                                removeNode(sibling);
+                            }
                         }
                     } else {
                         if (so < sc.childNodes.length) {

@@ -15,7 +15,8 @@
 /* build:modularizeWithRangyDependency */
 rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
     var dom = api.dom;
-
+    var removeNode = dom.removeNode;
+    var isDirectionBackward = api.Selection.isDirectionBackward;
     var markerTextChar = "\ufeff";
 
     function gEBI(id, doc) {
@@ -47,7 +48,7 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
         var markerEl = gEBI(markerId, doc);
         if (markerEl) {
             range[atStart ? "setStartBefore" : "setEndBefore"](markerEl);
-            markerEl.parentNode.removeChild(markerEl);
+            removeNode(markerEl);
         } else {
             module.warn("Marker element has been removed. Cannot restore selection.");
         }
@@ -57,8 +58,9 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
         return r2.compareBoundaryPoints(r1.START_TO_START, r1);
     }
 
-    function saveRange(range, backward) {
+    function saveRange(range, direction) {
         var startEl, endEl, doc = api.DomRange.getRangeDocument(range), text = range.toString();
+        var backward = isDirectionBackward(direction);
 
         if (range.collapsed) {
             endEl = insertRangeBoundaryMarker(range, false);
@@ -98,11 +100,11 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
 
                 // Workaround for issue 17
                 if (previousNode && previousNode.nodeType == 3) {
-                    markerEl.parentNode.removeChild(markerEl);
+                    removeNode(markerEl);
                     range.collapseToPoint(previousNode, previousNode.length);
                 } else {
                     range.collapseBefore(markerEl);
-                    markerEl.parentNode.removeChild(markerEl);
+                    removeNode(markerEl);
                 }
             } else {
                 module.warn("Marker element has been removed. Cannot restore selection.");
@@ -119,8 +121,9 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
         return range;
     }
 
-    function saveRanges(ranges, backward) {
+    function saveRanges(ranges, direction) {
         var rangeInfos = [], range, doc;
+        var backward = isDirectionBackward(direction);
 
         // Order the ranges by position within the DOM, latest first, cloning the array to leave the original untouched
         ranges = ranges.slice(0);
@@ -159,7 +162,7 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
 
         // Ensure current selection is unaffected
         if (backward) {
-            sel.setSingleRange(ranges[0], "backward");
+            sel.setSingleRange(ranges[0], backward);
         } else {
             sel.setRanges(ranges);
         }
@@ -205,7 +208,7 @@ rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
     function removeMarkerElement(doc, markerId) {
         var markerEl = gEBI(markerId, doc);
         if (markerEl) {
-            markerEl.parentNode.removeChild(markerEl);
+            removeNode(markerEl);
         }
     }
 
