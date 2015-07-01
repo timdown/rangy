@@ -454,7 +454,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         return type == 7 /* PROCESSING_INSTRUCTION */ ||
             type == 8 /* COMMENT */ ||
             isHidden(node) ||
-            /^(script|style)$/i.test(node.nodeName) ||
+            /^(script|style|noscript|iframe)$/i.test(node.nodeName) ||
             isVisibilityHiddenTextNode(node) ||
             isCollapsedWhitespaceNode(node);
     }
