@@ -449,13 +449,12 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
             options = createOptions(options, {
                 containerElementId: null,
-                selection: api.getSelection(this.doc),
                 exclusive: true
             });
 
             var containerElementId = options.containerElementId;
             var exclusive = options.exclusive;
-            var selection = options.selection;
+            var selection = options.selection || api.getSelection(this.doc);
             var doc = selection.win.document;
             var containerElement = getContainerElement(doc, containerElementId);
 
