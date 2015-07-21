@@ -1017,6 +1017,12 @@
                         break;
                 }
 
+                assertNoDocTypeNotationEntityAncestor(sc, true);
+                assertValidOffset(sc, so);
+
+                assertNoDocTypeNotationEntityAncestor(ec, true);
+                assertValidOffset(ec, eo);
+
                 boundaryUpdater(this, sc, so, ec, eo);
             },
 
