@@ -346,6 +346,7 @@
     var getDocumentOrFragmentContainer = createAncestorFinder( [9, 11] );
     var getReadonlyAncestor = createAncestorFinder(readonlyNodeTypes);
     var getDocTypeNotationEntityAncestor = createAncestorFinder( [6, 10, 12] );
+    var getElementAncestor = createAncestorFinder( [1] );
 
     function assertNoDocTypeNotationEntityAncestor(node, allowSelf) {
         if (getDocTypeNotationEntityAncestor(node, allowSelf)) {
@@ -1178,6 +1179,12 @@
                 assertNoDocTypeNotationEntityAncestor(node, true);
                 assertValidOffset(node, offset);
                 this.setStartAndEnd(node, offset);
+            },
+
+            parentElement: function() {
+                assertRangeValid(this);
+                var parentNode = this.commonAncestorContainer;
+                return parentNode ? getElementAncestor(this.commonAncestorContainer, true) : null;
             }
         });
 
@@ -1199,17 +1206,11 @@
         range.endContainer = endContainer;
         range.endOffset = endOffset;
         range.document = dom.getDocument(startContainer);
-
         updateCollapsedAndCommonAncestor(range);
     }
 
     function Range(doc) {
-        this.startContainer = doc;
-        this.startOffset = 0;
-        this.endContainer = doc;
-        this.endOffset = 0;
-        this.document = doc;
-        updateCollapsedAndCommonAncestor(this);
+        updateBoundaries(this, doc, 0, doc, 0);
     }
 
     createPrototypeRange(Range, updateBoundaries);
