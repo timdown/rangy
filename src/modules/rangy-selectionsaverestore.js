@@ -13,7 +13,7 @@
  * Build date: %%build:date%%
  */
 /* build:modularizeWithRangyDependency */
-rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
+rangy.createModule("SaveRestore", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var removeNode = dom.removeNode;
     var isDirectionBackward = api.Selection.isDirectionBackward;
