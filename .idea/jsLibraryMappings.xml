@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="JavaScriptLibraryMappings">
+    <file url="file://$PROJECT_DIR$/builder" libraries="{Node.js Globals, Node.js v0.10.31 Core Modules}" />
+    <file url="file://$PROJECT_DIR$/builder/build.js" libraries="{Node.js Globals, Node.js v0.10.31 Core Modules}" />
     <file url="file://$PROJECT_DIR$/demos" libraries="{HTML5 / EcmaScript 5}" />
     <file url="PROJECT" libraries="{Node.js v0.10.31 Core Modules}" />
   </component>
 </project>
-

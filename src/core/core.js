@@ -223,7 +223,7 @@
     })();
 
     // Very simple event handler wrapper function that doesn't attempt to solve issues such as "this" handling or
-    // normalization of event properties
+    // normalization of event properties because we don't need this.
     var addListener;
     if (isBrowser) {
         if (isHostMethod(document, "addEventListener")) {

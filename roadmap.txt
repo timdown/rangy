@@ -29,9 +29,11 @@
 - [ ] Add withinRange and withinNode options to move(), moveStart() and moveEnd() methods
 - [?] Positions module
       (http://stackoverflow.com/questions/4122315/how-to-find-xy-position-in-javascript-with-offset/4123495#4123495)
-- [ ] Config module or something so that config can work with AMD. See PR 285
+- [ ] Config module or something so that config can work with AMD. See PR #285
       (https://github.com/timdown/rangy/pull/285)
 - [ ] Move to one of the common testing libraries
+- [ ] Update build not to use a fresh Git checkout
+- [ ] Investigate shadow DOM (issue #307)
 
 Possible features for some version
 ----------------------------------

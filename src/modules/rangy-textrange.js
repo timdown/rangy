@@ -1313,7 +1313,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             while ( (pos = it.next()) ) {
                 textChar = pos.character;
 
-                log.debug("Testing char '" + textChar + "'")
+                log.debug("Testing char '" + textChar + "'");
 
                 if (allWhiteSpaceRegex.test(textChar)) {
                     if (insideWord) {

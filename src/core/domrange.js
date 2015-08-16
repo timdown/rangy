@@ -99,7 +99,6 @@
         var it, n;
         iteratorState = iteratorState || { stop: false };
         for (var node, subRangeIterator; node = rangeIterator.next(); ) {
-            //log.debug("iterateSubtree, partially selected: " + rangeIterator.isPartiallySelectedSubtree(), nodeToString(node));
             if (rangeIterator.isPartiallySelectedSubtree()) {
                 if (func(node) === false) {
                     iteratorState.stop = true;
@@ -255,11 +254,9 @@
                 // Check for partially selected text nodes
                 if (isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
                     if (current === this.ec) {
-                        //log.info("*** CLONING END");
                         (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
                     }
                     if (this._current === this.sc) {
-                        //log.info("*** CLONING START");
                         (current = current.cloneNode(true)).deleteData(0, this.so);
                     }
                 }
@@ -409,7 +406,7 @@
     var htmlParsingConforms = false;
     try {
         styleEl.innerHTML = "<b>x</b>";
-        htmlParsingConforms = (styleEl.firstChild.nodeType == 3); // Opera incorrectly creates an element node
+        htmlParsingConforms = (styleEl.firstChild.nodeType == 3); // Pre-Blink Opera incorrectly creates an element node
     } catch (e) {
         // IE 6 and 7 throw
     }

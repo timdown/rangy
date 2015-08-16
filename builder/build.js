@@ -114,6 +114,12 @@ function cloneGitRepository() {
     });
 }
 
+function copyLocalSourceFiles() {
+    console.log("Copying local source files");
+    copyFilesRecursive("src", srcDir);
+    callback();
+}
+
 function getVersion() {
     buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
     console.log("Got version " + buildVersion + " from package.json");
@@ -376,12 +382,18 @@ function copyToRelease() {
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+// Get command line arguments
+var sourceFilesGetter = (process.argv.length >= 3 && process.argv[2] == "freshCheckout") ?
+    cloneGitRepository : copyLocalSourceFiles;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 // Start the build
 
 var actions = [
     deleteBuildDir,
     createBuildDir,
-    cloneGitRepository,
+    sourceFilesGetter,
     getVersion,
     assembleCoreScript,
     copyModuleScripts,
@@ -395,7 +407,6 @@ var actions = [
     copyToLib,
     copyToRelease
 ];
-
 
 function callback() {
     if (actions.length) {
