@@ -5,7 +5,7 @@
     var util = api.util;
     var DomPosition = dom.DomPosition;
     var DOMException = api.DOMException;
-
+    var voidElements = ["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"];
     var isCharacterDataNode = dom.isCharacterDataNode;
     var getNodeIndex = dom.getNodeIndex;
     var isOrIsAncestorOf = dom.isOrIsAncestorOf;
@@ -54,7 +54,11 @@
                 n.parentNode.insertBefore(node, o == 0 ? n : splitDataNode(n, o));
             }
         } else if (o >= n.childNodes.length) {
-            n.appendChild(node);
+            if (canAppendChild(n)) {
+                n.appendChild(node);
+            } else {
+                n.parentNode.insertBefore(node, n);
+            }
         } else {
             n.insertBefore(node, n.childNodes[o]);
         }
@@ -73,6 +77,12 @@
             endComparison = comparePoints(rangeA.endContainer, rangeA.endOffset, rangeB.startContainer, rangeB.startOffset);
 
         return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+    }
+
+    function canAppendChild(element) {
+        var nodeName = element.tagName.toLowerCase();
+
+        return voidElements.indexOf(nodeName) === -1;
     }
 
     function cloneSubtree(iterator) {
