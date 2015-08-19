@@ -188,6 +188,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         // Check if character is ignored
         var ignoredChars = ignoredCharacters || "";
 
+        if (ignoredCharacters === "")
+            return ignoredCharacters
+
         // Normalize ignored characters into a string consisting of characters in ascending order of character code
         var ignoredCharsArray = (typeof ignoredChars == "string") ? ignoredChars.split("") : ignoredChars;
         ignoredCharsArray.sort(function(char1, char2) {
