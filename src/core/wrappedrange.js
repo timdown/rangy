@@ -613,6 +613,6 @@
                 return api.createRange(doc);
             };
         }
-        doc = win = null;
+        win = null;
     });
 });
