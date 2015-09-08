@@ -9,7 +9,10 @@
  */
 
 (function(factory, root) {
-    if (typeof define == "function" && define.amd) {
+    if (Package) {
+        // Meteor, can be removed once Meteor support modules
+        rangy = factory();
+    } else if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module.
         define(factory);
     } else if (typeof module != "undefined" && typeof exports == "object") {
