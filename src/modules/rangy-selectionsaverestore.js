@@ -217,10 +217,10 @@ rangy.createModule("SaveRestore", ["WrappedSelection"], function(api, module) {
         for (var i = 0, len = rangeInfos.length, rangeInfo; i < len; ++i) {
             rangeInfo = rangeInfos[i];
             if (rangeInfo.collapsed) {
-                removeMarkerElement(savedSelection.doc, rangeInfo.markerId);
+                removeMarkerElement(rangeInfo.document, rangeInfo.markerId);
             } else {
-                removeMarkerElement(savedSelection.doc, rangeInfo.startMarkerId);
-                removeMarkerElement(savedSelection.doc, rangeInfo.endMarkerId);
+                removeMarkerElement(rangeInfo.document, rangeInfo.startMarkerId);
+                removeMarkerElement(rangeInfo.document, rangeInfo.endMarkerId);
             }
         }
     }
