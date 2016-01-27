@@ -26,6 +26,9 @@
     "directories": {
         "lib": "./lib"
     },
+    "scripts": {
+        "build": "node builder/build.js"
+    },
     "dependencies": {},
     "devDependencies": {}
 }
