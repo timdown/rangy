@@ -601,6 +601,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 highlight.apply();
                 highlights.push(highlight);
             }
+            highlights.sort(compareHighlights);
             this.highlights = highlights;
         }
     };
