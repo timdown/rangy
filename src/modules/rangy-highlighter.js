@@ -23,8 +23,16 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
         return h1.characterRange.start - h2.characterRange.start;
     }
 
+    function getDocumentFromUnknownElement(doc){
+        return Object.prototype.toString.call(doc) == "[object HTMLDocument]" ? doc : doc.ownerDocument;
+    }
+
+    function getContainerElementId(doc){
+        return Object.prototype.toString.call(doc) != "[object HTMLDocument]" ? doc.getAttribute('id') : null;
+    }
+
     function getContainerElement(doc, id) {
-        return id ? doc.getElementById(id) : getBody(doc);
+        return id ? getDocumentFromUnknownElement(doc).getElementById(id) : getBody(doc);
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -281,6 +289,16 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return null;
         },
 
+        getHighlightPositionForElement: function(el) {
+            var highlights = this.highlights;
+            for (var i = 0, len = highlights.length; i < len; ++i) {
+                if (highlights[i].containsElement(el)) {
+                    return i;
+                }
+            }
+            return null;
+        },
+
         removeHighlights: function(highlights) {
             for (var i = 0, len = this.highlights.length, highlight; i < len; ++i) {
                 highlight = this.highlights[i];
@@ -319,7 +337,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             var classApplier = className ? this.classAppliers[className] : null;
 
             options = createOptions(options, {
-                containerElementId: null,
+                containerElementId: getContainerElementId(this.doc),
                 exclusive: true
             });
 
@@ -328,7 +346,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
 
             var containerElement, containerElementRange, containerElementCharRange;
             if (containerElementId) {
-                containerElement = this.doc.getElementById(containerElementId);
+                containerElement = getDocumentFromUnknownElement(this.doc).getElementById(containerElementId);
                 if (containerElement) {
                     containerElementRange = api.createRange(this.doc);
                     containerElementRange.selectNodeContents(containerElement);
@@ -420,7 +438,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             var converter = this.converter;
 
             options = createOptions(options, {
-                containerElement: null,
+                containerElement: this.doc,
                 exclusive: true
             });
 
@@ -448,7 +466,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             var classApplier = className ? this.classAppliers[className] : false;
 
             options = createOptions(options, {
-                containerElementId: null,
+                containerElementId: getContainerElementId(this.doc),
                 exclusive: true
             });
 
@@ -593,6 +611,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 highlight.apply();
                 highlights.push(highlight);
             }
+            highlights.sort(compareHighlights);
             this.highlights = highlights;
         }
     };
