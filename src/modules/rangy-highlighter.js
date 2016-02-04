@@ -289,6 +289,16 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return null;
         },
 
+        getHighlightPositionForElement: function(el) {
+            var highlights = this.highlights;
+            for (var i = 0, len = highlights.length; i < len; ++i) {
+                if (highlights[i].containsElement(el)) {
+                    return i;
+                }
+            }
+            return null;
+        },
+
         removeHighlights: function(highlights) {
             for (var i = 0, len = this.highlights.length, highlight; i < len; ++i) {
                 highlight = this.highlights[i];
