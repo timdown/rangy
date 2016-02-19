@@ -272,6 +272,14 @@ rangy.createModule("Position", ["WrappedSelection"], function(api, module) {
             };
         };
     };
+    
+    var createDocumentBoundaryPosGetter = function (isStart) {
+        return function() {
+            var pos = this["get" + (isStart ? "Start" : "End") + "ClientPos"]();
+            var scrollPos = getScrollPosition( dom.getWindow(this.startContainer) );
+            return { x: pos.x + scrollPos.x, y: pos.y + scrollPos.y };
+        };
+    };
 
     var rangeProto = api.rangePrototype;
 
@@ -455,14 +463,6 @@ rangy.createModule("Position", ["WrappedSelection"], function(api, module) {
 
             rangeProto.getBoundingClientRect = function(range) {
                 return getRectFromBoundaries(createWrappedRange(range));
-            };
-        }
-
-        function createDocumentBoundaryPosGetter(isStart) {
-            return function() {
-                var pos = this["get" + (isStart ? "Start" : "End") + "ClientPos"]();
-                var scrollPos = getScrollPosition( dom.getWindow(this.startContainer) );
-                return { x: pos.x + scrollPos.x, y: pos.y + scrollPos.y };
             };
         }
     }
