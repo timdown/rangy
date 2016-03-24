@@ -157,7 +157,8 @@ function assembleCoreScript() {
 
 function copyModuleScripts() {
     modules.forEach(function(moduleFile) {
-        var moduleCode = fs.readFileSync(srcDir + "modules/" + moduleFile, FILE_ENCODING);
+        var moduleCode = fs.readFileSync(srcDir + "modules/" + moduleFile, FILE_ENCODING),
+            filename = path.basename(moduleFile, path.extname(moduleFile));
 
         // Run build directives
         moduleCode = moduleCode.replace(/\/\*\s?build:modularizeWithRangyDependency\s?\*\/([\s\S]*?)\/\*\s?build:modularizeEnd\s?\*\//gm, function(match, code) {
@@ -165,8 +166,8 @@ function copyModuleScripts() {
             return [
                 '(function(factory, root) {',
                 '    if (typeof define == "function" && define.amd) {',
-                '        // AMD. Register as an anonymous module with a dependency on Rangy.',
-                '        define(["./rangy-core"], factory);',
+                '        // AMD. Register as a module with a dependency on Rangy.',
+                '        define("' + filename + '", ["./rangy-core"], factory);',
                 '    } else if (typeof module != "undefined" && typeof exports == "object") {',
                 '        // Node/CommonJS style',
                 '        module.exports = factory( require("rangy") );',
