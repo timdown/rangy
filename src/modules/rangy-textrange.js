@@ -1776,7 +1776,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 // Create a range representing the search scope if none was provided
                 var searchScopeRange = findOptions.withinRange;
                 if (!searchScopeRange) {
-                    searchScopeRange = api.createRange();
+                    searchScopeRange = api.createRange(this.getDocument());
                     searchScopeRange.selectNodeContents(this.getDocument());
                 }
 
