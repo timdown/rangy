@@ -91,7 +91,12 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     var trailingSpaceBeforeBlockCollapses = false;
     var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
 
+    // This test code runs at load time, but generates side effects
+    // on the selection, which is bad. Hence, we disable it.
+    /*
     (function() {
+        // This test code runs at load time, but generates side effects
+        // on the selection, which is bad. Hence, we disable it.
         var el = dom.createTestElement(document, "<p>1 </p><p></p>", true);
         var p = el.firstChild;
         var sel = api.getSelection();
@@ -112,6 +117,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         dom.removeNode(el);
         sel.removeAllRanges();
     })();
+    */
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
