@@ -1530,6 +1530,13 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 currentChar = currentChar.toLowerCase();
             }
 
+            // If there is a non-breaking space in the innerText, then replace with empty space " " so that it
+            // matches with the searchTerm. Based on the documentation, search should be performed on
+            // the visible text of the document
+            if (currentChar == "\u00a0") {
+                currentChar = " ";
+            }
+
             if (backward) {
                 chars.unshift(pos);
                 text = currentChar + text;
