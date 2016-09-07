@@ -920,6 +920,42 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertFalse(range.findText("Two", options));
     });
 
+    s.test("findText text with non-breaking space", function(t) {
+        t.el.innerHTML = 'One Two&nbsp;three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 0);
+
+        var scopeRange = rangy.createRange();
+        scopeRange.selectNodeContents(t.el);
+        var options = {
+            withinRange: scopeRange
+        };
+
+        t.assert(range.findText("Two ", options));
+        testRangeBoundaries(t, range, textNode, 4, textNode, 8);
+        range.collapse(false);
+        t.assertFalse(range.findText("Two", options));
+    });
+
+    s.test("findText text with non-breaking space and normal space", function(t) {
+        t.el.innerHTML = 'One Two&nbsp; three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 0);
+
+        var scopeRange = rangy.createRange();
+        scopeRange.selectNodeContents(t.el);
+        var options = {
+            withinRange: scopeRange
+        };
+
+        t.assert(range.findText("Two  three", options));
+        testRangeBoundaries(t, range, textNode, 4, textNode, 14);
+        range.collapse(false);
+        t.assertFalse(range.findText("Two", options));
+    });
+
     s.test("findText simple text no wrap", function(t) {
         t.el.innerHTML = 'Two One Two three';
         var textNode = t.el.firstChild;
