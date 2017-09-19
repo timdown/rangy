@@ -1298,8 +1298,14 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     // Provides a pair of iterators over text positions, tokenized. Transparently requests more text when next()
     // is called and there is no more tokenized text
     function createTokenizedTextProvider(pos, characterOptions, wordOptions) {
-        var forwardIterator = createCharacterIterator(pos, false, null, characterOptions);
-        var backwardIterator = createCharacterIterator(pos, true, null, characterOptions);
+        var startPos = null;
+        var endPos = null;
+        if (characterOptions && characterOptions.boundaryRange) {
+            startPos = pos.session.getRangeBoundaryPosition(characterOptions.boundaryRange, true);
+            endPos = pos.session.getRangeBoundaryPosition(characterOptions.boundaryRange, false);
+        }
+        var forwardIterator = createCharacterIterator(pos, false, endPos, characterOptions);
+        var backwardIterator = createCharacterIterator(pos, true, startPos, characterOptions);
         var tokenizer = wordOptions.tokenizer;
 
         // Consumes a word and the whitespace beyond it
@@ -1676,7 +1682,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
                     var startTokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
                     var startToken = startTokenizedTextProvider.nextEndToken();
-                    var newStartPos = startToken.chars[0].previousVisible();
+                    var newStartPos = startToken ? startToken.chars[0].previousVisible() : null;
                     var endToken, newEndPos;
 
                     if (this.collapsed) {
@@ -1685,9 +1691,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         var endTokenizedTextProvider = createTokenizedTextProvider(endPos, characterOptions, wordOptions);
                         endToken = endTokenizedTextProvider.previousStartToken();
                     }
-                    newEndPos = endToken.chars[endToken.chars.length - 1];
+                    newEndPos = endToken ? endToken.chars[endToken.chars.length - 1] : null;
 
-                    if (!newStartPos.equals(startPos)) {
+                    if (newStartPos && !newStartPos.equals(startPos)) {
                         this.setStart(newStartPos.node, newStartPos.offset);
                         moved = true;
                     }
