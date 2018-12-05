@@ -170,6 +170,11 @@
                     if (chromeMatch && parseInt(chromeMatch[1]) >= 36) {
                         selectionSupportsMultipleRanges = false;
                     } else {
+                        // Internet Explorer 9-11 Workaround
+                        // Todo: Is this solution well?
+                        selectionSupportsMultipleRanges = false;
+                        // IE11 Bug - r2 is empty
+                        /*
                         var r2 = r1.cloneRange();
                         r1.setStart(textNode, 0);
                         r2.setEnd(textNode, 3);
@@ -177,6 +182,7 @@
                         sel.addRange(r1);
                         sel.addRange(r2);
                         selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                        */
                     }
                 }
 
