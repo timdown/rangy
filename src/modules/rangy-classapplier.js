@@ -628,6 +628,21 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                             }
                         }
                         this.attrExceptions.push(p);
+                    } 
+
+                    //  Special case for dataset
+                    else if (p == "dataset") {
+                        for (s in props[p]) {
+                            if (props[p].hasOwnProperty(s)) {
+                                el[p][s] = propValue[s];
+                                if (createCopy) {
+                                    if(!elProps[p]){
+                                        elProps[p] = {};
+                                    }
+                                    elProps[p][s] = propValue[s];
+                                }
+                            }
+                        }
                     } else {
                         el[p] = propValue;
                         // Copy the property back from the dummy element so that later comparisons to check whether
