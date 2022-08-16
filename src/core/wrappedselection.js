@@ -251,6 +251,11 @@
         sel.rangeCount = 0;
         sel.isCollapsed = true;
         sel._ranges.length = 0;
+        updateType(sel);
+    }
+
+    function updateType(sel) {
+        sel.type = (sel.rangeCount == 0) ? "None" : (selectionIsCollapsed(sel) ? "Caret" : "Range");
     }
 
     function getNativeRange(range) {
@@ -300,6 +305,7 @@
         updateAnchorAndFocusFromRange(sel, wrappedRange, false);
         sel.rangeCount = 1;
         sel.isCollapsed = wrappedRange.collapsed;
+        updateType(sel);
     }
 
     function updateControlSelection(sel) {
@@ -324,6 +330,7 @@
                 }
                 sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
                 updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], false);
+                updateType(sel);
             }
         }
     }
@@ -393,6 +400,7 @@
         sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
         sel.rangeCount = sel.anchorOffset = sel.focusOffset = 0;
         sel.detached = true;
+        updateType(sel);
     }
 
     var cachedRangySelections = [];
@@ -520,6 +528,7 @@
                             this._ranges[this.rangeCount - 1] = range;
                             updateAnchorAndFocusFromRange(this, range, selectionIsBackward(this.nativeSelection));
                             this.isCollapsed = selectionIsCollapsed(this);
+                            updateType(this);
                         } else {
                             // The range was not added successfully. The simplest thing is to refresh
                             this.refresh();
@@ -588,6 +597,7 @@
                 this.rangeCount = 1;
                 this.isCollapsed = this._ranges[0].collapsed;
                 updateAnchorAndFocusFromRange(this, range, false);
+                updateType(this);
             }
         };
 
@@ -647,6 +657,7 @@
                     }
                     updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackward(sel.nativeSelection));
                     sel.isCollapsed = selectionIsCollapsed(sel);
+                    updateType(sel);
                 } else {
                     updateEmptySelection(sel);
                 }
@@ -661,6 +672,7 @@
                 sel.rangeCount = 1;
                 updateAnchorAndFocusFromNativeSelection(sel);
                 sel.isCollapsed = selectionIsCollapsed(sel);
+                updateType(sel);
             } else {
                 updateEmptySelection(sel);
             }

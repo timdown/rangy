@@ -93,6 +93,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertNull(sel.focusNode);
             t.assertEquals(sel.focusOffset, 0);
             t.assertEquivalent(sel.isCollapsed, true);
+            t.assertEquivalent(sel.type, "None");
         });
 
         s.test("addRange test", function(t) {
@@ -107,6 +108,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.plainText);
             t.assertEquals(sel.focusOffset, t.nodes.plainText.length);
             t.assertEquivalent(sel.isCollapsed, false);
+            t.assertEquivalent(sel.type, "Range");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("removeRange test", function(t) {
@@ -123,6 +125,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertNull(sel.focusNode);
             t.assertEquals(sel.focusOffset, 0);
             t.assertEquivalent(sel.isCollapsed, true);
+            t.assertEquivalent(sel.type, "None");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("removeRange instance test", function(t) {
@@ -140,6 +143,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertNull(sel.focusNode);
             t.assertEquals(sel.focusOffset, 0);
             t.assertEquivalent(sel.isCollapsed, true);
+            t.assertEquivalent(sel.type, "None");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         if (rangy.features.selectionSupportsMultipleRanges) {
@@ -176,6 +180,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 } else if (sel.rangeCount == 1) {
                     t.assert(DomRange.rangesEqual(range, sel.getRangeAt(0)));
                 }
+                t.assertEquivalent(sel.type, "Range");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         } else {
             s.test("Adding mutiple ranges where only one is supported", function(t) {
@@ -190,6 +195,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.rangeCount, 1);
                 sel.addRange(range2);
                 t.assertEquals(sel.rangeCount, 1);
+                t.assertEquivalent(sel.type, "Range");
 
                 // According to the spec, a reference to the added range should be stored by the selection so that the
                 // same range object is returned by getRangeAt(). However, most browsers don't do this (WebKit, IE) and
@@ -227,6 +233,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquivalent(sel.focusNode, t.nodes.plainText);
                 t.assertEquals(sel.focusOffset, 1);
                 t.assertEquivalent(sel.isCollapsed, true);
+                t.assertEquivalent(sel.type, "Caret");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
             s.test("Collapse other document test (non-editable)", function(t) {
@@ -266,6 +273,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquivalent(sel.focusNode, t.nodes.boldText);
                 t.assertEquals(sel.focusOffset, 1);
                 t.assertEquivalent(sel.isCollapsed, true);
+                t.assertEquivalent(sel.type, "Caret");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
             s.test("collapseToEnd test (non-editable)", function(t) {
@@ -282,6 +290,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquivalent(sel.focusNode, t.nodes.boldText);
                 t.assertEquals(sel.focusOffset, 2);
                 t.assertEquivalent(sel.isCollapsed, true);
+                t.assertEquivalent(sel.type, "Caret");
             });
         } else {
             s.test("Test collapsed selections cannot exist in non-editable elements", function(t) {
@@ -292,6 +301,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 sel.addRange(range);
                 sel.collapse(t.nodes.plainText, 1);
                 t.assertEquals(sel.rangeCount, 0);
+                t.assertEquivalent(sel.type, "None");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         }
 
@@ -309,6 +319,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.plainText);
             t.assertEquals(sel.focusOffset, 1);
             t.assertEquivalent(sel.isCollapsed, true);
+            t.assertEquivalent(sel.type, "Caret");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("Collapse other document test (editable)", function(t) {
@@ -350,6 +361,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.boldText);
             t.assertEquals(sel.focusOffset, 1);
             t.assertEquivalent(sel.isCollapsed, true);
+            t.assertEquivalent(sel.type, "Caret");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("collapseToEnd test (editable)", function(t) {
@@ -367,6 +379,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.boldText);
             t.assertEquals(sel.focusOffset, 2);
             t.assertEquivalent(sel.isCollapsed, true);
+            t.assertEquivalent(sel.type, "Caret");
         });
 
         s.test("selectAllChildren same document test", function(t) {
@@ -383,6 +396,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.div);
             t.assertEquals(sel.focusOffset, t.nodes.div.childNodes.length);
             t.assertEquivalent(sel.isCollapsed, false);
+            t.assertEquivalent(sel.type, "Range");
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
         s.test("setBaseAndExtent forward test", function(t) {
@@ -394,6 +408,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.boldText);
             t.assertEquals(sel.focusOffset, 2);
             t.assertEquivalent(sel.isCollapsed, false);
+            t.assertEquivalent(sel.type, "Range");
             if ("isBackward" in sel) {
                 t.assertEquivalent(sel.isBackward(), false);
             }
@@ -408,6 +423,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.focusNode, t.nodes.plainText);
             t.assertEquals(sel.focusOffset, 1);
             t.assertEquivalent(sel.isCollapsed, false);
+            t.assertEquivalent(sel.type, "Range");
             if ("isBackward" in sel) {
                 t.assertEquivalent(sel.isBackward(), true);
             }
@@ -477,6 +493,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquivalent(sel.focusNode, t.nodes.boldText);
                 t.assertEquals(sel.focusOffset, 1);
                 t.assertEquivalent(sel.isCollapsed, false);
+                t.assertEquivalent(sel.type, "Range");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
             s.test("extend backwards test", function(t) {
@@ -494,6 +511,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 t.assertEquals(sel.focusOffset, 1);
                 t.assertEquivalent(sel.isCollapsed, false);
                 t.assertEquivalent(sel.toString(), "l");
+                t.assertEquivalent(sel.type, "Range");
             }, setUp_noRangeCheck, tearDown_noRangeCheck);
         }
 
@@ -617,6 +635,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 range.selectNodeContents(t.nodes.plainText);
                 sel.refresh();
                 t.assert(sel.isCollapsed);
+                t.assertEquivalent(sel.type, "Caret");
             }
         });
 
@@ -633,6 +652,7 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
                 selRange.selectNodeContents(t.nodes.div);
                 sel.refresh();
                 t.assert(sel.isCollapsed);
+                t.assertEquivalent(sel.type, "Caret");
             }
         });
 
