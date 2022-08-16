@@ -2,7 +2,7 @@ var fs = require("fs");
 var path = require("path");
 var util = require("util");
 var exec = require("child_process").exec;
-var uglifyJs = require("uglify-js");
+var terser = require("terser");
 var rimraf = require("rimraf");
 var jshint = require("jshint");
 var archiver = require("archiver");
@@ -287,8 +287,6 @@ function lint() {
 }
 
 function minify() {
-    var error = false;
-
     function getLicence(srcFile) {
         var contents = fs.readFileSync(srcFile, FILE_ENCODING);
         var result = /^\s*\/\*\*[\s\S]*?\*\//.exec(contents);
@@ -298,29 +296,24 @@ function minify() {
     // Uglify
     function uglify(src, dest) {
         var licence = getLicence(src);
-
-        try {
-            var final_code = uglifyJs.minify(src, {
+        var terserOptions = {
+            format: {
                 ascii_only: true
-            });
-
+            }
+        };
+        return terser.minify(fs.readFileSync(src, FILE_ENCODING), terserOptions).then(function(final_code) {
             fs.writeFileSync(dest, licence + "\r\n" + final_code.code, FILE_ENCODING);
-        } catch (ex) {
-            console.log(ex, ex.stack);
-            error = true;
-        }
+        })
     }
 
-    allScripts.forEach(function(fileName) {
-        uglify(uncompressedBuildDir + fileName, zipDir + fileName);
-    });
-
-    if (error) {
-        console.log("Uglify failed");
-    } else {
+    Promise.all(allScripts.map(function(fileName) {
+        return uglify(uncompressedBuildDir + fileName, zipDir + fileName);
+    })).then(function() {
         console.log("Minified scripts");
         callback();
-    }
+    }).catch(function(ex) {
+        console.log("Uglify failed: " + ex, JSON.stringify(ex));
+    });
 }
 
 function createArchiver(fileExtension, archiveCreatorFunc) {
@@ -340,13 +333,10 @@ function createArchiver(fileExtension, archiveCreatorFunc) {
         });
 
         archive.pipe(output);
-        archive.bulk([
-            {
-                expand: true,
-                cwd: buildDir,
-                src: ["**", "!*.tar", "!*.gz", "!*.tgz", "!*.zip"]
-            }
-        ]);
+        archive.glob("**/*", {
+            cwd: buildDir,
+            ignore: ["*.tar", "*.gz", "*.tgz", "*.zip"]
+        }, {})
         archive.finalize();
     }
 }

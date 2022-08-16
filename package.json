@@ -15,7 +15,7 @@
     "licenses": [
         {
             "type": "MIT",
-            "url": "http://www.opensource.org/licenses/mit-license.php"
+            "url": "https://opensource.org/licenses/mit-license.php"
         }
     ],
     "repository": {
@@ -27,5 +27,10 @@
         "lib": "./lib"
     },
     "dependencies": {},
-    "devDependencies": {}
+    "devDependencies": {
+        "terser": "^5.14.2",
+        "rimraf": "^3.0.2",
+        "jshint": "^2.13.5",
+        "archiver": "^5.3.1"
+    }
 }
