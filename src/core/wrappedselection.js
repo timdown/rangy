@@ -832,8 +832,8 @@
         };
     } else if (selectionHasExtend) {
         selProto.setBaseAndExtent = function(anchorNode, anchorOffset, focusNode, focusOffset) {
-            assertValidOffset(anchorNode, anchorOffset)
-            assertValidOffset(focusNode, focusOffset)
+            assertValidOffset(anchorNode, anchorOffset);
+            assertValidOffset(focusNode, focusOffset);
             assertNodeInSameDocument(this, anchorNode);
             assertNodeInSameDocument(this, focusNode);
             var range = api.createRange(node);
