@@ -1,5 +1,5 @@
 // This module creates a selection object wrapper that conforms as closely as possible to the Selection specification
-// in the HTML Editing spec (http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections)
+// in the W3C Selection API spec (https://www.w3.org/TR/selection-api)
 /* build:replaceWith(api) */rangy/* build:replaceEnd */.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], function(api, module) {
     api.config.checkSelectionRanges = true;
 
@@ -108,6 +108,10 @@
     var selectionHasExtend = isHostMethod(testSelection, "extend");
     features.selectionHasExtend = selectionHasExtend;
 
+    // Test for existence of native selection setBaseAndExtent() method
+    var selectionHasSetBaseAndExtent = isHostMethod(testSelection, "setBaseAndExtent");
+    features.selectionHasSetBaseAndExtent = selectionHasSetBaseAndExtent;
+
     // Test if rangeCount exists
     var selectionHasRangeCount = (typeof testSelection.rangeCount == NUMBER);
     features.selectionHasRangeCount = selectionHasRangeCount;
@@ -132,7 +136,7 @@
             // performed on the current document's selection. See issue 109.
 
             // Note also that if a selection previously existed, it is wiped and later restored by these tests. This
-            // will result in the selection direction begin reversed if the original selection was backwards and the
+            // will result in the selection direction being reversed if the original selection was backwards and the
             // browser does not support setting backwards selections (Internet Explorer, I'm looking at you).
             var sel = window.getSelection();
             if (sel) {
@@ -779,6 +783,12 @@
         }
     }
 
+    function assertValidOffset(node, offset) {
+        if (offset < 0 || offset > (dom.isCharacterDataNode(node) ? node.length : node.childNodes.length)) {
+            throw new DOMException("INDEX_SIZE_ERR");
+        }
+    }
+
     // No current browser conforms fully to the spec for this method, so Rangy's own method is always used
     selProto.collapse = function(node, offset) {
         assertNodeInSameDocument(this, node);
@@ -814,6 +824,28 @@
         range.selectNodeContents(node);
         this.setSingleRange(range);
     };
+
+    if (selectionHasSetBaseAndExtent) {
+        selProto.setBaseAndExtent = function(anchorNode, anchorOffset, focusNode, focusOffset) {
+            this.nativeSelection.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset);
+            this.refresh();
+        };
+    } else if (selectionHasExtend) {
+        selProto.setBaseAndExtent = function(anchorNode, anchorOffset, focusNode, focusOffset) {
+            assertValidOffset(anchorNode, anchorOffset)
+            assertValidOffset(focusNode, focusOffset)
+            assertNodeInSameDocument(this, anchorNode);
+            assertNodeInSameDocument(this, focusNode);
+            var range = api.createRange(node);
+            var isBackwards = (dom.comparePoints(anchorNode, anchorOffset, focusNode, focusOffset) == -1);
+            if (isBackwards) {
+                range.setStartAndEnd(focusNode, focusOffset, anchorNode, anchorOffset);
+            } else {
+                range.setStartAndEnd(anchorNode, anchorOffset, focusNode, focusOffset);
+            }
+            this.setSingleRange(range, isBackwards);
+        };
+    }
 
     selProto.deleteFromDocument = function() {
         // Sepcial behaviour required for IE's control selections

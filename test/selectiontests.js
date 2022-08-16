@@ -385,6 +385,34 @@ function testSelectionAndRangeCreators(wins, winName, selectionCreator, selectio
             t.assertEquivalent(sel.isCollapsed, false);
         }, setUp_noRangeCheck, tearDown_noRangeCheck);
 
+        s.test("setBaseAndExtent forward test", function(t) {
+            var sel = selectionCreator(win);
+            sel.setBaseAndExtent(t.nodes.plainText, 1, t.nodes.boldText, 2)
+            t.assertEquals(sel.rangeCount, 1);
+            t.assertEquivalent(sel.anchorNode, t.nodes.plainText);
+            t.assertEquals(sel.anchorOffset, 1);
+            t.assertEquivalent(sel.focusNode, t.nodes.boldText);
+            t.assertEquals(sel.focusOffset, 2);
+            t.assertEquivalent(sel.isCollapsed, false);
+            if ("isBackward" in sel) {
+                t.assertEquivalent(sel.isBackward(), false);
+            }
+        });
+
+        s.test("setBaseAndExtent backward test", function(t) {
+            var sel = selectionCreator(win);
+            sel.setBaseAndExtent(t.nodes.boldText, 2, t.nodes.plainText, 1)
+            t.assertEquals(sel.rangeCount, 1);
+            t.assertEquivalent(sel.anchorNode, t.nodes.boldText);
+            t.assertEquals(sel.anchorOffset, 2);
+            t.assertEquivalent(sel.focusNode, t.nodes.plainText);
+            t.assertEquals(sel.focusOffset, 1);
+            t.assertEquivalent(sel.isCollapsed, false);
+            if ("isBackward" in sel) {
+                t.assertEquivalent(sel.isBackward(), true);
+            }
+        });
+
         s.test("HTML5 toString script contents test", function(t) {
             var div = doc.createElement("div");
             div.innerHTML = 'one<script type="text/javascript">var x = 1;</script>two';
