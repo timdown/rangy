@@ -480,7 +480,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                                 // Handle case where both text nodes precede the position within the same parent node
                                 if (position.node == parent && position.offset > firstTextNodeIndex) {
                                     --position.offset;
-                                    if (position.offset == firstTextNodeIndex + 1 && i < len - 1) {
+                                    if (position.offset == firstTextNodeIndex + 1 && i < textNodes.length - 1) {
                                         position.node = firstTextNode;
                                         position.offset = combinedTextLength;
                                     }
