@@ -462,6 +462,10 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 throw new Error("No class applier found for class '" + className + "'");
             }
 
+            if(options.dataset && typeof options.dataset == 'object'){
+                classApplier.elementProperties.dataset = {...classApplier.elementProperties.dataset, ...options.dataset}
+            }
+
             // Store the existing selection as character ranges
             var serializedSelection = converter.serializeSelection(selection, containerElement);
 
