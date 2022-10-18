@@ -549,7 +549,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             return serializedHighlights.join("|");
         },
 
-        deserialize: function(serialized) {
+        deserialize: function(serialized, cb) {
             var serializedHighlights = serialized.split("|");
             var highlights = [];
 
@@ -594,6 +594,7 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                 highlights.push(highlight);
             }
             this.highlights = highlights;
+            typeof cb === 'function' && cb();
         }
     };
 
