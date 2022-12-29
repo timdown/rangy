@@ -174,13 +174,17 @@
                     if (chromeMatch && parseInt(chromeMatch[1]) >= 36) {
                         selectionSupportsMultipleRanges = false;
                     } else {
+                        // IE9 Workaround
+                        // Todo: Is this solution well?
+                        selectionSupportsMultipleRanges = false;
+                        /* IE9 Bug - r2 is empty
                         var r2 = r1.cloneRange();
                         r1.setStart(textNode, 0);
                         r2.setEnd(textNode, 3);
                         r2.setStart(textNode, 2);
                         sel.addRange(r1);
                         sel.addRange(r2);
-                        selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                        selectionSupportsMultipleRanges = (sel.rangeCount == 2);*/
                     }
                 }
 
