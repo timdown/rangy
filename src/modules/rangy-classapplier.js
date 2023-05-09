@@ -690,7 +690,23 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         // Normalizes nodes after applying a class to a Range.
-        postApply: function(textNodes, range, positionsToPreserve, isUndo) {
+        postApply: function(textNodesInput, range, positionsToPreserve, isUndo) {
+
+            var textNodes = []
+            forEach(textNodesInput, function(textNode) {
+                // Ignore the react nodes
+                var parent  = textNode
+                while (parent) {
+                    if (parent._reactRootContainer) {
+                        return
+                    }
+                    parent = parent.parentNode
+                }
+                textNodes.push(textNode)
+                //
+            })
+
+
             log.group("postApply " + range.toHtml());
             var firstNode = textNodes[0], lastNode = textNodes[textNodes.length - 1];
 

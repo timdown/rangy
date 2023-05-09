@@ -24,3 +24,6 @@ There is an official Rangy module on NPM called [`rangy`](https://www.npmjs.org/
 ## Documentation
 
 View [the documentation in the wiki](https://github.com/timdown/rangy/wiki). 
+
+## Build
+`./builder/build.sh`
