@@ -146,6 +146,9 @@
         api.util.extend = function(obj, props, deep) {
             var o, p;
             for (var i in props) {
+                if (i === "__proto__" || i === "constructor" || i === "prototype") {
+                    continue;
+                }
                 if (props.hasOwnProperty(i)) {
                     o = obj[i];
                     p = props[i];
