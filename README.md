@@ -3,7 +3,7 @@ Rangy
 
 A cross-browser JavaScript range and selection library.
 
-The current version is version 1.3.1.
+The current version is version 1.3.2.
 
 The latest source code and releases are on [GitHub](../../releases).
 
