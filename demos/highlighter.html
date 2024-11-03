@@ -58,7 +58,7 @@
 
 
         function highlightSelectedText() {
-            highlighter.highlightSelection("highlight");
+            highlighter.highlightSelection("highlight", { dataset: { mark: "note-id" } });
         }
 
         function noteSelectedText() {
