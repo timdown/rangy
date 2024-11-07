@@ -1065,6 +1065,5 @@
                 return getSelection(win);
             };
         }
-        win = null;
     });
 });
