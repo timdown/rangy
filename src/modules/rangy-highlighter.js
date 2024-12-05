@@ -291,6 +291,43 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
             }
         },
 
+        /**
+         * Removes all highlights for the currently selected text and preserves any existing highlights
+         * that were partially selected.
+         */
+        removeHighlightsFromSelection: function(containerElementId) {
+            var _self = this;
+            var doc = this.doc;
+            var currentSelection = api.getSelection(doc);
+            var scope = getContainerElement(currentSelection.win.document, containerElementId);
+            var charRanges = [];
+
+            forEach(currentSelection.getAllRanges(), function(range) {
+                var charRangeScoped = _self.converter.rangeToCharacterRange(range, scope);
+                charRanges.push(charRangeScoped);
+            });
+
+            var newHighlights = [];
+            var intersectingHighlights = this.getHighlightsInSelection(currentSelection);
+            if (intersectingHighlights.length > 0) {
+                forEach(charRanges, function(charRange) {
+                    //for each charRange in the selection, see if it intersects with any existing highlights
+                    //and preserve unselected portions of existing highlights
+                    forEach(intersectingHighlights, function(highlight) {
+                        var complements = highlight.characterRange.getComplements(charRange);
+                        forEach(complements, function(complement) {
+                            newHighlights.push(new Highlight(doc, complement, highlight.classApplier, _self.converter, null, containerElementId));
+                        });
+                    });
+                });
+            }
+            this.removeHighlights(intersectingHighlights);
+            forEach(newHighlights, function(highlight) {
+                highlight.apply();
+                _self.highlights.push(highlight);
+            });
+        },
+
         removeAllHighlights: function() {
             this.removeHighlights(this.highlights);
         },
