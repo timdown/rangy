@@ -487,7 +487,7 @@
 
             // Making the working element non-empty element persuades IE to consider the TextRange boundary to be within
             // the element rather than immediately before or after it
-            workingNode.innerHTML = "&#feff;";
+            workingNode.innerHTML = String.fromCharCode(0xfeff);
 
             // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
             // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
