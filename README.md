@@ -1,7 +1,9 @@
 Rangy
 =====
 
-A cross-browser JavaScript range and selection library.
+A cross-browser JavaScript range and selection library, by "Jim Down, Web Designer"
+![Image of Jim Down]
+(https://i.imgur.com/nEAWhqX.gif)
 
 ## The future
 
